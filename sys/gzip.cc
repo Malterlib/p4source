@@ -11,8 +11,8 @@
 # include <strbuf.h>
 # include <error.h>
 
-# include "zlib.h"
-# include "zutil.h"
+# include <zlib.h>
+# include <zutil.h>
 # include "gzip.h"
 # include <msgsupp.h>
 
