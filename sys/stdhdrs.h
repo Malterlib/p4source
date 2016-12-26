@@ -25,7 +25,21 @@
 
 # ifdef OS_VMS
 # define _POSIX_EXIT  // to get exit status right from stdlib.h
-# endif	
+# endif
+
+# ifdef OS_NT
+# pragma warning(disable:4800)
+# pragma warning(disable:4018)
+# pragma warning(disable:4244)
+# pragma warning(disable:4267)
+# pragma warning(disable:4996)
+# pragma warning(disable:4101)
+# pragma warning(disable:4309)
+# pragma warning(disable:4102)
+# define CLIB_CALLING_CONVENTION __cdecl
+# else
+# define CLIB_CALLING_CONVENTION
+# endif
 
 # include <stdio.h>
 # include <string.h>
@@ -273,7 +287,8 @@ extern "C" int flock( int, int );
 # define getcwd( b, s ) getwd( b )
 # endif
 # if defined(OS_OS2) || defined(OS_NT)
-extern "C" char *getcwd( char *buf, size_t size );
+#include <direct.h>
+//extern "C" char *getcwd( char *buf, size_t size );
 # endif
 # ifdef OS_VMS
 # include <unixlib.h>
@@ -303,8 +318,8 @@ extern "C" int gethostname( char * name, int namelen );
 
 # endif
 
-# if defined(OS_NT) 
-extern "C" int __stdcall gethostname( char * name, int namelen );
+# if defined(OS_NT)
+//extern "C" int __stdcall gethostname( char * name, int namelen );
 # endif
 
 # endif /* NEED_GETHOSTNAME */
@@ -445,7 +460,9 @@ extern "C" int munmap(const caddr_t, size_t);
 # endif /* HAVE_MMAP */
 
 # if defined( NEED_OPENDIR ) || defined( NEED_ALL )
-# include <dirent.h>
+# ifndef OS_NT
+#  include <dirent.h>
+# endif
 # endif
 
 # if defined( NEED_POPEN ) || defined( NEED_ALL )
