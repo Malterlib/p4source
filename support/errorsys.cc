@@ -90,7 +90,6 @@ Error::StrError(StrBuf &buf, int errnum)
 	// For when the posix library doesn't SetLastError().
 	if (errnum == ERROR_SUCCESS)
 	{
-	    extern int errno;
 	    switch (errno)
 	    {
 	    case EMFILE:

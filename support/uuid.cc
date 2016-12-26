@@ -17,7 +17,9 @@
  */
 
 #ifdef OS_NT
+#ifndef _CRT_RAND_S
 #  define _CRT_RAND_S
+#endif
     // define before <stdhdrs.h>/<stdlib.h> to get rand_s()
 #endif // OS_NT
 #include <stdhdrs.h>
