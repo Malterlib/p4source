@@ -162,6 +162,7 @@ extern int commandChaining;
 static char argv0[ 1024 ];
 
 /* And now main... */
+#ifndef P4_API_ONLY
 
 # if defined(OS_NT) && (_MSC_VER >= 1900)
 extern "C" int __p4_argc;
@@ -233,6 +234,7 @@ main( int argc, char **argv )
 
 	return ret;
 }
+#endif
 
 void
 setVarsAndArgs( ClientApi &client, int argc, char **argv, Options &opts)
