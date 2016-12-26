@@ -348,7 +348,7 @@ MapTable::IsSingle() const
 extern "C"
 {
 	
-static int
+static int CLIB_CALLING_CONVENTION
 sortcmplhs( const void *a1, const void *a2 )
 {
 	MapItem **e1 = (MapItem **)a1;
@@ -359,7 +359,7 @@ sortcmplhs( const void *a1, const void *a2 )
 	return r ? r : (*e2)->Slot() - (*e1)->Slot();
 }
 
-static int
+static int CLIB_CALLING_CONVENTION
 sortcmprhs( const void *a1, const void *a2 )
 {
 	MapItem **e1 = (MapItem **)a1;
@@ -371,7 +371,7 @@ sortcmprhs( const void *a1, const void *a2 )
 }
 
 
-static int
+static int CLIB_CALLING_CONVENTION
 sortcmpstreamslhs( const void *a1, const void *a2 )
 {
         int c1, c2;
@@ -450,7 +450,7 @@ sortcmpstreamslhs( const void *a1, const void *a2 )
  * There RHS of a stream type map may have 'type value'
  * cruft on the start of teh map entry that we must skip..
  */
-static int
+static int CLIB_CALLING_CONVENTION
 sortcmpstreamsrhs( const void *a1, const void *a2 )
 {
         int c1, c2;
