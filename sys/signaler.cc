@@ -42,8 +42,8 @@ Signaler signaler;
 // These two babies have C linkage for signal().
 
 extern "C" {
-	static void (*istat)( int ) = SIG_TYPECAST( SIG_DFL );
-	void onintr(int v) { signaler.Intr(); exit(-1); }
+	static void (CLIB_CALLING_CONVENTION *istat)( int ) = SIG_TYPECAST( SIG_DFL );
+	void CLIB_CALLING_CONVENTION onintr(int v) { signaler.Intr(); exit(-1); }
 }
 
 /*
