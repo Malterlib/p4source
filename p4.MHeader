@@ -32,18 +32,45 @@ Compile
 		BaseName "p4api"
 		Type "StaticLibrary"
 		Group "Libraries/SDK"
+		CharacterSet "MultiByte"
+		{
+			!!PlatformFamily Windows
+		}
 	}
 	Compile
 	{
-		!!CompileDialect "C"
+		&
+		{
+			CompileDialect C
+			GeneratorFamily Xcode
+		}
 		Warnings_Parentheses false
 		Warnings_UsusedVariable false
 		Warnings_UnusedLabel false
 		Warnings_OverloadedVirtual false
 		Warnings_CharSubscripts false
-		SearchPath "@('../../SDK/zlib'->MakeAbsolute());@('../../SDK/p4/zlib/gzip'->MakeAbsolute());@('../../SDK/p4/dbsupp'->MakeAbsolute());@('../../SDK/p4/diff'->MakeAbsolute());@('../../SDK/p4/net'->MakeAbsolute());@('../../SDK/p4/rpc'->MakeAbsolute());@(Compile.SearchPath)"
-		PreprocessorDefines "NEED_ALL;register=;OS_@(PerforceOS);ID_OS=\"@(PerforceOS)\";ID_REL=\"@(ProductVersionMajor).@(ProductVersionMinor)\";ID_PATCH=\"@(ProductVersionPatch)\";ID_Y=\"\";ID_M=\"\";ID_D=\"\";@(Compile.PreprocessorDefines)"
+	}
+	Compile
+	{
+		!!CompileDialect "C"
+		SearchPath "@('../../SDK/zlib'->MakeAbsolute());@('../../SDK/p4/zlib/gzip'->MakeAbsolute());@('../../SDK/p4/dbsupp'->MakeAbsolute());@('../../SDK/p4/diff'->MakeAbsolute());@('../../SDK/p4/net'->MakeAbsolute());@(Compile.SearchPath)"
+		SearchPath "@('../../SDK/p4/rpc'->MakeAbsolute());@(Compile.SearchPath)"
+		{
+			!PlatformFamily Windows
+		}
+		PreprocessorDefines "P4_API_ONLY;NEED_ALL;register=;OS_@(PerforceOS);ID_OS=\"@(PerforceOS)\";ID_REL=\"@(ProductVersionMajor).@(ProductVersionMinor)\";ID_PATCH=\"@(ProductVersionPatch)\";ID_Y=\"\";ID_M=\"\";ID_D=\"\";@(Compile.PreprocessorDefines)"
+		PreprocessorDefines "_CRT_RAND_S;@(Compile.PreprocessorDefines)"
+		{
+			!!PlatformFamily Windows
+		}
 		PrefixHeader "@('sys/stdhdrs.h'->MakeAbsolute())"
+		{
+			!PlatformFamily Windows
+		}
+		PrefixHeader ""
+		{
+			!!PlatformFamily Windows
+		}
 	}
 	%Group Source
 	{
@@ -59,6 +86,7 @@ Compile
 			%File "client/clientenv.cc"
 			%File "client/clienti18n.cc"
 			%File "client/clientinit.cc"
+			%File "client/clientmain.cc"
 			%File "client/clientmerge.cc"
 			%File "client/clientmerge2.cc"
 			%File "client/clientmerge3.cc"
@@ -75,6 +103,15 @@ Compile
 			%File "client/clientusernull.cc"
 			%File "client/serverhelper.cc"
 			%File "client/serverhelperapi.cc"
+			%File "client/*.h"
+			Compile.SearchPath "@('../../SDK/p4/rpc'->MakeAbsolute());@(Compile.SearchPath)"
+			{
+				&
+				{
+					CompileDialect C
+					PlatformFamily Windows
+				}
+			}
 		}
 		%Group "rpc"
 		{
@@ -85,6 +122,15 @@ Compile
 			%File "rpc/rpcfwd.cc"
 			%File "rpc/rpcservice.cc"
 			%File "rpc/rpctrans.cc"
+			%File "rpc/*.h"
+			Compile.SearchPath "@('../../SDK/p4/rpc'->MakeAbsolute());@(Compile.SearchPath)"
+			{
+				&
+				{
+					CompileDialect C
+					PlatformFamily Windows
+				}
+			}
 		}
 		%Group "support"
 		{
@@ -127,6 +173,7 @@ Compile
 			%File "support/vararray.cc"
 			%File "support/varlist.cc"
 			%File "support/varqsort.cc"
+			%File "support/*.h"
 		}
 		%Group "msgs"
 		{
@@ -142,9 +189,11 @@ Compile
 			%File "msgs/msgspec.cc"
 			%File "msgs/p4tagl.cc"
 			%File "msgs/p4tags.cc"
+			%File "msgs/*.h"
 		}
 		%Group "sys"
 		{
+			%File "sys/*.h"
 			%File "sys/applefork.cc"
 			%File "sys/echoctl.cc"
 			%File "sys/enviro.cc"
@@ -230,6 +279,7 @@ Compile
 		}
 		%Group "i18n"
 		{
+			%File "i18n/*.h"
 			%File "i18n/charcvt.cc"
 			%File "i18n/charman.cc"
 			%File "i18n/charset.cc"
@@ -247,6 +297,7 @@ Compile
 		}
 		%Group "diff"
 		{
+			%File "diff/*.h"
 			%File "diff/diff.cc"
 			%File "diff/diffan.cc"
 			%File "diff/diffflags.cc"
@@ -258,6 +309,7 @@ Compile
 		}
 		%Group "dbsupp"
 		{
+			%File "dbsupp/*.h"
 			%File "dbsupp/mapchar.cc"
 			%File "dbsupp/maphalf.cc"
 			%File "dbsupp/mapitem.cc"
@@ -267,10 +319,12 @@ Compile
 		}
 		%Group "zlib/gzip"
 		{
+			%File "zlib/*.h"
 			%File "zlib/gzip/gzip.cc"
 		}
 		%Group "net"
 		{
+			%File "net/*.h"
 			%File "net/netbuffer.cc"
 			%File "net/netconnect.cc"
 			%File "net/netaddrinfo.cc"

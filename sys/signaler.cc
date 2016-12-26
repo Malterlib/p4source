@@ -43,8 +43,8 @@ Signaler signaler;
 // In order to make use of onintr, the exit needed to be moved out.
 
 extern "C" {
-	static void (*istat)( int ) = SIG_TYPECAST( SIG_DFL );
-	void onintr(int v) { signaler.Intr(); }
+	static void (CLIB_CALLING_CONVENTION *istat)( int ) = SIG_TYPECAST( SIG_DFL );
+	void CLIB_CALLING_CONVENTION onintr(int v) { signaler.Intr(); }
 }
 
 /*

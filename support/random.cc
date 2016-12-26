@@ -14,7 +14,9 @@
 
 # if defined(OS_NT) && !defined(OS_MINGW)
 # define NEED_RAND_S
+# ifndef _CRT_RAND_S
 # define _CRT_RAND_S
+# endif
 # endif
 
 #include <stdhdrs.h>
