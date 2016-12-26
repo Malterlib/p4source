@@ -45,7 +45,7 @@ Compile
 			GeneratorFamily Xcode
 		}
 		Warnings_Parentheses false
-		Warnings_UsusedVariable false
+		Warnings_UnusedVariable false
 		Warnings_UnusedLabel false
 		Warnings_OverloadedVirtual false
 		Warnings_CharSubscripts false
