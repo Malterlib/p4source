@@ -49,6 +49,7 @@ Compile
 		Warnings_UnusedLabel false
 		Warnings_OverloadedVirtual false
 		Warnings_CharSubscripts false
+		Warnings_Cxx11Narrowing false
 	}
 	Compile
 	{
