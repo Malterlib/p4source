@@ -23,6 +23,7 @@
  */
 
 #pragma once
+#ifdef __cplusplus
 
 # ifdef OS_VMS
 # define _POSIX_EXIT  // to get exit status right from stdlib.h
@@ -904,4 +905,4 @@ typedef int FD_PTR;
 #  define LLONG_MAX   9223372036854775807LL
 # endif
 
-# endif // P4STDHDRS_H
+#endif // __cplusplus
