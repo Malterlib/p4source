@@ -59,7 +59,7 @@ Compile
 		{
 			!PlatformFamily Windows
 		}
-		PreprocessorDefines "P4_API_ONLY;NEED_ALL;register=;OS_@(PerforceOS);ID_OS=\"@(PerforceOS)\";ID_REL=\"@(ProductVersionMajor).@(ProductVersionMinor)\";ID_PATCH=\"@(ProductVersionPatch)\";ID_Y=\"\";ID_M=\"\";ID_D=\"\";@(Compile.PreprocessorDefines)"
+		PreprocessorDefines "USE_SSL;P4_API_ONLY;NEED_ALL;register=;OS_@(PerforceOS);ID_OS=\"@(PerforceOS)\";ID_REL=\"@(ProductVersionMajor).@(ProductVersionMinor)\";ID_PATCH=\"@(ProductVersionPatch)\";ID_Y=\"\";ID_M=\"\";ID_D=\"\";@(Compile.PreprocessorDefines)"
 		PreprocessorDefines "_CRT_RAND_S;@(Compile.PreprocessorDefines)"
 		{
 			!!PlatformFamily Windows
@@ -71,6 +71,10 @@ Compile
 		PrefixHeader ""
 		{
 			!!PlatformFamily Windows
+		}
+		Warnings_UnusedFunction false
+		{
+			!!GeneratorFamily Xcode
 		}
 	}
 	%Group Source
