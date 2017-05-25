@@ -874,7 +874,7 @@ NetSslCredentials::MakeSslCredentials( Error *e )
 	SSLHANDLEFAIL( certificate, e, "X509_new", MsgRpc::SslCertGen, fail );
 
 # if OPENSSL_VERSION_NUMBER < 0x10100000L
-	rsa = RSA_generate_key( SSL_X509_NUMBITS, RSA_F4, Callback, NULL );
+	rsa = RSA_generate_key( SSL_X509_NUMBITS, RSA_F4, NULL, NULL );
 	SSLHANDLEFAIL( rsa, e, "RSA_generate_key", MsgRpc::SslCertGen, fail );
 # else
 	rsa = RSA_new();
