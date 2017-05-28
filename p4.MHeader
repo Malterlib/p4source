@@ -64,6 +64,10 @@ Compile
 		{
 			!!PlatformFamily Windows
 		}
+		PreprocessorDefines "register=;@(Compile.PreprocessorDefines)"
+		{
+			!PlatformFamily Windows
+		}
 		PrefixHeader "@('sys/stdhdrs.h'->MakeAbsolute())"
 		{
 			!PlatformFamily Windows
