@@ -54,7 +54,7 @@ Compile
 	Compile
 	{
 		!!CompileDialect "C"
-		SearchPath "@('../../SDK/p4/zlib/gzip'->MakeAbsolute());@('../../SDK/p4/dbsupp'->MakeAbsolute());@('../../SDK/p4/diff'->MakeAbsolute());@('../../SDK/p4/net'->MakeAbsolute());@(Compile.SearchPath)"
+		SearchPath "@('../../External/zlib/contrib/minizip'->MakeAbsolute());@('../../SDK/p4/zlib/gzip'->MakeAbsolute());@('../../SDK/p4/dbsupp'->MakeAbsolute());@('../../SDK/p4/diff'->MakeAbsolute());@('../../SDK/p4/net'->MakeAbsolute());@(Compile.SearchPath)"
 		SearchPath "@('../../SDK/p4/rpc'->MakeAbsolute());@(Compile.SearchPath)"
 		{
 			!PlatformFamily Windows
