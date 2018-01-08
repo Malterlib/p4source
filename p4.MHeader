@@ -50,6 +50,7 @@ Compile
 		Warnings_OverloadedVirtual false
 		Warnings_CharSubscripts false
 		Warnings_Cxx11Narrowing false
+		Warnings_DeprecatedDeclarations false
 	}
 	Compile
 	{
