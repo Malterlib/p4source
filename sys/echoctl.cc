@@ -98,7 +98,7 @@ NoEcho::NoEcho()
 	TIO_NOECHO( context->tio );
 	TIO_SET( context->tio );
 	cleanup = true;
-	signaler.OnIntr( (SignalFunc)EchoCleanup, this );
+	(*signaler).OnIntr( (SignalFunc)EchoCleanup, this );
 }
 
 NoEcho::~NoEcho()
@@ -108,7 +108,7 @@ NoEcho::~NoEcho()
 	if( cleanup )
 	{
 	    SetCleanup( false );
-	    signaler.DeleteOnIntr( this );
+		(*signaler).DeleteOnIntr( this );
 	}
 	delete context;
 }
