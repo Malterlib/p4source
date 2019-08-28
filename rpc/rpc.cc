@@ -342,7 +342,7 @@ Rpc::Rpc( RpcService *s )
 
 Rpc::~Rpc( void )
 {
-	signaler.DeleteOnIntr( this );
+	(*signaler).DeleteOnIntr( this );
 	Disconnect();
 
 	delete sendBuffer;
@@ -454,7 +454,7 @@ Rpc::Connect( Error *e )
 	transport->SetBufferSizes( rpc_hi_mark_fwd, rpc_hi_mark_rev );
 
 	if( service->openFlag == RPC_CONNECT )
-	    signaler.OnIntr( (SignalFunc)RpcCleanup, this );
+	    (*signaler).OnIntr( (SignalFunc)RpcCleanup, this );
 }
 
 void

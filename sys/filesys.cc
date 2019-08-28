@@ -139,7 +139,7 @@ FileSys::Create( FileSysType t, FileSysBuffer *buf )
 
 	// Arrange for temps to blow on exit.
 	if( P4FileSysCreateOnIntr )
-	    signaler.OnIntr( (SignalFunc)FileSysCleanup, f );
+		(*signaler).OnIntr( (SignalFunc)FileSysCleanup, f );
 
 	return f;
 }
@@ -179,7 +179,7 @@ FileSys::~FileSys()
 	// on interrupt anymore.
 
 	if( P4FileSysCreateOnIntr )
-	    signaler.DeleteOnIntr( this );
+		(*signaler).DeleteOnIntr( this );
 
 	// If there's a delegate, it may be deleted now
 	// Or not, depending on what the caller needs
