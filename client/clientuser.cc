@@ -789,7 +789,7 @@ ClientUser::RunCmd(
 
 	fflush( stdout );
 
-	signaler.Block();	// reset SIGINT to SIGDFL
+	(*signaler).Block();	// reset SIGINT to SIGDFL
 
 	// Use AddCmd() to handle command which may be a mix of
 	// cmd name (with spaces on NT) and flags (following spaces).
@@ -811,7 +811,7 @@ ClientUser::RunCmd(
 	rc->Run( cmd, e );
 	delete rc;
 
-	signaler.Catch();	// catch SIGINT again
+	(*signaler).Catch();	// catch SIGINT again
 }
 
 FileSys *
@@ -921,7 +921,7 @@ ClientUser::SetOutputCharset( int charset )
 void
 ClientUser::DisableTmpCleanup()
 {
-	signaler.Disable();
+	(*signaler).Disable();
 }
 
 void

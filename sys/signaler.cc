@@ -37,13 +37,13 @@
 
 // Global signaler.
 
-Signaler signaler;
+NStorage::TCAggregate<Signaler> signaler = {DAggregateInit};
 
 // These two babies have C linkage for signal().
 
 extern "C" {
 	static void (CLIB_CALLING_CONVENTION *istat)( int ) = SIG_TYPECAST( SIG_DFL );
-	void CLIB_CALLING_CONVENTION onintr(int v) { signaler.Intr(); exit(-1); }
+	void CLIB_CALLING_CONVENTION onintr(int v) { (*signaler).Intr(); exit(-1); }
 }
 
 /*
@@ -63,14 +63,6 @@ Signaler::Signaler()
 {
 	Catch();
 
-# ifdef OS_NT
-	hmutex =	CreateMutex( NULL, FALSE, NULL );
-# else
-# ifdef HAS_CPP11
-	mutex = 0;
-# endif
-# endif
-
 	list = 0;
 	disable = 0;
 	isIntr = false;
@@ -78,50 +70,12 @@ Signaler::Signaler()
 
 Signaler::~Signaler()
 {
-	// We have a single global Signaler instance, and the methods in it
-	// are called by other global objects. Since the order of destructors
-	// of global objects is not under our control, we can't always close the
-	// mutex here, because other objects may continue to try calling the
-	// Signaler object even after the Signaler object's destructor has
-	// been called. So we leave the mutex handle open unless we're in the
-	// disabled state, and let the operating system clean it up when we exit.
-
-	if( !disable )
-	    return;
-
-# ifdef OS_NT
-	CloseHandle( hmutex );
-# else
-# ifdef HAS_CPP11
-	delete mutex;
-	mutex = 0;
-# endif
-# endif
 }
 
 void
 Signaler::Init()
 {
-#if !defined(OS_NT) && defined(HAS_CPP11)
-	GetMutex();
-# endif
 }
-
-#if !defined(OS_NT) && defined(HAS_CPP11)
-
-std::mutex& Signaler::GetMutex()
-{
-	// This isn't thread-safe, but the P4API does a number of things
-	// single-threaded that will cause this to be initialized early
-	// when it's safe.
-
-	if( !mutex )
-	    mutex = new std::mutex;
-
-	return *mutex;
-}
-
-# endif
 
 void
 Signaler::Disable()
@@ -178,14 +132,7 @@ Signaler::OnIntr( SignalFunc callback, void *ptr )
 	if( disable )
 	    return;
 
-# ifdef OS_NT
-	WaitForSingleObject( hmutex, INFINITE );
-# else // OS_NT
-# ifdef HAS_CPP11
-	try {
-	std::lock_guard< std::mutex > lock( GetMutex() );
-# endif // HAS_CPP11
-# endif // OS_NT
+	DMibLock(mutex);
 
 	SignalMan *d = new SignalMan;
 
@@ -193,17 +140,6 @@ Signaler::OnIntr( SignalFunc callback, void *ptr )
 	d->callback = callback;
 	d->ptr = ptr;
 	list = d;
-
-# ifdef OS_NT
-	ReleaseMutex( hmutex );
-# else // OS_NT
-# ifdef HAS_CPP11
-	} catch( const std::system_error& e )
-	// Throw away the error since it only shows up on ctrl-c:
-	// "device or resource busy: device or resource busy"
-	{}
-# endif // HAS_CPP11
-# endif // OS_NT
 }
 
 void
@@ -212,14 +148,7 @@ Signaler::DeleteOnIntr( void *ptr )
 	if( disable )
 	    return;
 
-# ifdef OS_NT
-	WaitForSingleObject( hmutex, INFINITE );
-# else // OS_NT
-# ifdef HAS_CPP11
-	try {
-	std::lock_guard< std::mutex > lock( GetMutex() );
-# endif // HAS_CPP11
-# endif // OS_NT
+	DMibLock(mutex);
 
 	SignalMan *p = 0;
 	SignalMan *d = list;
@@ -231,25 +160,9 @@ Signaler::DeleteOnIntr( void *ptr )
 		if( p ) p->next = d->next;
 		else list = d->next;
 		delete d;
-
-# ifdef OS_NT
-		ReleaseMutex( hmutex );
-# endif
 		return;
 	    }
 	}
-
-# ifdef OS_NT
-	ReleaseMutex( hmutex );
-# else // OS_NT
-# ifdef HAS_CPP11
-	} catch( const std::system_error& e )
-	// Throw away the error since it only shows up on ctrl-c:
-	// "device or resource busy: device or resource busy"
-	{}
-# endif // HAS_CPP11
-# endif // OS_NT
-
 }
 
 NO_SANITIZE_UNDEFINED
@@ -272,15 +185,7 @@ Signaler::Intr()
 
 	signal( SIGINT, SIG_TYPECAST( istat ) );
 
-# ifdef OS_NT
-	WaitForSingleObject( hmutex, INFINITE );
-# else // OS_NT
-# ifdef HAS_CPP11
-	try {
-	std::lock_guard< std::mutex > lock( GetMutex() );
-# endif // HAS_CPP11
-# endif // OS_NT
-
+	DMibLock(mutex);
 	while( d )
 	{
 	    // The callback may delete d
@@ -290,16 +195,4 @@ Signaler::Intr()
 	    d = d->next;
 	    runCallback( p );
 	}
-
-# ifdef OS_NT
-	ReleaseMutex( hmutex );
-# else // OS_NT
-# ifdef HAS_CPP11
-	} catch( const std::system_error& e )
-	// Throw away the error since it only shows up on ctrl-c:
-	// "device or resource busy: device or resource busy"
-	{}
-# endif // HAS_CPP11
-# endif // OS_NT
-
 }
