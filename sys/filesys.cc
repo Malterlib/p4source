@@ -128,7 +128,7 @@ FileSys::Create( FileSysType t )
 
 	// Arrange for temps to blow on exit.
 	if( P4FileSysCreateOnIntr )
-	    signaler.OnIntr( (SignalFunc)FileSysCleanup, f );
+		(*signaler).OnIntr( (SignalFunc)FileSysCleanup, f );
 
 	return f;
 }
@@ -167,7 +167,7 @@ FileSys::~FileSys()
 	// on interrupt anymore.
 
 	if( P4FileSysCreateOnIntr )
-	    signaler.DeleteOnIntr( this );
+		(*signaler).DeleteOnIntr( this );
 }
 
 int
