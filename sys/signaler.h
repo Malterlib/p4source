@@ -21,14 +21,7 @@
  * Requires cooperation from the TempFile objects to delete files.
  */
 
-# ifdef OS_NT
-typedef void *HANDLE;
-# else // OS_NT
-# ifdef HAS_CPP11
-# include <memory>
-# include <mutex>
-# endif // HAS_CPP11
-# endif // OS_NT
+#include <Mib/Core/Core>
 
 struct SignalMan;
 
@@ -59,20 +52,7 @@ class Signaler {
 	int		disable;
 	bool		isIntr;
 
-	// If we're compiling with the C++11 standard or higher, we use
-	// the built-in thread support on all platforms.  If not, we fall
-	// back to only having synchronization on Windows.
-
-# ifdef OS_NT
-	HANDLE		hmutex;
-# else // OS_NT
-# ifdef HAS_CPP11
-		std::mutex* mutex;
-
-		std::mutex&	GetMutex();
-# endif // HAS_CPP11
-# endif // OS_NT
-
+	NMib::NThread::CMutual mutex;
 } ;
 
-extern Signaler signaler;
+extern NMib::NStorage::TCAggregate<Signaler> signaler;
