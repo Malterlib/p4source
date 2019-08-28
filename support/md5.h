@@ -8,6 +8,8 @@
  * md5.h -- MD5 (message digest algorithm) interface
  */
 
+#include <Mib/Core/Core>
+
 # ifndef USE_SSL
 
 #if defined(__GNUC__)
@@ -28,10 +30,6 @@
 
 # ifdef OS_UNICOS
 # define INT_TOO_BIG
-# endif
-
-# ifndef INT_TOO_BIG
-typedef unsigned int uint32;
 # endif
 
 # ifdef INT_TOO_BIG
