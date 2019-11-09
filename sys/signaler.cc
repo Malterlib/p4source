@@ -37,7 +37,7 @@
 
 // Global signaler.
 
-NStorage::TCAggregate<Signaler> signaler = {DAggregateInit};
+constinit NStorage::TCAggregate<Signaler> signaler = {DAggregateInit};
 
 // These two babies have C linkage for signal().
 
