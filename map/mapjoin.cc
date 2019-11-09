@@ -327,11 +327,8 @@ MapTable::Disambiguate( int maxLookBack )
 	    // unmap to the extent that the unmap lines match lower
 	    // precedence map lines.  We do that below.
 
-	    switch( j.map->Flag() )
-	    {
-	    case MfUnmap:
-		continue;
-	    }
+	    if( j.map->Flag() == MfUnmap )
+			continue;
 
 	    // Look for higher precedence mappings that match (join)
 	    // this mapping, and to the extent that they overlap add 
