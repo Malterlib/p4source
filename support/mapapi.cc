@@ -64,6 +64,8 @@ MapType MapApi::GetType( int i )
 		return MapOverlay;
 	case MfAndmap:
 		return MapOneToMany;
+	default:
+		break;
 	}
 
 	// We should never get to this point, since we should never be
