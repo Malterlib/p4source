@@ -37,7 +37,7 @@
 
 // Global signaler.
 
-NStorage::TCAggregate<Signaler> signaler = {DAggregateInit};
+constinit NStorage::TCAggregate<Signaler> signaler = {DAggregateInit};
 
 // These two babies have C linkage for signal().
 // In order to make use of onintr, the exit needed to be moved out.
@@ -73,6 +73,7 @@ Signaler::Signaler()
 	// be moved so that a Control-C did not always end in termination.
 
 	isMaskedIntr = false;
+	mask = 0;
 }
 
 Signaler::~Signaler()
