@@ -778,6 +778,8 @@ DiffMerge::DiffDiff()
 	        df3->EndL1() >= df1->StartLeg() ) // trust outer - insert L2
 	    { d.mode = INSY2; d.diffs = DD_LEG2; }
 	    break;
+	default:
+	    break;
 	}
 
 	oldMode = d.mode;
@@ -897,6 +899,8 @@ DiffMerge::DiffDiff()
 	case INS12:
 	    l1 = dmin( df1->StartLeg(), df3->StartL1() );
 	    l2 = dmin( df2->StartLeg(), df3->StartL2() );
+	    break;
+	default:
 	    break;
 	}
 
@@ -1086,6 +1090,8 @@ DiffMerge::DiffDiff()
 	        case EDITC2:  if( !ab && !a1) d.diffs = DD_LEG2;
 	                      break;
 	        case BOTH:    if( !ab && !a1 && !a2 ) d.diffs = DD_BOTH;
+	                      break;
+	        default:
 	                      break;
 	        }
 	    }

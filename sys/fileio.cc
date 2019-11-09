@@ -655,6 +655,7 @@ FileIO::Chmod( FilePerm perms, Error *e )
 	case FPM_RWO: bits = PERM_0600; break; // for key file, set exactly to rwo
 	case FPM_RXO: bits = PERM_0500; break;
 	case FPM_RWXO: bits = PERM_0700; break;
+	case FPM_RW: break;
 	}
 
 	if( chmod( Name(), bits & ~global_umask ) >= 0 )

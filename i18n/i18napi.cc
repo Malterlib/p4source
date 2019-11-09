@@ -226,6 +226,8 @@ CharSetApi::isUnicode(CharSetApi::CharSet c)
 	case UTF_32_LE_BOM:
 	case UTF_32_BE_BOM:
 	    return 1;
+	default:
+		break;
 	}
 	return 0;
 }
