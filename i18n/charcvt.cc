@@ -174,6 +174,9 @@ CharSetCvt::FindCvt(CharSetCvt::CharSet from, CharSetCvt::CharSet to)
 		return new CharSetCvtUTF8toSimple(12);
 	    case ISO8859_2:
 		return new CharSetCvtUTF8toSimple(14);
+		case CSLOOKUP_ERROR:
+		case NOCONV:
+		break;
 	    }
 	    break;
 	case UTF_8_UNCHECKED_BOM:
@@ -320,6 +323,9 @@ CharSetCvt::FindCvt(CharSetCvt::CharSet from, CharSetCvt::CharSet to)
 	    if (to == UTF_8)
 		return new CharSetCvtSimpletoUTF8(14);
 	    break;
+	case CSLOOKUP_ERROR:
+	case NOCONV:
+	break;
 	}
 	return NULL;
 }
