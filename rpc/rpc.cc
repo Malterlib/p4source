@@ -1771,6 +1771,8 @@ RpcUtility::Generate(RpcUtilityType type,
 		    printf("Fingerprint: %s\n", fingerprint->Text());
 	    }
 	    break;
+	case Generate_Uninitialized:
+		break;
 	}
 	return;
 # else

@@ -189,6 +189,7 @@ VVarArray::Diff( Op op, VarArray &that )
 	    case Free:		Destroy( Get( i1++ ) ); break;
 	    case PutOut:	Move( i1++, o1++ ); break;
 	    case Put3rd: 	third->Put( Get( i1++ ) ); break;
+		case Stay:		break;
 	    }
 
 	    // What to do with that?
@@ -198,6 +199,7 @@ VVarArray::Diff( Op op, VarArray &that )
 	    case Free:		Destroy( that.Get( i2++ ) ); break;
 	    case PutOut:	that.Move( i2++, o2++ ); break;
 	    case Put3rd: 	third->Put( that.Get( i2++ ) ); break;
+		case Stay:		break;
 	    }
 	}
 
