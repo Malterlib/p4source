@@ -2,29 +2,29 @@ Compile
 {
 	&
 	{
-		CompileDialect C
+		CompileDialect "C"
 		AddIncludePaths_p4api true
 	}
 	
 	SearchPath "@('../../SDK/p4/client'->MakeAbsolute());@('../../SDK/p4/sys'->MakeAbsolute());@('../../SDK/p4/support'->MakeAbsolute());@('../../SDK/p4/msgs'->MakeAbsolute());@('../../SDK/p4/i18n'->MakeAbsolute());@(Compile.SearchPath)"
 }
 
-%Target Lib_p4api
+%Target "Lib_p4api"
 {
 	Property
 	{
 		AddIncludePaths_p4api true
 		PerforceOS "MACOSX"
 		{
-			!!PlatformFamily OSX
+			!!PlatformFamily "OSX"
 		}
 		PerforceOS "LINUX"
 		{
-			!!PlatformFamily Linux
+			!!PlatformFamily "Linux"
 		}
 		PerforceOS "NT"
 		{
-			!!PlatformFamily Windows
+			!!PlatformFamily "Windows"
 		}
 	}
 	Target
@@ -34,15 +34,15 @@ Compile
 		Group "Libraries/SDK"
 		CharacterSet "MultiByte"
 		{
-			!!PlatformFamily Windows
+			!!PlatformFamily "Windows"
 		}
 	}
 	Compile
 	{
 		&
 		{
-			CompileDialect C
-			GeneratorFamily Xcode
+			CompileDialect "C"
+			GeneratorFamily "Xcode"
 		}
 		Warnings_Parentheses false
 		Warnings_UnusedVariable false
@@ -58,31 +58,31 @@ Compile
 		SearchPath "@('../../External/zlib/contrib/minizip'->MakeAbsolute());@('../../SDK/p4/zlib/gzip'->MakeAbsolute());@('../../SDK/p4/dbsupp'->MakeAbsolute());@('../../SDK/p4/diff'->MakeAbsolute());@('../../SDK/p4/net'->MakeAbsolute());@(Compile.SearchPath)"
 		SearchPath "@('../../SDK/p4/rpc'->MakeAbsolute());@(Compile.SearchPath)"
 		{
-			!PlatformFamily Windows
+			!PlatformFamily "Windows"
 		}
 		PreprocessorDefines "USE_SSL;P4_API_ONLY;NEED_ALL;OS_@(PerforceOS);ID_OS=\"@(PerforceOS)\";ID_REL=\"@(ProductVersionMajor).@(ProductVersionMinor)\";ID_PATCH=\"@(ProductVersionPatch)\";ID_Y=\"\";ID_M=\"\";ID_D=\"\";@(Compile.PreprocessorDefines)"
 		PreprocessorDefines "_CRT_RAND_S;@(Compile.PreprocessorDefines)"
 		{
-			!!PlatformFamily Windows
+			!!PlatformFamily "Windows"
 		}
 		PrefixHeader "@('sys/stdhdrs.h'->MakeAbsolute())"
 		{
-			!PlatformFamily Windows
+			!PlatformFamily "Windows"
 		}
 		PrefixHeader ""
 		{
-			!!PlatformFamily Windows
+			!!PlatformFamily "Windows"
 		}
 		Warnings_UnusedFunction false
 		{
-			!!GeneratorFamily Xcode
+			!!GeneratorFamily "Xcode"
 		}
 	}
-	%Group Source
+	%Group "Source"
 	{
  /*		%File "^*"
 		{
-			Compile.Disabled "true"
+			Compile.Disabled true
 		}*/
 		%Group "client"
 		{
@@ -114,8 +114,8 @@ Compile
 			{
 				&
 				{
-					CompileDialect C
-					PlatformFamily Windows
+					CompileDialect "C"
+					PlatformFamily "Windows"
 				}
 			}
 		}
@@ -133,8 +133,8 @@ Compile
 			{
 				&
 				{
-					CompileDialect C
-					PlatformFamily Windows
+					CompileDialect "C"
+					PlatformFamily "Windows"
 				}
 			}
 		}
@@ -239,48 +239,48 @@ Compile
 			
 			%File "sys/macfile.cc"
 			{
-				!!PlatformFamily OSX
+				!!PlatformFamily "OSX"
 			}
 			%File "sys/fileioappm.cc"
 			{
-				!!PlatformFamily OSX
+				!!PlatformFamily "OSX"
 			}
 			%File "sys/fileiomac.cc"
 			{
-				!!PlatformFamily OSX
+				!!PlatformFamily "OSX"
 			}
 			%File "sys/macutil.m"
 			{
-				!!PlatformFamily OSX
+				!!PlatformFamily "OSX"
 			}
 			%File "sys/fileioapp.cc"
 			{
-				!PlatformFamily OSX
+				!PlatformFamily "OSX"
 			}
 
 			%File "sys/fileiont.cc"
 			{
-				!!PlatformFamily Windows
+				!!PlatformFamily "Windows"
 			}
 			%File "sys/ntmangle.cc"
 			{
-				!!PlatformFamily Windows
+				!!PlatformFamily "Windows"
 			}
 			%File "sys/nterror.cc"
 			{
-				!!PlatformFamily Windows
+				!!PlatformFamily "Windows"
 			}
 			%File "sys/ntinvargs.cc"
 			{
-				!!PlatformFamily Windows
+				!!PlatformFamily "Windows"
 			}
 			%File "sys/ntservice.cc"
 			{
-				!!PlatformFamily Windows
+				!!PlatformFamily "Windows"
 			}
 			%File "sys/ntthdlist.cc"
 			{
-				!!PlatformFamily Windows
+				!!PlatformFamily "Windows"
 			}
 		}
 		%Group "i18n"
