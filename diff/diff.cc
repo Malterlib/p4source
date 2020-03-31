@@ -226,22 +226,33 @@ Diff::DiffNorm()
 	    char c;
 	    LineNo nx = s->u, ny = s->v;
 
-	    if( s->u < t->x && s->v < t->y )	c = 'c', ++nx, ++ny;
-	    else if( s->u < t->x ) 		c = 'd', ++nx;
-	    else if( s->v < t->y ) 		c = 'a', ++ny;
-	    else				continue;
+	    if( s->u < t->x && s->v < t->y )
+			c = 'c', ++nx, ++ny;
+	    else if( s->u < t->x )
+			c = 'd', ++nx;
+	    else if( s->v < t->y )
+			c = 'a', ++ny;
+	    else
+			continue;
 
-				    	fprintf( out, "%d", nx );
-	    if( t->x > nx )		fprintf( out, ",%d", t->x );
-				    	fprintf( out, "%c%d", c, ny );
-	    if( t->y > ny )		fprintf( out, ",%d", t->y );
-	    				fprintf( out, "%s", newLines );
+		fprintf( out, "%d", nx );
+
+	    if( t->x > nx )
+			fprintf( out, ",%d", t->x );
+
+		fprintf( out, "%c%d", c, ny );
+
+		if( t->y > ny )
+			fprintf( out, ",%d", t->y );
+
+		fprintf( out, "%s", newLines );
 
 	    /* Line lines that differ */
 
 	    Walker( "< ", spx, s->u, t->x );
 
-	    if( c == 'c' ) 		fprintf( out, "---%s", newLines );
+	    if( c == 'c' )
+			fprintf( out, "---%s", newLines );
 
 	    Walker( "> ", spy, s->v, t->y );
 	}
