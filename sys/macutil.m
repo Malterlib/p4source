@@ -33,12 +33,10 @@ bool RunCommandInNewTerminalWithCFStrRef( CFStringRef command )
 		"\n do script  \"%@\" in window 1"
 		"\n end if"
 		"\n end tell",
-		(NSString*)command, (NSString*)command];
+					(__bridge NSString*)command, (__bridge NSString*)command];
 		
     NSAppleScript * as = [[NSAppleScript alloc] initWithSource: s];
     NSAppleEventDescriptor * desc = [as executeAndReturnError:nil];
-    [as release];
-    [s release];
     return desc != nil;
 }
 
@@ -46,10 +44,8 @@ bool RunCommandInNewTerminal( const char * command )
 {
     NSString * cmd = [[NSString alloc] initWithCString:command encoding:[NSString defaultCStringEncoding]];
     
-    bool result = RunCommandInNewTerminalWithCFStrRef( (CFStringRef)cmd );
-    
-    [cmd release];
-    
+	bool result = RunCommandInNewTerminalWithCFStrRef( (__bridge CFStringRef)cmd );
+
     return result;
 }
 
@@ -72,7 +68,4 @@ char * CreateFullPathToApplicationBundle( const char * path )
         return returnVal;
     free(returnVal);
     return NULL;
-    
 }
-
-
