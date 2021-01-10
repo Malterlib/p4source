@@ -1040,6 +1040,9 @@ Rpc::DispatchOne( RpcDispatcher *dispatcher, bool passError )
 
 	// Receive sender's buffer and then parse the variables out.
 	
+	if (!transport)
+		return;
+
 	timer->Start();
 
 	int sz = transport->Receive( recvBuffer->GetBuffer(), &re, &se );
