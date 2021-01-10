@@ -1099,6 +1099,9 @@ Rpc::DispatchOne( RpcDispatcher *dispatcher, bool passError )
 
 	// Receive sender's buffer and then parse the variables out.
 	
+	if (!transport)
+		return;
+
 	timer->Start();
 
 	int delay = p4tunable.Get( P4TUNE_RPC_DELAY );
