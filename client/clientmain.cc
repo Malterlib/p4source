@@ -33,7 +33,7 @@
 # include <p4libs.h>
 # include <errornum.h>
 # include <options.h>
-# include <rpc.h>
+# include <p4rpc.h>
 # include <pathsys.h>
 
 # include "client.h"
