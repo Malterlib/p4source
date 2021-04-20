@@ -13,7 +13,7 @@
 # include <error.h>
 # include <vararray.h>
 
-# include "rpc.h"
+# include "p4rpc.h"
 # include "rpcdispatch.h"
 # include "rpcdebug.h"
 

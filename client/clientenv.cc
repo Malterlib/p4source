@@ -20,7 +20,7 @@
 # include <hostenv.h>
 # include <i18napi.h>
 # include <charcvt.h>
-# include <rpc.h>
+# include <p4rpc.h>
 
 # include <pathsys.h>
 
