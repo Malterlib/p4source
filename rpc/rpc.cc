@@ -9,13 +9,13 @@
  *
  * The general flow of the client/server protocol:
  *
- * 	The client sends a message containing the user's request to the 
+ * 	The client sends a message containing the user's request to the
  *	server and then dispatches, i.e. reads and executes requests from
  *	the server until the server sends the "release" message.
  *
  *	The server initially dispatches, i.e. reads and executes a
  *	request from the user.  The final act of the request should
- *	either be to release the client (send the "release" message), 
+ *	either be to release the client (send the "release" message),
  *	or send a message to the client instructing it to invoke
  *	(eventually) another server request.  In the end, the final
  *	message sent to the client should be "release".
@@ -63,7 +63,7 @@ extern "C" {	// OpenSSL
 # include "enviro.h"
 # include "filesys.h"
 # include "pathsys.h"
-# include "rpc.h"
+# include "p4rpc.h"
 # include "rpcbuffer.h"
 # include "rpctrans.h"
 # include "rpcdispatch.h"
@@ -130,7 +130,7 @@ RpcService::SetEndpoint( const char *addr, Error *e )
  * RpcService::Dispatcher() - add another list of function to call on received RPC
  */
 
-void		
+void
 RpcService::Dispatcher( const RpcDispatch *dispatch )
 {
 	dispatcher->Add( dispatch );
@@ -329,7 +329,7 @@ Rpc::Rpc( RpcService *s )
 	protocolSent = 0;
 	protocolServer = 0;
 
-	rpc_hi_mark_rev = 
+	rpc_hi_mark_rev =
 	rpc_hi_mark_fwd = p4tunable.Get( P4TUNE_RPC_HIMARK );
 	rpc_lo_mark = p4tunable.Get( P4TUNE_RPC_LOWMARK );
 
@@ -363,7 +363,7 @@ Rpc::DoHandshake( Error *e )
 	    transport->DoHandshake(e);
 }
 
-void 
+void
 Rpc::ClientMismatch( Error *e )
 {
 	if( transport )
@@ -416,22 +416,22 @@ Rpc::Connect( Error *e )
 	re.Clear();
 	se.Clear();
 
-	// Create the transport layer, 
+	// Create the transport layer,
 	// Cleanup code is in Disconnect().
 
 	NetTransport *t = 0;
 
 	switch( service->openFlag )
 	{
-	case RPC_LISTEN:   
+	case RPC_LISTEN:
 	    t = service->endPoint->Accept( keep, e );
 	    break;
 
-	case RPC_CONNECT:  
+	case RPC_CONNECT:
 	    t = service->endPoint->Connect( e );
 	    break;
 
-	default:    	    
+	default:
 	    e->Set( MsgRpc::Unconn );
 	}
 
@@ -464,7 +464,7 @@ Rpc::Connect( Error *e )
 
 void
 Rpc::GetEncryptionType( StrBuf &value )
-{ 
+{
 	if( transport )
 	    transport->GetEncryptionType( value );
 }
@@ -567,9 +567,9 @@ Rpc::SetHiMark( int sndbuf, int rcvbuf )
 
 	RPC_DBG_PRINTF( DEBUG_CONNECT,
 		"Rpc himark: snd+rcv server %d+%d client %d+%d = %d/%d",
-		    transport->GetSendBuffering(), 
-		    transport->GetRecvBuffering(), 
-		    sndbuf, rcvbuf, 
+		    transport->GetSendBuffering(),
+		    transport->GetRecvBuffering(),
+		    sndbuf, rcvbuf,
 		    rpc_hi_mark_fwd,
 		    rpc_hi_mark_rev );
 }
@@ -623,7 +623,7 @@ Rpc::MakeVar( const char *var )
 	return sendBuffer->MakeVar( StrRef( (char *)var ) );
 }
 
-void		
+void
 Rpc::VSetVar( const StrPtr &var, const StrPtr &value )
 {
 	sendBuffer->SetVar( var, value );
@@ -765,7 +765,7 @@ void
 Rpc::InvokeDuplexPlus( const char *opName, int extra )
 {
 	// This data makes a loop: meter it, so we know to dispatch for it.
-	// We know the return will have some extra content, supply that 
+	// We know the return will have some extra content, supply that
 	// so we can add it in to better estimate the return
 
 	int sz = InvokeOne( opName ) + extra;
@@ -821,7 +821,7 @@ Rpc::InvokeOver( const char *opName )
 	Dispatch( DfOver, service->dispatcher );
 }
 
-int		
+int
 Rpc::InvokeOne( const char *opName )
 {
 	// Don't pile errors
@@ -845,7 +845,7 @@ Rpc::InvokeOne( const char *opName )
 	    int rz = transport->GetRecvBuffering();
 
 	    buf.CopyBuffer( service->protoSendBuffer );
-	    
+
 	    int i = 0;
 	    StrRef var, val;
 	    while( protoDynamic->GetVar( i++, var, val ) )
@@ -930,7 +930,7 @@ Rpc::InvokeOne( const char *opName )
 	// Get size of buffer so we know how full the pipe is.
 	// We must include RpcTransport's overhead.
 
-	int sz = sendBuffer->GetBufferSize() + transport->SendOverhead(); 
+	int sz = sendBuffer->GetBufferSize() + transport->SendOverhead();
 
 	sendBuffer->Clear();
 
@@ -960,7 +960,7 @@ Rpc::GotFlushed()
  * Rpc::DispatchOne() - just dispatch from the current buffer
  */
 
-void		
+void
 Rpc::Dispatch( DispatchFlag flag, RpcDispatcher *dispatcher )
 {
 	// Don't nest more than once: we only allow a
@@ -968,7 +968,7 @@ Rpc::Dispatch( DispatchFlag flag, RpcDispatcher *dispatcher )
 
 	if( dispatchDepth > 1 )
 	    return;
-	
+
 	// If we're containing this dispatch, don't increment the depth.
 	// We only do this when we know that the original dispatcher is
 	// effectivly paused, waiting for this to complete.
@@ -979,7 +979,7 @@ Rpc::Dispatch( DispatchFlag flag, RpcDispatcher *dispatcher )
 	RPC_DBG_PRINTF( DEBUG_FLOW,
 	        ">>> Dispatch(%d%s) %d/%d %d/%d %d",
 	        dispatchDepth, flag == DfContain ? "+" : "",
-	        duplexFsend, duplexFrecv, 
+	        duplexFsend, duplexFrecv,
 	        duplexRsend, duplexRrecv, flag );
 
 	// Use server's recv buffer size as himark for InvokeDuplex()
@@ -1109,7 +1109,7 @@ Rpc::DispatchOne( RpcDispatcher *dispatcher, bool passError )
 	// acks), so we read until the receive pipe is broken too.
 
 	// Receive sender's buffer and then parse the variables out.
-	
+
 	if (!transport)
 		return;
 
@@ -1155,7 +1155,7 @@ Rpc::DispatchOne( RpcDispatcher *dispatcher, bool passError )
 	}
 
 	// Find the function to dispatch.  The protocol mandates that
-	// this must be set: how else do we know what to do with the 
+	// this must be set: how else do we know what to do with the
 	// buffer?
 
 	func = GetVar( P4Tag::v_func, &e );
@@ -1204,7 +1204,7 @@ Rpc::DispatchOne( RpcDispatcher *dispatcher, bool passError )
 
     error:
 	// If a user error occurred, invoke errorHandler to deal with it.
-	// In this case, the Error is acutally passed in to the dispatched 
+	// In this case, the Error is acutally passed in to the dispatched
 	// function, rather than being just an output parameter.
 
 	// The exception is if we are running as a nested Dispatch that will
@@ -1280,8 +1280,8 @@ Rpc::PriorityDispatch( int v )
  * after protocol exchange has happened (otherwise, how do you know?).
  * To orchestrate this, the follow sequence is obeyed:
  *
- * 1.  StartCompression() send "compress1" to the other end, and then turns 
- *     on send compression.   All data sent afterwards are compressed.  
+ * 1.  StartCompression() send "compress1" to the other end, and then turns
+ *     on send compression.   All data sent afterwards are compressed.
  *
  * 2.  When the other end receives "compress1", it sends back "compress2"
  *     and then turns on both send and receieve compression.
@@ -1318,8 +1318,8 @@ Rpc::FlushTransport()
 	    transport->Flush( &se );
 }
 
-int	
-Rpc::GetRecvBuffering() 
+int
+Rpc::GetRecvBuffering()
 {
 	if( transport )
 	    return transport->GetRecvBuffering();
@@ -1409,14 +1409,14 @@ Rpc::TrackReport( int level, StrBuf &out )
 	if( !Trackable( level ) )
 	    return;
 
-	out 
+	out
 	    << "--- rpc msgs/size in+out "
 	    << StrNum( recvCount ) << "+"
 	    << StrNum( sendCount ) << "/"
 	    << recvBytes / 1024 / 1024 << "mb+"
 	    << sendBytes / 1024 / 1024 << "mb "
-	    << "himarks " 
-	    << rpc_hi_mark_fwd << "/" 
+	    << "himarks "
+	    << rpc_hi_mark_fwd << "/"
 	    << rpc_hi_mark_rev << " snd/rcv "
 	    << StrMs( sendTime ) << "s/"
 	    << StrMs( recvTime ) << "s\n";
@@ -1437,7 +1437,7 @@ Rpc::TrackReport( int level, StrBuf &out )
 	if( se.Test() ) out << "send ";
 	if( re.Test() ) out << "receive ";
 
-	out << "errors, duplexing F/R " 
+	out << "errors, duplexing F/R "
 	    << duplexFrecv << "/"
 	    << duplexRrecv << "\n";
 }
@@ -1556,7 +1556,7 @@ Rpc::CheckKnownHost( Error *e, const StrRef & trustfile )
 {
 	StrBuf	pubkey;
 	GetPeerFingerprint( pubkey );
-	
+
 	// if not ssl we are done
 	if( !pubkey.Length() )
 	    return;

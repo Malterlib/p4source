@@ -67,12 +67,10 @@
  *	RpcDispatch - a procedure name/function call mapping
  */
 
-# ifdef OS_NT
 // On Windows, one of the OpenSSL includes in rpc.cc brings in a
 // system header that includes its own <rpc.h>, so we need to
 // guard against that here.
 # pragma once
-# endif
 
 class Rpc;
 class RpcRecvBuffer;
@@ -85,6 +83,7 @@ class RpcService;
 class RpcForward;
 class Timer;
 class NetSslCredentials;
+class Error;
 
 typedef void (*RpcCallback)( Rpc *, Error * );
 

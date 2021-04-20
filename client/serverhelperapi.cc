@@ -13,7 +13,7 @@
 
 # include "serverhelperapi.h"
 
-# include <rpc.h>
+# include <p4rpc.h>
 
 # include <msgclient.h>
 

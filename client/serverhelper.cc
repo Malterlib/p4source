@@ -21,7 +21,7 @@
 # include <strtable.h>
 # include <strarray.h>
 # include <error.h>
-# include <rpc.h>
+# include <p4rpc.h>
 # include <datetime.h>
 # include <strops.h>
 

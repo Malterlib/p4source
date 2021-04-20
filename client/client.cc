@@ -20,7 +20,7 @@
 # include <options.h>
 # include <handler.h>
 # include <runcmd.h>
-# include <rpc.h>
+# include <p4rpc.h>
 # include <ident.h>
 # include <enviro.h>
 # include <ignore.h>
