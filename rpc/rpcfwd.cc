@@ -16,7 +16,7 @@
 # include <keepalive.h>
 # include <debug.h>
 
-# include <rpc.h>
+# include <p4rpc.h>
 # include <rpcfwd.h>
 # include <rpcdebug.h>
 # include <rpcdispatch.h>

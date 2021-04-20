@@ -18,7 +18,7 @@
 # include <error.h>
 # include <mapapi.h>
 # include <handler.h>
-# include <rpc.h>
+# include <p4rpc.h>
 # include <i18napi.h>
 # include <charcvt.h>
 # include <transdict.h>
