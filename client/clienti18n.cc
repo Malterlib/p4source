@@ -17,7 +17,7 @@
 # include <transdict.h>
 # include <options.h>
 # include <handler.h>
-# include <rpc.h>
+# include <p4rpc.h>
 # include <ident.h>
 # include <enviro.h>
 

@@ -21,7 +21,7 @@
 # include <filesys.h>
 # include <pipeio.h>
 
-# include <rpc.h>
+# include <p4rpc.h>
 
 # include <p4tags.h>
 # include <msgclient.h>

@@ -10,7 +10,7 @@
 # include <strarray.h>
 # include <strtable.h>
 # include <runcmd.h>
-# include <rpc.h>
+# include <p4rpc.h>
 # include <i18napi.h>
 # include <signaler.h>
 # include <p4libs.h>
