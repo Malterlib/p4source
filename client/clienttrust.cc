@@ -13,7 +13,7 @@
 # include <tunable.h>
 # include <ticket.h>
 
-# include <rpc.h>
+# include <p4rpc.h>
 # include <client.h>
 
 # ifdef USE_SSL

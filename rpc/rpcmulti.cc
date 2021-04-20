@@ -24,7 +24,7 @@
 # include <vararray.h>
 
 # include <keepalive.h>
-# include <rpc.h>
+# include <p4rpc.h>
 # include <netportparser.h>
 # include <netconnect.h>
 # include <netbuffer.h>

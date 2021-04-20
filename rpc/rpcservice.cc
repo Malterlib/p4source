@@ -27,7 +27,7 @@
 
 # include <p4tags.h>
 
-# include "rpc.h"
+# include "p4rpc.h"
 # include "rpcservice.h"
 
 // Dispatch functions available to all callers.
@@ -75,7 +75,7 @@ RpcServerProtocol( Rpc *rs, Error *e )
 	// Upper level really needs protocol handler.
 
 	StrPtr *s;
-	
+
 	if( ( s = rs->GetVar( P4Tag::v_server2 ) ) ||
 	    ( s = rs->GetVar( P4Tag::v_server ) ) )
 		rs->protocolServer = s->Atoi();
