@@ -1,3 +1,6 @@
+
+Property.AddIncludePaths_p4api define bool = false
+
 Compile
 {
 	&
@@ -6,7 +9,13 @@ Compile
 		AddIncludePaths_p4api true
 	}
 	
-	SearchPath "@('../../SDK/p4/client'->MakeAbsolute());@('../../SDK/p4/sys'->MakeAbsolute());@('../../SDK/p4/support'->MakeAbsolute());@('../../SDK/p4/msgs'->MakeAbsolute());@('../../SDK/p4/i18n'->MakeAbsolute());@(Compile.SearchPath)"
+	SearchPath += [
+		"../../SDK/p4/client"->MakeAbsolute()
+		, "../../SDK/p4/sys"->MakeAbsolute()
+		, "../../SDK/p4/support"->MakeAbsolute()
+		, "../../SDK/p4/msgs"->MakeAbsolute()
+		, "../../SDK/p4/i18n"->MakeAbsolute()
+	]
 }
 
 %Target "Lib_p4api"
@@ -14,6 +23,7 @@ Compile
 	Property
 	{
 		AddIncludePaths_p4api true
+		PerforceOS define string
 		PerforceOS "MACOSX"
 		{
 			!!PlatformFamily "OSX"
@@ -55,21 +65,24 @@ Compile
 	Compile
 	{
 		!!CompileDialect "C"
-		SearchPath "@('../../External/zlib/contrib/minizip'->MakeAbsolute());@('../../SDK/p4/zlib/gzip'->MakeAbsolute());@('../../SDK/p4/dbsupp'->MakeAbsolute());@('../../SDK/p4/diff'->MakeAbsolute());@('../../SDK/p4/net'->MakeAbsolute());@(Compile.SearchPath)"
-		SearchPath "@('../../SDK/p4/rpc'->MakeAbsolute());@(Compile.SearchPath)"
-		{
-			!PlatformFamily "Windows"
-		}
-		PreprocessorDefines "USE_SSL;P4_API_ONLY;NEED_ALL;OS_@(PerforceOS);ID_OS=\"@(PerforceOS)\";ID_REL=\"@(ProductVersionMajor).@(ProductVersionMinor)\";ID_PATCH=\"@(ProductVersionPatch)\";ID_Y=\"\";ID_M=\"\";ID_D=\"\";@(Compile.PreprocessorDefines)"
-		PreprocessorDefines "_CRT_RAND_S;@(Compile.PreprocessorDefines)"
+		SearchPath += [
+			"../../External/zlib/contrib/minizip"->MakeAbsolute()
+			, "../../SDK/p4/zlib/gzip"->MakeAbsolute()
+			, "../../SDK/p4/dbsupp"->MakeAbsolute()
+			, "../../SDK/p4/diff"->MakeAbsolute()
+			, "../../SDK/p4/net"->MakeAbsolute()
+		]
+		SearchPath += "../../SDK/p4/rpc"->MakeAbsolute()
+		PreprocessorDefines += ["USE_SSL", "P4_API_ONLY", "NEED_ALL", `OS_@(PerforceOS)`, `ID_OS="@(PerforceOS)"`, `ID_REL="@(ProductVersionMajor).@(ProductVersionMinor)"`, `ID_PATCH="@(ProductVersionRevision)"`, `ID_Y=""`, "ID_M=\"\"", "ID_D=\"\""]
+		PreprocessorDefines += "_CRT_RAND_S"
 		{
 			!!PlatformFamily "Windows"
 		}
-		PrefixHeader "@('sys/stdhdrs.h'->MakeAbsolute())"
+		PrefixHeader "sys/stdhdrs.h"->MakeAbsolute()
 		{
 			!PlatformFamily "Windows"
 		}
-		PrefixHeader ""
+		PrefixHeader undefined
 		{
 			!!PlatformFamily "Windows"
 		}
@@ -110,14 +123,6 @@ Compile
 			%File "client/serverhelper.cc"
 			%File "client/serverhelperapi.cc"
 			%File "client/*.h"
-			Compile.SearchPath "@('../../SDK/p4/rpc'->MakeAbsolute());@(Compile.SearchPath)"
-			{
-				&
-				{
-					CompileDialect "C"
-					PlatformFamily "Windows"
-				}
-			}
 		}
 		%Group "rpc"
 		{
@@ -129,14 +134,6 @@ Compile
 			%File "rpc/rpcservice.cc"
 			%File "rpc/rpctrans.cc"
 			%File "rpc/*.h"
-			Compile.SearchPath "@('../../SDK/p4/rpc'->MakeAbsolute());@(Compile.SearchPath)"
-			{
-				&
-				{
-					CompileDialect "C"
-					PlatformFamily "Windows"
-				}
-			}
 		}
 		%Group "support"
 		{
