@@ -80,7 +80,11 @@ Compile
 		}
 		PrefixHeader "sys/stdhdrs.h"->MakeAbsolute()
 		{
-			!PlatformFamily "Windows"
+			&
+			{
+				Compile.Type "C++"
+				!PlatformFamily "Windows"
+			}
 		}
 		PrefixHeader undefined
 		{
