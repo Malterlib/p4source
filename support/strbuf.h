@@ -86,6 +86,8 @@
  *	
  */
 
+#include <Mib/Core/Core>
+
 class StrBuf;
 class StrNum;
 
@@ -204,38 +206,14 @@ class StrPtr {
 	bool	operator ==( const char *buf ) const
 		{ return strcmp( buffer, buf ) == 0; }
 
-	bool	operator !=( const char *buf ) const
-		{ return strcmp( buffer, buf ) != 0; }
-
-	bool	operator <( const char *buf ) const
-		{ return strcmp( buffer, buf ) < 0; }
-
-	bool	operator <=( const char *buf ) const
-		{ return strcmp( buffer, buf ) <= 0; }
-
-	bool	operator >( const char *buf ) const
-		{ return strcmp( buffer, buf ) > 0; }
-
-	bool	operator >=( const char *buf ) const
-		{ return strcmp( buffer, buf ) >= 0; }
+	auto	operator <=> ( const char *buf ) const
+		{ return strcmp( buffer, buf ) <=> 0; }
 
 	bool	operator ==( const StrPtr &s ) const
 		{ return strcmp( buffer, s.buffer ) == 0; }
 
-	bool	operator !=( const StrPtr &s ) const
-		{ return strcmp( buffer, s.buffer ) != 0; }
-
-	bool	operator <( const StrPtr &s ) const
+	auto	operator <=> ( const StrPtr &s ) const
 		{ return strcmp( buffer, s.buffer ) < 0; }
-
-	bool	operator <=( const StrPtr &s ) const
-		{ return strcmp( buffer, s.buffer ) <= 0; }
-
-	bool	operator >( const StrPtr &s ) const
-		{ return strcmp( buffer, s.buffer ) > 0; }
-
-	bool	operator >=( const StrPtr &s ) const
-		{ return strcmp( buffer, s.buffer ) >= 0; }
 
 	// Copying out
 	// Includes EOS
