@@ -11,5 +11,4 @@
 # include <stdhdrs.h>
 # include <charset.h>
 
-int GlobalCharSet::globCharSet = 0;
-
+constinit std::atomic<int>  GlobalCharSet::globCharSet{0};

@@ -8,12 +8,14 @@
  * GlobalCharSet -- a static charSet index across the process.
  */
 
+#include <atomic>
+
 class GlobalCharSet {
 
     public:
-	static void	Set( int x = 0 ) { globCharSet = x; }
-	static int	Get() { return globCharSet; }
+	static void	Set( int x = 0 ) { globCharSet.exchange(x); }
+	static int	Get() { return globCharSet.load(); }
 
     private:
-	static int	globCharSet;
+	static std::atomic<int> globCharSet;
 } ;
