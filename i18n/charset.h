@@ -8,6 +8,8 @@
  * GlobalCharSet -- a static charSet index across the process.
  */
 
+#include <atomic>
+
 class GlobalCharSet {
 
     public:
@@ -20,7 +22,7 @@ class GlobalCharSet {
 	static void	UseAlt( const bool val );
   
     private:
-	static int	globCharSet;
+	static std::atomic<int>	globCharSet;
   	MT_STATIC bool	globCharSetUseAlt;
     	MT_STATIC int	globCharSetAlt;
 } ;

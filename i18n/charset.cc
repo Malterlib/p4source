@@ -11,7 +11,7 @@
 # include <stdhdrs.h>
 # include <charset.h>
 
-int GlobalCharSet::globCharSet = 0;
+constinit std::atomic<int> GlobalCharSet::globCharSet{0};
 P4MT int GlobalCharSet::globCharSetAlt = 0;
 P4MT bool GlobalCharSet::globCharSetUseAlt = false;
 
