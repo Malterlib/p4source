@@ -233,7 +233,7 @@ StrDict::Load( FILE * in )
 
 	char val[4096], *e;
 	
-	while( fscanf( in, "%4096[^\n]\n", val ) == 1 )
+	while( fscanf( in, "%4095[^\n]\n", val ) == 1 )
 	    if( *val != '#' && ( e = strchr( val, '=' ) ) )
 		SetVar( StrRef( val, e - val ), StrRef( e + 1 ) );
 	
