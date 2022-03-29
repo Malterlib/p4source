@@ -74,7 +74,7 @@ ErrorLog::~ErrorLog()
 void
 ErrorLog::SysLog( const Error *e, int tagged, const char *et, const char *buf )
 {
-	const char *errTag = errorTag;
+	[[maybe_unused]] const char *errTag = errorTag;
 
 	if( !errorTag )
 	    init();
