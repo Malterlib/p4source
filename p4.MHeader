@@ -78,22 +78,6 @@ Compile
 		{
 			!!PlatformFamily "Windows"
 		}
-		PrefixHeader "sys/stdhdrs.h"->MakeAbsolute()
-		{
-			&
-			{
-				|
-				{
-					Compile.Type "C++"
-					!GeneratorFamily "VisualStudio"
-				}
-				!PlatformFamily "Windows"
-			}
-		}
-		PrefixHeader undefined
-		{
-			!!PlatformFamily "Windows"
-		}
 		Warnings_UnusedFunction false
 		{
 			!!GeneratorFamily "Xcode"
