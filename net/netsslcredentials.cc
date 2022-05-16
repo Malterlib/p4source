@@ -873,7 +873,7 @@ NetSslCredentials::MakeSslCredentials( Error *e )
 	certificate = X509_new();
 	SSLHANDLEFAIL( certificate, e, "X509_new", MsgRpc::SslCertGen, fail );
 
-# if OPENSSL_VERSION_NUMBER < 0x10100000L
+# if OPENSSL_VERSION_NUMBER < 0x10100000L || defined (OPENSSL_IS_BORINGSSL)
 	rsa = RSA_generate_key( SSL_X509_NUMBITS, RSA_F4, NULL, NULL );
 	SSLHANDLEFAIL( rsa, e, "RSA_generate_key", MsgRpc::SslCertGen, fail );
 # else

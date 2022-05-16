@@ -157,7 +157,7 @@ Sequence::GrowLineBuf( Error *e )
 	    }
 	    else
 	        line = new VarInfo[ lineMax ];
-	} catch( const std::bad_alloc& ex )
+	} catch( const std::bad_alloc&)
 	{
 	    e->Sys( "new", "out of memory" );
 	}

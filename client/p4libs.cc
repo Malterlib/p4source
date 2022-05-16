@@ -20,11 +20,6 @@
 # include <curl/curl.h>
 # endif
 
-extern "C" {
-# include <x86.h>
-void x86_check_features();
-}
-
 # ifdef USE_SSL
 extern "C"
 {
@@ -39,7 +34,7 @@ extern "C"
 extern bool P4FileSysCreateOnIntr;
 
 # ifdef USE_SSL
-# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+# if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(OPENSSL_IS_BORINGSSL)
 
 static void* p4malloc( size_t s, const char *f, int l )
 {
@@ -67,8 +62,7 @@ void P4Libraries::Initialize( const int libraries, Error* e )
 	    // This should be the first thing done in a process.
 	    rpmalloc_initialize();
 # endif
-	    x86_check_features();
-	    signaler.Init();
+	    (*signaler).Init();
 	    NetUtils::InitNetwork();
 	    // Nothing for ErrorLog's global AssertLog instance.
 	}
@@ -77,11 +71,13 @@ void P4Libraries::Initialize( const int libraries, Error* e )
 # if OPENSSL_VERSION_NUMBER >= 0x10100000L
 	if( libraries & P4LIBRARIES_INIT_OPENSSL )
 	{
-	    // This can fail if allocations have already been made by OpenSSL.
-	    if( !CRYPTO_set_mem_functions( p4malloc, p4realloc, p4free ) )
-	        e->Set( MsgClient::DevErr )
-	            << "CRYPTO_set_mem_functions(): Could not set OpenSSL "
-	               "allocation functions.";
+#if !defined(OPENSSL_IS_BORINGSSL)
+		// This can fail if allocations have already been made by OpenSSL.
+		if( !CRYPTO_set_mem_functions( p4malloc, p4realloc, p4free ) )
+			e->Set( MsgClient::DevErr )
+				<< "CRYPTO_set_mem_functions(): Could not set OpenSSL "
+				   "allocation functions.";
+#endif
 	    SSL_library_init();
 	}
 # endif
@@ -122,7 +118,7 @@ void P4Libraries::ShutdownThread( const int libraries, Error* e )
 # if OPENSSL_VERSION_NUMBER <= 0x10100000L
 	    ERR_remove_thread_state( NULL );
 # endif
-# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+# if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(OPENSSL_IS_BORINGSSL)
 	    OPENSSL_thread_stop();
 # endif
 	}
@@ -151,7 +147,7 @@ void P4Libraries::Shutdown( const int libraries, Error* e )
 
 	if( libraries & P4LIBRARIES_INIT_P4 )
 	{
-	    signaler.Disable();
+	    (*signaler).Disable();
 
 	    // The global CharSetCvtCache cleans itself up.
 
@@ -163,14 +159,16 @@ void P4Libraries::Shutdown( const int libraries, Error* e )
 	{
 	    // https://wiki.openssl.org/index.php/Library_Initialization#Cleanup
 	    FIPS_mode_set( 0 );
+#if !defined(OPENSSL_IS_BORINGSSL)
 	    ENGINE_cleanup();
 	    CONF_modules_unload( 1 );
+#endif
 	    EVP_cleanup();
 	    CRYPTO_cleanup_all_ex_data();
 # if OPENSSL_VERSION_NUMBER <= 0x10100000L
 	    ERR_remove_thread_state( NULL );
 # endif
-# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+# if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(OPENSSL_IS_BORINGSSL)
 	    OPENSSL_thread_stop();
 # endif
 	    ERR_free_strings();
@@ -190,14 +188,6 @@ void P4Libraries::Shutdown( const int libraries, Error* e )
 
 void P4Libraries::DisableZlibOptimization()
 {
-# ifndef USE_OPTIMIZED_ZLIB
-	int x86_cpu_enable_ssse3 = 0;
-	(void)x86_cpu_enable_ssse3;
-# endif
-
-	x86_check_features();
-	x86_cpu_enable_ssse3 = 0;
-	x86_cpu_enable_simd = 0;
 }
 
 void P4Libraries::DisableFileSysCreateOnIntr()
