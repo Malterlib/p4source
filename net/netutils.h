@@ -20,6 +20,8 @@
 // a guess at a good buffer size; big enough for a max IPv6 address plus surrounding "[...]"
 #define P4_INET6_ADDRSTRLEN	(INET6_ADDRSTRLEN+2)
 
+class StrArray;
+
 class NetUtils
 {
 public:
@@ -60,6 +62,9 @@ public:
     static bool
     IsAddrUnspecified(const sockaddr *sa);
 
+    static int
+    IsAddrUnspecified(const char *addr);
+
     // make this address be unspecified
     static bool
     SetAddrUnspecified(sockaddr *sa);
@@ -91,6 +96,10 @@ public:
     static bool
     FindIPByMAC( const char *mac, StrBuf &ipv4, StrBuf &ipv6 );
 
+    static bool
+    FindAllIPsFromAllNICs( StrArray *ipAddresses, const bool ipv4,
+	                   const bool ipv6 );
+
     // currently no-op except on Windows
     static int
     InitNetwork();
@@ -98,6 +107,9 @@ public:
     // currently no-op except on Windows
     static void
     CleanupNetwork();
+
+    static void
+    IpBytesToStr( const void *ip, int ipv6, StrBuf &out );
 };
 
 # if defined(OS_MINGW) || (defined(OS_NT) && defined(_MSC_VER))

@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgServer error code is: 172
+ * Current high value for a MsgServer2 error code is: 201
  *                                                   Max code is 1023!!!
  *
  * The MsgServer2 class contains overflow messages from MsgServer.
@@ -195,4 +195,14 @@ ErrorId MsgServer2::VerifyRepairConflict   = { ErrorOf( ES_SERVER2, 160, E_WARN,
 ErrorId MsgServer2::VerifyRepairSnapped    = { ErrorOf( ES_SERVER2, 161, E_INFO, EV_NONE, 2 ), "Snapping revision from using archive %oldLbr% to use archive %targetLbr%." } ;
 ErrorId MsgServer2::VerifyRepairCopied     = { ErrorOf( ES_SERVER2, 162, E_INFO, EV_NONE, 2 ), "Copying shelved archive %foundLbr% to %targetLbr%." } ;
 ErrorId MsgServer2::UseVerifyR             = { ErrorOf( ES_SERVER2, 163, E_FAILED, EV_USAGE, 0 ), "Usage: %'verify -R [ -m maxRevs ] [ -q -s ] [ -v | --only BAD|MISSING ] ] [ -X ] [ -b batch ] files...'%" } ;
+ErrorId MsgServer2::InfoCommitServer       = { ErrorOf( ES_SERVER2, 164, E_INFO, EV_NONE, 1 ), "Commit server ID: %commitServerId%" };
+ErrorId MsgServer2::InfoEdgeServer         = { ErrorOf( ES_SERVER2, 165, E_INFO, EV_NONE, 1 ), "Upstream edge server ID: %edgeServerId%" };
+ErrorId MsgServer2::MovePairSplit          = { ErrorOf( ES_SERVER2, 166, E_FAILED, EV_NOTYET, 0 ), "Cannot submit half of a moved file pair." } ;
+ErrorId MsgServer2::UseTopology            = { ErrorOf( ES_SERVER2, 167, E_FAILED, EV_USAGE, 0 ), "Usage: %'topology [ -a ]'%" } ;
+ErrorId MsgServer2::TopologyOnCurrentSvr   = { ErrorOf( ES_SERVER2, 168, E_INFO, EV_NONE, 1 ), "Topology command was run on server - %address%" } ;
+ErrorId MsgServer2::FileNoMatchStgDigest   = { ErrorOf( ES_SERVER2, 169, E_FAILED, EV_ADMIN, 2 ), "The archive does not match the storage digest %depotpath%#%rev%." } ;
+ErrorId MsgServer2::FileNoMatchStgSize     = { ErrorOf( ES_SERVER2, 170, E_FAILED, EV_ADMIN, 2 ), "The archive does not match the storage size %depotpath%#%rev%." } ;
+ErrorId MsgServer2::UseStreams2            = { ErrorOf( ES_SERVER2, 171, E_FAILED, EV_USAGE, 0 ), "Usage: %'streams --viewmatch //depotPath1 [ [--viewmatch //depotPathN] ... ] '%" } ;
 ErrorId MsgServer2::UnknownContext         = { ErrorOf( ES_SERVER2, 172, E_FATAL, EV_ILLEGAL, 0 ), "No context was found for this operation." } ;
+ErrorId MsgServer2::IntegTaskNoDirect      = { ErrorOf( ES_SERVER2, 192, E_FAILED, EV_USAGE, 0 ), "The direct integration option cannot be used with a target task stream." } ;
+ErrorId MsgServer2::LbrDeletionFailed      = { ErrorOf( ES_SERVER2, 201, E_FAILED, EV_ADMIN, 3 ), "Unable to delete archive file - lbrFile-%lbrFile% lbrRev-%lbrRev% lbrType-%lbrType%." } ;

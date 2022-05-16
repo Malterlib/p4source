@@ -18,7 +18,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgHelp error code is: 268
+ * Current high value for a MsgHelp error code is: 272
  */
 
 ErrorId MsgHelp::NoHelp = { ErrorOf( ES_HELP, 1, E_FAILED, EV_USAGE, 1 ),
@@ -498,7 +498,8 @@ R"(
 
     p4 integrate -1 -2 -C changelist# -Rlou -Znnn
 	The flag '-1' can be supplied to the 'p4 integrate' command to
-	force consideration of direct integration history only.  The -C
+	force consideration of direct integration history only.  Note that -1
+	is not allowed if the integration target is a task stream.  The -C
 	changelist# flag considers only	integration history from changelists
 	at or below the given number, allowing you to ignore credit from
 	subsequent integrations.  The -2 flag uses the old 'second generation'
@@ -2113,9 +2114,6 @@ R"(
 	Multiple attributes can be set or cleared by specifying multiple
 	'-n name' flags and an equal number of corresponding '-v value'
 	flags (to set) or no '-v' flags (to clear).
-
-	'p4 attribute -p' is not supported for files in a pending change
-	from an edge server in a distributed environment.
 )"
 };
 
@@ -2863,6 +2861,12 @@ R"(
 	          import+: <view_path> same as 'import' except that files can
 	                   be submitted to the import path.
 
+	          import&: <view_path> <depot_path> same as 'import' except
+	                   that multiple import& paths can map the
+	                   same <depot_path> to multiple <view_path>s.
+	                   Files marked this way are readonly.
+	                   <depot_path> is required.
+
 	          exclude: <view_path> will be excluded from client views
 	                   and branch views. Files in this path are not
 	                   accessible to workspaces, and can't be submitted
@@ -3184,7 +3188,8 @@ ErrorId MsgHelp::HelpStreams = { ErrorOf( ES_HELP, 111, E_INFO, EV_NONE, 0 ),
 R"(
     streams -- Display list of streams
 
-    p4 streams [-U -F filter -T fields -m max] [streamPath ...]
+    p4 streams [-U -F filter -T fields -m max [ --viewmatch //depotPath1
+               [ [--viewmatch //depotPathN] ... ] ] ] [streamPath ...]
 
 	Reports the list of all streams currently known to the system.  If
 	a 'streamPath' argument is specified, the list of streams is limited
@@ -3213,6 +3218,11 @@ R"(
 	The -m max flag limits output to the first 'max' number of streams.
 
 	The -U flag lists unloaded task streams (see 'p4 help unload').
+
+	The --viewmatch flag returns the stream name, depot path and stream
+	view path of streams that have views containing the given //depotPath,
+	or that have views contained by the depot path.  Multiple --viewmatch
+	flags with depot path arguments can be supplied.
 )"
 };
 
@@ -3313,7 +3323,7 @@ R"(
 	    code 710, required:
 	        identify paths in the stream and how they are to be
 	        generated in resulting clients of this stream
-	        path types are: share/isolate/import/import+/exclude
+	        path types are: share/isolate/import/import+/import&/exclude
 	    code 711, optional: remap a stream path in the resulting generated
 	                        client view
 	    code 712, optional: ignore a stream path in the resulting generated
@@ -3715,9 +3725,6 @@ R"(
 	The -v flag causes a 'virtual' copy that does not modify client
 	workspace files.  After submitting a virtual integration, 'p4 sync'
 	can be used to update the workspace.
-
-	'p4 copy' is not supported for files with propagating attributes
-	from an edge server in a distributed environment.
 )"
 };
 
@@ -4048,9 +4055,6 @@ R"(
 	server. That global exclusive lock will be retained until you push
 	the deleted file to the origin server, or until you use the
 	'p4 revert --remote=origin filename' command to revert the file.
-
-	'p4 delete' is not supported for files with propagating attributes
-	from an edge server in a distributed environment.
 
 	See 'p4 help-graph delete' for information on using this command with
 	graph depots.
@@ -4392,9 +4396,6 @@ R"(
 
 	The -So flag can be used with '-c change' to open the client's stream
 	spec for edit.  (See 'p4 help streamcmds'.)
-
-	'p4 edit' is not supported for files with propagating attributes
-	from an edge server in a distributed environment.
 
 	See 'p4 help-graph edit' for information on using this command with
 	graph depots.
@@ -4940,9 +4941,15 @@ R"(
 		otherOpen            -- set if someone else has it open
 		otherOpen#           -- list of user@client with file opened
 		otherLock            -- set if someone else has it locked
+		otherLockGlobal      -- set if lock is global
+		otherLockOnCommit    -- set if locked on commit server
 		otherLock#           -- user@client with file locked
+		otherLockGlobal#     -- user@client with file globally locked
+		otherLockOnCommit#   -- user@client with lock on commit server
 		otherAction#         -- open action, if opened by someone else
 		otherChange#         -- changelist, if opened by someone else
+		lockGlobal           -- set if globally locked
+		lockOnCommit         -- set if locked on commit server
 		openattr-<name>      -- attribute value for <name>
 		openattrProp-<name>  -- set if attribute <name> is propagating
 		totalFileCount       -- total no. of files, if sorted
@@ -5013,13 +5020,13 @@ R"(
 
 	The -O options modify the output as follows:
 
-	        -Oa     output attributes set by 'p4 attribute'.
+	        -Oa     output attributes set by 'p4 attribute'
 
 		-Ob	output the path, revision, type, full and relative
 			local paths of the server archive file. Requires
 			'admin' privilege.
 
-	        -Od     output the digest of the attribute.
+	        -Od     output the digest of the attribute
 
 	        -Oe     output attribute values encoded as hex
 
@@ -5037,6 +5044,9 @@ R"(
 	                '-e <change> -Rs', on the shelved change
 
 	        -Os     exclude client-related data from output
+
+	        -OL     when run against an edge server, output global lock
+	                information from the commit server
 
 	The -R option limits output to specific files:
 
@@ -5646,11 +5656,6 @@ R"(
 	client workspace files unless target files need to be resolved.
 	After submitting a virtual integration, 'p4 sync' can be used to
 	update the workspace.
-
-	Integration is not supported for files with propagating attributes
-	from an edge server in a distributed environment. Depending on the
-	integration action, target, and source, either the integration or
-	resolve command will fail.
 )"
 };
 
@@ -6139,9 +6144,10 @@ ErrorId MsgHelp::HelpLabels = { ErrorOf( ES_HELP, 60, E_INFO, EV_NONE, 0 ),
 R"(
     labels -- Display list of defined labels
 
-    p4 labels [-t] [-u user] [[-e|-E] nameFilter] [-m max] [file[revrange]]
-    p4 labels [-t] [-u user] [[-e|-E] nameFilter] [-m max] [-a|-s serverID]
-    p4 labels -U
+    p4 labels [-U|-R] [-t] [-u user] [[-e|-E] nameFilter] [-m max]
+	      [file[revrange]]
+    p4 labels [-U|-R] [-t] [-u user] [[-e|-E] nameFilter] [-m max]
+	      [-a|-s serverID]
 
 	Lists labels defined in the server.
 
@@ -6165,6 +6171,8 @@ R"(
 	The -m max flag limits output to the first 'max' number of labels.
 
 	The -U flag lists unloaded labels (see 'p4 help unload').
+	
+	The -R flag lists only labels with the 'autoreload' option set.
 
 	The -a and -s flags are useful in a distributed server installation
 	(see 'p4 help distributed') in order to see the names of local labels
@@ -6419,7 +6427,7 @@ R"(
 	AttributeName:     The name(s) of the attribute(s) in the user object
 	                   that contains the user's full name. If multiple
 	                   attributes are required to form the full name,
-	                   specifiy each one surrounded by %% symbols such
+	                   specify each one surrounded by %% symbols such
 	                   that expanding them forms the user's full name."
 
 	AttributeEmail:    The name of the attribute in the directory's user
@@ -6491,7 +6499,7 @@ R"(
 	LDAP specifications are queried to build a full, combined list of LDAP
 	users before any changes to the Perforce users are made.
 
-	The user synchronisation  has three actions that must be enabled
+	The user synchronization  has three actions that must be enabled
 	separately by specifying the appropriate flags:
 
 	    The -c flag creates any new users found in the LDAP servers that
@@ -7587,11 +7595,6 @@ R"(
 	The -q flag suppresses normal output messages. Messages regarding
 	errors or exceptional conditions are displayed.
 
-	Merging is not supported for files with propagating attributes
-	from an edge server in a distributed environment. Even if the
-	merge command succeeds, the required subsequent resolve command
-	will fail.
-
 	See 'p4 help-graph merge' for information on using this command with
 	graph depots.
 )"
@@ -8586,6 +8589,11 @@ R"(
 	reopening a file. To move a file to the default changelist, use
 	'p4 reopen -c default'.
 
+	The '-c' flag with file arguments will not allow a move pair to
+	be split. The command will fail if only the 'movedFrom' file is
+	specified. The command can succeed when only the 'movedTo' file
+	is specified.
+
 	If -t filetype is specified, the file is assigned that filetype. If
 	a partial filetype is specified, it is combined with the current
 	filetype.  For details, see 'p4 help filetypes'.
@@ -8685,7 +8693,8 @@ R"(
 	The -m flag used in conjunction with -e can be used to minimize
 	costly digest computation on the client by checking file modification
 	times before checking digests to determine if files have been
-	modified outside of Perforce.
+	modified outside of Perforce.  If the modification times match the
+	user's have list, the digest computations will be skipped.
 
 	The -w flag forces the workspace files to be updated to match the
 	depot rather than opening them so that the depot can be updated to
@@ -8715,9 +8724,6 @@ R"(
 	The status command displays preview output which includes files
 	which are already opened in addition to the files that need to
 	be reconciled. Opened files are not shown with options -A/-a/-e/-d.
-
-	'p4 reconcile' is not supported for files with propagating attributes
-	from an edge server in a distributed environment.
 
 	See 'p4 help-graph reconcile' for information on using this command
 	with graph depots.
@@ -8931,9 +8937,6 @@ R"(
 	spec resolve. The -o flag will display the changelist of the base
 	version of the stream spec to be used during the merge.
 	(See 'p4 help streamcmds'.)
-
-	'p4 resolve' is not supported for files with propagating attributes
-	from an edge server in a distributed environment.
 )"
 };
 
@@ -9456,9 +9459,6 @@ R"(
 	the net.parallel.shelve.threads configurable. A user may override
 	the configured auto parallel shelve options on the command line,
 	or may disable it via 'p4 shelve --parallel=0`.
-
-	'p4 shelve' is not supported for files with propagating attributes
-	from an edge server in a distributed environment.
 )"
 };
 
@@ -9644,9 +9644,6 @@ R"(
 	required settings for using -b, all submits from that edge will
 	use background archive transfer without requiring -b on the command
 	line.
-
-	Only 'submit -e' is supported for files with propagating attributes
-	from an edge server in a distributed environment.
 
 	See 'p4 help-graph submit' for information on using this command with
 	graph depots.
@@ -9861,6 +9858,26 @@ R"(
 
 	'p4 tickets' lists all the tickets that have been granted to the
 	user by 'p4 login'.
+)"
+};
+
+ErrorId MsgHelp::HelpTopology = { ErrorOf( ES_HELP, 269, E_INFO, EV_NONE, 0 ),
+R"(
+    topology -- Display the list of connected servers (Technical Preview)
+
+    p4 topology [ -a ]
+
+	Reports the servers that are connected directly or indirectly to the
+	innermost server, including an indicator of the server this command is
+	running on. By default, reports only the latest configurations based on
+	the Server address, Target server address, and ServerID for each
+	service.
+
+	The -a flag displays all the configurations of the services that have
+	been recorded in the database.
+
+	This command requires that the user be an operator, or have 'super'
+	access granted by 'p4 protect'.
 )"
 };
 
@@ -10630,9 +10647,6 @@ R"(
 
 	The -n flag previews the operation without changing any files or
 	metadata.
-
-	'p4 unshelve' is not supported for files with propagating attributes
-	from an edge server in a distributed environment.
 )"
 };
 
@@ -11582,11 +11596,16 @@ R"(
 	defaultChangeType     none Default for new change: public/restricted
 	dm.annotate.maxsize    10M Maximum revision size for default annotate
 	dm.domain.accessupdate 300 Time interval to update domain access time
+	dm.change.skipkeyed      0 Disable generation of digest for ktext
+	                           revisions during submitted change updates
 	dm.domain.accessforce 3600 Time interval to force domain access time
 	dm.info.hide             0 Suppress output of sensitive info fields
 	dm.grep.maxrevs        10K Maximum number of revs that can be searched
 	dm.keys.hide             0 Users require admin for 'keys' command
+	dm.open.show.globallocks 0 Report global locks on file open from edge
 	dm.password.minlength    8 Minimum password length (when enabled)
+	dm.populate.skipkeyed    0 Disable generation of digest for ktext
+	                           revisions during populate
 	dm.protects.streamspec   0 Enable streamspec permissions
 	dm.proxy.protects        1 Add 'proxy-' to IP (see 'p4 help protect')
 	dm.resolve.attrib        1 Enable resolve for attributes
@@ -11607,7 +11626,7 @@ R"(
 	dm.user.noautocreate     0 User autocreation level
 	dm.user.resetpassword    0 New user requires password reset
 	filesys.binaryscan     64K 'add' looks this far for binary chars
-	filesys.bufsize         4K Client file I/O buffer size
+	filesys.bufsize        64K Client file I/O buffer size
 	filesys.checklinks       0 Reject symlinked directories on add
 	filesys.depot.min     250M Minimum space for depot filesystem
 	filesys.extendlowmark  32K Minimum filesize before preallocation(NT)
@@ -11740,6 +11759,8 @@ R"(	run.clientexts.allow     1 Allow client-side Extensions to run
 	server.locks.dir           "server.locks" server lock directory
 	server.locks.archive     1 Should archive/restore lock metadata
 	server.locks.global      0 Lock globally by default from edge server
+	                           0: Locks are local to edges by default
+	                           1: Locks are global by default
 	server.locks.sync        0 Should sync command lock client workspace
 	server.commandlimits     0 Policy for per-command resource limits
 	server.global.client.views
@@ -11756,8 +11777,22 @@ R"(	run.clientexts.allow     1 Allow client-side Extensions to run
 	serverlog.maxmb.N     none Size at which log file should be rotated
 	serverlog.retain.N    none Number of rotated log files to retain
 	serverlog.counter.N   none Counter to use for file rotation number
+	serverlog.bufsz.N     none Size of log write buffer
 	serviceUser           none Intermediate service identity
 	spec.hashbuckets        99 Hash spec domains to sub directories
+	ssl.client.ca.path   unset Path of CA PEM file to validate server cert
+	ssl.client.cert.validate 1 Mode of validation of server cert
+	                           0: Only use P4TRUST
+	                           1: Cert chains accepted if valid CA found
+	                           2: Cert chains accepted if subject valid
+	ssl.client.tls.version.min 12 Min TLS version for client connections
+	                           [10=1.0, 11=1.1, 12=1.2, 13=1.3]
+	ssl.client.tls.version.max 13 Max TLS version for client connections
+	                           [10=1.0, 11=1.1, 12=1.2, 13=1.3]
+	ssl.client.trust.name    1 P4TRUST uses hostname for cert chains
+	                           0: Only the server IP is recorded
+	                           1: Server IP and hostname is recorded
+	                           2: Only server hostname is recorded
 	ssl.secondary.suite      0 Set SSL cipher suite to the secondary choice
 	ssl.tls.version.min     10 Set min TLS version [10=1.0, 11=1.1, 12=1.2,
 	                           13=1.3]
@@ -11806,10 +11841,19 @@ R"(
 	net.maxwait              0 Seconds to wait for a network read or write
 	net.rfc3484              0 Allow OS to choose between IPv4 and IPv6
 	net.tcpsize           512K TCP sndbuf/rcvbuf sizes set at connect
-	ssl.tls.version.min     10 Set min TLS version [10=1.0, 11=1.1, 12=1.2,
-	                           13=1.3]
-	ssl.tls.version.max     12 Set max TLS version [10=1.0, 11=1.1, 12=1.2,
-	                           13=1.3]
+	ssl.client.ca.path   unset Path of CA PEM file to validate server cert
+	ssl.client.cert.validate 1 Mode of validation of server cert
+	                           0: Only use P4TRUST
+	                           1: Cert chains accepted if valid CA found
+	                           2: Cert chains accepted if subject valid
+	ssl.client.tls.version.min 12 Min TLS version for client connections
+	                           [10=1.0, 11=1.1, 12=1.2, 13=1.3]
+	ssl.client.tls.version.max 13 Max TLS version for client connections
+	                           [10=1.0, 11=1.1, 12=1.2, 13=1.3]
+	ssl.client.trust.name    1 P4TRUST uses hostname for cert chains
+	                           0: Only the server IP is recorded
+	                           1: Server IP and hostname is recorded
+	                           2: Only server hostname is recorded
 	sys.rename.max          10 Limit for retrying a failed file rename
 	sys.rename.wait       1000 Timeout in ms between file rename attempts
 
@@ -12381,6 +12425,7 @@ R"(
 	restore      Restore archived revisions to their original location
 	storage      Display, verify, or update physical archive storage
 	streamspec   Edit the stream template
+	topology     Display the list of servers in this installation
 	triggers     Modify list of server triggers
 	typemap      Modify the file name-to-type mapping table
 	unload       Unload metadata for an unused client or label
@@ -12770,12 +12815,6 @@ R"(
         syntax nor local syntax. In order to use client or local syntax for
         these commands, you must issue the command directly to the Commit
         Server (and use a workspace bound to the Commit Server).
-
-    attribute -p (without -f), edit, delete, integrate, copy, reconcile,
-    resolve, shelve, unshelve, submit:
-        These commands are not supported when run from an Edge Server with
-        files which contain propagating attributes. These commands may be
-        used with propagating attributes only from a Commit Server.
 )"
 };
 
@@ -13955,8 +13994,11 @@ R"(
 	filelog        List commit history of file
 	files          List the files in the repo
 	fstat          List file info
+	graph gc       Delete records of orphaned objects from the object table
 	graph log      List commits
+	graph purge-refhist Delete refhist records for a repo
 	graph rebase   Replay local history onto the target's new base
+	graph recompute-refcnts Recompute object refcounts
 	graph show-ref Display reference values
 	graph tag      Tag a commit with a name
 	graph tags     List tagged commits in all repos
@@ -15154,9 +15196,6 @@ R"(
 	theirs. It preserves the content of workspace files.
 
 	The -n flag previews the operation without altering files.
-
-	'p4 resolve' is not supported for files with propagating attributes
-	from an edge server in a distributed environment.
 )"
 };
 
@@ -15514,6 +15553,61 @@ R"(
 	    fields in the user spec which are modifiable by default, if these
 	    are used it is advisable to set dm.user.allowselfupdate=0. This
 	    will prevent users modifying those fields.
+
+)"
+};
+
+ErrorId MsgHelp::HelpGraphRecomputeRefcnts = { ErrorOf( ES_HELP, 270, E_INFO, EV_NONE, 0 ),
+R"(
+    graph recompute-refcnts -- Recompute refcount values in the object table.
+
+    p4 graph recompute-refcnts [-r] [-y]
+
+	The graph recompute-refcnts command may be used to recompute refcount
+	values in the object table. If a recomputed value is different from
+	the existing refcount, a correction will be required.
+
+	By default, the recompute-refcnts command displays a preview of the
+	required corrections. To execute the operation, specify the -y flag.
+
+	Since this command can take a long time to complete, results for a
+	preview run will be saved for future use. Specify the -r flag to make
+	the command resume using the saved data from earlier runs.
+
+)"
+};
+
+ErrorId MsgHelp::HelpGraphGc = { ErrorOf( ES_HELP, 271, E_INFO, EV_NONE, 0 ),
+R"(
+    graph gc -- Delete orphaned objects from the object table.
+
+    p4 graph gc [-y]
+
+	The graph gc command may be used to delete orphaned objects from the
+	object table.
+
+	By default, the gc command displays a preview of the results. To
+	execute the operation, specify the -y flag.
+
+)"
+};
+
+ErrorId MsgHelp::HelpGraphPurgeRefhist = { ErrorOf( ES_HELP, 272, E_INFO, EV_NONE, 0 ),
+R"(
+    graph purge-refhist -- Delete refhist records for a repo.
+
+    p4 graph purge-refhist -n repo [-B date] [-y]
+
+	The graph purge-refhist command deletes refhist records for a repo.
+	These are for references that are already removed from the ref table.
+
+	The -n flag specifies the repo name.
+
+	The -B flag limits the deletion of reference history to records prior
+	to the specified date, preserving more recent records.
+
+	By default, the purge-refhist command displays a preview of the
+	results. To execute the operation, specify the -y flag.
 
 )"
 };

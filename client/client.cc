@@ -187,7 +187,7 @@ Client::Init( Error *e )
 
 		// bad command is expected when connecting to
 		// servers before 2014.2
-		if( e->CheckId( MsgServer::BadCommand ) )
+		if( e->CheckIds( MsgServer::BadCommand ) )
 		{
 		    e->Clear();
 		    errors = 0;
@@ -195,8 +195,10 @@ Client::Init( Error *e )
 
 		// on trust errors, ignore them, and ignore the
 		// unicode detection result
-		if( e->CheckId( MsgRpc::HostKeyMismatch ) ||
-		    e->CheckId( MsgRpc::HostKeyUnknown ) )
+		if( e->CheckIds( MsgRpc::HostKeyMismatch ) ||
+		    e->CheckIds( MsgRpc::HostKeyUnknown ) ||
+		    e->CheckIds( MsgRpc::SslCertBad ) ||
+		    e->CheckIds( MsgRpc::SslCertBadChain ) )
 		{
 		    e->Clear();
 		    errors = 0;

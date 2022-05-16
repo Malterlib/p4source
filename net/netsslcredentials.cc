@@ -25,6 +25,7 @@
 # include <stdhdrs.h>
 # include <strbuf.h>
 # include <vararray.h>
+# include <intarray.h>
 # include <error.h>
 # include <errorlog.h>
 # include <enviro.h>
@@ -35,15 +36,18 @@
 # include <hostenv.h>
 # include <utils.h>
 
+#include "netportipv6.h"
+#include "netport.h"
+#include "netutils.h"
+
 # include <msgrpc.h>
+# include <msgos.h>
 
 extern "C"
 { // OpenSSL
 # include <openssl/err.h>
 # include <openssl/x509v3.h>
 # include <openssl/ssl.h>
-# include <openssl/x509_vfy.h>
-# include <openssl/opensslv.h>
 }
 # include <stdio.h>
 # include "netdebug.h"
@@ -84,6 +88,136 @@ extern "C"
 ////////////////////////////////////////////////////////////////////////////
 
 static void
+PrintNodes( const char *name, STACK_OF(X509_POLICY_NODE) *nodes, BIO *bio,
+            const char *sep )
+{
+	X509_POLICY_NODE *node;
+	int i;
+
+	BIO_printf( bio, "%s Policies:", name );
+	if( nodes )
+	{
+	    BIO_puts( bio, sep );
+	    for( i = 0; i < sk_X509_POLICY_NODE_num( nodes ); i++ )
+	    {
+	        node = sk_X509_POLICY_NODE_value( nodes, i );
+	        X509_POLICY_NODE_print( bio, node, 2 );
+	    }
+	}
+	else
+	    BIO_printf( bio, " <empty>%s", sep );
+}
+
+static void
+PrintPolicies( X509_STORE_CTX *ctx, BIO *bio, const char *sep )
+{
+	if( !ctx )
+	    return;
+
+	X509_POLICY_TREE *tree = X509_STORE_CTX_get0_policy_tree( ctx );
+	int explicit_policy = X509_STORE_CTX_get_explicit_policy( ctx );
+
+	BIO_printf( bio, "Require explicit Policy: %s%s",
+	            explicit_policy ? "True" : "False", sep );
+
+	PrintNodes( "Authority", X509_policy_tree_get0_policies( tree ),
+	            bio, sep );
+	PrintNodes( "User", X509_policy_tree_get0_user_policies( tree ),
+	            bio, sep );
+}
+
+static void
+PrintCertificateSubject( int depth, X509 *cert, BIO *bio, const char *sep )
+{
+	BIO_printf( bio , "depth=%d ", depth );
+	if( cert != NULL )
+	{
+	    X509_NAME_print_ex( bio, X509_get_subject_name(cert), 0,
+	                        XN_FLAG_ONELINE );
+	    BIO_puts( bio, sep );
+	}
+	else
+	    BIO_printf( bio, " <no cert>%s", sep );
+}
+
+static void
+PrintCertificateError( X509 *cert, int err, X509_STORE_CTX *ctx, BIO *bio,
+                       const char *sep )
+{
+	switch (err)
+	{
+	case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT:
+	case X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY:
+	    BIO_puts( bio, "issuer= " );
+	    X509_NAME_print_ex( bio, X509_get_issuer_name( cert ),
+	                        0, XN_FLAG_ONELINE );
+	    BIO_puts( bio, sep );
+	    break;
+	case X509_V_ERR_CERT_NOT_YET_VALID:
+	case X509_V_ERR_ERROR_IN_CERT_NOT_BEFORE_FIELD:
+	    BIO_printf( bio, "notBefore=" );
+	    ASN1_TIME_print( bio, X509_get_notBefore( cert ) );
+	    BIO_puts( bio, sep );
+	    break;
+	case X509_V_ERR_CERT_HAS_EXPIRED:
+	case X509_V_ERR_ERROR_IN_CERT_NOT_AFTER_FIELD:
+	    BIO_printf( bio, "notAfter=" );
+	    ASN1_TIME_print( bio, X509_get_notAfter( cert ) );
+	    BIO_puts( bio, sep );
+	    break;
+	case X509_V_ERR_NO_EXPLICIT_POLICY:
+	    PrintPolicies( ctx, bio, sep );
+	    break;
+	default:
+	    break;
+	}
+}
+
+P4MT int ossl_verify_cb_idx;
+int
+verify_callback(int ok, X509_STORE_CTX *ctx)
+{
+	NetSslCredentials *credentials = (NetSslCredentials *)
+	    X509_STORE_CTX_get_ex_data( ctx,ossl_verify_cb_idx );
+	if( !credentials )
+	    return ok;
+
+	X509 *err_cert = X509_STORE_CTX_get_current_cert( ctx );
+	int err = X509_STORE_CTX_get_error( ctx );
+	int depth = X509_STORE_CTX_get_error_depth( ctx );
+
+	credentials->SetCertValid( depth, err, err_cert );
+	if( !SSLDEBUG_CERT )
+	    return ok;
+	
+	BIO *bio = BIO_new( BIO_s_mem() );
+	PrintCertificateSubject( depth, err_cert, bio, "\n" );
+
+	if( !ok )
+	    BIO_printf( bio, "verify error:num=%d:%s\n", err,
+	                X509_verify_cert_error_string( err ) );
+	
+	PrintCertificateError( err_cert, err, ctx, bio, "\n" );
+
+	if( err == X509_V_OK && ok == 2 )
+	    PrintPolicies( ctx, bio, "\n" );
+
+	if( ok )
+	    BIO_printf( bio, "verify return:%d\n", ok );
+
+	BUF_MEM *bufMemPtr = 0;
+	BIO_get_mem_ptr( bio, &bufMemPtr );
+	StrBuf objS;
+	objS.Set(bufMemPtr->data, bufMemPtr->length);
+	objS.Terminate();
+	p4debug.printf( objS.Text() );
+
+	BIO_free_all( bio );
+
+	return ok;
+}
+
+static void
 Callback( int code, int arg, void *cb_arg )
 {
 	if ( !SSLDEBUG_FUNCTION )
@@ -119,6 +253,7 @@ NetSslCredentials::NetSslCredentials(bool isTest)
 	certSV = SSL_X509_NOTBEFORE;
 	certUNITS = SSL_X509_DAY;
 	chain = new VarArray;
+	verify = new IntArray( 5, -1 );
 
 	if ( !isTest )
 	{
@@ -164,6 +299,7 @@ NetSslCredentials::NetSslCredentials( NetSslCredentials &rhs)
 	chain = new VarArray;
 	for( int i = 0; i < rhs.chain->Count(); i++ )
 	    chain->Put( rhs.chain->Get( i ) );
+	verify = new IntArray( 5, -1 );
 }
 
 NetSslCredentials::~NetSslCredentials()
@@ -179,6 +315,7 @@ NetSslCredentials::~NetSslCredentials()
 	        X509_free( (X509 *)chain->Get( i ) );
 
 	delete chain;
+	delete verify;
 }
 
 NetSslCredentials &
@@ -920,6 +1057,20 @@ fail:
 	return;
 }
 
+void
+NetSslCredentials::SetCertValid( int depth, int err, X509 *cert )
+{
+	// Stash the error value
+	(*verify)[depth] = err;
+
+	// Populate the chain
+	while( depth > chain->Count() )
+	    chain->Put( NULL );
+
+	if( depth != 0 )
+	    chain->Replace( depth - 1, cert) ;
+}
+
 X509 *
 NetSslCredentials::GetCertificate() const
 {
@@ -945,13 +1096,22 @@ NetSslCredentials::GetPrivateKey() const
 }
 
 void 
-NetSslCredentials::SetCertificate( X509 *cert, Error *e )
+NetSslCredentials::SetCertificate( X509 *cert, stack_st_X509 *certChain,
+	X509_STORE *store, Error *e )
 {
 	if( !cert )
 	{
 	    e->Set( MsgRpc::SslNoCredentials );
 	    return;
 	}
+
+	verify->Reset();
+	if( !ownCert )
+	    chain->Clear();
+	for( int i = 0; i < chain->Count(); i++ )
+	    X509_free( (X509 *)chain->Get( i ) );
+	chain->Clear();
+
 	this->certificate = cert;
 	this->ownCert = false;
 	ValidateCertDateRange( cert, e );
@@ -967,6 +1127,242 @@ NetSslCredentials::SetCertificate( X509 *cert, Error *e )
 	    this->fingerprint.Clear();
 	    return;
 	}
+
+	if( !store )
+	    return;
+
+	X509_STORE_CTX *csc = X509_STORE_CTX_new();
+	if( X509_STORE_CTX_init( csc, store, cert, certChain ) )
+	{
+	    X509_STORE_CTX_set_verify_cb( csc, verify_callback );
+	    X509_STORE_CTX_set_flags( csc, 0 );
+	    if( !ossl_verify_cb_idx )
+	        ossl_verify_cb_idx =
+	            X509_STORE_CTX_get_ex_new_index( 0, 0, 0, 0, 0 );
+	    X509_STORE_CTX_set_ex_data( csc, ossl_verify_cb_idx, this );
+	    X509_verify_cert( csc );
+	}
+	X509_STORE_CTX_free( csc );
+}
+
+int 
+NetSslCredentials::IsSelfSigned()
+{
+	return (*verify)[0] != -1 && (*verify)[1] == -1;
+}
+
+void 
+NetSslCredentials::ValidateChain( bool criticalOnly, Error *e )
+{
+	if( SSLDEBUG_CERT )
+	    p4debug.printf(
+	        "NetSslCredentials::ValidateChain checking for verify errors\n"
+	    );
+
+	int depth = 0;
+	int err;
+	while( !e->Test() &&
+	    ( ( err = (*verify)[depth++] ) != -1 ||
+	      depth <= chain->Count() ) )
+	{
+	    if( err == X509_V_OK || err == -1 )
+	        continue;
+
+	    bool critical = true;
+	    if( err == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT ||
+	        err == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT ||
+	        err == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN ||
+	        err == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY ||
+	        err == X509_V_ERR_UNABLE_TO_VERIFY_LEAF_SIGNATURE ||
+	        err == X509_V_ERR_CERT_CHAIN_TOO_LONG ||
+	        err == X509_V_ERR_INVALID_CA ||
+	        err == X509_V_ERR_INVALID_PURPOSE )
+	        critical = false;
+
+	    char sslError[256];
+	    char func[] = "NetSslCredentials::ValidateChain X509_verify_cert";
+	    ERR_error_string_n( err, sslError, 256 );
+	    const char* vErr = X509_verify_cert_error_string( err );
+
+	    BIO *bio = BIO_new( BIO_s_mem() );
+	    X509* cert = depth == 1 ? certificate
+	                            : (X509*)chain->Get( depth - 2 );
+	    PrintCertificateSubject( depth - 1, cert, bio, " " );
+	    PrintCertificateError( cert, err, 0, bio, " " );
+	    BUF_MEM *bufMemPtr = 0;
+	    BIO_get_mem_ptr( bio, &bufMemPtr );
+	    StrBuf objS;
+	    objS.Set( bufMemPtr->data, bufMemPtr->length );
+	    objS.Terminate();
+	    BIO_free_all( bio );
+
+	    if( criticalOnly && !critical )
+	    {
+	        if( SSLDEBUG_CERT )
+	            p4debug.printf( "%s ignoring failure: %s: %s %s\n",
+	                            func, sslError, vErr, objS.Text() );
+	        continue;
+	    }
+
+	    e->Set( MsgOs::Net2 ) << func << sslError << vErr << objS;
+	    e->Set( critical ? MsgRpc::SslCertBad : MsgRpc::SslCertBadChain );
+	}
+}
+
+void
+NetSslCredentials::ValidateSubject( StrPtr *name, StrPtr *ip, Error *e )
+{
+	if( !certificate || ( !name && !ip ) )
+	    return;
+
+	if( SSLDEBUG_CERT )
+	    p4debug.printf(
+	      "NetSslCredentials::ValidateSubject checking for subject match\n"
+	    );
+
+	StrBuf cn;
+	int len = X509_NAME_get_text_by_NID(
+	              X509_get_subject_name( certificate ),
+	              NID_commonName, cn.Alloc( 256 ), 256 );
+	if( len >= 0 )
+	{
+	    cn.SetLength( len );
+	    cn.Terminate();
+	}
+
+	if( name && !name->CCompare( cn ) )
+	{
+	    if( SSLDEBUG_CERT )
+	        p4debug.printf(
+	            "NetSslCredentials::ValidateSubject matched: CN == %s\n",
+	            name->Text() );
+	    return;
+	}
+	if( ip && !ip->CCompare( cn ) )
+	{
+	    if( SSLDEBUG_CERT )
+	        p4debug.printf(
+	            "NetSslCredentials::ValidateSubject matched: CN == %s\n",
+	            ip->Text() );
+	    return;
+	}
+	if( cn.StartsWith( "*.", 2 ) &&
+	    !strcmp( cn.Text() + 1, strchr( name->Text(), '.' ) ) )
+	{
+	    if( SSLDEBUG_CERT )
+	        p4debug.printf(
+	           "NetSslCredentials::ValidateSubject matched: "
+	           "Wildcard CN (%s) == %s\n",
+	           cn.Text(), name->Text() );
+	    return;
+	}
+
+	int matched = 0;
+	STACK_OF(GENERAL_NAME) *sans =
+	    (STACK_OF(GENERAL_NAME) *)X509_get_ext_d2i( certificate,
+	                                                NID_subject_alt_name,
+	                                                0, 0 );
+	if( sans != NULL )
+	{
+	    int sanc = sk_GENERAL_NAME_num( sans );
+	    for( int i = 0; !e->Test() && !matched && i < sanc; i++ )
+	    {
+	        const GENERAL_NAME *gn = sk_GENERAL_NAME_value( sans, i );
+	        if( gn->type == GEN_DNS && name )
+	        {
+	            // Current name is a DNS name, let's check it
+	            const char *dnsName =
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
+	                (const char *)ASN1_STRING_data( gn->d.dNSName );
+# else
+	                (const char *)ASN1_STRING_get0_data( gn->d.dNSName );
+# endif
+	            if( !dnsName )
+	                continue;
+
+	            // Make sure there isn't an embedded NUL character
+	            // in the DNS name
+	            if( ASN1_STRING_length( gn->d.dNSName ) !=
+	                strlen( dnsName ) )
+	            {
+	                if( SSLDEBUG_ERROR )
+	                    p4debug.printf(
+	                        "NetSslCredentials::ValidateSubject "
+	                        "SAN length (%d) doesn't match string "
+	                        "length (%d)!\n",
+	                        ASN1_STRING_length( gn->d.dNSName ),
+	                        strlen( dnsName ));
+	                e->Set( MsgRpc::SslCertMalformed );
+	                break;
+	            }
+
+	            if( !name->CCompare( StrRef( dnsName ) ) )
+	            {
+	                if( SSLDEBUG_CERT )
+	                    p4debug.printf(
+	                        "NetSslCredentials::ValidateSubject matched: "
+	                        "SAN == %s\n",
+	                        name->Text() );
+	                matched++;
+	                break;
+	            }
+	        }
+	        else if( gn->type == GEN_IPADD && ip )
+	        {
+	            const unsigned char* ipAddr = gn->d.iPAddress->data;
+	            if( !ipAddr )
+	                continue;
+
+	            StrBuf tmp;
+	            if( gn->d.iPAddress->length == 4 )
+	            {
+	                NetUtils::IpBytesToStr( gn->d.iPAddress->data, 0,
+	                                        tmp );
+	                if( !ip->CCompare( tmp ) )
+	                {
+	                    if( SSLDEBUG_CERT )
+	                        p4debug.printf(
+	                           "NetSslCredentials::ValidateSubject "
+	                           "matched: SAN == %s\n",
+	                           ip->Text() );
+	                    matched++;
+	                    break;
+	                }
+	            }
+	            else if( gn->d.iPAddress->length == 16 )
+	            {
+	                NetUtils::IpBytesToStr( gn->d.iPAddress->data, 1,
+	                                        tmp );
+	                if( !ip->CCompare( tmp ) )
+	                {
+	                    if( SSLDEBUG_CERT )
+	                        p4debug.printf(
+	                            "NetSslCredentials::ValidateSubject "
+	                            "matched: SAN == %s\n",
+	                            ip->Text() );
+	                    matched++;
+	                    break;
+	                }
+	            }
+	            else
+	            {
+	                if( SSLDEBUG_ERROR )
+	                    p4debug.printf(
+	                        "NetSslCredentials::ValidateSubject "
+	                        "Bad sized IP Address in cert: %s\n",
+	                        gn->d.iPAddress->length );
+	                e->Set( MsgRpc::SslCertMalformed );
+	                break;
+	            }
+	        }
+	    }
+	    sk_GENERAL_NAME_pop_free( sans, GENERAL_NAME_free );
+
+	    if( matched || e->Test() )
+	        return;
+	}
+	
+	e->Set( MsgRpc::SslCertBadSubject ) << cn << name;
 }
 
 void 

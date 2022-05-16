@@ -388,6 +388,7 @@ class MsgSupp {
 	static ErrorId OptionSSSourceComments;
 	static ErrorId OptionSSParentView;
 	static ErrorId OptionLocalLicense;
+	static ErrorId OptionAutoReload;
 
 	static ErrorId TooManyLockTrys;
 
@@ -416,6 +417,7 @@ class MsgSupp {
 	static ErrorId RenameDirSearchFailed;
 	static ErrorId RenameDirNotEmpty;
 	static ErrorId OptionCleanPurge;
+	static ErrorId OptionViewMatch;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

@@ -30,3 +30,4 @@
 
 # define RAF_NAME 0x01    // get symbolic name
 # define RAF_PORT 0x02    // append port number
+# define RAF_REQ  0x04    // get the requested FQDN

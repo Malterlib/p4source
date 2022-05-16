@@ -84,6 +84,7 @@ class KeepAlive;
 class RpcService;
 class RpcForward;
 class Timer;
+class NetSslCredentials;
 
 typedef void (*RpcCallback)( Rpc *, Error * );
 
@@ -126,6 +127,7 @@ extern "C" const char *RpcTypeNames[];
  */
 # define RAF_NAME 0x01	// get symbolic name
 # define RAF_PORT 0x02	// append port number
+# define RAF_REQ  0x04	// append port number
 
 struct RpcTrack {
 	int		trackable;
@@ -211,6 +213,7 @@ class Rpc : public StrDict {
 	void    	SetMaxWait( const int maxWait );
 	void            GetEncryptionType( StrBuf &value );
 	void            GetPeerFingerprint(StrBuf &value);
+	NetSslCredentials *GetPeerCredentials();
 	void            GetExpiration(StrBuf &value);
 
 	bool		HasAddress();

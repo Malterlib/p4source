@@ -312,6 +312,7 @@ class Options
 	                MissingWait    , // heartbeat -r
 	                MissingCount   , // heartbeat -c
 	                LocalLicense   , // license -u -l
+	                AutoReload     , // labels -R
 
 	        // options which have only long-form option names go here:
 
@@ -399,9 +400,10 @@ class Options
 			SSSourceComments, // --source-comments
 			SSParentView,    // --parentview
 			SwitchStreamUnrelated  , // switch --allow-unrelated
-			Only,            // --only BAD | MISSING
+			Only            , // --only BAD | MISSING
 			ShowRealtime    , // --show-realtime
-			CleanPurge,      // --purged-only
+			CleanPurge      , // --purged-only
+			ViewMatch       , // --viewmatch
 #ifdef _DEBUG
 			DebugBreak,    // --debugbreak
 #endif

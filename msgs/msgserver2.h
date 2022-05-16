@@ -175,5 +175,15 @@ class MsgServer2 {
 	static ErrorId VerifyRepairSnapped;
 	static ErrorId VerifyRepairCopied;
 	static ErrorId UseVerifyR;
+	static ErrorId InfoCommitServer;
+	static ErrorId InfoEdgeServer;
+	static ErrorId MovePairSplit;
+	static ErrorId UseTopology;
+	static ErrorId TopologyOnCurrentSvr;
+	static ErrorId FileNoMatchStgDigest;
+	static ErrorId FileNoMatchStgSize;
+	static ErrorId UseStreams2;
 	static ErrorId UnknownContext;
+	static ErrorId IntegTaskNoDirect;
+	static ErrorId LbrDeletionFailed;
 };

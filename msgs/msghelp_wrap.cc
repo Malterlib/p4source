@@ -190,6 +190,7 @@ ErrorId MsgHelp::HelpConfigurables = { ErrorOf( ES_HELP, 130, E_INFO, EV_NONE, 0
 ErrorId MsgHelp::ResolveUserHelp = { ErrorOf( ES_HELP, 22, E_INFO, EV_NONE, 1 ), "MsgHelp::ResolveUserHelp placeholder." };
 ErrorId MsgHelp::HelpServer = { ErrorOf( ES_HELP, 137, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpServer placeholder." };
 ErrorId MsgHelp::HelpServers = { ErrorOf( ES_HELP, 138, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpServers placeholder." };
+ErrorId MsgHelp::HelpTopology = { ErrorOf( ES_HELP, 269, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpTopology placeholder." };
 ErrorId MsgHelp::HelpStorage = { ErrorOf( ES_HELP, 256, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpStorage placeholder." };
 ErrorId MsgHelp::HelpReload = { ErrorOf( ES_HELP, 155, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpReload placeholder." };
 ErrorId MsgHelp::HelpUnload = { ErrorOf( ES_HELP, 156, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpUnload placeholder." };
@@ -265,6 +266,9 @@ ErrorId MsgHelp::HelpGraphUnlock = { ErrorOf( ES_HELP, 238, E_INFO, EV_NONE, 0  
 ErrorId MsgHelp::HelpGraphPrint = { ErrorOf( ES_HELP, 239, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpGraphPrint placeholder." };
 ErrorId MsgHelp::HelpGraphDirs = { ErrorOf( ES_HELP, 241, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpGraphDirs placeholder." };
 ErrorId MsgHelp::HelpGraphCatFile = { ErrorOf( ES_HELP, 250, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpGraphCatFile placeholder." };
+ErrorId MsgHelp::HelpGraphRecomputeRefcnts = { ErrorOf( ES_HELP, 270, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpGraphRecomputeRefcnts placeholder." };
+ErrorId MsgHelp::HelpGraphGc = { ErrorOf( ES_HELP, 271, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpGraphGc placeholder." };
+ErrorId MsgHelp::HelpGraphPurgeRefhist = { ErrorOf( ES_HELP, 272, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpGraphPurgeRefhist placeholder." };
 ErrorId MsgHelp::Help2FA = { ErrorOf( ES_HELP, 232, E_INFO, EV_NONE, 0  ), "MsgHelp::Help2FA placeholder." };
 
 // ErrorId graveyard: retired/deprecated ErrorIds.

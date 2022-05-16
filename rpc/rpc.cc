@@ -439,6 +439,12 @@ Rpc::GetPeerFingerprint( StrBuf &value )
 	    transport->GetPeerFingerprint( value );
 }
 
+NetSslCredentials *
+Rpc::GetPeerCredentials()
+{
+	return transport ? transport->GetPeerCredentials() : 0;
+}
+
 void
 Rpc::GetExpiration(StrBuf &value)
 {
@@ -1335,59 +1341,136 @@ void
 Rpc::CheckKnownHost( Error *e, const StrRef & trustfile )
 {
 	StrBuf	pubkey;
-	StrPtr  *peer;
-
 	GetPeerFingerprint( pubkey );
 	
 	// if not ssl we are done
 	if( !pubkey.Length() )
-		return;
+	    return;
 
-	peer = GetPeerAddress( RAF_PORT );
+	NetSslCredentials *creds = GetPeerCredentials();
+	int sslLevel = p4tunable.Get( P4TUNE_SSL_CLIENT_CERT_VALIDATE );
+
+	StrPtr *peer = GetPeerAddress( RAF_PORT );
+	StrBuf peerIpPort = *peer;
 
 	RPC_DBG_PRINTF( DEBUG_CONNECT,
 		"Checking host %s pubkey %s",
 		peer->Text(), pubkey.Text() );
 
+	// Round 1: P4TRUST (IP based)
+
 	StrRef dummyuser( "**++**" );
 	StrRef altuser( "++++++" );
 	StrBuf trustkey;
-	int doreplace = 0;
-
+	int doReplace = 0;
 	char *keystr;
+
 	{
 	    Ticket hostfile( &trustfile );
 	    keystr = hostfile.GetTicket( *peer, dummyuser );
 	    if( keystr )
 	    {
-		if( pubkey == keystr )
-		    return;
-		trustkey.Set( keystr );
+	        if( pubkey == keystr )
+	            return;
+	        trustkey.Set( keystr );
 	    }
 	}
 	{
 	    Ticket hostfile( &trustfile );
 	    keystr = hostfile.GetTicket( *peer, altuser );
 	    if( keystr && pubkey == keystr )
-		doreplace = 1;
+	        doReplace = 1;
 	}
-	if( doreplace )
+	if( doReplace )
 	{
 	    {
-		Ticket hostfile( &trustfile );
-		hostfile.ReplaceTicket( *peer, dummyuser, pubkey, e );
+	        Ticket hostfile( &trustfile );
+	        hostfile.ReplaceTicket( *peer, dummyuser, pubkey, e );
 	    }
 	    if( !e->Test() )
 	    {
-		Ticket hostfile( &trustfile );
-		hostfile.DeleteTicket( *peer, altuser, e );
+	        Ticket hostfile( &trustfile );
+	        hostfile.DeleteTicket( *peer, altuser, e );
 	    }
 	    return;
 	}
-	e->Set( trustkey.Length() ?
-		MsgRpc::HostKeyMismatch : MsgRpc::HostKeyUnknown );
-	*e << *peer;
-	*e << pubkey;
+
+	if( trustkey.Length() )
+	{
+	    // Got a bad hit
+	    e->Set( MsgRpc::HostKeyMismatch ) << *peer << pubkey;
+	    return;
+	}
+
+	// Round 2: P4TRUST (FQDN based)
+
+	peer = GetPeerAddress( RAF_REQ | RAF_PORT );
+	StrBuf peerDNSPort = *peer;
+
+	{
+	    Ticket hostfile( &trustfile );
+	    keystr = hostfile.GetTicket( *peer, dummyuser );
+	    if( keystr )
+	    {
+	        if( pubkey == keystr )
+	            return;
+	        trustkey.Set( keystr );
+	    }
+	}
+	{
+	    Ticket hostfile( &trustfile );
+	    keystr = hostfile.GetTicket( *peer, altuser );
+	    if( keystr && pubkey == keystr )
+	        doReplace = 1;
+	}
+	if( doReplace )
+	{
+	    {
+	        Ticket hostfile( &trustfile );
+	        hostfile.ReplaceTicket( *peer, dummyuser, pubkey, e );
+	    }
+	    if( !e->Test() )
+	    {
+	        Ticket hostfile( &trustfile );
+	        hostfile.DeleteTicket( *peer, altuser, e );
+	    }
+	    return;
+	}
+
+	if( trustkey.Length() )
+	{
+	    // Got a bad hit
+	    e->Set( MsgRpc::HostKeyMismatch ) << *peer << pubkey;
+	    return;
+	}
+
+	// Round 3: Cert validity
+
+	// sslLevel == 0, use P4TRUST: strict mode
+	if( creds && sslLevel && !creds->IsSelfSigned() )
+	{
+	    peer = GetPeerAddress();
+	    StrBuf peerIp = *peer;
+	    peer = GetPeerAddress( RAF_REQ );
+	    StrBuf peerDNS = *peer;
+
+	    RPC_DBG_PRINTF( DEBUG_CONNECT,
+	            "Checking host %s/%s cert chain",
+	            peerIp.Text(), peerDNS.Text() );
+
+	    // sslLevel < 2, chain must be valid
+	    creds->ValidateChain( sslLevel != 1, e );
+	    if( e->IsFatal() )
+	        return;
+
+	    // sslLevel >= 1, cert must be for the target server
+	    creds->ValidateSubject( &peerDNS, &peerIp, e );
+
+	    if( !e->Test() )
+	        return;
+	}
+
+	e->Set( MsgRpc::HostKeyUnknown ) << peerIpPort << pubkey;
 }
 
 int

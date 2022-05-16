@@ -33,6 +33,8 @@
 # ifdef USE_SSL
 
 class VarArray;
+class IntArray;
+class PathSys;
 
 class NetSslCredentials
 {
@@ -49,13 +51,17 @@ public:
 		void GetExpiration( StrBuf &buf );
 		void HaveCredentials( Error *e );
 		NetSslCredentials &operator =( NetSslCredentials &rhs );
+		void ValidateChain( bool criticalOnly, Error *e );
+		void ValidateSubject( StrPtr *name, StrPtr *ip, Error *e );
 
 		// Getters and Setters
 		X509 *GetCertificate() const;
 		X509 *GetChain( int i ) const;
 		const StrPtr *GetFingerprint() const;
 		EVP_PKEY *GetPrivateKey() const;
-		void SetCertificate(X509 *certificate, Error *e);
+		void SetCertificate( X509 *certificate,
+		                     stack_st_X509 *certChain,
+		                     X509_STORE *store, Error *e );
 		void SetOwnCert(bool ownCert);
 		void SetOwnKey(bool ownKey);
 		void SetCertC(StrBuf &certC);
@@ -65,13 +71,16 @@ public:
 		void SetCertST(StrBuf &certSt);
 		void SetSslDir(StrPtr *sslDir);
 		void GetFingerprintFromCert( Error *e );
+		int IsSelfSigned();
+		void SetCertValid( int depth, int error, X509 *cert );
 
 private:
 		// Utilities
 		void ParseConfig( Error *e );
-		void WriteCredentials(  PathSys *keyFile, PathSys *certFile, Error * e );
-		void GetCredentialFilepaths( PathSys *keyFile, PathSys *certFile, Error * e );
-		void GetFingerprintFile( PathSys *fpFile, Error * e);
+		void WriteCredentials( PathSys *keyFile, PathSys *certFile,
+		                       Error * e );
+		void GetCredentialFilepaths( PathSys *keyFile,
+		                             PathSys *certFile, Error * e );
 		void MakeSslCredentials( Error *e );
 		void CompareFileUids( Error *e );
 		void CompareDirUid( Error *e );
@@ -79,6 +88,7 @@ private:
 		EVP_PKEY *privateKey;
 		X509 *certificate;
 		VarArray *chain;
+		IntArray *verify;
 		StrBuf fingerprint;
 		StrBuf certC;
 		StrBuf certCN;

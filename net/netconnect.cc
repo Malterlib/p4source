@@ -24,9 +24,9 @@
 
 # ifdef USE_SSL
 extern "C" {    // OpenSSL
-# include "openssl/bio.h"
-# include "openssl/ssl.h"
-# include "openssl/err.h"
+# include <openssl/bio.h>
+# include <openssl/ssl.h>
+# include <openssl/err.h>
 }
 # endif //USE_SSL
 

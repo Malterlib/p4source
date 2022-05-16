@@ -218,6 +218,9 @@ class MapTable {
 
 	void		SetReason( const ErrorId *e ) { emptyReason = e; }
 	const ErrorId *	EmptyReason() { return emptyReason; }
+	void		SetJoin2StreamViews()   { join2StreamViews = 1; }
+	void		UnsetJoin2StreamViews() { join2StreamViews = 0; }
+	int		GetJoin2StreamViews()   { return join2StreamViews; }
 
     public:
 
@@ -278,5 +281,6 @@ class MapTable {
 	int		hasAndmaps;
 
 	int		caseMode;
+	int		join2StreamViews;
 
 } ;

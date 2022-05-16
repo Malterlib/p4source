@@ -51,11 +51,7 @@ class NetTcpTransport : public NetTransport {
 			    return &myAddr;
 			}
 
-	StrPtr	*	GetPeerAddress( int raf_flags )
-			{
-			    GetPeerAddress( t, raf_flags, peerAddr );
-			    return &peerAddr;
-			}
+	StrPtr	*	GetPeerAddress( int raf_flags );
 
 	int		GetPortNum()
 			{

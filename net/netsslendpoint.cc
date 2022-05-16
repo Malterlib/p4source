@@ -51,21 +51,20 @@
 extern "C"
 { // OpenSSL
 
-# include "openssl/bio.h"
-# include "openssl/ssl.h"
-# include "openssl/err.h"
+# include <openssl/bio.h>
+# include <openssl/ssl.h>
+# include <openssl/err.h>
 
 }
 
-# include <error.h>
 # include <errorlog.h>
 # include <debug.h>
 # include <vararray.h>
 # include <bitarray.h>
 # include <tunable.h>
 # include <enviro.h>
-# include "filesys.h"
-# include "pathsys.h"
+# include <filesys.h>
+# include <pathsys.h>
 
 # include <keepalive.h>
 # include "netsupport.h"
@@ -219,7 +218,8 @@ NetSslEndPoint::Connect( Error *e )
 	signal( SIGPIPE, SIG_IGN );
 # endif
 
-	sslTransport = new NetSslTransport( t, false );
+	sslTransport = new NetSslTransport( t, false, &customCipherList,
+	                                    &customCipherList );
 	if(sslTransport)
 	{
 	    sslTransport->SetPortParser(GetPortParser());

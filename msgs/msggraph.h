@@ -363,6 +363,18 @@ class MsgGraph {
 	static ErrorId WarnNoWriteAccess;
 	static ErrorId BadParentNumber;
 	static ErrorId RefTagUpdateNoForce;
+	static ErrorId UseGraphPurgeRefhist;
+	static ErrorId UnexpectedObjectType;
+	static ErrorId DeletedRecords;
+	static ErrorId WldDeleteRecords;
+	static ErrorId UseGraphGc;
+	static ErrorId ObjectSha;
+	static ErrorId UseGraphRecomputeRefcnts;
+	static ErrorId WldCorrectObjRefcnt;
+	static ErrorId CorrectedObjRefcnt;
+	static ErrorId RefcntInProgress;
+	static ErrorId NoOrphanedObj;
+	static ErrorId ObjectRecNotFound;
 	// Retired ErrorIds. We need to keep these so that clients
 	// built with newer apis can commnunicate with older servers
 	// still sending these.

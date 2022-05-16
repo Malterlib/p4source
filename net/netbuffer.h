@@ -74,6 +74,7 @@
  */
 
 typedef struct z_stream_s z_stream;
+class NetSslCredentials;
 
 class NetBuffer : public NetTransport {
 
@@ -125,6 +126,8 @@ class NetBuffer : public NetTransport {
 	                { transport->GetEncryptionType( value ); }
 	void            GetPeerFingerprint(StrBuf &value)
 	                { transport->GetPeerFingerprint( value ); }
+	NetSslCredentials *GetPeerCredentials()
+	                { return transport->GetPeerCredentials(); }
 
 	// NetBuffer specials
 	// These babies take both send and receive Errors, so 

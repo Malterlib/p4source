@@ -9,27 +9,14 @@
 # include <strops.h>
 # include <strarray.h>
 # include <strtable.h>
-# include <mapapi.h>
 # include <runcmd.h>
 # include <rpc.h>
-# include <mangle.h>
 # include <i18napi.h>
-# include <charcvt.h>
-# include <transdict.h>
-# include <debug.h>
-# include <tunable.h>
-# include <ignore.h>
-# include <timer.h>
-# include <progress.h>
 # include <signaler.h>
 # include <p4libs.h>
 
 # include <pathsys.h>
 # include <enviro.h>
-# include <ticket.h>
-
-# include <msgclient.h>
-# include <msgsupp.h>
 
 # include "clientservice.h"
 # include "client.h"
@@ -121,6 +108,11 @@ ThreadedTransfer::RunTransfer( ClientApi *client,
 	child.SetVersion( client->GetVersion().Text() );
 	child.SetBreak( &keepAlive );
 
+	// Unlock here since we're past most of the issues the P4API
+	// has with shared data and so we can execute in parallel.
+	// also, need to unlock before error check
+	mutex.unlock();
+
 	if( e.Test() )
 	{
 	    ui->HandleError( &e );
@@ -133,9 +125,6 @@ ThreadedTransfer::RunTransfer( ClientApi *client,
 	    a[ j ] = args->Get( j )->Text();
 
 	child.SetArgv( args->Count(), a );
-	// Unlock here since we're past most of the issues the P4API
-	// has with shared data and so we can execute in parallel.
-	mutex.unlock();
 	child.Run( cmd, ui );
 
 	delete[] a;
@@ -143,7 +132,6 @@ ThreadedTransfer::RunTransfer( ClientApi *client,
 
 	if( e.Test() )
 	{
-	    std::lock_guard< std::mutex > lock( mutex );
 	    ui->HandleError( &e );
 	    return 1;
 	}

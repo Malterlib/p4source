@@ -1356,18 +1356,18 @@
 		switch $(OSPLAT:U)
 		{
 		case X86    : _mflags = -m32 ;
-		               USE_SMARTHEAP ?= yes ;
+		               USE_SMARTHEAP ?= no ;
 		               SMARTHEAP_CHECKS ?= 0 ;
 		               MALLOC_OVERRIDE ?= yes ;
-		               USE_MIMALLOC ?= no ;
+		               USE_MIMALLOC ?= yes ;
 		               USE_JEMALLOC ?= no ;
 		               USE_RPMALLOC ?= no ;
 
 		case X86_64 : _mflags = -m64 ;
-		               USE_SMARTHEAP ?= yes ;
+		               USE_SMARTHEAP ?= no ;
 		               SMARTHEAP_CHECKS ?= 0 ;
 		               MALLOC_OVERRIDE ?= yes ;
-		               USE_MIMALLOC ?= no ;
+		               USE_MIMALLOC ?= yes ;
 		               USE_JEMALLOC ?= no ;
 		               USE_RPMALLOC ?= no ;
 
@@ -1416,7 +1416,8 @@
 		               -F$(QTDIR)/lib ;
 
 		LINKLIBS    += -framework ApplicationServices
-		               -framework Foundation ;
+		               -framework Foundation 
+		               -framework Security ;
 
 	case MACOSX105 :
 		SetCommonCompiler $(OSCOMP:E=gcc) ;
@@ -1438,7 +1439,8 @@
 		if $(MACOSX105ON106) { LINKFLAGS += -Wl,-no_compact_linkedit ; }
 
 		LINKLIBS    += -framework ApplicationServices
-		               -framework Foundation ;
+		               -framework Foundation
+		               -framework Security ;
 
 	case MACOSX106 :
 		SetCommonCompiler $(OSCOMP:E=gcc) ;
@@ -1461,10 +1463,11 @@
 		LINKFLAGS   += $(MACOSX_SDK_FLAGS) -Wl,-no_compact_linkedit ;
 
 		LINKLIBS    += -framework ApplicationServices
-		               -framework Foundation ;
+		               -framework Foundation
+		               -framework Security ;
 
 	case MACOSX10[78] :
-        SetCommonCompiler $(OSCOMP:E=gcc) ;
+		SetCommonCompiler $(OSCOMP:E=gcc) ;
 		SetOSXSdk : -mmacosx-version-min=10.5 -fwrapv ;
 
 		LIBRARY_DEPOLYMENT_SDK = sdk10.5 ;
@@ -1477,7 +1480,8 @@
 		               -F$(QTDIR)/lib ;
 
 		LINKLIBS    += -framework ApplicationServices
-		               -framework Foundation ;
+		               -framework Foundation 
+		               -framework Security ;
 
 	case MACOSX10* :  # 10.9 and above
 		SetCommonCompiler $(OSCOMP:E=clang) ;
@@ -1494,7 +1498,26 @@
 		               -F$(QTDIR)/lib ;
 
 		LINKLIBS    += -framework ApplicationServices
-		               -framework Foundation ;
+		               -framework Foundation
+		               -framework Security ;
+
+	case MACOSX11* :  # 11.1 and above
+		SetCommonCompiler $(OSCOMP:E=clang) ;
+		SetOSXSdk 11.3 : -mmacosx-version-min=11.01 -fwrapv ;
+
+		LIBRARY_DEPOLYMENT_SDK = sdk11.3 ;
+		STATIC_LIBSTDC++ = yes ;
+
+		# The -fvisibility-inlines-hidden option is a C++-only
+		# option, needed because Qt4 is built with it and all
+		# statically-compiled objects need to use it consistently.
+		C++FLAGS    += -fvisibility-inlines-hidden ;
+		$(GENFLAGS) += -fpascal-strings
+		               -F$(QTDIR)/lib ;
+
+		LINKLIBS    += -framework ApplicationServices
+		               -framework Foundation
+		               -framework Security ;
 
 	case MINGW* :
 		# MinGW is a special case of NT : instead of using msft's compiler,
@@ -1716,17 +1739,17 @@
 
 		switch $(OSPLAT:U)
 		{
-			case X86 : USE_SMARTHEAP ?= yes ;
+			case X86 : USE_SMARTHEAP ?= no ;
 		               SMARTHEAP_CHECKS ?= 0 ;
 		               MALLOC_OVERRIDE ?= yes ;
-		               USE_MIMALLOC ?= no ;
+		               USE_MIMALLOC ?= yes ;
 		               USE_JEMALLOC ?= no ;
 		               USE_RPMALLOC ?= no ;
 
-			case X64 : USE_SMARTHEAP ?= yes ;
+			case X64 : USE_SMARTHEAP ?= no ;
 		               SMARTHEAP_CHECKS ?= 0 ;
 		               MALLOC_OVERRIDE ?= yes ;
-		               USE_MIMALLOC ?= no ;
+		               USE_MIMALLOC ?= yes ;
 		               USE_JEMALLOC ?= no ;
 		               USE_RPMALLOC ?= no ;
 		}

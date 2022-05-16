@@ -197,6 +197,7 @@ class MsgHelp {
 	static ErrorId HelpSync;
 	static ErrorId HelpTag;
 	static ErrorId HelpTickets;
+	static ErrorId HelpTopology;
 	static ErrorId HelpTrigger;
 	static ErrorId HelpTriggers;
 	static ErrorId HelpTrust;
@@ -264,6 +265,9 @@ class MsgHelp {
 	static ErrorId HelpGraphLfsStat;
 	static ErrorId HelpGraphVerify;
 	static ErrorId HelpGraphUndo;
+	static ErrorId HelpGraphRecomputeRefcnts;
+	static ErrorId HelpGraphGc;
+	static ErrorId HelpGraphPurgeRefhist;
 
 	static ErrorId Help2FA;
 

@@ -45,7 +45,13 @@
 # include <stdhdrs.h>
 
 # ifndef OS_NT
-# include <pthread.h>
+#   include <pthread.h>
+#   if defined( OS_DARWIN ) || defined( OS_MACOSX )
+#     include <Security/Security.h>
+#     include <CoreFoundation/CoreFoundation.h>
+#   endif
+# else
+#   include <wincrypt.h>
 # endif // not OS_NT
 
 # include <error.h>
@@ -80,15 +86,12 @@
 extern "C"
 {
     // OpenSSL
-# include "openssl/bio.h"
-# include "openssl/ssl.h"
-# include "openssl/err.h"
+# include <openssl/ssl.h>
+# include <openssl/err.h>
+# include <openssl/x509v3.h>
 # if !( defined( OPENSSL_VERSION_TEXT ) && defined( OPENSSL_VERSION_NUMBER ))
 # include "openssl/opensslv.h"
 # endif
-
-   // For strerror
-# include <stdio.h>
 }
 # include "netsslcredentials.h"
 # include "netsslendpoint.h"
@@ -123,6 +126,188 @@ DynDestroyFunction(struct CRYPTO_dynlock_value *l, const char *file, int line);
 # define OPENSSL_free free
 
 # endif // !OpenSSL 1.1
+
+static int LoadCACerts(SSL_CTX *ctx, const char *caPath )
+{
+	int loaded = 0;
+	Error e;
+	FileSys *f = FileSys::Create( FST_BINARY );
+	f->Set( caPath );
+	int stat = f->Stat();
+	delete f;
+	if( (stat & FSF_EXISTS) && (stat & FSF_DIRECTORY) )
+	{
+	    loaded = SSL_CTX_load_verify_locations(ctx, 0, caPath);
+	    const char *msg = "NetSslTransport::LoadSystemCACerts "
+	                      "SSL_CTX_load_verify_locations path";
+	    SSLCHECKERROR( &e, msg, MsgRpc::SslInit, fail );
+	    if( p4debug.GetLevel( DT_SSL ) == 2 )
+                p4debug.printf( msg );
+	}
+	else if( (stat & FSF_EXISTS) )
+	{
+	    loaded = SSL_CTX_load_verify_locations(ctx, caPath, 0);
+	    const char *msg = "NetSslTransport::LoadSystemCACerts "
+	                      "SSL_CTX_load_verify_locations file";
+	    SSLCHECKERROR( &e, msg, MsgRpc::SslInit, fail );
+	    if( p4debug.GetLevel( DT_SSL ) == 2 )
+                p4debug.printf( msg );
+	}
+fail:
+	return loaded;
+}
+
+static void LoadSystemCACerts(SSL_CTX *ctx )
+{
+	Error e;
+	StrBuf caPath = p4tunable.GetString( P4TUNE_SSL_CLIENT_CA_PATH );
+	if( caPath.Length() && LoadCACerts( ctx, caPath.Text() ) )
+	    return;
+
+#ifdef OS_NT
+	HCERTSTORE hStore = 0;
+	PCCERT_CONTEXT pContext = 0;
+	X509 *x509 = 0;
+	X509_STORE *store = 0;
+	int ok = 0;
+	
+	store = SSL_CTX_get_cert_store( ctx );
+	if( !store )
+	{
+	    store = X509_STORE_new();
+	    SSL_CTX_set_cert_store( ctx, store );
+	}
+
+	const char* locations[] = { "CA", "ROOT", "MY", 0 };
+	for( int i = 0; locations[i]; i++ )
+	{
+	    hStore = CertOpenSystemStore( NULL, locations[i] );
+
+	    if( !hStore )
+	       continue;
+
+	    while( pContext = CertEnumCertificatesInStore( hStore, pContext ) )
+	    {
+	        x509 = d2i_X509( NULL,
+	                     (const unsigned char **)&pContext->pbCertEncoded,
+	                     pContext->cbCertEncoded );
+	        if( x509 )
+	        {
+	            ok = X509_STORE_add_cert( store, x509 );
+	            char *str = X509_NAME_oneline(
+	                X509_get_subject_name( x509 ), 0, 0 );
+	            StrBuf msg = "NetSslTransport::LoadSystemCACerts "
+	                         "SSL_CTX_set_options(";
+	            msg << (str ? str : "null") << "): "
+	                << (ok == 1 ? "success" : "failed");
+	            OPENSSL_free( str );
+	            SSLCHECKERROR( &e, msg.Text(), MsgRpc::SslInit, failLoad );
+	            if( p4debug.GetLevel( DT_SSL ) == 2 && !e.Test() )
+	                p4debug.printf("%s Successfully called.\n", msg.Text() );
+failLoad:
+	            X509_free( x509 );
+	        }
+	    }
+
+	    CertFreeCertificateContext( pContext );
+	    CertCloseStore( hStore, 0 );
+	    hStore = 0;
+	}
+#elif defined( OS_MACOSX )
+	CFArrayRef certs = NULL;
+	CFIndex count, index;
+	X509 *x509;
+	X509_STORE *store = 0;
+	int ok = 0;
+
+	store = SSL_CTX_get_cert_store( ctx );
+	if( !store )
+	{
+	    store = X509_STORE_new();
+	    SSL_CTX_set_cert_store( ctx, store );
+	}
+	
+	SecTrustSettingsDomain domain;
+	SecTrustSettingsDomain domains[] = {
+	    kSecTrustSettingsDomainUser,
+	    kSecTrustSettingsDomainAdmin,
+	    kSecTrustSettingsDomainSystem
+	};
+	int domainCount = sizeof( domains ) / sizeof( domain );
+
+	for( int d = 0; d < domainCount; d++ )
+	{
+	    domain = domains[d];
+	    if( !SecTrustSettingsCopyCertificates( domain, &certs ) )
+	    {
+	        count = CFArrayGetCount( certs );
+	        for( index = 0; index < count; index++ )
+	        {
+	            SecCertificateRef cert =
+	                (SecCertificateRef)CFArrayGetValueAtIndex(certs,index);
+	            if( CFGetTypeID( cert ) != SecCertificateGetTypeID() )
+	                continue;
+#if defined( OS_MACOSX104 ) || defined( OS_MACOSX105 )
+	            CSSM_DATA data;
+	            SecCertificateGetData( cert, &data );
+	            const unsigned char *buf = data.Data;
+	            x509 = d2i_X509( NULL, &buf, data.Length );
+#else
+	            CFDataRef data = SecCertificateCopyData( cert );
+	            const unsigned char *buf = CFDataGetBytePtr( data );
+	            x509 = d2i_X509( NULL, &buf, CFDataGetLength( data ) );
+#endif
+	            if( x509 )
+	            {
+	                ok = X509_STORE_add_cert( store, x509 );
+	                char *str = X509_NAME_oneline(
+	                    X509_get_subject_name( x509 ), 0, 0 );
+	                StrBuf msg = "NetSslTransport::LoadSystemCACerts "
+	                    "SSL_CTX_set_options(";
+	                msg << (str ? str : "null") << "): "
+	                    << (ok == 1 ? "success" : "failed");
+	                OPENSSL_free( str );
+	                SSLCHECKERROR(&e,msg.Text(),MsgRpc::SslInit,failLoad);
+	                if( p4debug.GetLevel( DT_SSL ) == 2 && !e.Test() )
+	                    p4debug.printf( "%s Successfully called.\n",
+	                                    msg.Text() );
+failLoad:
+	                X509_free( x509 );
+	            }
+#if !defined( OS_MACOSX104 ) && !defined( OS_MACOSX105 )
+	            CFRelease( data );
+#endif
+	        }
+	        CFRelease( certs );
+	    }
+	}
+#else
+	// Every distro has it's own place for SSL certs
+	const char* locations[] = {
+	    "/etc/pki/tls/certs/ca-bundle.crt",
+	    "/etc/ssl/certs/ca-certificates.crt",
+	    "/etc/openssl/certs/ca-certificates.crt",
+	    "/etc/ssl/ca-bundle.pem",
+	    "/etc/ssl/cacert.pem",
+	    "/etc/pki/tls/cacert.pem",
+	    "/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem",
+	    "/etc/certs/ca-certificates.crt",
+	    "/usr/local/share/certs/ca-root-nss.crt",
+	    "/System/Library/OpenSSL/certs/",
+	    "/etc/ssl/certs",
+	    "/system/etc/security/cacerts",
+	    "/usr/local/share/certs",
+	    "/etc/pki/tls/certs",
+	    "/etc/openssl/certs",
+	    "/var/ssl/certs",
+	    "/etc/ssl/cert.pem",
+	    0
+	};
+	for( int i = 0; locations[i]; i++ )
+	    if( LoadCACerts( ctx, locations[i] ) )
+	        return;
+#endif
+}
 
 ////////////////////////////////////////////////////////////////////////////
 //  Defines and Globals                                                   //
@@ -255,15 +440,16 @@ SSL_CTX *NetSslTransport::sClientCtx = NULL;
  * @param int socket
  * @param bool flag indicating if server or client side
  */
-NetSslTransport::NetSslTransport( int t, bool fromClient )
+NetSslTransport::NetSslTransport( int t, bool fromClient, StrPtr *cipherList,
+				StrPtr *cipherSuites )
     : NetTcpTransport( t, fromClient )
 {
 	this->bio = NULL;
 	this->ssl = NULL;
 	this->clientNotSsl = false;
 	cipherSuite.Set("encrypted");
-	customCipherList = 0;
-	customCipherSuites = 0;
+	customCipherList = cipherList;
+	customCipherSuites = cipherSuites;
 }
 
 NetSslTransport::NetSslTransport( int t, bool fromClient,
@@ -545,6 +731,8 @@ NetSslTransport::SslClientInit(Error *e)
 	     */
 	    if( (sClientCtx = CreateAndInitializeSslContext("Client")) == NULL )
 		goto fail;
+
+	    LoadSystemCACerts( sClientCtx );
 	}
 	return;
 
@@ -771,6 +959,12 @@ NetSslTransport::DoHandshake( Error *e )
 	           << SSL_SECONDARY_CIPHER_SUITE << ":HIGH";
 	    SSL_set_cipher_list( ssl, suites.Text() );
 	    SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_cipher_list primary+secondary+high" );
+
+	    // SNI support
+	    SSL_set_tlsext_host_name( ssl, GetPortParser().Host().Text() );
+	    StrBuf msg = "NetSslTransport::DoHandshake SSL_set_tlsext_host_name ";
+	    msg << GetPortParser().Host();
+	    SSLLOGFUNCTION( msg.Text() );
 	}
 
 	/*
@@ -814,25 +1008,28 @@ NetSslTransport::DoHandshake( Error *e )
 	{
 
 	    X509 *serverCert = SSL_get_peer_certificate( ssl );
-	    credentials.SetCertificate( serverCert, e );
+	    stack_st_X509 *serverCertChain = SSL_get_peer_cert_chain( ssl );
+	    X509_STORE *store = SSL_CTX_get_cert_store( SSL_get_SSL_CTX( ssl ) );
+	    credentials.SetCertificate( serverCert, serverCertChain, store, e );
 
 	    if ( e->Test() )
 	    {
 		X509_free( serverCert );
 		goto failNoRead;
 	    }
-	    else
-	    {
-		SSLLOGFUNCTION( credentials.GetFingerprint()->Text() );
-	    }
 
+	    SSLLOGFUNCTION( credentials.GetFingerprint()->Text() );
+	    if( SSLDEBUG_CONNECT )
+	        p4debug.printf(
+	            "NetSslTransport::DoHandshake %s certificate received\n",
+	            credentials.IsSelfSigned() ? "self-signed" : "chain" );
 
-	    if( SSLDEBUG_TRANS )
+	    if( SSLDEBUG_CERT )
 	    {
 		char *str = NULL;
 		// print out CERT info from server
 
-		p4debug.printf( "Server certificate:" );
+		p4debug.printf( "Server certificate:\n" );
 		str = X509_NAME_oneline( X509_get_subject_name( serverCert ), 0,
 				     0 );
 		SSLNULLHANDLER( str, e, "connect X509_get_subject_name", fail );
@@ -1010,7 +1207,7 @@ NetSslTransport::SslHandshake( Error *e )
 
 		// buffer for ssl protocol errors
 		char	sslErrorBuf[256];
-		ERR_error_string( ERR_get_error(), sslErrorBuf );
+		ERR_error_string_n( ERR_get_error(), sslErrorBuf, 256 );
 		TRANSPORT_PRINTF( SSLDEBUG_ERROR, "Handshake Failed: %s", sslErrorBuf );
 		e->Set( MsgRpc::SslProtocolError ) << sslErrorBuf;
 	    default:
@@ -1332,7 +1529,7 @@ NetSslTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	            }
 	            else
 	            {
-	        	ERR_error_string( errErrorNum, errErrorStr );
+	        	ERR_error_string_n( errErrorNum, errErrorStr, 256 );
 	        	re->Net( "read", errErrorStr );
 	        	TRANSPORT_PRINTF( SSLDEBUG_ERROR,
 	        		"SSL_read encountered a syscall ERR: %s", errErrorStr );
@@ -1460,7 +1657,7 @@ NetSslTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	            }
 	            else
 	            {
-	        	ERR_error_string( errErrorNum, errErrorStr );
+	        	ERR_error_string_n( errErrorNum, errErrorStr, 256 );
 	        	se->Net( "write", errErrorStr );
 	        	TRANSPORT_PRINTF( SSLDEBUG_ERROR,
 	        		"SSL_write encountered a syscall ERR: %s", errErrorStr );

@@ -75,6 +75,19 @@ enum TrackerType {
 	PX_TOT_FAULTS_BYTES,		// proxy fault total bytes
 	PX_DIRECT_COUNT,		// proxy direct from server count
 	PX_DIRECT_BYTES,		// proxy direct from server bytes
+	TT_LT_OPENS,			// opens, by libType
+	TT_LT_CLOSES,			// closes, by libType
+	TT_LT_CHECKINS,			// checkins, by libType
+	TT_LT_EXISTS,			// existence checks, by libType
+	TT_LT_READS,			// reads, by libType
+	TT_LT_READBYTES,		// bytes read, by libType
+	TT_LT_WRITES,			// writes, by libType
+	TT_LT_WRITEBYTES,		// bytes written, by libType
+	TT_LT_DIGESTS,			// digest computations, by libType
+	TT_LT_FILESIZES,		// filesize computations, by libType
+	TT_LT_MODTIMES,			// modtime determinations, by libType
+	TT_LT_COPIES,			// copies, by libType
+	TT_LT_DELETES,			// deletes, by libType
 
 	TT_LAST
 }  ;

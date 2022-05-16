@@ -55,6 +55,14 @@ class MsgDm2 {
 	static ErrorId PurgePurgeCheckIgn;
 	static ErrorId IdHasWhitespace;
 	static ErrorId IdHasEquals;
+	static ErrorId RmtAddTopologyFailed;
+	static ErrorId RmtTopologyExists;
+	static ErrorId ImportDittoGraph;
+	static ErrorId ReopenHasMoved;
+	static ErrorId TopologyData;
+	static ErrorId StreamViewMatchData;
+	static ErrorId NoTopologyRecord;
+	static ErrorId NoServerIDSet;
 	static ErrorId LockNameNull;
 	static ErrorId WorkRecNotFound;
 } ;

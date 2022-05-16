@@ -74,7 +74,8 @@ class NetSslTransport : public NetTcpTransport
 {
 
     public:
-	NetSslTransport( int t, bool fromClient );
+	NetSslTransport( int t, bool fromClient,
+	                 StrPtr *cipherList, StrPtr *cipherSuites );
 	NetSslTransport( int t, bool fromClient, NetSslCredentials &cred,
 	                 StrPtr *cipherList, StrPtr *cipherSuites );
 	~NetSslTransport();
@@ -84,13 +85,12 @@ class NetSslTransport : public NetTcpTransport
 	void            DoHandshake( Error *e );
 	void            Close();
 	int             SendOrReceive( NetIoPtrs &io, Error *se, Error *re );
-	void
-	GetEncryptionType(StrBuf &value)
-	    {
-		    value.Set(cipherSuite);
-	    }
-	void    
-	GetPeerFingerprint(StrBuf &value);
+	void            GetEncryptionType(StrBuf &value)
+	                { value.Set( cipherSuite ); }
+	void            GetPeerFingerprint(StrBuf &value);
+	NetSslCredentials *GetPeerCredentials()
+	                { return &credentials; }
+
 
     private:
 	SSL_CTX *	CreateAndInitializeSslContext(const char *conntype);

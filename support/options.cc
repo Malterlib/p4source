@@ -538,6 +538,8 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionMissingCount },
 	{ "local",              Options::LocalLicense, 'l', 0,
 	                      &MsgSupp::OptionLocalLicense },
+	{ "autoreload",         Options::AutoReload, 'R', 0,
+	                      &MsgSupp::OptionAutoReload },
 
 	// Options below this line have no short-form equivalent:
 
@@ -706,6 +708,8 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionShowRealtime },
 	{ "purged-only",        Options::CleanPurge, 0, 0,
 	                      &MsgSupp::OptionCleanPurge },
+	{ "viewmatch",          Options::ViewMatch, 0, ':',
+	                      &MsgSupp::OptionViewMatch },
 
 #ifdef _DEBUG
 	{ "debugbreak",         Options::DebugBreak,  0, 0,

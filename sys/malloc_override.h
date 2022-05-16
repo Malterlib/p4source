@@ -24,15 +24,20 @@ built with a memory manager.
 #      define NDEBUG
 #    endif
 #    define MI_STAT 1
+#    define MI_NO_ENVIRO 1
 #    include <mimalloc.h>
 
 #    define HAS_MIMALLOC
 #    define P4_MALLOC  mi_malloc
 #    define P4_CALLOC  mi_calloc
 #    define P4_REALLOC mi_realloc
-#    define P4_FREE    mi_free
+#    define P4_FREE    mi_cfree
+// These functions can crash if passed a non MiMalloc pointer to free.
+// See job107801
+# ifdef NO_DEF
 #    define P4_SIZED_DELETE(ptr, size)  mi_free_size( ptr, size )
 #    define P4_SIZED_DELETE_ARR(ptr, size) mi_free_size( ptr, size )
+# endif
 
 #  endif // USE_MIMALLOC
 

@@ -41,9 +41,11 @@ enum P4TunableName {
 	P4TUNE_DM_BATCH_DOMAINS,		// see dmdomains.cc
 	P4TUNE_DM_BATCH_NET,			// see dmrprobe.cc
 	P4TUNE_DM_CHANGE_RESTRICT_PENDING,
+	P4TUNE_DM_CHANGE_SKIPKEYED,		// see dmschange.cc
 	P4TUNE_DM_CHANGES_THRESH1,		// set dmchanges.cc
 	P4TUNE_DM_CHANGES_THRESH2,		// set dmchanges.cc
 	P4TUNE_DM_CHANGEVIEW_OPENABLE,		// see dmlimit.cc
+	P4TUNE_DM_CLIENT_INITROOT,		// see rhservice.cc
 	P4TUNE_DM_CLIENT_LIMITPROTECTS,		// see dmlimit.cc
 	P4TUNE_DM_COPY_MOVEWARN,
 	P4TUNE_DM_DOMAIN_ACCESSUPDATE,		// see dmadomain.cc
@@ -64,7 +66,9 @@ enum P4TunableName {
 	P4TUNE_DM_ISALIVE,			// set dmcaller.cc
 	P4TUNE_DM_KEYS_HIDE,			// see dmcounters.cc
 	P4TUNE_DM_MAXKEY,			// see dmtypes.cc
+	P4TUNE_DM_OPEN_SHOW_GLOBALLOCKS,
 	P4TUNE_DM_PASSWORD_MINLENGTH,
+	P4TUNE_DM_POPULATE_SKIPKEYED,           // see userpop.cc
 	P4TUNE_DM_PROTECTS_ALLOW_ADMIN,
 	P4TUNE_DM_PROTECTS_HIDE,
 	P4TUNE_DM_PROTECTS_STREAMSPEC,		// see dmaprotect.cc
@@ -250,7 +254,7 @@ enum P4TunableName {
 	P4TUNE_SYS_MEMORY_PROCGROWINC,		// see shhandler.cc
 	P4TUNE_SYS_MEMORY_SUBPOOLS,		// see shhandler.cc
 	P4TUNE_SYS_MEMORY_LIMIT,		// see shhandler.cc
-	P4TUNE_SYS_MEMORY_DEBUG,		// see shhandler.cc
+	P4TUNE_SYS_MEMORY_DEBUG,		// see shhandler.cc/mihandler.cc
 	P4TUNE_CMD_MEMORY_POOLFREE,		// see shhandler.cc
 	P4TUNE_CMD_MEMORY_PROCFREE,		// see shhandler.cc
 	P4TUNE_CMD_MEMORY_LIMIT,		// see shhandler.cc
@@ -258,6 +262,28 @@ enum P4TunableName {
 	P4TUNE_CMD_MEMORY_LISTPOOLS,		// see shhandler.cc
 	P4TUNE_CMD_MEMORY_CHKPT,		// see shhandler.cc
 	// ^^ Smart Heap tunables must be a continuous group ^^
+	// vv mimalloc tunables must be a continuous group vv"
+	P4TUNE_SYS_MEMORY_MI_SHOWERRORS,	// see mihandler.cc
+	P4TUNE_SYS_MEMORY_MI_SHOWSTATS,		// see mihandler.cc
+	P4TUNE_SYS_MEMORY_MI_VERBOSE,		// see mihandler.cc
+	P4TUNE_SYS_MEMORY_MI_EAGERCOMMIT,	// see mihandler.cc
+	P4TUNE_SYS_MEMORY_MI_EAGERREGIONCOMMIT,	// see mihandler.cc
+	P4TUNE_SYS_MEMORY_MI_RESETDECOMMITS,	// see mihandler.cc
+	P4TUNE_SYS_MEMORY_MI_LARGEOSPAGES,	// see mihandler.cc
+	P4TUNE_SYS_MEMORY_MI_RESERVEHUGEOSPAGES,// see mihandler.cc
+	P4TUNE_SYS_MEMORY_MI_RESERVEOSMEMORY,	// see mihandler.cc
+	P4TUNE_SYS_MEMORY_MI_SEGMENTCACHE,	// see mihandler.cc
+	P4TUNE_SYS_MEMORY_MI_PAGERESET,		// see mihandler.cc
+	P4TUNE_SYS_MEMORY_MI_ABANDONEDPAGERESET,// see mihandler.cc
+	P4TUNE_SYS_MEMORY_MI_SEGMENTRESET,	// see mihandler.cc
+	P4TUNE_SYS_MEMORY_MI_EAGERCOMMITDELAY,	// see mihandler.cc
+	P4TUNE_SYS_MEMORY_MI_RESETDELAY,	// see mihandler.cc
+	P4TUNE_SYS_MEMORY_MI_USENUMANODES,	// see mihandler.cc
+	P4TUNE_SYS_MEMORY_MI_LIMITOSALLOC,	// see mihandler.cc
+	P4TUNE_SYS_MEMORY_MI_OSTAG,		// see mihandler.cc
+	P4TUNE_SYS_MEMORY_MI_MAXERRORS,		// see mihandler.cc
+	P4TUNE_SYS_MEMORY_MI_MAXWARNINGS,	// see mihandler.cc
+	// ^^ mimalloc tunables must be a continuous group ^^
 	P4TUNE_SYS_MEMORY_STACKSIZE,
 	P4TUNE_SYS_RENAME_MAX,			// see fileiont.cc
 	P4TUNE_SYS_RENAME_WAIT,			// see fileiont.cc
@@ -270,6 +296,8 @@ enum P4TunableName {
 	P4TUNE_SSL_CLIENT_TIMEOUT,		// see netssltransport.cc
 	P4TUNE_SSL_CLIENT_TLS_VERSION_MIN,	// see netssltransport.cc
 	P4TUNE_SSL_CLIENT_TLS_VERSION_MAX,	// see netssltransport.cc
+	P4TUNE_SSL_CLIENT_TRUST_NAME,		// see clienttrust.cc
+	P4TUNE_SSL_CLIENT_CERT_VALIDATE,	// see netssltransport.cc
 	P4TUNE_SSL_TLS_VERSION_MIN,		// see netssltransport.cc
 	P4TUNE_SSL_TLS_VERSION_MAX,		// see netssltransport.cc
 	P4TUNE_SSL_ENABLE_ETM,			// see netssltransport.cc
@@ -284,7 +312,13 @@ enum P4TunableName {
 	P4TUNE_AUTH_SSO_NONLDAP,		// see login.cc
 	P4TUNE_ZLIB_DISABLE_OPTIM,
 
-	P4TUNE_LAST
+	P4TUNE_LAST,
+
+	// BEGIN STRINGS
+	
+	P4TUNE_SSL_CLIENT_CA_PATH,		// see netssltransport.cc
+	
+	P4TUNE_LAST_STR
 
 }  ;
 

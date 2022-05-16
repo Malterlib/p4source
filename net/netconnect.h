@@ -50,6 +50,7 @@
 class KeepAlive;
 class NetTransport;
 class RpcZksClient;    // NetEndPoint's friend
+class NetSslCredentials;
 
 enum PeekResults
 {
@@ -145,14 +146,19 @@ class NetTransport : public KeepAlive {
 	virtual void	SetBreak( KeepAlive *breakCallback ) = 0;
 	virtual int	GetSendBuffering() = 0;
 	virtual int	GetRecvBuffering() = 0;
-	virtual void    GetEncryptionType(StrBuf &value)
-	                {
+	virtual void	GetEncryptionType(StrBuf &value)
+			{
 			    value.Clear();
 			}
 
-	virtual void    GetPeerFingerprint(StrBuf &value)
-	                {
+	virtual void	GetPeerFingerprint(StrBuf &value)
+			{
 			    value.Clear();
+			}
+
+	virtual NetSslCredentials *GetPeerCredentials()
+			{
+			    return 0;
 			}
 	// I&O
 

@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgGraph error code is 389
+ * Current high value for a MsgGraph error code is 401
  */
 
 # include <error.h>
@@ -377,7 +377,18 @@ ErrorId MsgGraph::ReferenceHaveComb   = { ErrorOf( ES_GRAPH, 365, E_INFO, EV_NON
 ErrorId MsgGraph::WarnNoWriteAccess   = { ErrorOf( ES_GRAPH, 368, E_WARN, EV_NONE, 1 ), "Warning: you do not have write access for %file%." } ;
 ErrorId MsgGraph::BadParentNumber     = { ErrorOf( ES_GRAPH, 370, E_FAILED, EV_NONE, 1 ), "Merge parentNumber out of range: %parentNumber%." } ;
 ErrorId MsgGraph::RefTagUpdateNoForce = { ErrorOf( ES_GRAPH, 372, E_FAILED, EV_NONE, 1 ), "Reference %refname% already exists! The force flag must be specified to update the reference." } ;
-
+ErrorId MsgGraph::UnexpectedObjectType = { ErrorOf( ES_GRAPH, 390, E_FATAL, EV_FAULT, 1 ), "Unexpected object type: %objectType%." } ;
+ErrorId MsgGraph::UseGraphPurgeRefhist = { ErrorOf( ES_GRAPH, 391, E_FAILED, EV_USAGE, 0 ), "Usage: %'purge-refhist -n repo [-B date] [-y]'%" } ;
+ErrorId MsgGraph::DeletedRecords      = { ErrorOf( ES_GRAPH, 392, E_INFO, EV_NONE, 0 ), "deleted the following record(s):" } ;
+ErrorId MsgGraph::WldDeleteRecords    = { ErrorOf( ES_GRAPH, 393, E_INFO, EV_NONE, 0 ), "Would delete the following record(s). Use -y option to perform the delete:" } ;
+ErrorId MsgGraph::UseGraphGc          = { ErrorOf( ES_GRAPH, 394, E_FAILED, EV_USAGE, 0 ), "Usage: %'gc [-y]'%" } ;
+ErrorId MsgGraph::ObjectSha           = { ErrorOf( ES_GRAPH, 395, E_INFO, EV_NONE, 1 ), "%ssha%" } ;
+ErrorId MsgGraph::UseGraphRecomputeRefcnts = { ErrorOf( ES_GRAPH, 396, E_FAILED, EV_USAGE, 0 ), "Usage: %'recompute-refcnts [-y] [-r]'%" } ;
+ErrorId MsgGraph::WldCorrectObjRefcnt = { ErrorOf( ES_GRAPH, 397, E_INFO, EV_NONE, 0 ), "Would correct object refcount for %ssha% Incorrect-Count:%incorrectCnt% Correct-Count:%correctCnt%. Use -y option to perform the correction." } ;
+ErrorId MsgGraph::CorrectedObjRefcnt  = { ErrorOf( ES_GRAPH, 398, E_INFO, EV_NONE, 0 ), "Corrected object refcount for %ssha% Incorrect-Count:%incorrectCnt% Correct-Count:%correctCnt%." } ;
+ErrorId MsgGraph::RefcntInProgress = { ErrorOf( ES_GRAPH, 399, E_FAILED, EV_NONE, 0 ), "Refcounting is in progress(state:%state%). Please retry later." } ;
+ErrorId MsgGraph::NoOrphanedObj       = { ErrorOf( ES_GRAPH, 400, E_INFO, EV_NONE, 0 ), "No orphaned objects found." } ;
+ErrorId MsgGraph::ObjectRecNotFound   = { ErrorOf( ES_GRAPH, 401, E_FAILED, EV_FAULT, 1 ), "Object record not found: %'sha'%=%sha%." } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 

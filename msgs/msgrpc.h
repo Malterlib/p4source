@@ -59,6 +59,10 @@ class MsgRpc {
 	static ErrorId SslDirHasCreds;
 	static ErrorId SslCredsBadOwner;
 	static ErrorId SslCertBadDates;
+	static ErrorId SslCertBad;
+	static ErrorId SslCertBadChain;
+	static ErrorId SslCertMalformed;
+	static ErrorId SslCertBadSubject;
 	static ErrorId SslNoCredentials;
 	static ErrorId SslFailGetExpire;
 

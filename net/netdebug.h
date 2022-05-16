@@ -11,7 +11,9 @@
  * -vnet=5 show send/receive buffer contents
  *
  * -vssl=1 show listen/connect/disconnect
- * -vssl=2 show details of libssl & libcrypto function calls
+ * -vssl=2 show details of certificate validation
+ * -vssl=3 show details of libssl & libcrypto function calls
+ * -vssl=4 show details of transport operations
  * -vssl=5 show ssl buffer status
  */
 
@@ -22,8 +24,9 @@
 
 # define SSLDEBUG_ERROR    ( p4debug.GetLevel( DT_SSL ) >= 1 )
 # define SSLDEBUG_CONNECT  ( p4debug.GetLevel( DT_SSL ) >= 1 )
-# define SSLDEBUG_FUNCTION ( p4debug.GetLevel( DT_SSL ) >= 2 )
-# define SSLDEBUG_TRANS	   ( p4debug.GetLevel( DT_SSL ) >= 4 )
+# define SSLDEBUG_CERT     ( p4debug.GetLevel( DT_SSL ) >= 2 )
+# define SSLDEBUG_FUNCTION ( p4debug.GetLevel( DT_SSL ) >= 3 )
+# define SSLDEBUG_TRANS    ( p4debug.GetLevel( DT_SSL ) >= 4 )
 # define SSLDEBUG_BUFFER   ( p4debug.GetLevel( DT_SSL ) >= 5 )
 
 /*

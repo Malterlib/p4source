@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSupp error code is: 398
+ * Current high value for a MsgSupp error code is: 399
  */
 
 # include <error.h>
@@ -433,6 +433,8 @@ ErrorId MsgSupp::RenameDirSearchFailed    = { ErrorOf( ES_SUPP, 395, E_FAILED, E
 ErrorId MsgSupp::RenameDirNotEmpty        = { ErrorOf( ES_SUPP, 396, E_FAILED, EV_NONE, 1 ), "Rename failed, directory %dir% not empty." } ;
 ErrorId MsgSupp::OptionCleanPurge         = { ErrorOf( ES_SUPP, 397, E_INFO, EV_NONE, 0 ), "%'--purged-only'%: restricts operation to purge records." } ;
 ErrorId MsgSupp::OptionLocalLicense       = { ErrorOf( ES_SUPP, 398, E_INFO, EV_NONE, 0 ), "%'--local (-l)'%: this server only." } ;
+ErrorId MsgSupp::OptionAutoReload         = { ErrorOf( ES_SUPP, 399, E_INFO, EV_NONE, 0 ), "%'--autreload (-R)'%: limit results to just autoreload labels." } ;
+ErrorId MsgSupp::OptionViewMatch          = { ErrorOf( ES_SUPP, 400, E_INFO, EV_NONE, 0 ), "%'--viewmatch'%: match views with given path." } ;
 
 // ErrorId graveyard'%: retired/deprecated ErrorIds.
 

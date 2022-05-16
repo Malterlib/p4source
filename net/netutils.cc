@@ -16,7 +16,8 @@
 # include <stdhdrs.h>
 # include <error.h>
 # include <ctype.h>
-# include "strbuf.h"
+# include <strbuf.h>
+# include <strarray.h>
 # include "netport.h"
 # include "netipaddr.h"
 # include "netutils.h"
@@ -26,6 +27,7 @@
 
 // Required to scan over interfaces looking for MAC addresses
 # ifdef OS_NT
+#   include <wincrypt.h>
 #   include <iphlpapi.h>
 # else
 #   include <net/if.h>
@@ -689,6 +691,33 @@ NetUtils::IsMACAddress( const char *str, bool &brackets )
 	return (numColons == 5);
 }
 
+/*
+ * Simple function to check whether an IP is unspecified, as defined by
+ * the IANA as:
+ *    IPv4 = 0.0.0.0
+ *    IPv6 = ::
+ *    empty - If it is empty then we return false so that we get the unspecified
+ *    resolved addr.
+ */
+int
+NetUtils::IsAddrUnspecified( const char *addr )
+{
+	if( *addr == '\0' )
+	    return -1;
+
+	static const NetIPAddr localV4( StrRef( "0.0.0.0" ), 7 );
+	static const NetIPAddr localV6( StrRef("::"), 128);
+	int ret = 0;
+
+	const NetIPAddr tgtAddr( StrRef( addr ), 0 );
+
+	if( tgtAddr.IsTypeV4() )
+	    ret = tgtAddr.Match( localV4 );
+	else if( tgtAddr.IsTypeV6() )
+	    ret = tgtAddr.Match( localV6 );
+
+	return ret;
+}
 
 /*
  * Simple function to check whether an IP is loopback, as defined by
@@ -952,6 +981,130 @@ NetUtils::FindIPByMAC( const char *mac, StrBuf &ipv4, StrBuf &ipv6 )
 	return false;
 }
 
+bool
+NetUtils::FindAllIPsFromAllNICs( StrArray *ipAddresses, const bool recordIPv4,
+	                         const bool recordIPv6 )
+{
+	HMODULE dll = LoadLibrary( IPHLPAPI_DLL );
+	pfunc_GetAdapterAddresses_t pGetAdaptersAddresses =
+	    (pfunc_GetAdapterAddresses_t)GetProcAddress( dll,
+	                                                "GetAdaptersAddresses");
+
+	if( !pGetAdaptersAddresses )
+	{
+	    FreeLibrary( dll );
+	    return false;
+	}
+
+	// Set the flags to pass to GetAdaptersAddresses
+	ULONG flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST |
+	              GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_FRIENDLY_NAME;
+
+	// default to unspecified address family (both)
+	ULONG family = AF_UNSPEC;
+
+	PIP_ADAPTER_ADDRESSES adapters = 0;
+	DWORD dwRetVal = 0;
+	ULONG outBufLen = 0;
+	ULONG attemps = 0;
+
+	do {
+	    if( outBufLen )
+	    {
+	        adapters = (IP_ADAPTER_ADDRESSES *)malloc( outBufLen );
+	        if( !adapters )
+	        {
+	            FreeLibrary( dll );
+	            return false; // Failed allocation
+	        }
+	    }
+
+	    dwRetVal = (*pGetAdaptersAddresses)( family, flags, 0, adapters,
+	                                         &outBufLen );
+	    if( dwRetVal == ERROR_BUFFER_OVERFLOW )
+	    {
+	        free( adapters );
+	        adapters = 0;
+	    }
+	    else
+	        break;
+
+	    attemps++;
+
+	} while ((dwRetVal == ERROR_BUFFER_OVERFLOW) && (attemps < 3));
+
+	FreeLibrary( dll );
+
+	if( dwRetVal != NO_ERROR )
+	{
+	    free( adapters );
+	    return false;
+	}
+
+	IP_ADAPTER_ADDRESSES *adapter = adapters;
+	for( ; adapter; adapter = adapter->Next )
+	{
+	    if( adapter->PhysicalAddressLength != 6 )
+	        continue;
+#if 0
+	    char m[32];
+	    sprintf_s( m, 32, "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
+	            adapter->PhysicalAddress[0],
+	            adapter->PhysicalAddress[1],
+	            adapter->PhysicalAddress[2],
+	            adapter->PhysicalAddress[3],
+	            adapter->PhysicalAddress[4],
+	            adapter->PhysicalAddress[5] );
+#endif
+
+	    PIP_ADAPTER_UNICAST_ADDRESS_LH address =
+	       adapter->FirstUnicastAddress;
+	    for( ; address; address = address->Next )
+	    {
+	        SOCKADDR *pSockAddr = address->Address.lpSockaddr;
+	        switch (pSockAddr->sa_family)
+	        {
+	        case AF_INET:
+	            if( !recordIPv4 )
+	                continue;
+
+	            char str[INET_ADDRSTRLEN];
+	            ::inet_ntop( AF_INET,
+	                         &((sockaddr_in*) pSockAddr)->sin_addr,
+	                         str, INET_ADDRSTRLEN );
+
+	            //ipv4 address
+	            if( strlen( str ) )
+	                ipAddresses->Put()->Set( str );
+
+	            break;
+
+	        case AF_INET6:
+	            if( !recordIPv6 )
+	                continue;
+
+	            char str6[INET6_ADDRSTRLEN];
+	            ::inet_ntop( AF_INET6,
+	                         &((sockaddr_in6*) pSockAddr)->sin6_addr,
+	                         str6, INET6_ADDRSTRLEN);
+
+	            //ipv6 address
+	            if( strlen( str6 ) )
+	                ipAddresses->Put()->Set( str6 );
+
+	            break;
+	        }
+	    }
+	
+	    free( adapters );
+	    return true;
+	}
+	
+	free( adapters );
+	return false;
+}
+
+
 # else
 
 bool
@@ -970,6 +1123,9 @@ NetUtils::FindIPByMAC( const char *mac, StrBuf &ipv4, StrBuf &ipv6 )
 	{
 	    if( ifaptr->ifa_flags & IFF_LOOPBACK )
 	        continue; // skip loopbacks
+
+	    if( !ifaptr->ifa_addr )
+	        continue; // skip null address
 
 # ifdef AF_PACKET
 	    if( !( ifaptr->ifa_addr->sa_family == AF_PACKET &&
@@ -1036,6 +1192,58 @@ NetUtils::FindIPByMAC( const char *mac, StrBuf &ipv4, StrBuf &ipv6 )
 	return true;
 }
 
+bool
+NetUtils::FindAllIPsFromAllNICs( StrArray *ipAddresses, const bool recordIPv4,
+	                         const bool recordIPv6 )
+{
+	struct ifaddrs *ifap, *ifaptr;
+
+	if( getifaddrs(&ifap) != 0 )
+	{
+	    freeifaddrs(ifap);
+	    return false;
+	}
+
+	// start over to get All the IPs from all the interfaces
+	// Currently we are placing all the ipv4 and ipv6, as there could be
+	// the scenarios where one of them would be missing in multiples
+	for( ifaptr = ifap; ifaptr; ifaptr = ifaptr->ifa_next )
+	{
+	    if( !ifaptr->ifa_addr )
+	        continue;
+
+	    if( ifaptr->ifa_addr->sa_family == AF_INET )
+	    {
+	        if( !recordIPv4 )
+	            continue;
+
+	        char str[INET_ADDRSTRLEN];
+	        ::inet_ntop( AF_INET,
+	                     &((sockaddr_in *)ifaptr->ifa_addr)->sin_addr,
+	                     str, INET_ADDRSTRLEN);
+	        //ipv4 address
+	        if( strlen( str ) )
+	            ipAddresses->Put()->Set( str );
+	    }
+	    else if( ifaptr->ifa_addr->sa_family == AF_INET6 )
+	    {
+	        if( !recordIPv6 )
+	            continue;
+
+	        char str6[INET6_ADDRSTRLEN];
+	        ::inet_ntop( AF_INET6,
+	                     &((sockaddr_in6 *)ifaptr->ifa_addr)->sin6_addr,
+	                     str6, INET6_ADDRSTRLEN);
+	        //ipv6 address
+	        if( strlen( str6 ) )
+	            ipAddresses->Put()->Set( str6 );
+	    }
+	}
+
+	freeifaddrs(ifap);
+	return true;
+}
+
 # endif // !OS_NT
 
 # ifdef OS_NT
@@ -1076,3 +1284,28 @@ NetUtils::CleanupNetwork()
 {
 }
 # endif // OS_NT
+
+void
+NetUtils::IpBytesToStr( const void *ip, int ipv6, StrBuf &out )
+{
+	out.Clear();
+
+# ifndef OS_NT
+	typedef const void *INADDR_PTR_TYPE;
+# else
+	typedef PVOID INADDR_PTR_TYPE;
+# endif
+
+	if( ipv6 )
+	{
+	    char str6[INET6_ADDRSTRLEN];
+	    ::inet_ntop( AF_INET6, (INADDR_PTR_TYPE)ip, str6, INET6_ADDRSTRLEN);
+	    out = str6;
+	}
+	else
+	{
+	    char str[INET_ADDRSTRLEN];
+	    ::inet_ntop( AF_INET, (INADDR_PTR_TYPE)ip, str, INET_ADDRSTRLEN );
+	    out = str;
+	}
+}

@@ -1,13 +1,32 @@
-#include <clientapi.h>
-#include <options.h>
-#include <msgsupp.h>
-#include <errorlog.h>
-#include <rpc.h>
-#include <ticket.h>
-#include <client.h>
-#include <msgrpc.h>
-#include <error.h>
-#include <errornum.h>
+/*
+ * Copyright 1995, 2012 Perforce Software.  All rights reserved.
+ *
+ * This file is part of Perforce - the FAST SCM System.
+ */
+
+# include <clientapi.h>
+# include <options.h>
+# include <errorlog.h>
+# include <error.h>
+# include <errornum.h>
+# include <debug.h>
+# include <tunable.h>
+# include <ticket.h>
+
+# include <rpc.h>
+# include <client.h>
+
+# ifdef USE_SSL
+extern "C"
+{ // OpenSSL
+# include <openssl/ssl.h>
+}
+# endif
+
+# include <netsslcredentials.h>
+
+# include <msgsupp.h>
+# include <msgrpc.h>
 
 class MsgClientLocal
 {
@@ -16,6 +35,7 @@ class MsgClientLocal
 	static ErrorId trustHelp;
 	static ErrorId trustUsage;
 	static ErrorId trustNotSSL;
+	static ErrorId trustNoSelfSigned;
 };
 
 ErrorId MsgClientLocal::trustHelp = { ErrorOf( ES_HELP, 0, E_INFO, EV_NONE, 0 ),
@@ -70,6 +90,10 @@ ErrorId MsgClientLocal::trustUsage = { ErrorOf( ES_HELP, 1, E_FAILED, EV_NONE, 0
 
 ErrorId MsgClientLocal::trustNotSSL = { ErrorOf( ES_HELP, 2, E_INFO, EV_NONE, 0 ),
 	"Only SSL connections require trust"
+};
+
+ErrorId MsgClientLocal::trustNoSelfSigned = { ErrorOf( ES_HELP, 3, E_FATAL, EV_NONE, 0 ),
+	"Cannot trust self-signed certificate by hostname!"
 };
 
 int 
@@ -159,26 +183,55 @@ clientTrust( Client *client, Error *e )
 	    return;
 	}
 
-	StrPtr *peer;
-	peer = client->GetPeerAddress( RAF_PORT );
+
+	StrBuf fingerprint;
+	client->GetPeerFingerprint( fingerprint );
+	NetSslCredentials *credentials = client->GetPeerCredentials();
+
+	if( !fingerprint.Length() || !credentials )
+	{
+	    e->Set( MsgClientLocal::trustNotSSL );
+	    client->GetUi()->Message( e );
+	    return;
+	}
+
+	int trustName = p4tunable.Get( P4TUNE_SSL_CLIENT_TRUST_NAME );
+	StrBuf peer, peer2;
+	StrPtr *peerTmp = client->GetPeerAddress( RAF_PORT );
+	if( peerTmp )
+	    peer = *peerTmp;
+	if( trustName )
+	{
+	    peerTmp = credentials->IsSelfSigned() ? 0 :
+		client->GetPeerAddress( RAF_REQ | RAF_PORT );
+	    if( peerTmp )
+	    {
+		peer2 = *peerTmp;
+		peerTmp = client->GetPeerAddress();
+		StrBuf peerIp = *peerTmp;
+		peerTmp = client->GetPeerAddress( RAF_REQ );
+		StrBuf peerName = *peerTmp;
+		Error test;
+		credentials->ValidateSubject( &peerName, &peerIp, &test );
+		if( test.Test() )
+		    peer2.Clear();
+		else if( trustName < 2 )
+		    e->Merge( test );
+	    }
+	    else if( trustName >= 2 )
+		e->Set( MsgClientLocal::trustNoSelfSigned );
+	}
+
+	if( e->Test() )
+	    return;
 
 	StrRef port( client->GetPort() );
 
 	StrBuf peername( "'" );
 	peername.Append( &port );
 	peername.Append( "' (" );
-	peername.Append( peer );
+	peername.Append( peer2.Length() ? &peer2 : &peer );
 	peername.Append( ")" );
-
-	StrBuf fingerprint;
-	client->GetPeerFingerprint( fingerprint );
-
-	if( !fingerprint.Length() )
-	{
-		e->Set( MsgClientLocal::trustNotSSL );
-		client->GetUi()->Message( e );
-		return;
-	}
 
 	StrRef u( rflag ? "++++++" : "**++**" );
 
@@ -211,7 +264,12 @@ clientTrust( Client *client, Error *e )
 		e->Clear();
 	    }
 
-	    InstallTrust( client, peer, u, *opts[ 'i' ], e );
+	    if( trustName < 2 )
+		InstallTrust( client, &peer, u, *opts[ 'i' ], e );
+
+	    if( !e->Test() && peer2.Length() )
+		InstallTrust( client, &peer2, u, *opts[ 'i' ], e );
+
 	    if( !e->Test() )
 	    {
 		StrBuf done;
@@ -228,7 +286,11 @@ clientTrust( Client *client, Error *e )
 	{
 	    if( dflag )
 	    {
-		DeleteTrust( client, peer, u, e );
+		DeleteTrust( client, &peer, u, e );
+
+		if( !e->Test() && peer2.Length() )
+		    DeleteTrust( client, &peer2, u, e );
+
 		if( !e->Test() )
 		{
 		    StrBuf done;
@@ -241,7 +303,7 @@ clientTrust( Client *client, Error *e )
 	    else
 	    {
 		StrRef done( "Trust already established.\n");
-	        OutputBuffer( client, done );
+		OutputBuffer( client, done );
 	    }
 	    return;
 	}
@@ -257,14 +319,18 @@ clientTrust( Client *client, Error *e )
 	if( dflag )
 	{
 	    // delete it!
-	    DeleteTrust( client, peer, u, e );
+	    DeleteTrust( client, &peer, u, e );
+
+	    if( !e->Test() && peer2.Length() )
+		DeleteTrust( client, &peer2, u, e );
+
 	    if( !e->Test() )
 	    {
 		StrBuf done;
 		done.Set( "Removed trust for P4PORT " );
 		done.Append( &peername );
 		done.Append( "\n" );
-	        OutputBuffer( client, done );
+		OutputBuffer( client, done );
 	    }
 	    return;
 	}
@@ -293,7 +359,13 @@ clientTrust( Client *client, Error *e )
 		return;
 	    }
 	}
-	InstallTrust( client, peer, u, fingerprint, e );
+	
+	if( trustName < 2 )
+	    InstallTrust( client, &peer, u, fingerprint, e );
+
+	if( !e->Test() && peer2.Length() )
+	    InstallTrust( client, &peer2, u, fingerprint, e );
+
 	if( e->Test() )
 	    client->SetError();
 	else

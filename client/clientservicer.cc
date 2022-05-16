@@ -229,17 +229,21 @@ clientReconcileEdit( Client *client, Error *e )
 	    {
 		StrBuf localDigest;
 		f->Translator( ClientSvc::XCharset( client, FromClient ) );
+		int modTime = f->StatModTime();
 
 		// Bypass expensive digest computation with -m unless the
 		// local file's timestamp is different from the server's.
 
 		if( !submitTime ||
-		    ( submitTime && ( f->StatModTime() != submitTime->Atoi()) ) )
+		    ( submitTime && ( modTime != submitTime->Atoi()) ) )
 		{
 		    f->Digest( &localDigest, e );
 
 		    if( !e->Test() && !localDigest.XCompare( *digest ) )
+		    {
 			status = "same";
+			client->SetVar( P4Tag::v_time, modTime );
+		    }
 		}
 		else if( submitTime )
 		    status = "same";
@@ -633,7 +637,7 @@ clientTraverseShort( Client *client, StrPtr *cwd, const char *dir, int traverse,
 void
 clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 		    int getDigests, MapApi *map, StrArray *files,
-		    StrArray *sizes, StrArray *digests,
+		    StrArray *sizes, StrArray *times, StrArray *digests,
 		    int &hasIndex, StrArray *hasList, const char *config, 
 		    Error *e )
 {
@@ -679,6 +683,7 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 		{
 		    files->Put()->Set( fileName );
 		    sizes->Put()->Set( StrNum( f->GetSize() ) );
+		    times->Put()->Set( StrNum( f->StatModTime() ) );
 		    if( getDigests )
 		    {
 			f->Translator( ClientSvc::XCharset(client,FromClient));
@@ -701,6 +706,7 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 	    {
 		files->Put()->Set( fileName );
 		sizes->Put()->Set( StrNum( f->GetSize() ) );
+		times->Put()->Set( StrNum( f->StatModTime() ) );
 		if( getDigests )
 		{
 		    f->Translator( ClientSvc::XCharset(client,FromClient));
@@ -814,6 +820,7 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 		    {
 			files->Put()->Set( fileName );
 			sizes->Put()->Set( StrNum( f->GetSize() ) );
+			times->Put()->Set( StrNum( f->StatModTime() ) );
 			if( getDigests )
 			{
 			    f->Translator( ClientSvc::XCharset(client,FromClient));
@@ -824,7 +831,7 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 		}
 		else if( traverse )
 		    clientTraverseDirs( client, f->Name(), traverse, noIgnore,
-					getDigests, map, files, sizes,
+					getDigests, map, files, sizes, times,
 					digests, hasIndex, hasList, 
 	                                config, e );
 	    }
@@ -852,6 +859,7 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 		{
 		    files->Put()->Set( fileName );
 		    sizes->Put()->Set( StrNum( f->GetSize() ) );
+		    times->Put()->Set( StrNum( f->StatModTime() ) );
 		    if( getDigests )
 		    {
 			f->Translator( ClientSvc::XCharset(client,FromClient));
@@ -888,6 +896,7 @@ clientReconcileAdd( Client *client, Error *e )
 	StrPtr *skipIgnore = client->GetVar( "skipIgnore" );
 	StrPtr *skipCurrent = client->GetVar( "skipCurrent" );
 	StrPtr *sendDigest = client->GetVar( "sendDigest" );
+	StrPtr *sendTime = client->GetVar( "sendTime" );
 	StrPtr *mapItem;
 
 	if( e->Test() )
@@ -896,6 +905,7 @@ clientReconcileAdd( Client *client, Error *e )
 	MapApi *map = new MapApi;
 	StrArray *files = new StrArray();
 	StrArray *sizes = new StrArray();
+	StrArray *times = new StrArray();
 	StrArray *dirs = new StrArray();
 	StrArray *depotFiles = new StrArray();
 	StrArray *digests = new StrArray();
@@ -944,6 +954,7 @@ clientReconcileAdd( Client *client, Error *e )
 	    {
 	        delete files;
 	        delete sizes;
+	        delete times;
 	        delete dirs;
 	        delete depotFiles;
 	        delete digests;
@@ -984,7 +995,7 @@ clientReconcileAdd( Client *client, Error *e )
 	else
 	    clientTraverseDirs( client, dir->Text(), traverse != 0,
 				skipIgnore != 0, sendDigest != 0, map,
-				files, sizes, digests, hasIndex, 
+				files, sizes, times, digests, hasIndex, 
 				recHandle ? recHandle->pathArray : 0, 
 	                        config, e );
 	delete map;
@@ -1023,6 +1034,8 @@ clientReconcileAdd( Client *client, Error *e )
 		    }
 		    if( sendDigest )
 			client->SetVar( P4Tag::v_digest, i0, *digests->Get(i1));
+		    if( sendTime )
+			client->SetVar( P4Tag::v_time, i0, *times->Get(i1) );
 		    ++i0;
 		    ++i1;
 		}
@@ -1048,6 +1061,8 @@ clientReconcileAdd( Client *client, Error *e )
 
 		if( sendDigest )
 		    client->SetVar( P4Tag::v_digest, i0, *digests->Get(j) );
+		if( sendTime )
+		    client->SetVar( P4Tag::v_time, i0, *times->Get(j) );
 
 		i0++;
 
@@ -1062,6 +1077,7 @@ clientReconcileAdd( Client *client, Error *e )
 	client->Confirm( confirm );
 	delete files;
 	delete sizes;
+	delete times;
 	delete dirs;
 	delete depotFiles;
 	delete digests;

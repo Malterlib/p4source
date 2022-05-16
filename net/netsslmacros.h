@@ -68,7 +68,7 @@
         if ( ( ERR_get_error()) > 1 ) \
         { \
             char sslError[256]; \
-            ERR_error_string( ERR_get_error(), sslError ); \
+            ERR_error_string_n( ERR_get_error(), sslError, 256 ); \
             if( SSLDEBUG_ERROR ) \
                 p4debug.printf("%s Failed: %s\n", func, sslError);  \
             (err)->Net( func, sslError ); \
@@ -87,7 +87,7 @@
         if ( ( x ) == NULL ) \
         { \
             char sslError[256]; \
-            ERR_error_string( ERR_get_error(), sslError ); \
+            ERR_error_string_n( ERR_get_error(), sslError, 256 ); \
             if( SSLDEBUG_ERROR )  \
                 p4debug.printf("%s Failed: %s\n", func, sslError); \
             (err)->Net( func, sslError ); \
@@ -109,7 +109,7 @@
             if ( ( x ) > 1 ) \
             { \
                 char sslError[256]; \
-                ERR_error_string( x, sslError ); \
+                ERR_error_string_n( x, sslError, 256 ); \
                 if( SSLDEBUG_ERROR ) \
                     p4debug.printf("%s Failed: %s\n", func, sslError); \
             } else \

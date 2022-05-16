@@ -56,6 +56,11 @@ P4APILibrary $(SUPPORTLIB) :
 	ioapi.c
 	;
 
+if $(USE_MIMALLOC) = yes
+{
+	P4Library $(P4MEMORYMGR) : mihandler.cc ;
+}
+
 if $(USE_SMARTHEAP) = yes
 {
 	P4Library $(SUPPORTLIB) : shhandler.cc ;

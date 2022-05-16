@@ -22,8 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgRpc error code is: 75
- * 03/01/12 - main high value : 49,  nimble (2012.2) start at 60
+ * Current high value for a MsgRpc error code is: 79
  */
 
 # include <error.h>
@@ -77,6 +76,10 @@ ErrorId MsgRpc::SslBadFsSecurity       = { ErrorOf( ES_RPC, 42, E_FATAL, EV_COMM
 ErrorId MsgRpc::SslDirHasCreds         = { ErrorOf( ES_RPC, 43, E_FATAL, EV_COMM, 0 ), "P4SSLDIR contains credentials, please remove key and certificate files." } ;
 ErrorId MsgRpc::SslCredsBadOwner       = { ErrorOf( ES_RPC, 44, E_FATAL, EV_COMM, 0 ), "P4SSLDIR or credentials files not owned by Perforce process effective user." } ;
 ErrorId MsgRpc::SslCertBadDates        = { ErrorOf( ES_RPC, 45, E_FATAL, EV_COMM, 0 ), "Certificate date range invalid." } ;
+ErrorId MsgRpc::SslCertBad             = { ErrorOf( ES_RPC, 76, E_FATAL, EV_COMM, 0 ), "Certificate failed validation." } ;
+ErrorId MsgRpc::SslCertBadChain        = { ErrorOf( ES_RPC, 79, E_FAILED, EV_COMM, 0 ), "Certificate chain failed validation." } ;
+ErrorId MsgRpc::SslCertMalformed       = { ErrorOf( ES_RPC, 77, E_FATAL, EV_COMM, 0 ), "Certificate is malformed." } ;
+ErrorId MsgRpc::SslCertBadSubject      = { ErrorOf( ES_RPC, 78, E_FAILED, EV_COMM, 2 ), "Certificate's subject (%subject%) doesn't match P4PORT (%port%)." } ;
 ErrorId MsgRpc::SslNoCredentials       = { ErrorOf( ES_RPC, 46, E_FATAL, EV_COMM, 0 ), "SSL credentials do not exist." } ;
 ErrorId MsgRpc::SslFailGetExpire       = { ErrorOf( ES_RPC, 47, E_FAILED, EV_COMM, 0 ), "Failed to get certificate's expiration date." } ;
 ErrorId MsgRpc::HostKeyUnknown         = { ErrorOf( ES_RPC, 48, E_FAILED, EV_COMM, 3 ), "The authenticity of '%host%' can't be established,\n"

@@ -16,6 +16,7 @@ ObjectDefines sqlite3.c : SQLITE_ENABLE_API_ARMOR ;
 ObjectDefines sqlite3.c : SQLITE_ENABLE_JSON1 ;
 
 # -Os: https://www.sqlite.org/footprint.html
-ObjectCcFlags sqlite3.c : -Os ;
+ObjectCcFlags sqlite3.o : -Os ;
 
-P4Main sqlite3 : shell.c sqlite3.c ;
+P4Main sqlite3 : shell.c ;
+LinkLibraries sqlite3 : $(P4SCRIPT_SQLITE) ;

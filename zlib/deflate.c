@@ -52,6 +52,15 @@
 #include "deflate.h"
 #include "x86.h"
 
+/*
+ * Perforce change. Disable neon speedup (for now)
+ * on Apple M1 builds.
+*/
+#if ( defined( OS_DARWIN ) || defined( OS_MACOSX ) ) && defined(__aarch64__)
+#undef __ARM_NEON__
+#undef __ARM_NEON
+#endif
+
 #if (defined(__ARM_NEON__) || defined(__ARM_NEON))
 #include "contrib/optimizations/slide_hash_neon.h"
 #endif

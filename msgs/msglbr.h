@@ -56,6 +56,8 @@ class MsgLbr {
 	static ErrorId KeywordUnterminated;
 	static ErrorId ObjectReadError;
 	static ErrorId SameFile;
+	static ErrorId LbrTypeInsane;
+	static ErrorId LbrTrackInsane;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

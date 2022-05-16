@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgLbr error code is: 139
+ * Current high value for a MsgLbr error code is: 141
  */
 
 # include <error.h>
@@ -70,6 +70,8 @@ ErrorId MsgLbr::BadKeyword             = { ErrorOf( ES_LBR, 134, E_FATAL, EV_FAU
 ErrorId MsgLbr::KeywordUnterminated    = { ErrorOf( ES_LBR, 135, E_FATAL, EV_FAULT, 2 ), "While processing keywords in file %file%, a line longer than %length% was encountered which contained an initial keyword '$' sign but no matching terminating '$' sign. The maximum line length value can be configured by setting lbr.rcs.maxlen; alternately, if keyword expansion is not necessary for this file, change the file's type to remove the +k option (see 'p4 help filetypes')." } ;
 ErrorId MsgLbr::ObjectReadError        = { ErrorOf( ES_LBR, 136, E_FAILED, EV_FAULT, 5 ), "Error reading object type %objType% with sha %objSha% of length %expectedLength% at offset %offset% from pack % pack%." } ;
 ErrorId MsgLbr::SameFile               = { ErrorOf( ES_LBR, 139, E_FATAL, EV_FAULT, 3 ), "Librarian for %path% [rev %rev% and type %type%] is both target and source!" } ;
+ErrorId MsgLbr::LbrTypeInsane          = { ErrorOf( ES_LBR, 140, E_WARN, EV_FAULT, 2 ), "Librarian for %path% has unexpected lbrType of %lbrType%!" } ;
+ErrorId MsgLbr::LbrTrackInsane         = { ErrorOf( ES_LBR, 141, E_WARN, EV_FAULT, 2 ), "Librarian for %path% has unexpected lbrTrack of %lbrTrack%!" } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 

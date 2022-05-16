@@ -236,6 +236,20 @@ NetTcpTransport::SetupKeepAlives( int t )
 # endif // SO_KEEPALIVE
 }
 
+StrPtr *
+NetTcpTransport::GetPeerAddress( int raf_flags )
+{
+	if( raf_flags & RAF_REQ )
+	{
+	    peerAddr.Set( raf_flags & RAF_PORT ? GetPortParser().HostPort()
+	                                       : GetPortParser().Host() );
+	    return &peerAddr;
+	}
+
+	GetPeerAddress( t, raf_flags, peerAddr );
+	return &peerAddr;
+}
+
 void
 NetTcpTransport::GetAddress( int t, int raf_flags, StrBuf &myAddr )
 {

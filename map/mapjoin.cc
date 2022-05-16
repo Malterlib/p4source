@@ -224,6 +224,10 @@ MapTable::Join2(
 	const ErrorId *reason )
 {
 	MapJoiner2 j( dir1, dir2 );
+
+	if( join2StreamViews )
+	    j.m0->SetJoin2StreamViews();
+
 	j.m0->Join( this, dir1, m2, dir2, &j, reason );
 	return j.m0;
 }

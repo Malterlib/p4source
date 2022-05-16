@@ -40,6 +40,7 @@ MapTable::MapTable()
 	emptyReason = 0;
 	joinError = 0;
 	caseMode = -1;
+	join2StreamViews = 0;
 
 	trees = new MapTree[2];
 }
@@ -190,8 +191,17 @@ MapTable::InsertNoDups(
 	        // superceding maps.  This limits wildcard expansion of maps 
 	        // significantly.
 
-		if( map->Lhs()->Match( hLhs ) && map->Rhs()->Match( hRhs ) )
-		   return;
+	        if( map->Lhs()->Match( hLhs ) && map->Rhs()->Match( hRhs ) )
+	        {
+	            // When join2StreamViews is set,
+	            //    override earlier import& (MfAndmap)
+	            //    with later import+ (Mfmap)
+	            if( join2StreamViews && map->mapFlag == MfAndmap && mapFlag == MfMap )
+	            {
+	                map->mapFlag = MfMap;
+	            }
+	           return;
+	        }
 	    }
 	}
 

@@ -57,6 +57,7 @@
  * NEED_GETUID - getuid(),setuid() etc.
  * NEED_IOCTL - ioctl() call and flags for UNIX
  * NEED_MKDIR - mkdir()
+ * NEED_MIMALLOC - mimalloc initialization
  * NEED_MMAP - mmap()
  * NEED_OPENDIR - opendir(), etc
  * NEED_POPEN - popen(), pclose()
@@ -157,15 +158,15 @@ extern int errno;
 // so that _WIN32_WINNT will flavor definitions.
 # ifdef OS_NT
 # define WIN32_LEAN_AND_MEAN
-// current default is WinXP; IPv6 code must set these macros to WinVista
+// current default is Win7; IPv6 code needs these macros >= WinVista
 // before including this file (see net/netportipv6.h for details)
 # if !defined(NTDDI_VERSION) || (NTDDI_VERSION < 0x0501000)
 #   undef NTDDI_VERSION
-#   define NTDDI_VERSION    0x0501000
+#   define NTDDI_VERSION    0x06010000
 # endif // NTDDI_VERSION
-# if !defined(_WIN32_WINNT) || (_WIN32_WINNT < 0x0501)
+# if !defined(_WIN32_WINNT) || (_WIN32_WINNT < 0x0601)
 #   undef _WIN32_WINNT
-#   define _WIN32_WINNT     0x0501
+#   define _WIN32_WINNT     0x0601
 # endif // _WIN32_WINNT
 # if !defined(WINVER) || (WINVER < _WIN32_WINNT)
 #   undef WINVER
@@ -186,7 +187,7 @@ extern int errno;
 # ifdef OS_NT
 # define HAVE_SRWLOCK
 # ifdef NEED_SRWLOCK
-# if (_MSC_VER >= 1800)
+# if (_MSC_VER >= 1800) && (!defined(_WIN32_WINNT) || (_WIN32_WINNT < 0x0600))
 # undef _WIN32_WINNT
 # define _WIN32_WINNT 0x0600
 # endif // _MSC_VER
@@ -210,10 +211,20 @@ extern int errno;
 # include "malloc_override.h"
 
 # ifdef MEM_DEBUG
+#   ifdef USE_MIMALLOC
+#     define NEED_MIMALLOC
+#   endif
 #   ifdef USE_SMARTHEAP
 #     define NEED_SMARTHEAP
 #   endif
 # endif
+
+// Mimalloc instrumentation.
+# ifdef NEED_MIMALLOC
+#   if defined( USE_MIMALLOC )
+#     define HAVE_MIMALLOC
+#   endif // USE_MIMALLOC
+# endif // NEED_MIMALLOC
 
 // Smart Heap instrumentation.
 # ifdef NEED_SMARTHEAP

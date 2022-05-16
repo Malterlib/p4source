@@ -142,6 +142,9 @@ struct P4Tag {
 	static const char v_committerDate[];
 	static const char v_compare[];
 	static const char v_compCksum[];
+	static const char v_configurableName[];
+	static const char v_configurableValue[];
+	static const char v_configurables[];
 	static const char v_confirm[];
 	static const char v_conflict[];
 	static const char v_copied[];
@@ -239,7 +242,9 @@ struct P4Tag {
 	static const char v_line[];
 	static const char v_locale[];
 	static const char v_lower[];
+	static const char v_lockGlobal[];
 	static const char v_lockId[];
+	static const char v_lockOnCommit[];
 	static const char v_lockStatus[];
 	static const char v_mangle[];
 	static const char v_matchedLine[];
@@ -274,6 +279,8 @@ struct P4Tag {
 	static const char v_otherAction[];
 	static const char v_otherChange[];
 	static const char v_otherLock[];
+	static const char v_otherLockGlobal[];
+	static const char v_otherLockOnCommit[];
 	static const char v_otherOpen[];
 	static const char v_ourLock[];
 	static const char v_packName[];
@@ -474,6 +481,7 @@ struct P4Tag {
 	static const char v_labelEntity[];
 	static const char v_leaveUnchanged[];	// submit
 	static const char v_lockAll[];		// admin
+	static const char v_lockRec[];
 	static const char v_message[];		// p4 diff
 	static const char v_message2[];		// p4 release
 	static const char v_movedFile[];

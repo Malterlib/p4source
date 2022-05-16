@@ -11,11 +11,12 @@
 class IntArray {
 
     public:
-		IntArray( int nInts = 4 )
+		IntArray( int nInts = 4, int def = 0 )
 		{
 		    ints = 0;
 		    lInts = 0;
-	            count = 0;
+		    count = 0;
+		    this->def = def;
 		    ReAlloc( nInts );
 		}
 
@@ -34,6 +35,10 @@ class IntArray {
 	void	SetCount( int ct ) { count = ct; }
 	int	Find( int v );
 	bool	Contains( int v ) { return Find( v ) != -1; }
+	void	Reset()
+		{
+		    for( int i = 0; i < lInts; i++ ) ints[i] = def;
+		}
 
     private:
 
@@ -43,7 +48,7 @@ class IntArray {
 		    int *old = ints;
 		    ints = new int[nInts];
 		    for( ; i < lInts; i++ ) ints[i] = old[i];
-		    for( ; i < nInts; i++ ) ints[i] = 0;
+		    for( ; i < nInts; i++ ) ints[i] = def;
 		    lInts = nInts;
 		    delete []old;
 		}
@@ -51,6 +56,7 @@ class IntArray {
 	int	lInts;
 	int	*ints;
 	int	count; // only used by Find()/Contains()
+	int	def; // default value
 
 };
 
