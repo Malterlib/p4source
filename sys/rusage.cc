@@ -32,7 +32,7 @@
 Rusage::Rusage() : tc( 0 ) { }
 Rusage::~Rusage() { }
 void Rusage::Start() { }
-int Rusage::Time() { return 0; }
+P4INT64 Rusage::Time() { return 0; }
 void Rusage::Message( StrBuf &msg ) { }
 void Rusage::GetTrack( int level, RusageTrack *track ) { track->trackable=0; }
 
@@ -63,7 +63,7 @@ ClearTimeval(struct timeval &v)
  * TcDiff() - compare two timevals and return diff in ms
  */
 
-static long TcDiff( struct timeval &tve, struct timeval &tvs ) 
+static P4INT64 TcDiff( struct timeval &tve, struct timeval &tvs ) 
 { 
 	return ( tve.tv_sec - tvs.tv_sec ) * 1000 + 
 	       ( tve.tv_usec - tvs.tv_usec ) / 1000; 
@@ -101,7 +101,7 @@ Rusage::Start()
  * Rusage::Time() - return CPU time in ms
  */
 
-int
+P4INT64
 Rusage::Time()
 {
 	getrusage( RUSAGE_SELF, &tc->stop );
@@ -120,21 +120,21 @@ Rusage::Message( StrBuf &msg )
 	getrusage( RUSAGE_SELF, &tc->stop );
 
 	msg 
-	    << TcDiff( tc->stop.ru_utime, tc->start.ru_utime )
+	    << StrNum( TcDiff( tc->stop.ru_utime, tc->start.ru_utime ) )
 	    << "+"
-	    << TcDiff( tc->stop.ru_stime, tc->start.ru_stime )
+	    << StrNum( TcDiff( tc->stop.ru_stime, tc->start.ru_stime ) )
 	    << "us "
-	    << tc->stop.ru_inblock - tc->start.ru_inblock
+	    << StrNum( tc->stop.ru_inblock - tc->start.ru_inblock )
 	    << "+"
-	    << tc->stop.ru_oublock - tc->start.ru_oublock
+	    << StrNum( tc->stop.ru_oublock - tc->start.ru_oublock )
 	    << "io "
-	    << tc->stop.ru_msgrcv - tc->start.ru_msgrcv
+	    << StrNum( tc->stop.ru_msgrcv - tc->start.ru_msgrcv )
 	    << "+"
-	    << tc->stop.ru_msgsnd - tc->start.ru_msgsnd
+	    << StrNum( tc->stop.ru_msgsnd - tc->start.ru_msgsnd )
 	    << "net "
-	    << tc->stop.ru_maxrss 
+	    << StrNum( tc->stop.ru_maxrss )
 	    << "k "
-	    << tc->stop.ru_majflt - tc->start.ru_majflt
+	    << StrNum( tc->stop.ru_majflt - tc->start.ru_majflt )
 	    << "pf "
 	;
 }

@@ -12,6 +12,7 @@
 
 # include <strbuf.h>
 # include <error.h>
+# include <datetime.h>
 # include <filesys.h>
 # include <errorlog.h>
 # include <threading.h>

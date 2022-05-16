@@ -24,14 +24,14 @@ struct UsageContext;
 
 struct RusageTrack {
 	int	trackable;
-	long	utime;
-	long	stime;
-	long	io_in;
-	long	io_out;
-	long	net_in;
-	long	net_out;
-	long	maxrss;
-	long	page_faults;
+	P4INT64	utime;
+	P4INT64	stime;
+	P4INT64	io_in;
+	P4INT64	io_out;
+	P4INT64	net_in;
+	P4INT64	net_out;
+	P4INT64	maxrss;
+	P4INT64	page_faults;
 } ;
 
 class Rusage {
@@ -44,7 +44,7 @@ class Rusage {
 	void	Start();
 	void	Message( StrBuf &msg );
 	void	GetTrack( int level, RusageTrack *track );
-	int	Time();
+	P4INT64	Time();
 
     private:
 

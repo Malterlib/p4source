@@ -15,6 +15,7 @@ class IntArray {
 		{
 		    ints = 0;
 		    lInts = 0;
+	            count = 0;
 		    ReAlloc( nInts );
 		}
 
@@ -29,6 +30,10 @@ class IntArray {
 		    if( x >= lInts ) ReAlloc( x * 3 / 2 );
 		    return ints[x];
 		}
+
+	void	SetCount( int ct ) { count = ct; }
+	int	Find( int v );
+	bool	Contains( int v ) { return Find( v ) != -1; }
 
     private:
 
@@ -45,6 +50,7 @@ class IntArray {
 
 	int	lInts;
 	int	*ints;
+	int	count; // only used by Find()/Contains()
 
 };
 

@@ -45,7 +45,7 @@ class MapChar {
 
 	void		MakeParam( StrBuf &buf, MapChar *mc2, int &wildSlot );
 
-	const char 	*Name();		// debugging only
+	const char 	*Name() { return mapCharNames[ cc ]; }// debugging only
 
 	int		IsWild() { return cc >= cPERC; }
 
@@ -65,5 +65,62 @@ class MapChar {
 	char		c;			// current character
 	char		paramNumber;		// current ParamNumber
 	MapCharClass	cc;			// current char's type
+
+    private:
+	static const char * const mapCharNames[];
 } ;
 
+inline int
+MapChar::Set( char *&p, int &nStars, int &nDots )
+{
+	this->c = *p;
+
+	if( c == '/' )
+	{
+		cc = cSLASH;
+		++p;
+	}
+	else if( c == '.' && p[1] == '.' && p[2] == '.' )
+	{
+		cc = cDOTS;
+		paramNumber = PARAM_BASE_DOTS + nDots++;
+		p += 3;
+	}
+	else if( c == '%' && p[1] == '%' && p[2] >= '0' && p[2] <= '9' )
+	{
+		cc = cPERC;
+		paramNumber = PARAM_BASE_PERCENT + ( p[2] - '0' );
+		p += 3;
+	}
+	else if( c == '*' )
+	{
+		cc = cSTAR;
+		paramNumber = PARAM_BASE_STARS + nStars++;
+		++p;
+	}
+	else if( c == '\0' )
+	{
+		cc = cEOS;
+		return 0;
+	}
+	else 
+	{
+		cc = cCHAR;
+		++p;
+	}
+
+	return 1;
+}
+
+inline void
+MapChar::MakeParam( StrBuf &p, MapChar *mc2, int &wildSlot )
+{
+	if( cc == cDOTS && mc2->cc == cDOTS )
+	{
+	    p << "...";
+	}
+	else
+	{
+	    p << "%%" << ++wildSlot;
+	}
+}

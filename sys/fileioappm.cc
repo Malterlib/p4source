@@ -8,6 +8,7 @@
 
 # include <error.h>
 # include <strbuf.h>
+# include <datetime.h>
 
 # if defined ( OS_MACOSX )
 

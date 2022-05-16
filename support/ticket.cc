@@ -196,10 +196,19 @@ Ticket::UpdateTicket(
 	if( Init() )
 	    return;
 
-	ReadTicketFile( e );
+	FileSys *lock;
+	lock = FileSys::CreateLock( ticketFile, e );
 
 	if( e->Test() )
 	    return;
+
+	ReadTicketFile( e );
+
+	if( e->Test() )
+	{
+	    delete lock;
+	    return;
+	}
 
 	StrBuf validPort;
 
@@ -219,6 +228,8 @@ Ticket::UpdateTicket(
 	    ticketTab->PutItem( validPort, user, ticket );
 
 	WriteTicketFile( e );
+
+	delete lock;
 }
 
 void

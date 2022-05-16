@@ -17,6 +17,9 @@
 
 # define do_setsockopt( module, fd, level, optname, optval, optlen )	NetUtils::setsockopt( module, fd, level, optname, optval, optlen, #optname )
 
+// a guess at a good buffer size; big enough for a max IPv6 address plus surrounding "[...]"
+#define P4_INET6_ADDRSTRLEN	(INET6_ADDRSTRLEN+2)
+
 class NetUtils
 {
 public:

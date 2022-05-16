@@ -8,6 +8,7 @@
 
 # include <error.h>
 # include <strbuf.h>
+# include <datetime.h>
 
 # include "filesys.h"
 # include "fileio.h"
@@ -133,6 +134,20 @@ FileIOApple::StatModTime()
 }
 
 void
+FileIOApple::StatModTimeHP(DateTimeHighPrecision *modTime)
+{
+	// Return later of the two.
+
+	DateTimeHighPrecision h;
+	DateTimeHighPrecision d;
+
+	header->StatModTimeHP(&h);
+	data->StatModTimeHP(&d);
+
+	*modTime = h > d ? h : d;
+}
+
+void
 FileIOApple::Truncate( offL_t offset, Error *e )
 {
 }
@@ -164,6 +179,13 @@ FileIOApple::ChmodTime( int modTime, Error *e )
 {
 	header->ChmodTime( modTime, e );
 	data->ChmodTime( modTime, e );
+}
+
+void
+FileIOApple::ChmodTimeHP( const DateTimeHighPrecision &modTime, Error *e )
+{
+	header->ChmodTimeHP( modTime, e );
+	data->ChmodTimeHP( modTime, e );
 }
 
 void

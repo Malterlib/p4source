@@ -183,6 +183,8 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionArchive,
 	"unload",             Options::Unload,       'U', 0,
 	                      &MsgSupp::OptionUnload,
+	"unload-limit",       Options::UnloadLimit,  'u', 0,
+	                      &MsgSupp::OptionUnloadLimit,
 	"exists",             Options::Exists,       'e', 0,
 	                      &MsgSupp::OptionExists,
 	"content",            Options::Content,      'h', 0,
@@ -457,6 +459,12 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionMoveChanges,
 	"replication-status", Options::ReplicationStatus, 'J', 0,
 	                      &MsgSupp::OptionReplicationStatus,
+	"depot-type",         Options::DepotType,   't', ':',
+	                      &MsgSupp::OptionDepotType,
+	"global",             Options::GlobalLock, 'g', 0,
+	                      &MsgSupp::OptionGlobalLock,
+	"users",              Options::Users, 'u', 0,
+	                      &MsgSupp::OptionUsers,
 
 	// Options below this line have no short-form equivalent:
 
@@ -485,6 +493,12 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionBypassExlusiveLock,
 	"retain-lbr-revisions",  Options::RetainLbrRevisions, 0, 0,
 	                      &MsgSupp::OptionRetainLbrRevisions,
+	"java",               Options::JavaProtocol, 0, 0,
+	                      &MsgSupp::OptionJavaProtocol,
+	"batch",              Options::PullBatch, 0, '#',
+	                      &MsgSupp::OptionPullBatch,
+	"enable-dvcs-triggers", Options::EnableDVCSTriggers, 0, 0,
+	                      &MsgSupp::OptionEnableDVCSTriggers,
 
 	0, 0, 0, 0, 0
 } ;

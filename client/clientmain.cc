@@ -16,6 +16,7 @@
 # include <strbuf.h>
 # include <strdict.h>
 # include <strtable.h>
+# include <strarray.h>
 # include <strops.h>
 # include <error.h>
 # include <errornum.h>
@@ -36,6 +37,7 @@
 # include <diffmerge.h>
 # include <hostenv.h>
 # include <errorlog.h>
+# include <ignore.h>
 # include <p4tags.h>
 # include <md5.h>
 
@@ -112,7 +114,8 @@ BadCharset()
         "iso8859-5, macosroman, winansi, koi8-r, cp949, cp1251,\n"
         "utf16, utf16-nobom, utf16le, utf16le-bom, utf16be,\n"
         "utf16be-bom, utf32, utf32-nobom, utf32le, utf32le-bom, utf32be,\n"
-	"cp936, cp950, cp850, cp858, cp1253, iso8859-7 or utf32be-bom\n"
+	"cp936, cp950, cp850, cp858, cp1253, iso8859-7, utf32be-bom,\n"
+	"cp852, cp1250, or iso8859-2.\n"
         "Check P4CHARSET and your '-C' option.\n" );
 }
 
@@ -122,6 +125,7 @@ int clientMain( int argc, char **argv, int &uidebug, Error *e );
 int clientMerger( int argc, char **argv, Error *e );
 static int clientSet( int argc, char **argv, Options &, Error *e );
 static int clientTickets( int argc, char **argv, Options &, Error *e );
+static int clientIgnores( int argc, char **argv, Options &, Error *e );
 int clientReplicate( int argc, char **argv, Options & );
 int clientInit( int argc, char **argv, Options &, int, Error *e );
 int clientInitHelp( int, Error *e );
@@ -266,6 +270,10 @@ clientMain( int argc, char **argv, int &uidebug, Error *e )
 	{
 	    return clientInit( argc - 1, argv + 1, opts, 1, e );
 	}
+	else if( argc && !strcmp( argv[0], "ignores" ) )
+	{
+	    return clientIgnores( argc - 1, argv + 1, opts, e );
+	}
 	else if( argc && !strcmp( argv[0], "replicate" ) )
 	{
 	    return clientReplicate( argc - 1, argv + 1, opts );
@@ -327,7 +335,7 @@ clientMain( int argc, char **argv, int &uidebug, Error *e )
 	{
 	    CharSetCvt::CharSet cs = CharSetCvt::Lookup( lc );
 
-	    if( (int)cs == -1 )
+	    if( cs == CharSetApi::CSLOOKUP_ERROR )
 	    {
 		// bad charset specification
 		BadCharset();
@@ -342,7 +350,7 @@ clientMain( int argc, char **argv, int &uidebug, Error *e )
 		{
 		    if( s )
 			lc = s->Text();
-		    cs = CharSetCvt::Lookup( lc );
+		    cs = CharSetCvt::Lookup( lc, &enviro );
 		    if( (int)cs == -1 )
 		    {
 			printf( "P4COMMANDCHARSET unknown\n" );
@@ -352,8 +360,14 @@ clientMain( int argc, char **argv, int &uidebug, Error *e )
 		if( CharSetApi::Granularity( cs ) != 1 )
 		{
 		    printf( "p4 can not support a wide charset unless\n"
-			    "P4COMMANDCHARSET is set to another charset.\n" );
-		    return 1;
+			    "P4COMMANDCHARSET is set to another charset.\n"
+			    "Attempting to discover a good charset.\n" );
+		    cs = CharSetCvt::Discover( &enviro );
+		    if( cs == -1 )
+		    {
+			printf( "Could not discover a good charset.\n" );
+			return 1;
+		    }
 		}
 		client.SetTrans( cs, ws, cs, cs );
 
@@ -882,8 +896,9 @@ clientSet( int argc, char **argv, Options &global_opts, Error *e )
 
 	Options opts;
 	int longOpts[] = { Options::System, Options::Service,
-	                   Options::Charset, Options::CmdCharset, 0 };
-	opts.ParseLong( argc, argv, "sS:C:l:Q:", longOpts, OPT_ANY, usage, e );
+	                   Options::Charset, Options::CmdCharset, 
+			   Options::Quiet, 0 };
+	opts.ParseLong( argc, argv, "sS:C:l:Q:q", longOpts, OPT_ANY, usage, e );
 
 	if( e->Test() )
 	    return 1;
@@ -938,7 +953,8 @@ clientSet( int argc, char **argv, Options &global_opts, Error *e )
 	    charsetVar.Append( lc );
 	charsetVar.Append( "_CHARSET" );
 
-	if( ( s = opts[ 'l' ] ) || ( s = opts[ 'C' ] ) )
+	if( ( s = opts[ 'l' ] ) || ( s = opts[ 'C' ] ) ||
+			 ( s = global_opts[ 'C' ] ) )
 	{
 	    lc = s->Text();
 	}
@@ -962,11 +978,12 @@ clientSet( int argc, char **argv, Options &global_opts, Error *e )
 	    else
 	    {
 		if( ( s = opts[ 'Q' ] ) ||
+		    ( s = global_opts[ 'Q' ] ) ||
 		    ( lc = enviro.Get( "P4COMMANDCHARSET" ) ) )
 		{
 		    if( s )
 			lc = s->Text();
-		    cs = CharSetCvt::Lookup( lc );
+		    cs = CharSetCvt::Lookup( lc, &enviro );
 		    if( (int)cs == -1 )
 		    {
 			printf( "P4COMMANDCHARSET unknown\n" );
@@ -976,8 +993,14 @@ clientSet( int argc, char **argv, Options &global_opts, Error *e )
 		if( CharSetApi::Granularity( cs ) != 1 )
 		{
 		    printf( "p4 can not support a wide charset unless\n"
-			    "P4COMMANDCHARSET is set to another charset.\n" );
-		    return 1;
+			    "P4COMMANDCHARSET is set to another charset.\n"
+			    "Attempting to discover a good charset.\n" );
+		    cs = CharSetCvt::Discover( &enviro );
+		    if( cs == -1 )
+		    {
+			printf( "Could not discover a good charset.\n" );
+			return 1;
+		    }
 		}
 		if( cs )
 		{
@@ -992,9 +1015,9 @@ clientSet( int argc, char **argv, Options &global_opts, Error *e )
 
 	if( !argc )
 	{
-	    enviro.List();
+	    enviro.List( opts[ 'q' ] ? 1 : 0 );
 
-	    enviro.Print( charsetVar.Text() );
+	    enviro.Print( charsetVar.Text(), opts[ 'q' ] ? 1 : 0 );
 
 	    int o = 0;
 	    while( p4tunable.GetName( o ) )
@@ -1013,13 +1036,16 @@ clientSet( int argc, char **argv, Options &global_opts, Error *e )
 	    {
 		var.Set( *argv, equals - *argv );
 		++equals;
-		if( ( var == "P4CHARSET" || var.EndsWith( "_CHARSET", 8 ) )
+		if( ( var.SCompare( StrRef( "P4CHARSET" ) ) == 0 ||
+			var.SCompare( StrRef( "P4COMMANDCHARSET" ) ) == 0 ||
+			 var.EndsWith( "_CHARSET", 8 ) )
 		    && *equals )
 		{
 		    CharSetApi::CharSet cs = CharSetCvt::Lookup( equals );
 		    if( (int)cs == -1 )
 		    {
-			printf("Will not set P4CHARSET to an invalid value.\n");
+			printf( "Will not set %s to an invalid value.\n",
+			    var.Text() );
 			continue;
 		    }
 		    if( CharSetApi::Granularity( cs ) != 1 )
@@ -1040,7 +1066,7 @@ clientSet( int argc, char **argv, Options &global_opts, Error *e )
 	    }
 	    else
 	    {
-		enviro.Print( *argv );
+		enviro.Print( *argv, opts[ 'q' ] ? 1 : 0 );
 	    }
 	}
 
@@ -1074,4 +1100,150 @@ clientReplicate( int ac, char **av, Options &preops )
 	}
 
 	return jtail( ac, av, preops, opts, "replicate" );
+}
+
+int
+clientIgnores( int argc, char **argv, Options &global_opts, Error *e )
+{
+	const char *c;
+	HostEnv h;
+	Ignore i;
+	StrBuf cwd;
+	StrBuf path;
+	StrBuf ignorefile;
+
+	// Parse up options
+
+	Options opts;
+	int longOpts[] = { 0 };
+	opts.ParseLong( argc, argv, "vi", longOpts, OPT_ANY, usage, e );
+
+	if( e->Test() )
+	    return 1;
+	
+	if( opts['i'] && !argc )
+	{
+	    printf( "At least one file path must provided.\n" );
+	    return 1;
+	}
+	if( !opts['i'] && argc > 1 )
+	{
+	    printf( "Only one path may be provided.\n" );
+	    return 1;
+	}
+	
+	if( global_opts[ 'd' ] )
+	    cwd.Set( global_opts[ 'd' ] );
+	else
+	    h.GetCwd( cwd );
+
+	Enviro enviro;
+	enviro.Config( cwd );
+
+	// A little bit of work to handle -E P4IGNORE
+
+	StrBufDict envList;
+	StrRef var, val;
+	StrPtr* s;
+	for ( int i = 0 ; ( s = global_opts.GetValue( 'E', i ) ) ; i++ )
+	    envList.SetVarV( s->Text() );
+
+	for ( int i = 0 ; envList.GetVar( i, var, val ) ; i++ )
+	    enviro.Update( var.Text(), val.Text() );
+
+
+	if( c = enviro.Get( "P4IGNORE" ) )
+	    ignorefile.Set( c );
+
+	// Collect some info about our target file
+
+	FileSys *f = FileSys::Create( FST_BINARY );
+	PathSys *p = PathSys::Create();
+
+	if( argc-- )
+	    f->Set( argv++[0] );
+	else
+	    f->Set( cwd );
+
+	int exists = f->Stat();
+	path.Set( f->Path() );
+	p->SetLocal( cwd, path );
+	path.Set( p->Text() );
+
+
+	if( !opts['i'] )
+	{
+	    delete f;
+	    delete p;
+
+	    // Just list P4IGNORE rules in play at the path provided
+
+	    // Add an extra level for good measure
+	    if( ( exists &= FSF_DIRECTORY ) )
+	        path << "/*";
+
+	    StrArray output;
+	    i.List( path, ignorefile, enviro.Get( "P4CONFIG" ), &output );
+
+	    char *l;
+	    for( int j = 0; j < output.Count(); ++j )
+	    {
+	        l = output.Get( j )->Text();
+	        if( !opts[ 'v' ] &&
+	            ( !strncmp( l, "#FILE ", 6 ) ||
+	              !strncmp( l, "#LINE ", 6 ) ) )
+	            continue;
+
+	        printf( "%s\n", l );
+	    }
+
+	    return 0;
+	}
+
+	// Check if each provided path would be ignored
+
+	char* configName = enviro.Get( "P4CONFIG" );
+	while( path.Length() )
+	{
+	    StrBuf line;
+	    int res;
+
+	    // Check if the target is ignored
+
+	    if( ( exists &= FSF_DIRECTORY ) )
+	        res = i.RejectDir( path, ignorefile, configName, &line);
+	    else
+	        res = i.Reject( path, ignorefile, configName, &line );
+
+
+	    if( opts['v'] && line.Length() )   // verbose, with reason
+	        printf( "%s %s by %s\n",
+	                path.Text(),
+	                res ? "ignored" :"not ignored",
+	                line.Text() );
+	    else if( opts['v'] && !res )       // not ignored (verbose)
+	        printf( "%s not ignored\n", path.Text() );
+	    else if( res )
+	        printf( "%s ignored\n", path.Text() );
+
+
+	    // Move onto the next one
+
+	    FileSys *f = FileSys::Create( FST_BINARY );
+	    if( argc-- )
+	    {
+	        f->Set( argv++[0] );
+	        int exists = f->Stat();
+	        path.Set( f->Path() );
+	        p->SetCanon( cwd, path );
+	        path.Set( p->Text() );
+	    }
+	    else
+	        path.Clear();
+	}
+	
+	delete f;
+	delete p;
+
+	return 0;
 }

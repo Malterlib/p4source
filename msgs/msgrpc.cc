@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgRpc error code is: 72
+ * Current high value for a MsgRpc error code is: 74
  * 03/01/12 - main high value : 49,  nimble (2012.2) start at 60
  */
 
@@ -105,8 +105,9 @@ ErrorId MsgRpc::ZksSend                = { ErrorOf( ES_RPC, 65, E_FAILED, EV_COM
 ErrorId MsgRpc::ZksRecv                = { ErrorOf( ES_RPC, 66, E_FAILED, EV_COMM, 1 ), "Fail to receive on p4zk socket with error: %error%." } ;
 ErrorId MsgRpc::ZksDisconnect          = { ErrorOf( ES_RPC, 67, E_FATAL, EV_COMM, 0 ),  "Cluster lifeline connection to p4zk closed, must shutdown." } ;
 ErrorId MsgRpc::ZksState               = { ErrorOf( ES_RPC, 68, E_FAILED, EV_COMM, 3 ), "p4zk connection state incorrect for %function%, expected %state1%, found %state2%" } ;
-ErrorId MsgRpc::ZksNoZK                = { ErrorOf( ES_RPC, 72, E_FATAL, EV_COMM, 1 ), "p4zk unable to register with Zookeeper Servers: %place%." } ;
+ErrorId MsgRpc::ZksNoZK                = { ErrorOf( ES_RPC, 73, E_FATAL, EV_COMM, 1 ), "p4zk unable to register with Zookeeper Servers: %place%." } ;
 ErrorId MsgRpc::UnixDomainOpen         = { ErrorOf( ES_RPC, 69, E_FATAL, EV_COMM, 2 ), "Fail to setup Unix-domain socket during %function% with error: %error%." } ;
 ErrorId MsgRpc::BadP4Port              = { ErrorOf( ES_RPC, 70, E_FATAL, EV_COMM, 1 ), "P4PORT for this server is not valid: %p4port%." } ;
 ErrorId MsgRpc::NoHostnameForPort      = { ErrorOf( ES_RPC, 71, E_FATAL, EV_COMM, 0 ), "Cannot find hostname to use for P4PORT." } ;
+ErrorId MsgRpc::NoConnectionToZK       = { ErrorOf( ES_RPC, 72, E_FATAL, EV_COMM, 0 ), "Cannot connect to p4zk." } ;
 // ErrorId graveyard: retired/deprecated ErrorIds. 

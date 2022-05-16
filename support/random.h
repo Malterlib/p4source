@@ -13,4 +13,6 @@ class Random {
     public:
 
 	static int	Integer( int low, int high );
+	static void	String( StrBuf *, int length,
+				char lowchar, char hichar );
 };

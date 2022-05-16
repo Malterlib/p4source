@@ -201,6 +201,12 @@ Client::GetOs()
 const StrPtr &
 Client::GetPassword()
 {
+	return GetPassword( 0 );
+}
+
+const StrPtr &
+Client::GetPassword( const StrPtr *usrName )
+{
 	if( password.Length() && ticketKey == serverID )
 	    return password;
 
@@ -211,7 +217,7 @@ Client::GetPassword()
 
 	StrBuf u;
 
-	u = user;
+	u = usrName ? *usrName : user;
 	if( output_charset )
 	{
 	    // i18n mode - translate user from p4charset to UTF8
@@ -459,6 +465,13 @@ Client::GetConfig()
 	return enviro->GetConfig();
 }
 
+const StrArray *
+Client::GetConfigs()
+{
+	return enviro->GetConfigs();
+}
+
+
 const StrPtr &
 Client::GetInitRoot()
 {
@@ -480,6 +493,7 @@ Client::SetCwd( const StrPtr *c )
 	// Set as all Set()'s do
 
 	cwd.Set( c );
+	ownCwd = 0;
 
 	// And now reload P4CONFIG
 
@@ -492,6 +506,7 @@ Client::SetCwd( const char *c )
 	// Set as all Set()'s do
 
 	cwd.Set( c );
+	ownCwd = 0;
 
 	// And now reload P4CONFIG
 

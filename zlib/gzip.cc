@@ -20,8 +20,9 @@
  */
 
 static const char gz_magic[] = {
-	0x1f, 0x8b, 
-	Z_DEFLATED, 
+	0x1f,
+    static_cast<const char>(0x8b), /* C++11 needs explicit cast for char values over 128 */
+	Z_DEFLATED,
 	0,			/*flags*/
 	0,0,0,0,		/*time*/
 	0,			/*xflags*/

@@ -19,6 +19,7 @@
 
 #include <stdhdrs.h>
 #include <pid.h>
+#include <strbuf.h>
 #include "random.h"
 
 
@@ -57,4 +58,31 @@ Random::Integer( int low, int high )
 # endif
 
 	return low + r % ( high - low + 1 );
+}
+
+void
+Random::String( StrBuf *b, int length, char lowchar, char hichar )
+{
+	Initialize();
+	unsigned int rng = hichar - lowchar + 1;
+	unsigned int r;
+	char *p;
+
+	b->Clear();
+	p = b->Alloc( length + 1 );
+
+	while( length-- > 0 )
+	{
+# ifdef NEED_RAND_S
+	    rand_s( &r );
+	    r = r >> 2;		// old lowest bit not random
+# elif defined(NEED_OLD_RAND)
+	    r = rand() >> 2;	// old lowest bit not random
+# else
+	    r = random();
+# endif
+	    *p++ = lowchar + r % rng;
+	}
+	*p = '\0';
+	b->SetEnd( p );
 }

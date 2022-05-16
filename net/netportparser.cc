@@ -697,6 +697,22 @@ NetPortParser::Parse()
 	    mHostPort.Set( str );
 	}
 
+	if( NetUtils::IsIpV6Address(mHost.Text()) )
+	{
+	    const char	*bp = mHost.Text();
+	    const char	*ep = &bp[mHost.Length()-1];
+
+	    // store the trailing %zoneid, if any
+	    for( const char *p = ep; p > bp; p-- )
+	    {
+	        if( *p == '%' )
+	        {
+	            mZoneID.Set( p, ep-p+1 );
+	            break;
+	        }
+	    }
+	}
+
 	// remember the prefix
 	mPrefix = *pfx;
 

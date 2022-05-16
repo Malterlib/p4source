@@ -22,6 +22,7 @@ JnlTracker::Clear()
 {
 	npids = maxpids = consistentcnt = markcnt[0] = markcnt[1] = 0;
 	scanstate = 0;
+	sawJTrailer = 0;
 }
 
 int
@@ -189,7 +190,16 @@ JnlTracker::ScanJournal( const char *p, int l, const char **xact )
 			break;
 		    }
 		}
+		else if( c == '3' )
+	            sawJTrailer = 1;
 		goto outstring;
 	    }
 	}
 }
+
+int
+JnlTracker::SawJournalTrailer()
+{
+	return sawJTrailer;
+}
+

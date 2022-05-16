@@ -173,3 +173,31 @@ void
 FileIOUTF16::Translator( CharSetCvt * )
 {
 }
+
+FileIOUTF8::FileIOUTF8( LineType lineType )
+    : FileIOUTF16( lineType )
+{
+	SetContentCharSetPriv( (int)CharSetApi::UTF_8_BOM );
+}
+
+void
+FileIOUTF8::Set( const StrPtr &name, Error *e )
+{
+	FileIOUnicode::Set( name, e );
+	SetContentCharSetPriv( (int)CharSetApi::UTF_8_BOM );
+}
+
+void
+FileIOUTF8::Open( FileOpenMode mode, Error *e )
+{
+	CharSetCvt *cvt;
+
+	if( mode == FOM_READ )
+	    cvt = new CharSetCvtUTF8UTF8( -1, UTF8_VALID_CHECK );
+	else
+	    cvt = new CharSetCvtUTF8UTF8( 1, UTF8_WRITE_BOM );
+
+	FileIOUnicode::Open( mode, e );
+
+	FileIOUnicode::Translator( cvt );
+}

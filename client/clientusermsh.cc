@@ -1163,6 +1163,7 @@ ClientUserPhp::~ClientUserPhp()
 	output.Append( outputBuffer );
 	output.Append( "}" );
 	fwrite( output.Text(), 1, output.Length(), stdout );
+	delete outputBuffer;
 }
 
 

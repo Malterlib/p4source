@@ -30,6 +30,7 @@
 # if defined(OS_LINUX) || defined(OS_MACOSX) || defined(OS_DARWIN)
 # include <sys/un.h>
 # endif // OS_LINUX || OS_MACOSX
+#include <ctype.h>
 
 # include <error.h>
 # include <strbuf.h>
@@ -698,6 +699,182 @@ NetTcpEndPoint::CheaterCheck( const char *requestedPort )
 	}
 
 	return 1;
+}
+
+/*
+ * Check whether a hostname or IP is loopback
+ * - return true if any addresses for the host is local
+ *	1) p4portstr is a P4PORT string
+ *	2) empty strings, and those with a transport of "rsh:" or "jsh:" are local
+ *	3) empty host portion is also local
+ *	4) numeric strings (IPv4 or IPv6, optionally surrounded with [...])
+ *	   are parsed and checked by NetUtils::IsLocalAddress()
+ *	5) otherwise we resolve the name to a set of addresses;
+ *	   if any of them are local, return true
+ * - there is a lot of code here that's duplicated from BindOrConnect()
+ *   and CreateSocket(), so I'll look at refactoring this later.
+ * [static]
+ */
+bool
+NetTcpEndPoint::IsLocalHost( const char *p4portstr, AddrType type )
+{
+	// empty host string means localhost
+	if( *p4portstr == '\0' )
+	    return true;
+
+	NetPortParser	pp(p4portstr);
+
+	// "rsh:" and "jsh:" are always local
+	if( pp.MustRSH() || pp.MustJSH() )
+	    return true;
+
+	// empty host portion means localhost
+	if( pp.Host().Length() == 0 )
+	    return true;
+
+	// don't bother trying to resolve a numeric address
+	// note: dns names may start with a digit (see RFC 1123)
+	char	ch = pp.Host().Text()[0];
+	if( ch == ':' )
+	    return NetUtils::IsLocalAddress( pp.Host().Text() );
+	char	lastch = pp.Host().Text()[pp.Host().Length()-1];
+	if( (ch == '[') && (lastch == ']') )
+	{
+	    if( pp.Host().Text()[1] == ':' )
+		return NetUtils::IsLocalAddress( pp.Host().Text() );
+	}
+
+	// ok, let's try resolving the name
+
+	NetAddrInfo	ai( pp.Host(), pp.Port() );
+	Error		e;
+	bool		useAlternate = false;
+	int		af_target = AF_UNSPEC;
+
+	int ai_family = pp.MustIPv4() ? AF_INET : (pp.MustIPv6() ? AF_INET6 : AF_UNSPEC);
+	int ai_flags = kBaseHintsFlags | AI_ALL | (pp.WantIPv6() ? 0 : AI_ADDRCONFIG );
+
+	ai.SetHintsFamily( ai_family );
+
+	// set AI_PASSIVE to get IPv4 addresses mapped in IPv6 if host isn't specified
+	if( type != AT_CONNECT )
+	{
+	    ai_flags |= AI_PASSIVE;
+
+	    if( pp.MayIPv4() && pp.MayIPv6() )
+	    {
+	        ai_flags |= AI_V4MAPPED;
+	    }
+	}
+
+	if( DEBUG_CONNECT )
+	{
+	    p4debug.printf( "NetTcpEndPoint::IsLocalHost(port=%s, family=%d, flags=0x%x)\n",
+	        pp.Host().Text(), ai_family, ai_flags );
+	}
+
+	ai.SetHintsFlags( ai_flags );
+
+	// This will init WinSock, if required, and clean it up too.
+	NetTcpEndPoint endpoint( &e );
+
+	bool result = ai.GetInfo(&e);   // resolve the host and service/port names (IPv4 and/or IPv6)
+	if( !result )
+	{
+	    if( ai.GetStatus() == EAI_BADFLAGS )
+	    {
+	        /*
+	         * Apparently our OS doesn't support AI_ALL or AI_V4MAPPED.
+	         *     Maybe it's a single-stack server:
+	         *         FreeBSD 7.0 or older
+	         *         Windows XP or older
+	         *         ...
+	         * We'll try again without those flags.
+	         */
+	        ai_flags = kBaseHintsFlags | (pp.WantIPv6() ? 0 : AI_ADDRCONFIG )
+	                   | ( (type == AT_CONNECT) ? 0 : AI_PASSIVE );
+	        ai.SetHintsFlags( ai_flags );
+
+		if( DEBUG_CONNECT )
+		{
+		    p4debug.printf(
+			"NetTcpEndPoint::IsLocalHost(port=%s, family=%d, flags=0x%x) [retry]",
+		         pp.Host().Text(), ai_family, ai_flags );
+		}
+
+	        e.Clear();
+	        result = ai.GetInfo(&e);
+	    }
+	}
+
+	if( !result )
+	{
+	    // job062842 -- allow local operation without a routable address
+	    if( (ai.GetStatus() == EAI_NONAME) && (ai_flags & AI_ADDRCONFIG) )
+	    {
+	        /*
+		 * Perhaps we don't have a routable address and are trying
+		 * to run locally.  Try again without AI_ADDRCONFIG.
+	         */
+	        ai_flags &= ~AI_ADDRCONFIG;
+	        ai.SetHintsFlags( ai_flags );
+
+		if( DEBUG_CONNECT )
+		{
+		    p4debug.printf(
+			"NetTcpEndPoint::IsLocalHost(port=%s, family=%d, flags=0x%x) [retry-2]",
+		         pp.Host().Text(), ai_family, ai_flags );
+		}
+
+	        e.Clear();
+	        result = ai.GetInfo(&e);
+	    }
+	}
+
+	if( result )
+	{
+	    // iterate through the address list and use the first of the correct address family
+	    for( const addrinfo *aip = ai.begin(); aip != ai.end(); aip = aip->ai_next )
+	    {
+		if( useAlternate && (af_target == AF_UNSPEC) && (aip == ai.begin()) )
+		{
+		    /*
+		     * If we are to use an alternate address then try the first
+		     * address that isn't the same family as the first entry.
+		     * For RFC 3484 we try addresses in returned order,
+		     * but only the first address (if any) of each family.
+		     * If useAlternate was true then we must already have
+		     * tried the first entry, so skip it now.
+		     */
+		    af_target = (aip->ai_family == AF_INET) ? AF_INET6 : AF_INET;
+		    continue;
+		}
+
+		// don't discard any responses if no preference was given
+		if( (AF_UNSPEC != af_target) && (aip->ai_family != af_target) )
+		    continue;
+
+		StrBuf	printableAddress;
+		printableAddress.Clear();
+		printableAddress.Alloc( P4_INET6_ADDRSTRLEN );
+		printableAddress.SetLength(0);
+		printableAddress.Terminate();
+		const char	*buf = printableAddress.Text();
+
+		NetUtils::GetAddress( aip->ai_family, aip->ai_addr, 0, printableAddress );
+		result = NetUtils::IsLocalAddress(buf);
+		if( DEBUG_CONNECT )
+		{
+		    p4debug.printf(
+			"NetTcpEndPoint::IsLocalAddress(%s) = %s\n",
+			buf, (result ? "true" : "false") );
+		}
+		if( result )
+		    return true;
+	    }
+	}
+
+	return false;
 }
 
 void

@@ -33,12 +33,14 @@ class FileIO : public FileSys {
 	virtual int	Stat();
 	virtual int     GetOwner();
 	virtual int	StatModTime();
+	virtual void	StatModTimeHP(DateTimeHighPrecision *modTime);
 	virtual bool	HasOnlyPerm( FilePerm perms );
 	virtual void	Truncate( Error *e );
 	virtual void	Truncate( offL_t offset, Error *e );
 	virtual void	Chmod( FilePerm perms, Error *e );
 	virtual void	ChmodTime( Error *e );
 	virtual void	ChmodTime( int modTime, Error *e );
+	virtual void	ChmodTimeHP( const DateTimeHighPrecision &modTime, Error *e );
 	virtual void	Unlink( Error *e );
 	virtual void	Rename( FileSys *target, Error *e );
 
@@ -158,6 +160,14 @@ class FileIOUTF16 : public FileIOUnicode {
 	virtual void	Open( FileOpenMode mode, Error *e );
 	virtual void	Close( Error *e );
 	virtual void	Translator( CharSetCvt * );
+};
+
+class FileIOUTF8 : public FileIOUTF16 {
+    public:
+	FileIOUTF8( LineType lineType );
+
+	virtual void	Set( const StrPtr &name, Error *e );
+	virtual void	Open( FileOpenMode mode, Error *e );
 };
 
 class FileIOAppend : public FileIOBuffer {
@@ -281,10 +291,12 @@ class FileIOApple : public FileIO {
 	virtual void	Set( const StrPtr &name, Error *e );
 
 	virtual int	StatModTime();
+	virtual void	StatModTimeHP(DateTimeHighPrecision *modTime);
 	virtual void	Truncate( Error *e );
 	virtual void	Truncate( offL_t offset, Error *e );
 	virtual void	Chmod( FilePerm perms, Error *e );
 	virtual void	ChmodTime( int modTime, Error *e );
+	virtual void	ChmodTimeHP( const DateTimeHighPrecision &modTime, Error *e );
 	virtual void	Unlink( Error *e );
 	virtual void	Rename( FileSys *target, Error *e );
 

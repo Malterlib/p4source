@@ -61,6 +61,7 @@
 # include <enviro.h>
 # include <msgrpc.h>
 # include <timer.h>
+# include "datetime.h"
 # include "filesys.h"
 # include "pathsys.h"
 
@@ -92,7 +93,6 @@ extern "C"
 # include "netsslendpoint.h"
 # include "netssltransport.h"
 # include "netsslmacros.h"
-# include "datetime.h"
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -109,7 +109,8 @@ extern "C"
 
 const char *P4SslVersionString = OPENSSL_VERSION_TEXT;
 unsigned long sCompileVersion =  OPENSSL_VERSION_NUMBER;
-
+unsigned long sVersion1_0_0 =  0x1000000f;
+const char *sVerStr1_0_0 = "1.0.0";
 # ifdef OS_NT
 static HANDLE *mutexArray = NULL;
 # else
@@ -1291,10 +1292,9 @@ NetSslTransport::ValidateRuntimeVsCompiletimeSSLVersion( Error *e )
 	TRANSPORT_PRINTF( SSLDEBUG_ERROR,
 		"OpenSSL compile version %s", sb.Text() );
 
-	if ( GET_MJR_SSL_VERSION(SSLeay())
-		< GET_MJR_SSL_VERSION( OPENSSL_VERSION_NUMBER ))
+	if ( GET_MJR_SSL_VERSION(SSLeay()) < GET_MJR_SSL_VERSION(sVersion1_0_0) )
 	{
-	    e->Set(MsgRpc::SslLibMismatch) << sb;
+	    e->Set(MsgRpc::SslLibMismatch) << sVerStr1_0_0;
 	}
 }
 

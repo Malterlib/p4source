@@ -189,6 +189,12 @@ CharSetCvt::FindCvt(CharSetCvt::CharSet from, CharSetCvt::CharSet to)
 		return new CharSetCvtUTF8toSimple(9);
 	    case ISO8859_7:
 		return new CharSetCvtUTF8toSimple(10);
+	    case CP852:
+		return new CharSetCvtUTF8toSimple(13);
+	    case CP1250:
+		return new CharSetCvtUTF8toSimple(12);
+	    case ISO8859_2:
+		return new CharSetCvtUTF8toSimple(14);
 	    }
 	    break;
 	case UTF_8_UNCHECKED_BOM:
@@ -322,6 +328,18 @@ CharSetCvt::FindCvt(CharSetCvt::CharSet from, CharSetCvt::CharSet to)
 	case UTF_32_LE_BOM:
 	    if (to == UTF_8)
 		return new CharSetCvtUTF328(1, 1);
+	    break;
+	case CP852:
+	    if (to == UTF_8)
+		return new CharSetCvtSimpletoUTF8(13);
+	    break;
+	case CP1250:
+	    if (to == UTF_8)
+		return new CharSetCvtSimpletoUTF8(12);
+	    break;
+	case ISO8859_2:
+	    if (to == UTF_8)
+		return new CharSetCvtSimpletoUTF8(14);
 	    break;
 	}
 	return NULL;

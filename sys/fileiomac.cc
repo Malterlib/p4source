@@ -19,6 +19,7 @@
 
 # include <i18napi.h>
 # include <charcvt.h>
+# include <datetime.h>
 
 # include "filesys.h"
 # include "fileio.h"

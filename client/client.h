@@ -161,6 +161,7 @@ class Client : public Rpc {
 	                { clientPath.Set( c ); }
 	void		SetCwd( const StrPtr *c );
 	void		SetCwdNoReload( const StrPtr *c ) { cwd.Set( c ); }
+	void		SetExecutable( const StrPtr *c ) { exeName.Set( c ); }
 	void		SetHost( const StrPtr *c ) { host.Set( c ); }
 	void		SetIgnoreFile( const StrPtr *c ) { ignorefile.Set( c ); }
 	void		SetLanguage( const StrPtr *c ) { language.Set( c ); }
@@ -229,12 +230,14 @@ class Client : public Rpc {
 	const StrPtr	&GetLanguage();
 	const StrPtr	&GetOs();
 	const StrPtr	&GetPassword();
+	const StrPtr	&GetPassword( const StrPtr *user );
 	const StrPtr	&GetPassword2();
 	const StrPtr	&GetPort();
 	const StrPtr	&GetUser();
 	const StrPtr	&GetTicketFile();
 	const StrPtr	&GetTrustFile();
 	const StrPtr	&GetConfig();
+	const StrArray	*GetConfigs();
 	const StrPtr	&GetLoginSSO();
 	const StrPtr	&GetSyncTrigger();
 	const StrPtr	&GetIgnoreFile();
@@ -368,6 +371,7 @@ class Client : public Rpc {
 	int		hostprotoset;
 	int		syncTime;
 	int		ownEnviro;
+	int		ownCwd;		// did someone else set cwd
 
 	StrNum		protocolBuf;	// for our GetProtocol
 

@@ -166,6 +166,32 @@ StrDict::GetVar( const char *var, Error *e )
 	return p;
 }
 
+int
+StrDict::GetVarCCompare( const char *var, StrBuf &val )
+{
+	return GetVarCCompare( StrRef( (char *) var ), val );
+}
+
+int
+StrDict::GetVarCCompare( const StrPtr &var, StrBuf &val )
+{
+	int i = 0;
+	StrRef k, v;
+
+	val.Clear();
+
+	while( VGetVarX( i++, k, v ) )
+	{
+	    if( !k.CCompare( var ) )
+	    {
+		val.Set( v );
+		return 1;
+	    }
+	}
+	
+	return 0;
+}
+
 int 
 StrDict::Save( FILE * out )
 {

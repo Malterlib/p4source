@@ -124,9 +124,9 @@ extern "C" const char *RpcTypeNames[];
 
 struct RpcTrack {
 	int		trackable;
-	int		sendCount;
+	P4INT64		sendCount;
 	P4INT64		sendBytes;
-	int		recvCount;
+	P4INT64		recvCount;
 	P4INT64		recvBytes;
 	int		rpc_hi_mark_fwd;
 	int		rpc_hi_mark_rev;
@@ -344,9 +344,9 @@ class Rpc : public StrDict {
 	int		rpc_hi_mark_fwd;	// InvokeDuplex()
 	int		rpc_hi_mark_rev;	// InvokeDuplexRev()
 
-	int		sendCount;		// performance tracking
+	P4INT64		sendCount;		// performance tracking
 	P4INT64		sendBytes;
-	int		recvCount;
+	P4INT64		recvCount;
 	P4INT64		recvBytes;
 	int		sendTime;
 	int		recvTime;

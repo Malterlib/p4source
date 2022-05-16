@@ -77,11 +77,26 @@ MergeLine::AddLines(
 	    // XXX Impose junky limit on lines
 
 	    LineLen l = f->s->Length( x );
+	    int xtrunc = 0;
 
 	    if( l > 10000 )
+	    {
 		l = 10000;
+	        xtrunc = x + 1;
+	    }
 
 	    f->s->CopyLines( x, x + 1, c->buf.Alloc( l ), l, LineTypeRaw );
+
+	    if( xtrunc )
+	    {
+	        // terminate line
+	        c->buf.Extend('\n');
+	        c->buf.Terminate();
+
+	        // position on next line
+	        f->s->SeekLine( xtrunc );
+	        x = xtrunc;
+	    }
 
 	    // New lines have this MergeSequence's revId
 
@@ -270,7 +285,7 @@ MultiMerge::Dump()
  */
 
 MergeLine *
-MultiMerge::Read( int &lower, int &upper, StrPtr &string, int chg )
+MultiMerge::Read( int &lower, int &upper, int &change, StrPtr &string, int chg )
 {
 	if( !reader )
 	    return 0;
@@ -281,6 +296,10 @@ MultiMerge::Read( int &lower, int &upper, StrPtr &string, int chg )
 	MergeLine *source = reader;
 	while ( source->from )
 	    source = source->from;
+
+	// Need the change number to blame contributor
+
+	change = source->lowerChg;
 
 	if ( chg )
 	{

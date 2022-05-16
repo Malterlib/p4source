@@ -51,6 +51,14 @@ const char *const SpecFmts[] = {
 	0
 } ;
 
+const char *const SpecOpens[] = {
+
+	"none",		// SDO_NOTOPEN
+	"isolate",	// SDO_ISOLATE
+	"propagate",	// SDO_PROPAGATE
+	0
+} ;
+
 const char *
 SpecElem::FmtType()
 {
@@ -67,6 +75,12 @@ const char *
 SpecElem::FmtFmt()
 {
 	return SpecFmts[ fmt ];
+}
+
+const char *
+SpecElem::FmtOpen()
+{
+	return SpecOpens[ open ];
 }
 
 void
@@ -114,6 +128,19 @@ SpecElem::SetOpt( const char *optName, Error *e )
 	e->Set( MsgDb::FieldOptBad ) << optName << tag;
 }
 
+void
+SpecElem::SetOpen( const char *openName, Error *e )
+{
+	for( int j = 0; SpecOpens[j]; j++ )
+	    if( !strcmp( SpecOpens[j], openName ) )
+	{
+	    open = (SpecOpen)j;
+	    return;
+	}
+
+	e->Set( MsgDb::FieldOptBad ) << openName << tag;
+}
+
 /*
  * SpecElem::Compare() - compare SpecElems from different specs
  */
@@ -127,7 +154,8 @@ SpecElem::Compare( const SpecElem &other )
 	return 
 	    tag != other.tag || code != other.code ||
 	    type != other.type || opt != other.opt ||
-	    nWords != other.nWords || values != other.values;
+	    nWords != other.nWords || values != other.values ||
+	    open != other.open;
 }
 
 /*
@@ -153,6 +181,9 @@ SpecElem::Encode( StrBuf *s, int c )
 
 	if( fmt != SDF_NORMAL )
 	    *s << ";fmt:" << SpecFmts[ fmt ];
+
+	if( open != SDO_NOTOPEN )
+	    *s << ";open:" << SpecOpens[ open ];
 
 	if( IsWords() && nWords != 1 )
 	    *s << ";words:" << nWords;
@@ -225,6 +256,7 @@ SpecElem::Decode( StrRef *s, Error *e )
 	    else if( !strcmp( w, "len" ) ) maxLength = atoi( q );
 	    else if( !strcmp( w, "seq" ) ) seq = atoi( q );
 	    else if( !strcmp( w, "fmt" ) ) SetFmt( q, 0 );
+	    else if( !strcmp( w, "open" ) ) SetOpen( q, e );
 
 	    // OK if we don't recognise code!
 	}

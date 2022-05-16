@@ -18,7 +18,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgClient error code is: 44
+ * Current high value for a MsgClient error code is: 68
  */
 
 # include <error.h>
@@ -64,9 +64,35 @@ ErrorId MsgClient::DigestMisMatch      = { ErrorOf( ES_CLIENT, 37, E_FAILED, EV_
 ErrorId MsgClient::NotUnderPath        = { ErrorOf( ES_CLIENT, 38, E_FAILED, EV_CLIENT, 2 ), "File %clientFile% is not inside permitted filesystem path %clientPath%" } ;
 ErrorId MsgClient::LineTooLong         = { ErrorOf( ES_CLIENT, 39, E_FAILED, EV_CLIENT, 1 ), "Command line too long. Maximum length is %maxLineLen%. This length can be increased by setting filesys.bufsize in P4CONFIG or using -v." };
 ErrorId MsgClient::UnknownCharset      = { ErrorOf( ES_CLIENT, 42, E_FATAL, EV_CLIENT, 1 ), "Unknown P4CHARSET %charset%." };
-ErrorId MsgClient::FileKept	       = { ErrorOf( ES_CLIENT, 43, E_FAILED, EV_CLIENT, 1 ), "Edited File %file% kept due to errors." } ;
-ErrorId MsgClient::LockCheckFail       = { ErrorOf( ES_CLIENT, 44, E_FAILED, EV_CLIENT, 0 ), "File locking check failed, Perforce server can not run." } ;
+ErrorId MsgClient::FileKept            = { ErrorOf( ES_CLIENT, 43, E_FAILED, EV_CLIENT, 1 ), "Edited File %file% kept due to errors." } ;
 
+ErrorId MsgClient::LockCheckFail       = { ErrorOf( ES_CLIENT, 44, E_FAILED, EV_CLIENT, 0 ), "File locking check failed, Perforce server can not run." } ;
+ErrorId MsgClient::ChdirFail           = { ErrorOf( ES_CLIENT, 45, E_FAILED, EV_CLIENT, 1), "Failed to change to direcitory '%dir%'." };
+
+ErrorId MsgClient::InitRootExists      = { ErrorOf( ES_CLIENT, 46, E_FAILED, EV_CLIENT, 1 ), "Nothing to do - existing dvcs tree at %dir%" };
+ErrorId MsgClient::NoDvcsServer        = { ErrorOf( ES_CLIENT, 47, E_FAILED, EV_CLIENT, 0 ), "No server root found" };
+
+ErrorId MsgClient::InitServerFail      = { ErrorOf( ES_CLIENT, 48, E_FAILED, EV_CLIENT, 0), "\np4d server failed to initialize.  A 2015.1 or later p4d server\nmust be in your path and runable." };
+ErrorId MsgClient::CloneCantFetch      = { ErrorOf( ES_CLIENT, 49, E_FAILED, EV_CLIENT, 1 ), "Remote server '%port%' not configured to clone (server.allowfetch)." };
+ErrorId MsgClient::NotValidStreamName  = { ErrorOf( ES_CLIENT, 50, E_FAILED, EV_CLIENT, 1 ), "'%path%' is not a valid mainline stream name." };
+ErrorId MsgClient::CloneStart          = { ErrorOf( ES_CLIENT, 51, E_INFO,   EV_CLIENT, 1 ), "Cloning from '%port%'..." };
+ErrorId MsgClient::CloneNeedLogin1     = { ErrorOf( ES_CLIENT, 52, E_FAILED, EV_CLIENT, 2 ), "'%user%' is not currently logged in to '%port%'" };
+ErrorId MsgClient::CloneNeedLogin2     = { ErrorOf( ES_CLIENT, 53, E_FAILED, EV_CLIENT, 2 ), "run 'p4 -u %user% -p %port% login' to authenticate" };
+ErrorId MsgClient::CloneTooWide        = { ErrorOf( ES_CLIENT, 54, E_FAILED, EV_CLIENT, 1 ), "Remote map entry '%path%' cannot be allocated a stream name:\nClone requires at least //<depotname>/<streamname>/ on the left hand side of the map\n" };
+ErrorId MsgClient::CloneRemoteInvalid  = { ErrorOf( ES_CLIENT, 55, E_FAILED, EV_CLIENT, 0 ), "Remote clone spec invalid!" };
+ErrorId MsgClient::CloneTooManyDepots  = { ErrorOf( ES_CLIENT, 56, E_FAILED, EV_CLIENT, 1 ), "Remote spec references multiple depots on the left hand side of map : %depots%" };
+ErrorId MsgClient::CloneNoRemote       = { ErrorOf( ES_CLIENT, 57, E_FAILED, EV_CLIENT, 2 ), "Remote server '%port%' does not have a remote spec '%remote%'" };
+ErrorId MsgClient::ClonePathNoMap      = { ErrorOf( ES_CLIENT, 58, E_FAILED, EV_CLIENT, 1 ), "Filepath '%path%' cannot be mapped" };
+ErrorId MsgClient::ClonePathTooWide    = { ErrorOf( ES_CLIENT, 59, E_FAILED, EV_CLIENT, 1 ), "Filepath '%path%' is too wide open" };
+ErrorId MsgClient::ClonePathHasWild    = { ErrorOf( ES_CLIENT, 60, E_FAILED, EV_CLIENT, 1 ), "Filepath '%path%' contains embedded wildcard" };
+ErrorId MsgClient::ClonePathHasIllegal = { ErrorOf( ES_CLIENT, 61, E_FAILED, EV_CLIENT, 1 ), "Filepath '%path%' contains illegal characters [@%#*]" };
+ErrorId MsgClient::RemoteAlreadySet    = { ErrorOf( ES_CLIENT, 62, E_FAILED, EV_CLIENT, 1 ), "Remote '%remote%' is already cached" };
+ErrorId MsgClient::NoRemoteToSet       = { ErrorOf( ES_CLIENT, 63, E_FAILED, EV_CLIENT, 0 ), "No remote in cache" };
+ErrorId MsgClient::InitCaseFlagUnset   = { ErrorOf( ES_CLIENT, 64, E_FAILED, EV_CLIENT, 0 ), "CaseFlag must be set to -C0 or -C1" };
+ErrorId MsgClient::InitUnicodeUnset    = { ErrorOf( ES_CLIENT, 65, E_FAILED, EV_CLIENT, 0 ), "Unicode must be set to 0 or 1" };
+ErrorId MsgClient::CloneFetchCounts    = { ErrorOf( ES_CLIENT, 66, E_INFO,   EV_CLIENT, 2 ), "%changes% change(s) containing a total of %revs% file revision(s) were successfully fetched." };
+ErrorId MsgClient::LocalRemoteMismatch = { ErrorOf( ES_CLIENT, 67, E_FAILED, EV_CLIENT, 0 ), "ServerHelperApi already refers to a local Perforce Server." };
+ErrorId MsgClient::RemoteLocalMismatch = { ErrorOf( ES_CLIENT, 68, E_FAILED, EV_CLIENT, 0 ), "ServerHelperApi already refers to a remote Perforce Server." };
 
 // ErrorId graveyard: retired/deprecated ErrorIds.
 

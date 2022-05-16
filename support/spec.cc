@@ -148,6 +148,7 @@ Spec::Add( const StrPtr &tag )
 	de->maxLength = 0;
 	de->fmt = SDF_NORMAL;
 	de->seq = 0;
+	de->open = SDO_NOTOPEN;
 	de->maxWords = 0;	// used for Streams
 
 	elems->Put( de );

@@ -131,7 +131,7 @@ RpcSendBuffer::SetVar( const char *var, const StrPtr &value )
 StrBuf *
 RpcSendBuffer::MakeVar( const StrPtr &var )
 {
-	// Tidy up last StarVar
+	// Tidy up last MakeVar
 
 	if( lastLength )
 	    EndVar();
@@ -139,7 +139,7 @@ RpcSendBuffer::MakeVar( const StrPtr &var )
 	// Put var name in buffer
 	// EBCDIC->ASCII, if necessary
 
-	ioBuffer.Append( &var );
+	ioBuffer.UAppend( &var );
 
 # ifdef USE_EBCDIC
 	__etoa_l( ioBuffer.End() - var.Length(), var.Length() );
@@ -173,7 +173,7 @@ RpcSendBuffer::EndVar()
 
 	ioBuffer.Extend( 0 );	// skip past null
 
-	lastLength = 0;  // signal StarVar var completed
+	lastLength = 0;  // signal MakeVar var completed
 }
 
 void

@@ -52,7 +52,10 @@ static const char *charsetname[] = {
     "cp858",
     "cp1253",
     "cp737",
-    "iso8859-7"
+    "iso8859-7",
+    "cp1250",
+    "cp852",
+    "iso8859-2"
 };
 
 static unsigned int charsetcount = sizeof(charsetname) / sizeof(*charsetname);
@@ -83,7 +86,7 @@ CharSetApi::Lookup(const char *s, Enviro *env)
 	for( unsigned int i = 0; i < charsetcount; ++i)
 	    if( st == charsetname[i] )
 		return (CharSet) i;
-	return (CharSet) -1;
+	return CSLOOKUP_ERROR;
 }
 
 CharSetApi::CharSet
@@ -101,6 +104,7 @@ CharSetApi::Discover(Enviro *enviro)
 	case 437:   return WIN_US_OEM;
 //	case 737:   return CP737;
 	case 850:   return CP850;
+	case 852:   return CP852;
 	case 858:   return CP858;
 	case 932:   return SHIFTJIS;
 	case 936:   return CP936;
@@ -108,6 +112,7 @@ CharSetApi::Discover(Enviro *enviro)
 	case 950:   return CP950;
 	case 1200:  return UTF_16_LE_BOM;
 	case 1201:  return UTF_16_BE_BOM;
+	case 1250:  return CP1250;
 	case 1251:  return WIN_CP_1251;
 	case 1252:  return WIN_US_ANSI;
 	case 1253:  return CP1253;
@@ -117,7 +122,9 @@ CharSetApi::Discover(Enviro *enviro)
 	case 20866: return KOI8_R;
 	case 20932: return EUCJP;
 	case 28591: return ISO8859_1;
+	case 28592: return ISO8859_2;
 	case 28595: return ISO8859_5;
+	case 28597: return ISO8859_7;
 	case 28605: return ISO8859_15;
 	case 65001: return UTF_8;
         }
@@ -166,6 +173,8 @@ CharSetApi::Discover(Enviro *enviro)
 
             if( !StrPtr::CCompare(setInEnv, "ISO8859-1") )
                 return ISO8859_1;
+            if( !StrPtr::CCompare(setInEnv, "ISO8859-2") )
+                return ISO8859_2;
             if( !StrPtr::CCompare(setInEnv, "ISO8859-5") )
                 return ISO8859_5;
             if( !StrPtr::CCompare(setInEnv, "ISO8859-7") )

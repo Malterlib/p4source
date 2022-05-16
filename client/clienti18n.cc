@@ -70,7 +70,8 @@ Client::SetTrans( int output,
 	output_charset = output;
 	GlobalCharSet::Set(fnames);
 	// our concept of current directory could change at this point
-	cwd = "";
+	if( ownCwd )
+	    cwd = "";
 	enviro->Config( GetCwd() );
 
 	if (output != 0)

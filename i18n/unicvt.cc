@@ -21,7 +21,7 @@ CharSetCvtUTF8UTF8::CharSetCvtUTF8UTF8( int dir, int f )
     : validator( NULL ), flags( f )
 {
 	// do not validate from the server
-	if( ( flags & UTF8_VALID_CHECK ) && ( direction = dir ) == -1 )
+	if( ( direction = dir ) == -1 && ( flags & UTF8_VALID_CHECK ) )
 	    validator = new CharSetUTF8Valid;
 }
 

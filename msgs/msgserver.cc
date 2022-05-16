@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgServer error code is: 811
+ * Current high value for a MsgServer error code is: 858
  */
 # include <error.h>
 # include <errornum.h>
@@ -51,8 +51,8 @@ ErrorId MsgServer::ExtraIDUsage        = { ErrorOf( ES_SERVER, 567, E_FAILED, EV
 ErrorId MsgServer::ServerIDAlreadySet  = { ErrorOf( ES_SERVER, 568, E_FAILED, EV_USAGE, 1 ), "Server already has a server ID: %serverID%" } ;
 ErrorId MsgServer::NoServerID          = { ErrorOf( ES_SERVER, 569, E_FAILED, EV_USAGE, 0 ), "Server does not yet have a server ID." } ;
 ErrorId MsgServer::ServerID            = { ErrorOf( ES_SERVER, 570, E_INFO, EV_NONE, 1 ), "Server ID: %serverID%" } ;
-ErrorId MsgServer::ServerServicesType  = { ErrorOf( ES_SERVER, 809, E_INFO, EV_NONE, 2 ), "ServerID %ServerID% : ServicesType %ServiceType%" };
-ErrorId MsgServer::ExtraServicesUsage  = { ErrorOf( ES_SERVER, 810, E_FAILED, EV_USAGE, 0 ), "Usage: %'p4d -xS [ servicesType ]'%" } ;
+ErrorId MsgServer::ServerServicesType  = { ErrorOf( ES_SERVER, 813, E_INFO, EV_NONE, 2 ), "ServerID %ServerID% : ServicesType %ServiceType%" };
+ErrorId MsgServer::ExtraServicesUsage  = { ErrorOf( ES_SERVER, 814, E_FAILED, EV_USAGE, 0 ), "Usage: %'p4d -xS [ servicesType ]'%" } ;
 ErrorId MsgServer::MetaDumpFailed      = { ErrorOf( ES_SERVER, 19, E_FAILED, EV_FAULT, 1 ), "%file%: metadata dump failed" } ;
 ErrorId MsgServer::SkippedJnls	       = { ErrorOf( ES_SERVER, 368, E_FAILED, EV_ADMIN, 1 ), "%count% out of sequence journals were not replayed" } ;
 
@@ -117,6 +117,7 @@ ErrorId MsgServer::SubmitNeedsShelved     = { ErrorOf( ES_SERVER, 640, E_FAILED,
 ErrorId MsgServer::SubmitNoParallelThreads     = { ErrorOf( ES_SERVER, 797, E_FAILED, EV_NOTYET, 1 ), "Unable to launch parallel threads for change %change% --  cannot submit."} ;
 ErrorId MsgServer::SubmitNoParallelTarget     = { ErrorOf( ES_SERVER, 603, E_FAILED, EV_NOTYET, 0 ), "Parallel submit requires 'ExternalAddress' field in edge server spec to be set --  cannot submit."} ;
 ErrorId MsgServer::CouldntLock         = { ErrorOf( ES_SERVER, 43, E_FAILED, EV_NOTYET, 0 ), "File(s) couldn't be locked." } ;
+ErrorId MsgServer::LockedOnCommit      = { ErrorOf( ES_SERVER, 834, E_FAILED, EV_NOTYET, 0 ), "File(s) couldn't be locked because they are locked by a workspace on the Commit Server." } ;
 ErrorId MsgServer::MergesPending       = { ErrorOf( ES_SERVER, 44, E_FAILED, EV_NOTYET, 0 ), "Merges still pending -- use '%'resolve'%' to merge files." } ;
 ErrorId MsgServer::ResolveOrRevert     = { ErrorOf( ES_SERVER, 45, E_FAILED, EV_NOTYET, 0 ), "Out of date files must be resolved or reverted." } ;
 ErrorId MsgServer::CantRevertToPurged  = { ErrorOf( ES_SERVER, 501, E_FAILED, EV_NOTYET, 1 ), "%file% has been purged and cannot be reverted. Use '%'p4 revert -k'%' and then '%'p4 sync'%' to get a newer revision." } ;
@@ -230,6 +231,8 @@ ErrorId MsgServer::InfoProxyVersion    = { ErrorOf( ES_SERVER, 139, E_INFO, EV_N
 ErrorId MsgServer::InfoAuthServer      = { ErrorOf( ES_SERVER, 140, E_INFO, EV_NONE, 1 ), "Authorization server: %authServer%" };
 ErrorId MsgServer::InfoChangeServer    = { ErrorOf( ES_SERVER, 370, E_INFO, EV_NONE, 1 ), "Changelist server: %changeServer%" };
 ErrorId MsgServer::InfoServerID        = { ErrorOf( ES_SERVER, 598, E_INFO, EV_NONE, 1 ), "ServerID: %ServerID%" };
+ErrorId MsgServer::InfoServerServices  = { ErrorOf( ES_SERVER, 823, E_INFO, EV_NONE, 1 ), "Server services: %ServerServices%" };
+ErrorId MsgServer::InfoServerReplica   = { ErrorOf( ES_SERVER, 824, E_INFO, EV_NONE, 1 ), "Replica of: %Replica%" };
 ErrorId MsgServer::InfoCaseHandling    = { ErrorOf( ES_SERVER, 426, E_INFO, EV_NONE, 1 ), "Case Handling: %caseHandling%" };
 ErrorId MsgServer::InfoMinClient       = { ErrorOf( ES_SERVER, 431, E_INFO, EV_NONE, 1 ), "Minimum Client Level: %minClient%" };
 
@@ -301,6 +304,8 @@ ErrorId MsgServer::DiffList            = { ErrorOf( ES_SERVER, 134, E_INFO, EV_N
 
 ErrorId MsgServer::DeltaLine1          = { ErrorOf( ES_SERVER, 135, E_INFO, EV_NONE, 2 ), "%lower%: %data%" } ;
 ErrorId MsgServer::DeltaLine2          = { ErrorOf( ES_SERVER, 136, E_INFO, EV_NONE, 3 ), "%lower%-%upper%: %data%" } ;
+ErrorId MsgServer::DeltaLine3          = { ErrorOf( ES_SERVER, 482, E_INFO, EV_NONE, 4 ), "%lower%: %name% %date% %data%" } ;
+ErrorId MsgServer::DeltaLine4          = { ErrorOf( ES_SERVER, 483, E_INFO, EV_NONE, 5 ), "%lower%-%upper%: %name% %date% %data%" } ;
 
 ErrorId MsgServer::MonitorDisabled     = { ErrorOf( ES_SERVER, 137, E_FAILED, EV_ADMIN, 0 ), "Monitor not currently enabled." } ;
 ErrorId MsgServer::MonitorBadId        = { ErrorOf( ES_SERVER, 138, E_FAILED, EV_USAGE, 1 ), "Invalid session identifier: %id%" } ;
@@ -311,6 +316,7 @@ ErrorId MsgServer::ConfigureSet        = { ErrorOf( ES_SERVER, 437, E_INFO, EV_N
 ErrorId MsgServer::ConfigureUnSet      = { ErrorOf( ES_SERVER, 438, E_INFO, EV_NONE, 2 ), "For server '%serverName%', configuration variable '%variableName%' removed." } ;
 ErrorId MsgServer::NotThisConfigVar    = { ErrorOf( ES_SERVER, 439, E_FAILED, EV_USAGE, 1 ), "Configuration variable '%name%' may not be changed." } ;
 ErrorId MsgServer::InvalidConfigValue  = { ErrorOf( ES_SERVER, 440, E_FAILED, EV_USAGE, 2 ), "Configuration variable '%name%' may not be set to '%value%'." } ;
+ErrorId MsgServer::InvalidConfigScope  = { ErrorOf( ES_SERVER, 837, E_FAILED, EV_NONE, 1 ), "Configuration variable '%name%' may not be set for all servers." } ;
 ErrorId MsgServer::ConfigureNone       = { ErrorOf( ES_SERVER, 466, E_INFO, EV_NONE, 0 ), "No configurables have been set." } ;
 ErrorId MsgServer::ConfigureServerNone = { ErrorOf( ES_SERVER, 467, E_INFO, EV_NONE, 1 ), "No configurables have been set for server '%serverName%'." } ;
 
@@ -325,21 +331,22 @@ ErrorId MsgServer::UseAdminResetPassword   = { ErrorOf( ES_SERVER, 620, E_FAILED
 ErrorId MsgServer::UseAdminSetLdapUsers= { ErrorOf( ES_SERVER, 780, E_FAILED, EV_USAGE, 0 ), "Usage: %'admin setldapusers [ -n ]'%" } ;
 ErrorId MsgServer::UseAdminDBSigs      = { ErrorOf( ES_SERVER, 502, E_FAILED, EV_USAGE, 0 ), "Usage: %'journaldbchecksums [ -s -b batchsize -c change -l level -u file -t includelist -T excludelist -v version -z ]'%" } ;
 ErrorId MsgServer::UseAdminImport      = { ErrorOf( ES_SERVER, 360, E_FAILED, EV_USAGE, 0 ), "Usage: %'admin import [ -l ] [ -b batchsize ] [ -f ]'%" } ;
-ErrorId MsgServer::UseAnnotate         = { ErrorOf( ES_SERVER, 289, E_FAILED, EV_USAGE, 0 ), "Usage: %'annotate [ -aciIqt -d<flags> ] files...'%" } ;
+ErrorId MsgServer::UseAnnotate         = { ErrorOf( ES_SERVER, 289, E_FAILED, EV_USAGE, 0 ), "Usage: %'annotate [ -aciIqtu -d<flags> ] files...'%" } ;
 ErrorId MsgServer::UseArchive          = { ErrorOf( ES_SERVER, 453, E_FAILED, EV_USAGE, 0 ), "Usage: %'archive -D depot [-n -h -p -q -t ] files...'%" } ;
+ErrorId MsgServer::UseBackup           = { ErrorOf( ES_SERVER, 816, E_FAILED, EV_USAGE, 0 ), "Usage: %'backup'%" } ;
 ErrorId MsgServer::UseBranch           = { ErrorOf( ES_SERVER, 205, E_FAILED, EV_USAGE, 0 ), "Usage: %'branch [ -d -f -i -S stream -P parent -o ] branchname'%" } ;
 ErrorId MsgServer::UseBrancho          = { ErrorOf( ES_SERVER, 206, E_FAILED, EV_USAGE, 0 ), "Usage: %'branch [ -S stream [ -P parent ] ] -o branchname'%" } ;
 ErrorId MsgServer::UseBranchd          = { ErrorOf( ES_SERVER, 207, E_FAILED, EV_USAGE, 0 ), "Usage: %'branch -d [ -f ] branchname'%" } ;
 ErrorId MsgServer::UseBranchi          = { ErrorOf( ES_SERVER, 208, E_FAILED, EV_USAGE, 0 ), "Usage: %'branch -i'%" } ;
 ErrorId MsgServer::UseCachepurge       = { ErrorOf( ES_SERVER, 705, E_FAILED, EV_USAGE, 0 ), "Usage: %'cachepurge -a | -f N | -m N | -s N [ -i N -n -R -S N -O -D files... ]'%" } ;
-ErrorId MsgServer::UseChange           = { ErrorOf( ES_SERVER, 209, E_FAILED, EV_USAGE, 0 ), "Usage: %'change [ -d -i -o -s -t<type> -U<user>] [ -f | -u ] [ [ -O ] changelist# ]'%" } ;
-ErrorId MsgServer::UseChanged          = { ErrorOf( ES_SERVER, 210, E_FAILED, EV_USAGE, 0 ), "Usage: %'change -d [ -f ] [ -O ] changelist#'%" } ;
-ErrorId MsgServer::UseChangeo          = { ErrorOf( ES_SERVER, 211, E_FAILED, EV_USAGE, 0 ), "Usage: %'change -o [ -s ] [ -f ] [ [ -O ] changelist# ]'%" } ;
+ErrorId MsgServer::UseChange           = { ErrorOf( ES_SERVER, 209, E_FAILED, EV_USAGE, 0 ), "Usage: %'change [ -d -i -o -s -t<type> -U<user>] [ -f | -u ] [ [ -O | -I ] changelist# ]'%" } ;
+ErrorId MsgServer::UseChanged          = { ErrorOf( ES_SERVER, 210, E_FAILED, EV_USAGE, 0 ), "Usage: %'change -d [ -f ] [ -O | -I ] changelist#'%" } ;
+ErrorId MsgServer::UseChangeo          = { ErrorOf( ES_SERVER, 211, E_FAILED, EV_USAGE, 0 ), "Usage: %'change -o [ -s ] [ -f ] [ [ -O | -I ] changelist# ]'%" } ;
 ErrorId MsgServer::UseChangei          = { ErrorOf( ES_SERVER, 212, E_FAILED, EV_USAGE, 0 ), "Usage: %'change -i [ -s ] [ -f | -u ]'%" } ;
-ErrorId MsgServer::UseChanget          = { ErrorOf( ES_SERVER, 456, E_FAILED, EV_USAGE, 0 ), "Usage: %'change -t restricted | public [ -U user ] [ -f | -u | -O ] changelist#'%" } ;
+ErrorId MsgServer::UseChanget          = { ErrorOf( ES_SERVER, 456, E_FAILED, EV_USAGE, 0 ), "Usage: %'change -t restricted | public [ -U user ] [ -f | -u | -O | -I ] changelist#'%" } ;
 ErrorId MsgServer::UseChangeU          = { ErrorOf( ES_SERVER, 651, E_FAILED, EV_USAGE, 0 ), "Usage: %'change -U user [ -t restricted | public ] [ -f ] changelist#'%" } ;
 ErrorId MsgServer::UseChangeUt          = { ErrorOf( ES_SERVER, 652, E_FAILED, EV_USAGE, 0 ), "Usage: %'change -U user -t restricted | public [ -f ] changelist#'%" } ;
-ErrorId MsgServer::UseChanges          = { ErrorOf( ES_SERVER, 213, E_FAILED, EV_USAGE, 0 ), "Usage: %'changes [-i -t -l -L -f -c client -m count -s status -u user] [files...]'%" } ;
+ErrorId MsgServer::UseChanges          = { ErrorOf( ES_SERVER, 213, E_FAILED, EV_USAGE, 0 ), "Usage: %'changes [-i -t -l -L -f -c client -e changelist# -m count -s status -u user] [files...]'%" } ;
 ErrorId MsgServer::UseClean            = { ErrorOf( ES_SERVER, 674, E_FAILED, EV_USAGE, 0 ), "Usage: %'clean [ -a -d -e -I -l -n ] [ files... ]'%" } ;
 ErrorId MsgServer::UseClient           = { ErrorOf( ES_SERVER, 214, E_FAILED, EV_USAGE, 0 ), "Usage: %'client [ -d -f -Fs -i -o -s ] [ -t template | -S stream ] [ -c change ] [ clientname ]'%" } ;
 ErrorId MsgServer::UseCliento          = { ErrorOf( ES_SERVER, 215, E_FAILED, EV_USAGE, 0 ), "Usage: %'client -o [ -t template ] clientname'%" } ;
@@ -347,7 +354,7 @@ ErrorId MsgServer::UseClientS          = { ErrorOf( ES_SERVER, 510, E_FAILED, EV
 ErrorId MsgServer::UseClientd          = { ErrorOf( ES_SERVER, 216, E_FAILED, EV_USAGE, 0 ), "Usage: %'client -d [ -f [ -Fs ] ] clientname'%" } ;
 ErrorId MsgServer::UseClienti          = { ErrorOf( ES_SERVER, 217, E_FAILED, EV_USAGE, 0 ), "Usage: %'client -i [ -f ]'%" } ;
 ErrorId MsgServer::UseClients          = { ErrorOf( ES_SERVER, 504, E_FAILED, EV_USAGE, 0 ), "Usage: %'client -s [ -f ] -t template | -S stream [ clientname ]'%" } ;
-ErrorId MsgServer::UseCluster          = { ErrorOf( ES_SERVER, 666, E_FAILED, EV_USAGE, 0 ), "Usage: %'cluster [ new-master | master-changed | end-journal | members-set | set-gen-number | update-gen-number ]'%" } ;
+ErrorId MsgServer::UseCluster          = { ErrorOf( ES_SERVER, 666, E_FAILED, EV_USAGE, 0 ), "Usage: %'cluster [ new-master | master-changed | end-journal | members-set | set-gen-number | to-workspace | restore-clients ]'%" } ;
 ErrorId MsgServer::UseConfigure        = { ErrorOf( ES_SERVER, 436, E_FAILED, EV_USAGE, 0 ), "Usage: %'configure { show [ allservers | <P4NAME> | <variable> ] | set [<P4NAME>#]variable=value | unset [<P4NAME>#]variable }'%" } ;
 ErrorId MsgServer::UseCopy             = { ErrorOf( ES_SERVER, 450, E_FAILED, EV_USAGE, 0 ), "Usage: %'copy [ -c changelist# -f -F -m max -n -q -r -s from -v ] [ -b branch to... | -S stream [ -P parent ] [ file... ] | from to ]'%" } ;
 ErrorId MsgServer::UseCopyb            = { ErrorOf( ES_SERVER, 451, E_FAILED, EV_USAGE, 0 ), "Usage: %'copy [ -c changelist# -f -F -m max -n -q -r -s from -v ] -b branch [ to... ]'%" } ;
@@ -359,12 +366,12 @@ ErrorId MsgServer::UseCstat            = { ErrorOf( ES_SERVER, 419, E_FAILED, EV
 ErrorId MsgServer::UseDbpack           = { ErrorOf( ES_SERVER, 359, E_FAILED, EV_USAGE, 0 ), "Usage: %'dbpack [ -c pages -l 0|1|2 ] { -a | dbtable ... }'%" } ;
 ErrorId MsgServer::UseDbstat           = { ErrorOf( ES_SERVER, 344, E_FAILED, EV_USAGE, 0 ), "Usage: %'dbstat [ -h ] { -a | dbtable ... }\n       dbstat -s'%" } ;
 ErrorId MsgServer::UseDbverify         = { ErrorOf( ES_SERVER, 573, E_FAILED, EV_USAGE, 0 ), "Usage: %'dbverify [ -t db.table ] [ -U ] [-v]'%" } ;
-ErrorId MsgServer::UseDepot            = { ErrorOf( ES_SERVER, 220, E_FAILED, EV_USAGE, 0 ), "Usage: %'depot [ -i -o ] [ -d [ -f ] ] depotname'%" } ;
+ErrorId MsgServer::UseDepot            = { ErrorOf( ES_SERVER, 220, E_FAILED, EV_USAGE, 0 ), "Usage: %'depot [ -i -o -t type ] [ -d [ -f ] ] depotname'%" } ;
 ErrorId MsgServer::UseDepoto           = { ErrorOf( ES_SERVER, 221, E_FAILED, EV_USAGE, 0 ), "Usage: %'depot -o depotname'%" } ;
 ErrorId MsgServer::UseDepotd           = { ErrorOf( ES_SERVER, 222, E_FAILED, EV_USAGE, 0 ), "Usage: %'depot -d depotname'%" } ;
 ErrorId MsgServer::UseDepoti           = { ErrorOf( ES_SERVER, 223, E_FAILED, EV_USAGE, 0 ), "Usage: %'depot -i'%" } ;
 ErrorId MsgServer::UseDepots           = { ErrorOf( ES_SERVER, 224, E_FAILED, EV_USAGE, 0 ), "Usage: %'depots'%" } ;
-ErrorId MsgServer::UseDescribe         = { ErrorOf( ES_SERVER, 225, E_FAILED, EV_USAGE, 0 ), "Usage: %'describe [-d<flags> -m max -s -S -f -O] changelist# ...'%" } ;
+ErrorId MsgServer::UseDescribe         = { ErrorOf( ES_SERVER, 225, E_FAILED, EV_USAGE, 0 ), "Usage: %'describe [-d<flags> -m max -s -S -f -O -I] changelist# ...'%" } ;
 ErrorId MsgServer::UseDiff             = { ErrorOf( ES_SERVER, 226, E_FAILED, EV_USAGE, 0 ), "Usage: %'diff [ -d<flags> -f -m max -Od -s<flag> -t ] [files...]'%" } ;
 ErrorId MsgServer::UseDiff2            = { ErrorOf( ES_SERVER, 227, E_FAILED, EV_USAGE, 0 ), "Usage: %'diff2 [ -d<flags> -Od -q -t -u ] [ -b branchName ] [ -S stream ] [ -P parent ] file file2'%" } ;
 ErrorId MsgServer::UseDiff2b           = { ErrorOf( ES_SERVER, 228, E_FAILED, EV_USAGE, 0 ), "Usage: %'diff2 [ -d<flags> -Od -q -t -u ] -b branchName [ [ file ] file2 ]'%" } ;
@@ -377,7 +384,7 @@ ErrorId MsgServer::UseLabels           = { ErrorOf( ES_SERVER, 535, E_FAILED, EV
 ErrorId MsgServer::UseDomainClients    = { ErrorOf( ES_SERVER, 481, E_FAILED, EV_USAGE, 0 ), "Usage: %'clients [ -t ] [ -u user ] [ -U ] [ [-e|-E] query -m max ] [ -a | -s serverID ] [ -S stream ]'%" } ;
 ErrorId MsgServer::UseDup              = { ErrorOf( ES_SERVER, 351, E_FAILED, EV_USAGE, 0 ), "Usage: %'duplicate [ -n -q ] from[revRange] to'%" } ;
 ErrorId MsgServer::UseExport           = { ErrorOf( ES_SERVER, 378, E_FAILED, EV_USAGE, 0 ), "Usage: %'export [ -f -r -F <filter> -j <journal> -c <checkpoint> -l <lines> -J <prefix> -T <tableexcludelist> -P <filterpattern>]'%" } ;
-ErrorId MsgServer::UseFetch            = { ErrorOf( ES_SERVER, 752, E_FAILED, EV_USAGE, 0 ), "Usage: %'fetch [ -r remotespec -m depth -v -k ] [ -n | -u ] [ -S stream | files ]'%" } ;
+ErrorId MsgServer::UseFetch            = { ErrorOf( ES_SERVER, 752, E_FAILED, EV_USAGE, 0 ), "Usage: %'fetch [ -r remotespec -m depth -v -k -n -t ] [ -S stream | files ]'%" } ;
 ErrorId MsgServer::UseFilelog          = { ErrorOf( ES_SERVER, 232, E_FAILED, EV_USAGE, 0 ), "Usage: %'filelog [ -c changelist# -h -i -l -L -t -m maxRevs -p -s ] files...'%" } ;
 ErrorId MsgServer::UseFiles            = { ErrorOf( ES_SERVER, 233, E_FAILED, EV_USAGE, 0 ), "Usage: %'files [-a -A -e -m max] [-U] files...'%" } ;
 ErrorId MsgServer::UseFix              = { ErrorOf( ES_SERVER, 234, E_FAILED, EV_USAGE, 0 ), "Usage: %'fix [ -d ] [ -s status ] -c changelist# jobName ...'%" } ;
@@ -409,6 +416,7 @@ ErrorId MsgServer::UseJobs             = { ErrorOf( ES_SERVER, 253, E_FAILED, EV
 ErrorId MsgServer::UseJobSpec          = { ErrorOf( ES_SERVER, 254, E_FAILED, EV_USAGE, 0 ), "Usage: %'jobspec [ -i -o ]'%" } ;
 ErrorId MsgServer::UseJournalcopy      = { ErrorOf( ES_SERVER, 721, E_FAILED, EV_USAGE, 0 ), "Usage: %'journalcopy [ -i <N> ] [ -b <N> ] [ -l ] [ --durable-only ] [ --non-acknowledging ]'%" } ;
 ErrorId MsgServer::UseJournalWait      = { ErrorOf( ES_SERVER, 663, E_FAILED, EV_USAGE, 0 ), "Usage: %'journalwait [ -i ]'%" } ;
+ErrorId MsgServer::UseDurableWait      = { ErrorOf( ES_SERVER, 829, E_FAILED, EV_USAGE, 0 ), "Usage: %'durablewait [ -i ]'%" } ;
 ErrorId MsgServer::UseJournals         = { ErrorOf( ES_SERVER, 700, E_FAILED, EV_USAGE, 0 ), "Usage: %'journals [-T field...] [-F filter] [-m max]'%" } ;
 ErrorId MsgServer::UseKey              = { ErrorOf( ES_SERVER, 624, E_FAILED, EV_USAGE, 0 ), "Usage: %'key [ -d | -i | -m ] key_name [ value ] [ ... ]'%" } ;
 ErrorId MsgServer::UseKeyi             = { ErrorOf( ES_SERVER, 625, E_FAILED, EV_USAGE, 0 ), "Usage: %'key -i key_name'%" } ;
@@ -429,16 +437,22 @@ ErrorId MsgServer::UseLdapst           = { ErrorOf( ES_SERVER, 687, E_FAILED, EV
 ErrorId MsgServer::UseLdapSync         = { ErrorOf( ES_SERVER, 771, E_FAILED, EV_USAGE, 0 ), "Usage: %'ldapsync -g [ -n ] [ -i <N> ] [ groups ... ]'%" } ;
 ErrorId MsgServer::UseLicense          = { ErrorOf( ES_SERVER, 343, E_FAILED, EV_USAGE, 0 ), "Usage: %'license [ -i | -o | -u ]'%" } ;
 ErrorId MsgServer::UseList             = { ErrorOf( ES_SERVER, 587, E_FAILED, EV_USAGE, 0 ), "Usage: %'list [-l label [-d]] [-C] [-M] files...'%" } ;
-ErrorId MsgServer::UseLock             = { ErrorOf( ES_SERVER, 260, E_FAILED, EV_USAGE, 0 ), "Usage: %'lock [-c changelist#] [files...]'%" } ;
+ErrorId MsgServer::UseLock             = { ErrorOf( ES_SERVER, 260, E_FAILED, EV_USAGE, 0 ), "Usage: %'lock [-c changelist# -g] [files...]'%" } ;
+ErrorId MsgServer::UseLockg             = { ErrorOf( ES_SERVER, 844, E_FAILED, EV_USAGE, 0 ), "Usage: %'lock -g -c changelist#'%" } ;
+ErrorId MsgServer::LockLocalError             = { ErrorOf( ES_SERVER, 846, E_FAILED, EV_NOTYET, 0 ), "File(s) not locked globally due to errors locking locally." } ;
+ErrorId MsgServer::LockGlobalError             = { ErrorOf( ES_SERVER, 847, E_FAILED, EV_NOTYET, 0 ), "Failed to lock files globally." } ;
+ErrorId MsgServer::UnlockGlobalError             = { ErrorOf( ES_SERVER, 849, E_FAILED, EV_NOTYET, 0 ), "Failed to unlock files globally." } ;
+ErrorId MsgServer::NoGlobalLock             = { ErrorOf( ES_SERVER, 848, E_FAILED, EV_UPGRADE, 0 ), "Global option (%'-g'%) not supported on Commit Server." } ;
 ErrorId MsgServer::UseLockstat         = { ErrorOf( ES_SERVER, 610, E_FAILED, EV_USAGE, 0 ), "Usage: %'lockstat [-c client | -C]'%" } ;
-ErrorId MsgServer::UseLogin            = { ErrorOf( ES_SERVER, 316, E_FAILED, EV_USAGE, 0 ), "Usage: %'login [ -a -p ] [ -s ] [ -h host username ]'%" } ;
+ErrorId MsgServer::UseLogin            = { ErrorOf( ES_SERVER, 316, E_FAILED, EV_USAGE, 0 ), "Usage: %'login [ -a -p ] [ -s ] [ -r remotespec ] [ -h host username ]'%" } ;
+ErrorId MsgServer::UseLoginr           = { ErrorOf( ES_SERVER, 839, E_FAILED, EV_USAGE, 0 ), "Usage: %'login -r remotespec [ -a -p ] [ -s ]'%" } ;
 ErrorId MsgServer::UseLogout           = { ErrorOf( ES_SERVER, 317, E_FAILED, EV_USAGE, 0 ), "Usage: %'logout [ -a ] [ username ]'%" } ;
 ErrorId MsgServer::UseLogger           = { ErrorOf( ES_SERVER, 261, E_FAILED, EV_USAGE, 0 ), "Usage: %'logger [ -c sequence# ] [ -t counter_name ]'%" } ;
 ErrorId MsgServer::UseLogAppend        = { ErrorOf( ES_SERVER, 560, E_FAILED, EV_USAGE, 0 ), "Usage: %'logappend -a args...'%" } ;
 ErrorId MsgServer::UseLogParse         = { ErrorOf( ES_SERVER, 574, E_FAILED, EV_USAGE, 0 ), "Usage: %'logparse [ -e ] [-T field...] [-F filter] [-s offset] [-m max] logfilename'%" } ;
 ErrorId MsgServer::UseLogRotate        = { ErrorOf( ES_SERVER, 561, E_FAILED, EV_USAGE, 0 ), "Usage: %'logrotate [ -l log ]'%" } ;
 ErrorId MsgServer::UseLogSchema        = { ErrorOf( ES_SERVER, 575, E_FAILED, EV_USAGE, 0 ), "Usage: %'logschema [-a | recordtype]'%" } ;
-ErrorId MsgServer::UseLogstat          = { ErrorOf( ES_SERVER, 579, E_FAILED, EV_USAGE, 0 ), "Usage: %'logstat [ -l log ]'%" } ;
+ErrorId MsgServer::UseLogstat          = { ErrorOf( ES_SERVER, 579, E_FAILED, EV_USAGE, 0 ), "Usage: %'logstat [ -s | -l log ]'%" } ;
 ErrorId MsgServer::UseLogtail          = { ErrorOf( ES_SERVER, 381, E_FAILED, EV_USAGE, 0 ), "Usage: %'logtail [ -b blocksize ] [ -s starting offset ] [ -m maxBlocks ] [ -l log ]'%" } ;
 ErrorId MsgServer::UseMain             = { ErrorOf( ES_SERVER, 262, E_FAILED, EV_USAGE, 0 ), "Usage: %'p4d -h for usage.'%" } ;
 ErrorId MsgServer::UseMerge            = { ErrorOf( ES_SERVER, 523, E_FAILED, EV_USAGE, 0 ), "Usage: %'merge [ -c changelist# -F -m max -n -Ob -q -r -s from ] [ -b branch to... | -S stream [ -P parent | --from parent ] [ file... ] | from to ]'%" } ;
@@ -447,12 +461,12 @@ ErrorId MsgServer::UseMergeS           = { ErrorOf( ES_SERVER, 525, E_FAILED, EV
 ErrorId MsgServer::UseMonitor          = { ErrorOf( ES_SERVER, 297, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor { show | terminate | clear | pause | resume }'%" } ;
 ErrorId MsgServer::UseMonitorc         = { ErrorOf( ES_SERVER, 298, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor terminate [arg]'%" } ;
 ErrorId MsgServer::UseMonitorf         = { ErrorOf( ES_SERVER, 299, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor clear [arg]'%" } ;
-ErrorId MsgServer::UseMonitors         = { ErrorOf( ES_SERVER, 300, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor show [ -a -l -e -L -s [ R | T | P | I ] ]'%" } ;
+ErrorId MsgServer::UseMonitors         = { ErrorOf( ES_SERVER, 300, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor show [ -a -l -e -L ] [ -s R|T|P|B|F|I ]'%" } ;
 ErrorId MsgServer::UseMonitorP         = { ErrorOf( ES_SERVER, 511, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor pause [arg]'%" } ;
 ErrorId MsgServer::UseMonitorR         = { ErrorOf( ES_SERVER, 512, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor resume [arg]'%" } ;
 ErrorId MsgServer::UseOpen             = { ErrorOf( ES_SERVER, 263, E_FAILED, EV_USAGE, 0 ), "Usage: %'add/edit/delete [-c changelist#] [ -d -f -I -k -n -v ] [-t type] files...'%" } ;
 ErrorId MsgServer::UseOpen2            = { ErrorOf( ES_SERVER, 398, E_FAILED, EV_USAGE, 0 ), "Usage: %'add/delete [-c changelist#] [ -d -f -I -n -v ] [-t type] files...'%" } ;
-ErrorId MsgServer::UseOpened           = { ErrorOf( ES_SERVER, 264, E_FAILED, EV_USAGE, 0 ), "Usage: %'opened [ -a -m max ] [ -c changelist# -C client -u user -s | -x ] [ files... ]'%" } ;
+ErrorId MsgServer::UseOpened           = { ErrorOf( ES_SERVER, 264, E_FAILED, EV_USAGE, 0 ), "Usage: %'opened [ -a -m max ] [ -c changelist# -C client -u user -s -g | -x ] [ files... ]'%" } ;
 ErrorId MsgServer::UseOpened2           = { ErrorOf( ES_SERVER, 661, E_FAILED, EV_USAGE, 0 ), "Usage: %'opened [ -a -m max -x ] [ files... ]'%" } ;
 ErrorId MsgServer::UsePasswd           = { ErrorOf( ES_SERVER, 265, E_FAILED, EV_USAGE, 0 ), "Usage: %'passwd [ -O oldPasswd -P newPasswd ] [ username ]'%" } ;
 ErrorId MsgServer::UsePopulate	       = { ErrorOf( ES_SERVER, 592, E_FAILED, EV_USAGE, 0 ), "Usage: %'populate [ -d desc -f -m max -n -o -r -s from ] [ -b branch | -S stream [ -P parent ] | from to ]'%" } ;
@@ -467,8 +481,10 @@ ErrorId MsgServer::UsePurge            = { ErrorOf( ES_SERVER, 267, E_FAILED, EV
 ErrorId MsgServer::UsePush             = { ErrorOf( ES_SERVER, 745, E_FAILED, EV_USAGE, 0 ), "Usage: %'push [ -n -r remotespec -v ] [ -S stream | files ]'%" } ;
 ErrorId MsgServer::UseRelease          = { ErrorOf( ES_SERVER, 268, E_FAILED, EV_USAGE, 0 ), "Usage: %'revert [ -a -n -k -w -c changelist# -C client ] files...'%" } ;
 ErrorId MsgServer::UseRenameUser       = { ErrorOf( ES_SERVER, 701, E_FAILED, EV_USAGE, 0 ), "Usage: %'renameuser --from=old --to=new'%" } ;
-ErrorId MsgServer::UseReconcile        = { ErrorOf( ES_SERVER, 582, E_FAILED, EV_USAGE, 0 ), "Usage: %'reconcile [ -c changelist# ] [ -a -e -d -l -f -I -m -n -w ] [files...]'%" } ;
+ErrorId MsgServer::UseReconcile        = { ErrorOf( ES_SERVER, 582, E_FAILED, EV_USAGE, 0 ), "Usage: %'reconcile [ -c changelist# ] [ -a -e -d -k -l -f -I -m -n -w ] [files...]'%" } ;
+ErrorId MsgServer::UseRecFlush        = { ErrorOf( ES_SERVER, 826, E_FAILED, EV_USAGE, 0 ), "Usage: %'reconcile -k [ -l -n ] [files...]'%" } ;
 ErrorId MsgServer::UseStatus        = { ErrorOf( ES_SERVER, 596, E_FAILED, EV_USAGE, 0 ), "Usage: %'status [ -c changelist# ] [ -A | [ -a -e -d ] | [ -s ] ] [ -f -m -I ] [files...]'%" } ;
+ErrorId MsgServer::UseStatusFlush        = { ErrorOf( ES_SERVER, 827, E_FAILED, EV_USAGE, 0 ), "Usage: %'status -k [files...]'%" } ;
 ErrorId MsgServer::UseReload           = { ErrorOf( ES_SERVER, 613, E_FAILED, EV_USAGE, 0 ), "Usage: %'reload [ -f ] [ -c client ] | [ -l label ] | [ -s stream ] [ -p address ]'%" } ;
 ErrorId MsgServer::UseRemote           = { ErrorOf( ES_SERVER, 747, E_FAILED, EV_USAGE, 0 ), "Usage: %'remote [ -i -o -d -f ] [ remoteID ]'%" } ;
 ErrorId MsgServer::UseRemoteo          = { ErrorOf( ES_SERVER, 748, E_FAILED, EV_USAGE, 0 ), "Usage: %'remote -o remoteID'%" } ;
@@ -495,7 +511,7 @@ ErrorId MsgServer::UseShelve           = { ErrorOf( ES_SERVER, 399, E_FAILED, EV
 ErrorId MsgServer::UseShelvec          = { ErrorOf( ES_SERVER, 400, E_FAILED, EV_USAGE, 0 ), "Usage: %'shelve -c changelist# [ -d [ -f ] [ file ... ] | [ -a option -p ] -r | [ -a option -p ] [ -f ] [ file ... ] ]'%" } ;
 ErrorId MsgServer::UseShelvei          = { ErrorOf( ES_SERVER, 414, E_FAILED, EV_USAGE, 0 ), "Usage: %'shelve -i [ -f | -r ] [ -a option -p ]'%" } ;
 ErrorId MsgServer::UseShelver          = { ErrorOf( ES_SERVER, 415, E_FAILED, EV_USAGE, 0 ), "Usage: %'shelve -r -c changelist# [ -a option -p ]'%" } ;
-ErrorId MsgServer::UseShelveNoOpts          = { ErrorOf( ES_SERVER, 416, E_FAILED, EV_USAGE, 0 ), "Usage: %'shelve [ files ]'%" } ;
+ErrorId MsgServer::UseShelveNoOpts     = { ErrorOf( ES_SERVER, 416, E_FAILED, EV_USAGE, 0 ), "Usage: %'shelve [ files ]'%" } ;
 ErrorId MsgServer::UseSnap             = { ErrorOf( ES_SERVER, 345, E_FAILED, EV_USAGE, 0 ), "Usage: %'snap [ -n ] source target'%" } ;
 ErrorId MsgServer::UseSpec             = { ErrorOf( ES_SERVER, 302, E_FAILED, EV_USAGE, 0 ), "Usage: %'spec [ -d | -i | -o ] type'%" } ;
 ErrorId MsgServer::UseStream           = { ErrorOf( ES_SERVER, 383, E_FAILED, EV_USAGE, 0 ), "Usage: %'stream [ -d -i -o -P parent -t type -v ] [ -f ] [ streamname ]'%" } ;
@@ -503,13 +519,16 @@ ErrorId MsgServer::UseStreamc          = { ErrorOf( ES_SERVER, 540, E_FAILED, EV
 ErrorId MsgServer::UseStreamd          = { ErrorOf( ES_SERVER, 384, E_FAILED, EV_USAGE, 0 ), "Usage: %'stream -d [ -f ] streamname'%" } ;
 ErrorId MsgServer::UseStreami          = { ErrorOf( ES_SERVER, 385, E_FAILED, EV_USAGE, 0 ), "Usage: %'stream -i [ -f ]'%" } ;
 ErrorId MsgServer::UseStreamo          = { ErrorOf( ES_SERVER, 386, E_FAILED, EV_USAGE, 0 ), "Usage: %'stream [ -P parent -t type ] -o streamname'%" } ;
+ErrorId MsgServer::UseStreamEdit       = { ErrorOf( ES_SERVER, 854, E_FAILED, EV_USAGE, 0 ), "Usage: %'stream edit'%" } ;
+ErrorId MsgServer::UseStreamResolve    = { ErrorOf( ES_SERVER, 855, E_FAILED, EV_USAGE, 0 ), "Usage: %'stream resolve [ -af -am -as -at -ay -n -o ]'%" } ;
+ErrorId MsgServer::UseStreamRevert     = { ErrorOf( ES_SERVER, 856, E_FAILED, EV_USAGE, 0 ), "Usage: %'stream revert'%" } ;
 ErrorId MsgServer::UseStreams          = { ErrorOf( ES_SERVER, 387, E_FAILED, EV_USAGE, 0 ), "Usage: %'streams [ -U -F filter -T fields -m max ] [ streamPath... ]'%" } ;
 ErrorId MsgServer::UseSubmit           = { ErrorOf( ES_SERVER, 275, E_FAILED, EV_USAGE, 0 ), "Usage: %'submit [ -i -s -r -f option --noretransfer option ] [ -c changelist# | -e shelvedChange# | -d description ] [file] '%" } ;
 ErrorId MsgServer::UseSubmitc          = { ErrorOf( ES_SERVER, 276, E_FAILED, EV_USAGE, 0 ), "Usage: %'submit [ -r -f option --noretransfer 0 | 1 ] -c changelist#'%" } ;
 ErrorId MsgServer::UseSubmitd          = { ErrorOf( ES_SERVER, 446, E_FAILED, EV_USAGE, 0 ), "Usage: %'submit [ -r -f option ] -d description [ file ]\n'%" } ;
 ErrorId MsgServer::UseSubmite          = { ErrorOf( ES_SERVER, 639, E_FAILED, EV_USAGE, 0 ), "Usage: %'submit -e shelvedChange#'%" } ;
-ErrorId MsgServer::UseSwitch           = { ErrorOf( ES_SERVER, 762, E_FAILED, EV_USAGE, 0 ), "Usage: %'switch [ -c -l -m -r ] [ -P parent ] stream'%" } ;
-ErrorId MsgServer::UseSwitch2          = { ErrorOf( ES_SERVER, 704, E_FAILED, EV_USAGE, 0 ), "Usage: %'switch [ -l -m -r ] [ -P parent ] stream'%" } ;
+ErrorId MsgServer::UseSwitch           = { ErrorOf( ES_SERVER, 762, E_FAILED, EV_USAGE, 0 ), "Usage: %'switch [ -c -l -L -m -r -v ] [ -P parent ] stream'%" } ;
+ErrorId MsgServer::UseSwitch2          = { ErrorOf( ES_SERVER, 704, E_FAILED, EV_USAGE, 0 ), "Usage: %'switch [ -l -L -r -v ] stream'%" } ;
 ErrorId MsgServer::UseSync             = { ErrorOf( ES_SERVER, 277, E_FAILED, EV_USAGE, 0 ), "Usage: %'sync [ -f -k -n -N -p -q -r -s ] [-m max] [files...]'%" } ;
 ErrorId MsgServer::UseSyncp            = { ErrorOf( ES_SERVER, 348, E_FAILED, EV_USAGE, 0 ), "Usage: %'sync [ -n -N -p -q ] [-m max] [files...]'%" } ;
 ErrorId MsgServer::UseSyncs            = { ErrorOf( ES_SERVER, 503, E_FAILED, EV_USAGE, 0 ), "Usage: %'sync [ -n -N -q -s ] [-m max] [files...]'%" } ;
@@ -519,17 +538,17 @@ ErrorId MsgServer::UseTransmit         = { ErrorOf( ES_SERVER, 714, E_FAILED, EV
 ErrorId MsgServer::UseTraiti           = { ErrorOf( ES_SERVER, 435, E_FAILED, EV_USAGE, 0 ), "Usage: %'attribute -i [-e -f -p] -n name [file]'%" } ;
 ErrorId MsgServer::UseTriggers         = { ErrorOf( ES_SERVER, 278, E_FAILED, EV_USAGE, 0 ), "Usage: %'triggers [ -i | -o ]'%" } ;
 ErrorId MsgServer::UseTypeMap          = { ErrorOf( ES_SERVER, 279, E_FAILED, EV_USAGE, 0 ), "Usage: %'typemap [ -i | -o ]'%" } ;
-ErrorId MsgServer::UseUnload           = { ErrorOf( ES_SERVER, 611, E_FAILED, EV_USAGE, 0 ), "Usage: %'unload [ -f -L -z ] [ -c client | -l label | -s stream ] | [ -a | -al | -ac ] [ -d date | -u user ] [ -o output ]'%" } ;
+ErrorId MsgServer::UseUnload           = { ErrorOf( ES_SERVER, 611, E_FAILED, EV_USAGE, 0 ), "Usage: %'unload [ -f -L -p -z ] [ -c client | -l label | -s stream ] | [ -a | -al | -ac ] [ -d date | -u user ] [ -o output ]'%" } ;
 ErrorId MsgServer::UseUnlock           = { ErrorOf( ES_SERVER, 280, E_FAILED, EV_USAGE, 0 ), "Usage: %'unlock [ -f ] [-c | -s changelist# | -x ] [ -r ] [files...]'%" } ;
 ErrorId MsgServer::UseUnshelve         = { ErrorOf( ES_SERVER, 403, E_FAILED, EV_USAGE, 0 ), "Usage: %'unshelve -s changelist# [ -f -n ] [-c changelist#] [-b branch|-S stream [-P parent]] [file ...]'%" } ;
 ErrorId MsgServer::UseUnsubmit         = { ErrorOf( ES_SERVER, 746, E_FAILED, EV_USAGE, 0 ), "Usage: %'unsubmit [-n -r remote] file[revRange]...'%" } ;
-ErrorId MsgServer::UseUnzip            = { ErrorOf( ES_SERVER, 808, E_FAILED, EV_USAGE, 0 ), "Usage: %'unzip [ -f -n -A -I -v ] -i zipfile'%" } ;
+ErrorId MsgServer::UseUnzip            = { ErrorOf( ES_SERVER, 808, E_FAILED, EV_USAGE, 0 ), "Usage: %'unzip [ -f -n -A -I -v -u user ] -i zipfile'%" } ;
 ErrorId MsgServer::UseUser             = { ErrorOf( ES_SERVER, 281, E_FAILED, EV_USAGE, 0 ), "Usage: %'user [ -f -d -i -o ] [ username ]'%" } ;
 ErrorId MsgServer::UseUsero            = { ErrorOf( ES_SERVER, 282, E_FAILED, EV_USAGE, 0 ), "Usage: %'user -o username'%" } ;
 ErrorId MsgServer::UseUserd            = { ErrorOf( ES_SERVER, 283, E_FAILED, EV_USAGE, 0 ), "Usage: %'user -d [ -f ] username'%" } ;
 ErrorId MsgServer::UseUseri            = { ErrorOf( ES_SERVER, 284, E_FAILED, EV_USAGE, 0 ), "Usage: %'user -i [ -f ]'%" } ;
 ErrorId MsgServer::UseUsers            = { ErrorOf( ES_SERVER, 285, E_FAILED, EV_USAGE, 0 ), "Usage: %'users [ -l -a -r -c ] [ -m max ] [ user ... ]'%" } ;
-ErrorId MsgServer::UseVerify           = { ErrorOf( ES_SERVER, 286, E_FAILED, EV_USAGE, 0 ), "Usage: %'verify [ -m maxRevs ] [ -q -s ] [ -t | -u | -v | -z ] [ -X ] [ -U ] [ -b batch ] files...'%" } ;
+ErrorId MsgServer::UseVerify           = { ErrorOf( ES_SERVER, 286, E_FAILED, EV_USAGE, 0 ), "Usage: %'verify [ -m maxRevs ] [ -q -s ] [ -t | -u | -v | -z ] [ -X ] [ -U | -S ] [ -b batch ] files...'%" } ;
 ErrorId MsgServer::UseWhere            = { ErrorOf( ES_SERVER, 287, E_FAILED, EV_USAGE, 0 ), "Usage: %'where [files...]'%" } ;
 ErrorId MsgServer::UseZip              = { ErrorOf( ES_SERVER, 742, E_FAILED, EV_USAGE, 0 ), "Usage: %'zip [ -A -I -r remote ] -o zipfile [ files | -c change ]'%" } ;
 ErrorId MsgServer::UseProxyInfo        = { ErrorOf( ES_SERVER, 541, E_FAILED, EV_USAGE, 0 ), "Usage: %'proxy'%" } ;
@@ -558,6 +577,8 @@ ErrorId MsgServer::ReplicaBadOption    = { ErrorOf( ES_SERVER, 422, E_FAILED, EV
 ErrorId MsgServer::UnknownReplicationMode = { ErrorOf( ES_SERVER, 468, E_FAILED, EV_FAULT, 1 ), "Unknown replication mode '%mode%'." } ;
 ErrorId MsgServer::MissingReplicationMode = { ErrorOf( ES_SERVER, 469, E_FAILED, EV_FAULT, 1 ), "Missing replication mode: please specify %missingMode%." } ;
 ErrorId MsgServer::P4TARGETWasSet         = { ErrorOf( ES_SERVER, 615, E_FAILED, EV_FAULT, 0 ), "It appears that the %'P4TARGET'% configurable was set for this server, indicating it is a replica server of some type. If that was incorrect, issue the command '%'p4d -cshow'%' to display configurable settings, and issue the command '%'p4d \"-cunset P4TARGET\"'%' to delete the incorrect %'P4TARGET'% setting." } ;
+ErrorId MsgServer::P4TARGETWasNotSet      = { ErrorOf( ES_SERVER, 832, E_FAILED, EV_FAULT, 0 ), "This server has been configured as a replica server of some type; however, the %'P4TARGET'% configurable is not set. To correct this, issue the command '%'p4d -cshow'%' to display configurable settings, and issue the command '%'p4d \"-cset P4TARGET=target:port\"'%' to add the correct %'P4TARGET'% setting." };
+ErrorId MsgServer::CommitServerOverrides = { ErrorOf( ES_SERVER, 835, E_WARN, EV_ADMIN, 0 ), "This server is configured as a type of commit-server. Database and librarian replication flags have been ignored." };
 ErrorId MsgServer::UnknownReplicationTarget = { ErrorOf( ES_SERVER, 470, E_FAILED, EV_FAULT, 1 ), "Unknown replication target '%target%'." } ;
 ErrorId MsgServer::ReplicaXferFailed   = { ErrorOf( ES_SERVER, 474, E_FAILED, EV_FAULT, 1 ), "Transfer of librarian file '%file%' failed." } ;
 ErrorId MsgServer::BFNoOverwriteLocal  = { ErrorOf( ES_SERVER, 622, E_FAILED, EV_FAULT, 5 ), "Replica name conflict: Globally-defined object %domainName% of type %domainType% would overwrite locally-defined object %localName% of type %localType%, which is bound to server %serverId%. Replication has been halted for this replica. To resume replication, the locally-defined object must be deleted (e.g., '%'p4 client -d'%' to delete a Build Farm Client)." } ;
@@ -577,7 +598,7 @@ ErrorId MsgServer::CommandCancelledByClient = { ErrorOf( ES_SERVER, 807, E_FAILE
 
 ErrorId MsgServer::AdminNoSpecDepot    = { ErrorOf( ES_SERVER, 353, E_FAILED, EV_ADMIN, 0 ), "Can't create forms - no '%'spec'%' depot found." } ;
 ErrorId MsgServer::AdminNoSuchSpec     = { ErrorOf( ES_SERVER, 578, E_WARN, EV_ADMIN, 1 ), "No form specifications of type %specName% were found." } ;
-ErrorId MsgServer::AdminPasswordNoSuchUser = { ErrorOf( ES_SERVER, 618, E_FAILED, EV_UNKNOWN, 1 ), "%user% - no such user, or user does not have a password." } ;
+ErrorId MsgServer::AdminPasswordNoSuchUser = { ErrorOf( ES_SERVER, 618, E_FAILED, EV_UNKNOWN, 1 ), "%user% - no such user, or user does not have a stored password." } ;
 ErrorId MsgServer::AdminPasswordNoPasswords = { ErrorOf( ES_SERVER, 619, E_FAILED, EV_EMPTY, 0 ), "No users with passwords found." } ;
 ErrorId MsgServer::AdminLdapNoneSet    = { ErrorOf( ES_SERVER, 781, E_FAILED, EV_EMPTY, 0 ), "No users were updated." } ;
 
@@ -603,6 +624,8 @@ ErrorId MsgServer::BadCheckpointNum       = { ErrorOf( ES_SERVER, 380, E_FAILED,
 ErrorId MsgServer::JournalorCheckpointRequired = { ErrorOf( ES_SERVER, 388, E_FAILED, EV_ADMIN, 0 ), "A journal or checkpoint number is required (%'-j'% or %'-c'%)" } ;
 ErrorId MsgServer::CurJournalButNotJournaling = { ErrorOf( ES_SERVER, 432, E_FAILED, EV_ADMIN, 0 ), "The current journal may not be exported because journaling is disabled." } ;
 ErrorId MsgServer::CachepurgeNotReplica = { ErrorOf( ES_SERVER, 723, E_FAILED, EV_ADMIN, 0 ), "Cachepurge only allowed on replica servers." } ;
+ErrorId MsgServer::CachepurgeBadMode    = { ErrorOf( ES_SERVER, 817, E_FAILED, EV_USAGE, 0 ), "Cachepurge is only available on replica servers with lbr.replication=readonly or lbr.replication=cache." } ;
+ErrorId MsgServer::ReplicaCacheConfig   = { ErrorOf( ES_SERVER, 840, E_FATAL, EV_ADMIN, 0 ), "Replica cannot run! This replica server appears to share archive storage with its master server. However, the replica was not configured with lbr.replication=shared. Sharing archive storage without setting lbr.replication=shared can result in lost or damaged data. Please reconfigure this replica or contact Perforce Technical Support for assistance." } ;
 ErrorId MsgServer::PullNotReplica = { ErrorOf( ES_SERVER, 442, E_FAILED, EV_ADMIN, 0 ), "Pull only allowed on replica servers." } ;
 ErrorId MsgServer::PullCommandRunning = { ErrorOf( ES_SERVER, 656, E_FAILED, EV_USAGE, 0 ), "A pull command is already running in this server." } ;
 ErrorId MsgServer::JcopyCommandRunning = { ErrorOf( ES_SERVER, 737, E_FAILED, EV_USAGE, 0 ), "A journalcopy command is already running in this server." } ;
@@ -655,8 +678,9 @@ ErrorId MsgServer::NoReparentingTask   = { ErrorOf( ES_SERVER, 654, E_FAILED, EV
 ErrorId MsgServer::UnloadDepotMissing  = { ErrorOf( ES_SERVER, 612, E_FAILED, EV_USAGE, 0 ), "No unload depot has been defined for this server." } ;
 ErrorId MsgServer::UnloadOtherUser     = { ErrorOf( ES_SERVER, 617, E_FAILED, EV_USAGE, 0 ), "Specify the '%'-f'%' flag in order to unload clients or labels owned by another user." } ;
 ErrorId MsgServer::CantUnloadLocked    = { ErrorOf( ES_SERVER, 630, E_FAILED, EV_USAGE, 2 ), "Specify the '%'-L'%' flag in order to unload locked %domainType% %domainName%." } ;
+ErrorId MsgServer::CantUnloadReadOnly  = { ErrorOf( ES_SERVER, 830, E_FAILED, EV_USAGE, 1 ), "Can't unload partitioned readonly client %domainName%." } ;
 ErrorId MsgServer::BoundClientExists   = { ErrorOf( ES_SERVER, 580, E_FAILED, EV_USAGE, 1 ), "Client %client% already exists." } ;
-ErrorId MsgServer::RemoteClientExists  = { ErrorOf( ES_SERVER, 783, E_FAILED, EV_USAGE, 1 ), "Client %client% appears to be a valid client on this server. The 'unlock -r' command should only be used to unlock files left locked by a failed push from a remote server." } ;
+ErrorId MsgServer::RemoteClientExists  = { ErrorOf( ES_SERVER, 783, E_FAILED, EV_USAGE, 1 ), "Client %client% appears to be a valid client on this server. The 'unlock -r' command should only be used to unlock files left locked by a failed push from a remote server, or from a failed unlock -g or submit from an edge server." } ;
 ErrorId MsgServer::NewUserExists       = { ErrorOf( ES_SERVER, 702, E_FAILED, EV_USAGE, 1 ), "User %user% already exists." } ;
 ErrorId MsgServer::NewUserHasDomains   = { ErrorOf( ES_SERVER, 711, E_FAILED, EV_USAGE, 1 ), "User %user% has already created workspaces, labels, or other spec objects in this server." } ;
 ErrorId MsgServer::NewUserHasChanges   = { ErrorOf( ES_SERVER, 712, E_FAILED, EV_USAGE, 1 ), "User %user% has already created changelists in this server." } ;
@@ -667,6 +691,7 @@ ErrorId MsgServer::ChangeNotSubmitted  = { ErrorOf( ES_SERVER, 657, E_FAILED, EV
 ErrorId MsgServer::NotInCluster        = { ErrorOf( ES_SERVER, 667, E_FAILED, EV_USAGE, 0 ), "Server is not a member of a cluster." } ;
 ErrorId MsgServer::NotClusterStandby   = { ErrorOf( ES_SERVER, 668, E_FAILED, EV_USAGE, 0 ), "Server is not a depot-standby." } ;
 ErrorId MsgServer::NotClusterMaster    = { ErrorOf( ES_SERVER, 669, E_FAILED, EV_USAGE, 2 ), "Server '%server%' is not a depot-master (current journal owner is '%owner%')." } ;
+ErrorId MsgServer::OpNotAllowedOnRole  = { ErrorOf( ES_SERVER, 812, E_FAILED, EV_USAGE, 2 ), "Cannot perform operation on server.id '%serverId%' with role '%role%'." } ;
 
 ErrorId MsgServer::NotWorkspaceSvr     = { ErrorOf( ES_SERVER, 713, E_FAILED, EV_USAGE, 0 ), "Server is not a workspace-server." } ;
 ErrorId MsgServer::ClusterCannotWriteJournal  = { ErrorOf( ES_SERVER, 670, E_FAILED, EV_USAGE, 0 ), "Journal writing is not enabled at this server." } ;
@@ -679,17 +704,18 @@ ErrorId MsgServer::MaitModeRestricted  = { ErrorOf( ES_SERVER, 741, E_FAILED, EV
 ErrorId MsgServer::TemporaryLabelInfo  = { ErrorOf( ES_SERVER, 588, E_INFO, EV_NONE, 2 ), "Temporary label '%label%' updated %count% total file(s)." } ;
 
 ErrorId MsgServer::NotDistributed      = { ErrorOf( ES_SERVER, 660, E_FAILED, EV_USAGE, 0 ), "This command is only supported in a distributed configuration." } ;
+ErrorId MsgServer::NotEdge      = { ErrorOf( ES_SERVER, 845, E_FAILED, EV_USAGE, 0 ), "This command is only supported from an Edge Server in a distributed configuration." } ;
 ErrorId MsgServer::PortMissing         = { ErrorOf( ES_SERVER, 672, E_FAILED, EV_USAGE, 1 ), "This network address '%addr%' does not include a port name or number." } ;
+ErrorId MsgServer::NoteHookError       = { ErrorOf( ES_SERVER, 830, E_FAILED, EV_FAULT, 1 ), "Error while processing journal note of type %noteType%." } ;
 ErrorId MsgServer::TargetAccessFailed  = { ErrorOf( ES_SERVER, 708, E_FAILED, EV_COMM, 0 ), "Replica access to %'P4TARGET'% server failed." } ;
 
 ErrorId MsgServer::BadTriggerOutput         = { ErrorOf( ES_SERVER, 675, E_FAILED, EV_ADMIN, 2 ), "A server-side trigger ('%trigger%') produced indecipherable output (%type%)" } ;
-
-ErrorId MsgServer::ReopenNotOwnerCL	= { ErrorOf( ES_SERVER, 676, E_FAILED, EV_USAGE, 4 ), "%depotFile%%haveRev% already open on client '%client%' in %change% - not reopened." } ;
 
 ErrorId MsgServer::LdapAuthSuccess     = { ErrorOf( ES_SERVER, 688, E_INFO, EV_NONE, 0 ), "Authentication successful." } ;
 ErrorId MsgServer::LdapAuthSuccessD    = { ErrorOf( ES_SERVER, 733, E_INFO, EV_NONE, 2 ), "Authentication for %user% succeeded against configuration %ldap%." } ;
 ErrorId MsgServer::LdapAuthFailed      = { ErrorOf( ES_SERVER, 689, E_FAILED, EV_UNKNOWN, 0 ), "Authentication failed." } ;
 ErrorId MsgServer::LdapAuthFailedR     = { ErrorOf( ES_SERVER, 690, E_FAILED, EV_UNKNOWN, 2 ), "Authentication as %userdn% failed. Reason: %reason%" } ;
+ErrorId MsgServer::LdapAuthFailedSasl  = { ErrorOf( ES_SERVER, 828, E_FAILED, EV_UNKNOWN, 2 ), "Authentication as %user% failed with realm %realm%. Reason: %reason%" } ;
 ErrorId MsgServer::LdapAuthFailedD     = { ErrorOf( ES_SERVER, 734, E_FAILED, EV_UNKNOWN, 2 ), "Authentication for %user% failed against configuration %ldap%." } ;
 ErrorId MsgServer::LdapNoSupport       = { ErrorOf( ES_SERVER, 691, E_FAILED, EV_ILLEGAL, 0 ), "Native LDAP authentication is not available for this Perforce Server platform." } ;
 ErrorId MsgServer::LdapAuthNone        = { ErrorOf( ES_SERVER, 692, E_FAILED, EV_ILLEGAL, 0 ), "No LDAP configurations found." } ;
@@ -716,6 +742,9 @@ ErrorId MsgServer::LdapSyncNoLdapConf  = { ErrorOf( ES_SERVER, 775, E_FAILED, EV
 ErrorId MsgServer::LdapSyncGrpBadConf  = { ErrorOf( ES_SERVER, 776, E_FAILED, EV_ILLEGAL, 1 ), "Group %group% does not have a valid LDAP configuration!" } ;
 ErrorId MsgServer::LdapSyncGrpNotFound = { ErrorOf( ES_SERVER, 777, E_FAILED, EV_ILLEGAL, 1 ), "Group '%group%' doesn't exist." } ;
 ErrorId MsgServer::LdapMustBeEnabled   = { ErrorOf( ES_SERVER, 794, E_FAILED, EV_ILLEGAL, 0 ), "LDAP authentication must be enabled to perform this operation." } ;
+ErrorId MsgServer::LdapNoSearchConfig  = { ErrorOf( ES_SERVER, 841, E_FAILED, EV_ILLEGAL, 0 ), "User search details missing from LDAP configuration!" } ;
+ErrorId MsgServer::LdapNoAttrConfig    = { ErrorOf( ES_SERVER, 842, E_FAILED, EV_ILLEGAL, 0 ), "User attribute information missing from LDAP configuration!" } ;
+ErrorId MsgServer::LdapNoAttrsFound    = { ErrorOf( ES_SERVER, 843, E_WARN, EV_NONE, 0 ), "None of the specified attributes were found!" };
 
 ErrorId MsgServer::SwitchBranchData      = { ErrorOf( ES_SERVER, 754, E_INFO, EV_NONE, 1 ), "%branch%" } ;
 ErrorId MsgServer::SwitchBranchDataMatch = { ErrorOf( ES_SERVER, 755, E_INFO, EV_NONE, 1 ), "%branch% *" } ;
@@ -725,7 +754,10 @@ ErrorId MsgServer::SwitchNeedsStreamClient = { ErrorOf( ES_SERVER, 758, E_FAILED
 ErrorId MsgServer::SwitchNeedsInit         = { ErrorOf( ES_SERVER, 759, E_FAILED, EV_USAGE, 0 ), "Switch requires a stream client,  this client does not have a stream field!" } ;
 ErrorId MsgServer::SwitchNotEmpty          = { ErrorOf( ES_SERVER, 760, E_FAILED, EV_USAGE, 0 ), "Already initialized." } ;
 ErrorId MsgServer::SwitchFilesUnresolved   = { ErrorOf( ES_SERVER, 801, E_FAILED, EV_USAGE, 0 ), "Can't switch (-r) while files are unresolved; '%'p4 resolve'%' files or use '%'p4 switch'%' without the (-r) option." } ;
+ErrorId MsgServer::SwitchAtChange          = { ErrorOf( ES_SERVER, 822, E_FAILED, EV_USAGE, 0 ), "StreamAtChange '@' specifier not valid when creating a new stream!" } ;
 
+ErrorId MsgServer::PushTriggersFailed      = { ErrorOf( ES_SERVER, 815, E_FAILED, EV_NONE, 1 ), "Trigger execution failed -- fix problems then retry the operation." } ;
+ErrorId MsgServer::PushClientExists        = { ErrorOf( ES_SERVER, 831, E_FAILED, EV_USAGE, 1 ), "Client %client% exists on the destination server. Use a different client for this operation." } ;
 ErrorId MsgServer::PushPerformance         = { ErrorOf( ES_SERVER, 761, E_INFO, EV_NONE, 8 ), "Resource usage: qry/zip/db/arch/fin/tot=%queryTime%/%zipTime%/%dbTime%+%dbSize%/%archiveTime%+%archiveSize%/%commitTime%/%totalTime%" } ;
 ErrorId MsgServer::ResubmitPrompt          = { ErrorOf( ES_SERVER, 765, E_INFO, EV_NONE, 0 ), "Specify next action ( l/m/e/c/r/R/s/d/b/v/V/a/q ) or ? for help: " } ;
 ErrorId MsgServer::ConflictingChange   = { ErrorOf( ES_SERVER, 766, E_INFO, EV_NONE, 5 ), "Conflict: %change% on %date% by %user%@%client% %description%" } ;
@@ -734,6 +766,7 @@ ErrorId MsgServer::CannotResubmitOpened = { ErrorOf( ES_SERVER, 795, E_FAILED, E
 ErrorId MsgServer::CannotResubmitChange = { ErrorOf( ES_SERVER, 796, E_FAILED, EV_USAGE, 4 ), "Can't resume resubmit, %depotFile%%depotRev% is open in change %workingChange%, not %unsubmittedChange%." } ;
 ErrorId MsgServer::ResolveUnsubmitted = { ErrorOf( ES_SERVER, 767, E_FAILED, EV_USAGE, 0 ), "Push is not allowed with unsubmitted changes pending. Use the resubmit command to resolve merge conflicts and resubmit or delete all unsubmitted changes prior to initiating a push operation." } ;
 ErrorId MsgServer::RemoteMappingInvalid = { ErrorOf( ES_SERVER, 782, E_FAILED, EV_USAGE, 1 ), "Remote %remoteName% specifies patterns which are not valid for this server." } ;
+ErrorId MsgServer::RemoteNoTarget     = { ErrorOf( ES_SERVER, 838, E_FAILED, EV_USAGE, 1 ), "Remote %remoteName% does not contain a valid address." } ;
 ErrorId MsgServer::UnsubmittedChanges = { ErrorOf( ES_SERVER, 768, E_INFO, EV_NONE, 0 ), "Unsubmitted changes:" } ;
 ErrorId MsgServer::CurrentUnsubmitted = { ErrorOf( ES_SERVER, 769, E_INFO, EV_NONE, 0 ), "Current change:" } ;
 ErrorId MsgServer::InvalidResubmitChoice = { ErrorOf( ES_SERVER, 770, E_FAILED, EV_USAGE, 1 ), "Action '%response%' is not a valid choice." } ;
@@ -743,18 +776,33 @@ ErrorId MsgServer::PushSucceeded      = { ErrorOf( ES_SERVER, 784, E_INFO, EV_NO
 ErrorId MsgServer::UseFetchInstead    = { ErrorOf( ES_SERVER, 798, E_INFO, EV_NONE, 0 ), "The %'pull'% command is used with replica servers. To copy work from a remote server to this server, use %'fetch'% instead." } ;
 ErrorId MsgServer::FetchSucceeded     = { ErrorOf( ES_SERVER, 785, E_INFO, EV_NONE, 2 ), "%numChanges% change(s) containing a total of %numRevs% file revision(s) were successfully fetched." } ;
 ErrorId MsgServer::DVCSNotConfigured   = { ErrorOf( ES_SERVER, 799, E_FAILED, EV_USAGE, 0 ), "Server has not been configured to provide this service." } ;
-ErrorId MsgServer::PushHadConflict    = { ErrorOf( ES_SERVER, 786, E_INFO, EV_NONE, 0 ), "Cannot push changes.\nYou must fetch changes from the remote server first, using the %'fetch -u'% command." } ;
-ErrorId MsgServer::FetchHadConflict   = { ErrorOf( ES_SERVER, 787, E_INFO, EV_NONE, 0 ), "Cannot fetch changes.\nTo fetch these changes from the remote server, run the %'fetch -u'% command, which will unsubmit conflicting changes prior to the fetch." } ;
+ErrorId MsgServer::PushHadConflict    = { ErrorOf( ES_SERVER, 786, E_INFO, EV_NONE, 0 ), "Cannot push changes.\nYou must fetch changes from the remote server first, using the %'fetch -t'% command." } ;
+ErrorId MsgServer::FetchHadConflict   = { ErrorOf( ES_SERVER, 787, E_INFO, EV_NONE, 0 ), "Cannot fetch changes.\nTo fetch these changes from the remote server, run the %'fetch -t'% command, which will relocate conflicting changes prior to the fetch." } ;
 ErrorId MsgServer::PushDidNothing     = { ErrorOf( ES_SERVER, 788, E_INFO, EV_NONE, 0 ), "No changes to push." } ;
 ErrorId MsgServer::FetchDidNothing    = { ErrorOf( ES_SERVER, 789, E_INFO, EV_NONE, 0 ), "No changes to fetch." } ;
+ErrorId MsgServer::FetchCopiedArchives = { ErrorOf( ES_SERVER, 836, E_INFO, EV_NONE, 1 ), "No changes to fetch. Copied %numArchives% archive file(s)." } ;
 ErrorId MsgServer::FetchDidUnsubmit   = { ErrorOf( ES_SERVER, 790, E_INFO, EV_NONE, 0 ), "One or more changes were unsubmitted to allow remote changes to be fetched. Each unsubmitted change was shelved in a pending changelist. Run the resubmit command to resolve and resubmit these changes in chronological order." } ;
 ErrorId MsgServer::FetchDidTangent    = { ErrorOf( ES_SERVER, 791, E_INFO, EV_NONE, 0 ), "%numChanges% conflicting change(s) were relocated to '%tangentPath%'." } ;
 ErrorId MsgServer::FetchNeedsResubmit = { ErrorOf( ES_SERVER, 804, E_INFO, EV_NONE, 0 ), "Run '%'p4 resubmit'%' to resolve and resubmit conflicting change(s)." } ;
-ErrorId MsgServer::PushCryptoError    = { ErrorOf( ES_SERVER, 792, E_WARN, EV_USAGE, 2 ), "It appears that you are not currently logged in to the server specified in the remote spec '%remoteName%'. Run 'p4 -p %remoteAddress% login' to log in to the remote server, then retry the push command." } ;
-ErrorId MsgServer::FetchCryptoError    = { ErrorOf( ES_SERVER, 793, E_WARN, EV_USAGE, 2 ), "It appears that you are not currently logged in to the server specified in the remote spec '%remoteName%'. Run 'p4 -p %remoteAddress% login' to log in to the remote server, then retry the fetch command." } ;
+ErrorId MsgServer::PushCryptoError1    = { ErrorOf( ES_SERVER, 857, E_WARN, EV_USAGE, 1 ), "It appears that you are not currently logged in to the server specified in the remote spec '%remoteName%'. Run 'p4 login -r %remoteName%' to log in to the remote server, then retry the push command." } ;
+ErrorId MsgServer::FetchCryptoError1   = { ErrorOf( ES_SERVER, 858, E_WARN, EV_USAGE, 1 ), "It appears that you are not currently logged in to the server specified in the remote spec '%remoteName%'. Run 'p4 login -r %remoteName%' to log in to the remote server, then retry the fetch command." } ;
 ErrorId MsgServer::BadLocation         = { ErrorOf( ES_SERVER, 802, E_FAILED, EV_USAGE, 1 ), "Bad location to put file '%path%'." } ;
 ErrorId MsgServer::CannotFetchOpened   = { ErrorOf( ES_SERVER, 805, E_FAILED, EV_USAGE, 0 ), "Can't fetch while files are open. Revert or submit the files first, then run fetch." } ;
 ErrorId MsgServer::ResolveThenResume   = { ErrorOf( ES_SERVER, 806, E_INFO, EV_NONE, 0 ), "After resolving merge conflicts, run resubmit with the '-R' flag to resume the resubmit process." } ;
+ErrorId MsgServer::ReviewThenResume    = { ErrorOf( ES_SERVER, 833, E_INFO, EV_NONE, 1 ), "%change% unshelved and resolved. After reviewing the change, run resubmit with the '-R' flag to resume the resubmit process." } ;
+
+ErrorId MsgServer::BackupExiting   = { ErrorOf( ES_SERVER, 809, E_FAILED, EV_FAULT, 0 ), "Client backup process exiting due to error." } ;
+ErrorId MsgServer::BackupBadSvr    = { ErrorOf( ES_SERVER, 810, E_FAILED, EV_FAULT, 0 ), "Client backup process cannot run on this type of server." } ;
+ErrorId MsgServer::BackupOff       = { ErrorOf( ES_SERVER, 811, E_INFO, EV_NONE, 0 ), "Client backup process exiting since client.backup.interval is set to 0." } ;
+
+// Number gap from work in nimble branch
+ErrorId MsgServer::JournalRotationFail = { ErrorOf( ES_SERVER, 818, E_FATAL, EV_FAULT, 1 ), "Fatal journal processing error! Journal data was written beyond the journal rotation point. Replica synchronization may be broken. Please contact Perforce Technical Support for assistance. Incorrect journal data is: %jnlRecord%." } ;
+ErrorId MsgServer::JournalFalseEOF     = { ErrorOf( ES_SERVER, 819, E_FATAL, EV_FAULT, 1 ), "Fatal journal processing error! Rotated journal %jfile% was not terminated correctly. Replica synchronization may be broken. Check for an out of disk space condition. Please contact Perforce Technical Support for assistance." } ;
+ErrorId MsgServer::AttrNoDVCS        = { ErrorOf( ES_SERVER, 820, E_FAILED, EV_USAGE, 0 ), "Cannot add or change attributes on a personal server." } ;
+ErrorId MsgServer::AddressMismatch       = { ErrorOf( ES_SERVER, 821, E_FAILED, EV_FAULT, 2 ), "Client address mismatch %ipaddr% vs %peeraddr%" } ;
+ErrorId MsgServer::ClientRejected  = { ErrorOf( ES_SERVER, 812, E_FAILED, EV_USAGE, 1 ), "Your application '%app%' has been blocked from the server, please contact your administrator." } ;
+ErrorId MsgServer::OpenReadOnly          = { ErrorOf( ES_SERVER, 825, E_FAILED, EV_USAGE, 0 ), "Client of type '%'readonly'%' cannot modify files." } ;
+
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 
@@ -764,5 +812,8 @@ ErrorId MsgServer::UseTunables    = { ErrorOf( ES_SERVER, 371, E_FAILED, EV_USAG
 ErrorId MsgServer::UseDomains          = { ErrorOf( ES_SERVER, 231, E_FAILED, EV_USAGE, 0 ), "Usage: branches/labels [ -t ] [ -u user ] [ [-e|-E] query -m max ]" } ; // DEPRECATED //NOTRANS
 ErrorId MsgServer::PasswordTooShort     = { ErrorOf( ES_SERVER, 308, E_FAILED, EV_ILLEGAL, 0 ), "Password should be at least 8 characters in length." } ; // DEPRECATED //NOTRANS
 ErrorId MsgServer::SubmitShelvedHasTask     = { ErrorOf( ES_SERVER, 646, E_FAILED, EV_NOTYET, 1 ), "Client %client% is a task stream client --  cannot submit shelved change."} ; //NOTRANS
+ErrorId MsgServer::ReopenNotOwnerCL	= { ErrorOf( ES_SERVER, 676, E_FAILED, EV_USAGE, 4 ), "%depotFile%%haveRev% already open on client '%client%' in %change% - not reopened." } ; //NOTRANS
 ErrorId MsgServer::NotClusterService = { ErrorOf( ES_SERVER, 707, E_FAILED, EV_USAGE, 0 ), "Server is not a service-node." } ; //NOTRANS
+ErrorId MsgServer::PushCryptoError    = { ErrorOf( ES_SERVER, 792, E_WARN, EV_USAGE, 2 ), "It appears that you are not currently logged in to the server specified in the remote spec '%remoteName%'. Run 'p4 -p %remoteAddress% login' to log in to the remote server, then retry the push command." } ; // DEPRECATED //NOTRANS
+ErrorId MsgServer::FetchCryptoError    = { ErrorOf( ES_SERVER, 793, E_WARN, EV_USAGE, 2 ), "It appears that you are not currently logged in to the server specified in the remote spec '%remoteName%'. Run 'p4 -p %remoteAddress% login' to log in to the remote server, then retry the fetch command." } ; // DEPRECATED //NOTRANS
 // ES_SERVER 678 was allocated for 2014.2 but never used, so it is free for re-use

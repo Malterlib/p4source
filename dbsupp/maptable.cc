@@ -87,7 +87,8 @@ MapTable::Clear()
 void
 MapTable::Reverse()
 {
-	entry = entry->Reverse();
+	if( entry )
+	    entry = entry->Reverse();
 }
 
 void
@@ -600,7 +601,7 @@ MapTable::Check(
 	if( !trees[ dir ].tree )
 	    MakeTree( dir );
 
-	return trees[ dir ].tree->Match( dir, from );
+	return trees[ dir ].tree ? trees[ dir ].tree->Match( dir, from ) : 0;
 }
 
 //
@@ -617,7 +618,9 @@ MapTable::Translate(
 	if( !trees[ dir ].tree )
 	    MakeTree( dir );
 
-	MapItem *map = trees[ dir ].tree->Match( dir, from );
+	MapItem *map = trees[ dir ].tree
+	    ? trees[ dir ].tree->Match( dir, from )
+	    : 0;
 
 	// Expand into target string.
 	// We have to Match2 here, because the last Match2 done in

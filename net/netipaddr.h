@@ -74,7 +74,7 @@ public:
 
 	const NetIPAddr
 	MapV4toV6() const;
-	
+
 	void	Set(const StrPtr &addr, int prefixlen);
 	void	Parse();
 	bool	Match(const NetIPAddr &addr) const;
@@ -83,14 +83,16 @@ public:
 	bool	IsTypeV4() const { return m_type == IPADDR_V4; }
 	bool	IsTypeV6() const { return m_type == IPADDR_V6; }
 	bool	IsTypeValid() const { return m_type == IPADDR_V4 || m_type == IPADDR_V6; }
-	
+
 	// debugging support
 	static const char *TypeName(IPAddrType t);
 	const char	  *TypeName() const;
 	void		  ToString(StrBuf &buf) const;
+	const StrPtr	  &ZoneID() const { return m_zoneid; }
 
 private:
 	StrBuf		m_text;		// textual representation
+	StrBuf		m_zoneid;	// if present (eg, "%eth0")
 	int		m_prefixlen;	// network prefix length
 	IPAddrType	m_type;		// IPv4, IPv6, or invalid
 	ipaddr_storage	m_addr;		// meaningful only when IsTypeValid(); parsed representation

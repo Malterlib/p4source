@@ -267,7 +267,11 @@ clientTraverseShort( Client *client, StrPtr *cwd, const char *dir, int traverse,
 	// to send files back as utf8.
 
 	if( client != client->translated )
+	{
 	    fileName = cvt->FastCvt( f->Name(), strlen(f->Name()), 0 );
+	    if( !fileName )
+		fileName = f->Name();
+	}
 	else
 	    fileName = f->Name();
 
@@ -418,7 +422,11 @@ clientTraverseShort( Client *client, StrPtr *cwd, const char *dir, int traverse,
 	    StrPtr *ddir;
 
 	    if( client != client->translated )
+	    {
 		fileName = cvt->FastCvt( f->Name(), strlen(f->Name()) );
+		if( !fileName )
+		    fileName = f->Name();
+	    }
 	    else
 		fileName = f->Name();
 
@@ -585,7 +593,8 @@ clientTraverseShort( Client *client, StrPtr *cwd, const char *dir, int traverse,
 
 void
 clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
-		    MapApi *map, StrArray *files, StrArray *sizes, 
+		    int getDigests, MapApi *map, StrArray *files,
+		    StrArray *sizes, StrArray *digests,
 		    int &hasIndex, StrArray *hasList, const char *config, 
 		    Error *e )
 {
@@ -605,12 +614,17 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 	StrBuf to;
 	CharSetCvt *cvt = ( (TransDict *)client->transfname )->ToCvt();
 	const char *fileName;
+	StrBuf localDigest;
 
 	// With unicode server and client using character set, we need
 	// to send files back as utf8.
 
 	if( client != client->translated )
+	{
 	    fileName = cvt->FastCvt( f->Name(), strlen(f->Name()), 0 );
+	    if( !fileName )
+		fileName = f->Name();
+	}
 	else
 	    fileName = f->Name();
 
@@ -626,6 +640,12 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 		{
 		    files->Put()->Set( fileName );
 		    sizes->Put()->Set( StrNum( f->GetSize() ) );
+		    if( getDigests )
+		    {
+			f->Translator( ClientSvc::XCharset(client,FromClient));
+			f->Digest( &localDigest, e );
+			digests->Put()->Set( localDigest );
+		    }
 		}
 	    }
 	    delete f;
@@ -642,6 +662,12 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 	    {
 		files->Put()->Set( fileName );
 		sizes->Put()->Set( StrNum( f->GetSize() ) );
+		if( getDigests )
+		{
+		    f->Translator( ClientSvc::XCharset(client,FromClient));
+		    f->Digest( &localDigest, e );
+		    digests->Put()->Set( localDigest );
+		}
 	    }
 	    delete f;
 	    return;
@@ -650,7 +676,7 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 	// Directory might be ignored,  bail
 
 	if( !noIgnore && 
-	    ignore->Reject( StrRef( f->Name() ), ignored, config ) )
+	    ignore->RejectDir( StrRef( f->Name() ), ignored, config ) )
 	{
 	    delete f;
 	    return;
@@ -689,7 +715,11 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 	    f->Set( *p );
 
 	    if( client != client->translated )
+	    {
 		fileName = cvt->FastCvt( f->Name(), strlen(f->Name()) );
+		if( !fileName )
+		    fileName = f->Name();
+	    }
 	    else
 		fileName = f->Name();
 
@@ -740,11 +770,18 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 		    {
 			files->Put()->Set( fileName );
 			sizes->Put()->Set( StrNum( f->GetSize() ) );
+			if( getDigests )
+			{
+			    f->Translator( ClientSvc::XCharset(client,FromClient));
+			    f->Digest( &localDigest, e );
+			    digests->Put()->Set( localDigest );
+			}
 		    }
 		}
 		else if( traverse )
 		    clientTraverseDirs( client, f->Name(), traverse, noIgnore,
-					map, files, sizes, hasIndex, hasList, 
+					getDigests, map, files, sizes,
+					digests, hasIndex, hasList, 
 	                                config, e );
 	    }
 	    else if( ( stat & FSF_EXISTS ) || ( stat & FSF_SYMLINK ) )
@@ -768,6 +805,12 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 		{
 		    files->Put()->Set( fileName );
 		    sizes->Put()->Set( StrNum( f->GetSize() ) );
+		    if( getDigests )
+		    {
+			f->Translator( ClientSvc::XCharset(client,FromClient));
+			f->Digest( &localDigest, e );
+			digests->Put()->Set( localDigest );
+		    }
 		}
 	    }
 	}
@@ -797,6 +840,7 @@ clientReconcileAdd( Client *client, Error *e )
 	StrPtr *summary = client->GetVar( "summary" );
 	StrPtr *skipIgnore = client->GetVar( "skipIgnore" );
 	StrPtr *skipCurrent = client->GetVar( "skipCurrent" );
+	StrPtr *sendDigest = client->GetVar( "sendDigest" );
 	StrPtr *mapItem;
 
 	if( e->Test() )
@@ -807,6 +851,7 @@ clientReconcileAdd( Client *client, Error *e )
 	StrArray *sizes = new StrArray();
 	StrArray *dirs = new StrArray();
 	StrArray *depotFiles = new StrArray();
+	StrArray *digests = new StrArray();
 
 	// Construct a MapTable object from the strings passed in by server
 
@@ -877,7 +922,8 @@ clientReconcileAdd( Client *client, Error *e )
 	}
 	else
 	    clientTraverseDirs( client, dir->Text(), traverse != 0,
-				skipIgnore != 0, map, files, sizes, hasIndex, 
+				skipIgnore != 0, sendDigest != 0, map,
+				files, sizes, digests, hasIndex, 
 				recHandle ? recHandle->pathArray : 0, 
 	                        config, e );
 	delete map;
@@ -906,7 +952,7 @@ clientReconcileAdd( Client *client, Error *e )
 		else if( l < 0 )
 		{
 		    client->SetVar( P4Tag::v_file, i0, *files->Get( i1 ) );
-		    if( recHandle->delCount )
+		    if( !sendDigest && recHandle->delCount )
 		    {
 			// Deleted files?  Send filesize info so the
 			// server can try to pair up moves.
@@ -914,6 +960,8 @@ clientReconcileAdd( Client *client, Error *e )
 			client->SetVar( P4Tag::v_fileSize, 
 					i0, *sizes->Get( i1 ) );
 		    }
+		    if( sendDigest )
+			client->SetVar( P4Tag::v_digest, i0, *digests->Get(i1));
 		    ++i0;
 		    ++i1;
 		}
@@ -926,7 +974,11 @@ clientReconcileAdd( Client *client, Error *e )
 	else
 	{
 	    for( int j = 0; j < files->Count(); j++ )
+	    {
 		client->SetVar( P4Tag::v_file, j, *files->Get(j) );
+		if( sendDigest )
+		    client->SetVar( P4Tag::v_digest, j, *digests->Get(j) );
+	    }
 	}
 
 	client->Confirm( confirm );
@@ -934,6 +986,7 @@ clientReconcileAdd( Client *client, Error *e )
 	delete sizes;
 	delete dirs;
 	delete depotFiles;
+	delete digests;
 }
 
 void

@@ -37,7 +37,7 @@ static void Callback( int code, int arg, void *cb_arg );
 class NetSslCredentials
 {
 public:
-		NetSslCredentials();
+		NetSslCredentials( bool isTest = false );
 		NetSslCredentials( NetSslCredentials &rhs);
 		~NetSslCredentials();
 		void ReadCredentials( Error *e );
@@ -62,13 +62,13 @@ public:
 		void SetCertO(StrBuf &certO);
 		void SetCertST(StrBuf &certSt);
 		void SetSslDir(StrPtr *sslDir);
+		void GetFingerprintFromCert( Error *e );
 
 private:
 		// Utilities
 		void ParseConfig( Error *e );
 		void WriteCredentials(  PathSys *keyFile, PathSys *certFile, Error * e );
 		void GetCredentialFilepaths( PathSys *keyFile, PathSys *certFile, Error * e );
-		void GetFingerprintFromCert( Error *e );
 		void GetFingerprintFile( PathSys *fpFile, Error * e);
 		void MakeSslCredentials( Error *e );
 		void CompareFileUids( Error *e );

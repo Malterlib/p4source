@@ -1133,8 +1133,8 @@ Rpc::TrackReport( int level, StrBuf &out )
 
 	out 
 	    << "--- rpc msgs/size in+out "
-	    << recvCount << "+"
-	    << sendCount << "/"
+	    << StrNum( recvCount ) << "+"
+	    << StrNum( sendCount ) << "/"
 	    << recvBytes / 1024 / 1024 << "mb+"
 	    << sendBytes / 1024 / 1024 << "mb "
 	    << "himarks " 

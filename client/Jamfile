@@ -6,7 +6,7 @@ SubDirHdrs $(P4) net ;
 SubDirHdrs $(P4) i18n ;
 
 P4Main p4 : clientmain.cc ;
-Ident clientmain.cc client.cc ;
+Ident clientmain.cc client.cc clientinit.cc serverhelper.cc ;
 
 if $(OS) = NT
 {
@@ -40,5 +40,7 @@ P4Library $(CLIENTLIB) :
 	clientuserdbg.cc
 	clientusermsh.cc
 	clientusernull.cc
+	serverhelper.cc
+	serverhelperapi.cc
 	;
 

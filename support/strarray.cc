@@ -45,6 +45,14 @@ StrArray::~StrArray()
 	delete array;
 }
 
+void
+StrArray::Clear()
+{
+	for( int i = 0; i < array->Count(); i++ )
+	    delete (StrBuf *)array->Get(i);
+	array->Clear();
+}
+
 const StrBuf *
 StrArray::Get( int i ) const
 {

@@ -356,7 +356,7 @@
 			# For OSX 10.7 and later, sdk lives deep under xcode.app
 			if [ FVersionCmp $(OSVER) : 107 ] >= 0 { XCODE_PREFIX ?= $(_xcode) ; }
 
-			local _v = [ MATCH ([0-9]+)([0-9])$ : $(OSVER) ] ;
+			local _v = [ MATCH ([0-9][0-9])([0-9]*)$ : $(OSVER) ] ;
 			_sdkver ?= $(_v:J=.) ;
 		}
 		if $(_sdkver) = 10.4 { _sdkver = $(_sdkver)u ; }  # "10.4u.sdk"
@@ -514,6 +514,7 @@
 
 	STRIP = strip ;
 	COMPRESS = gzip -9 ;
+	ZIP = zip -9 -r -q ;
 
 	# symbolic flags with no user/group/other specifier will default to
 	# ANDing with the user's umask.
@@ -837,7 +838,6 @@
 		SetOSXSdk : -mmacosx-version-min=10.4 : ppc i386 ;
 
 		LIBRARY_DEPOLYMENT_SDK = sdk10.4 ;
-		LINKLIBS += -weak_framework CoreFoundation ;
 
 	case DARWIN9* :
 		SetCommonCompiler $(OSCOMP:E=gcc) ;
@@ -849,7 +849,6 @@
 		# not needed), but it's needed if we want to build 10.5-compatible
 		# executables on a 10.6 system.
 		if $(MACOSX105ON106) { LINKFLAGS += -Wl,-no_compact_linkedit ; }
-	 	LINKLIBS += -weak_framework CoreFoundation ;
 
 	case DARWIN10* :
 		SetCommonCompiler $(OSCOMP:E=gcc) ;
@@ -862,14 +861,12 @@
 		# them.  So if we really want to reuse artifacts portably, we can't
 		# use these newer features.
 		LINKFLAGS += -Wl,-no_compact_linkedit ;
-		LINKLIBS  += -weak_framework CoreFoundation ;
 
 	case DARWIN1[12]* :
 		SetCommonCompiler $(OSCOMP:E=gcc) ;
 		SetOSXSdk : -mmacosx-version-min=10.5 -fwrapv ;
 
 		LIBRARY_DEPOLYMENT_SDK = sdk10.5 ;
-		LINKLIBS += -framework CoreFoundation ;
 
 	case DARWIN13* :
 		SetCommonCompiler $(OSCOMP:E=clang) ;
@@ -877,7 +874,6 @@
 
 		LIBRARY_DEPOLYMENT_SDK = sdk10.5 ;
 		LINKFLAGS += -Wl ;
-		LINKLIBS  += -framework CoreFoundation ;
 
 	case FREEBSD :
 		Exit Set OSVER to 4, 54, 60, 70, 80, etc for FreeBSD ;
@@ -1086,8 +1082,7 @@
 		               -F$(QTDIR)/lib ;
 
 		LINKLIBS    += -framework ApplicationServices
-		               -framework Foundation
-		               -framework CoreServices ;
+		               -framework Foundation ;
 
 	case MACOSX105 :
 		SetCommonCompiler $(OSCOMP:E=gcc) ;
@@ -1109,8 +1104,7 @@
 		if $(MACOSX105ON106) { LINKFLAGS += -Wl,-no_compact_linkedit ; }
 
 		LINKLIBS    += -framework ApplicationServices
-		               -framework Foundation
-		               -framework CoreServices ;
+		               -framework Foundation ;
 
 	case MACOSX106 :
 		SetCommonCompiler $(OSCOMP:E=gcc) ;
@@ -1133,8 +1127,7 @@
 		LINKFLAGS   += $(MACOSX_SDK_FLAGS) -Wl,-no_compact_linkedit ;
 
 		LINKLIBS    += -framework ApplicationServices
-		               -framework Foundation
-		               -framework CoreServices ;
+		               -framework Foundation ;
 
 	case MACOSX10[78] :
 		SetCommonCompiler $(OSCOMP:E=gcc) ;
@@ -1150,8 +1143,7 @@
 		               -F$(QTDIR)/lib ;
 
 		LINKLIBS    += -framework ApplicationServices
-		               -framework Foundation
-		               -framework CoreServices ;
+		               -framework Foundation ;
 
 	case MACOSX1[01]* : # 10.9 and later
 		SetCommonCompiler $(OSCOMP:E=clang) ;
@@ -1167,8 +1159,7 @@
 		               -F$(QTDIR)/lib ;
 
 		LINKLIBS    += -framework ApplicationServices
-		               -framework Foundation
-		               -framework CoreServices ;
+		               -framework Foundation ;
 
 	case MINGW* :
 		# MinGW is a special case of NT : instead of using msft's compiler,
@@ -1178,9 +1169,12 @@
 		# are; there might be difficulty using routines that are part of
 		# the MSVCR dynamic runtime.
 
+		# Use 7z on the MinGW-w64 port
+		if $(RI_DEVKIT) { ZIP = 7z a -r ; }
+
 		# If cross compiling (e.g. on linux), set CROSS_COMPILE to the
 		# prefix of the cross tools.
-		if ! $(NT) && ! $(MINGW)
+		if ! $(NT) && ! $(MINGW) && ! $(MINGW64)
 		{
 			CROSS_COMPILE ?= i686-pc-mingw32- ;
 		}
@@ -1200,12 +1194,23 @@
 		$(GENFLAGS) += -D_WIN32_WINNT=0x0501 -DWINVER=0x0501
 		               -fno-exceptions ;
 
-		if $(RI_DEVKIT) { $(GENFLAGS) += -DOS_MINGWW64 ; }
+		# For MinGW-w64 set the old MinGW macro as well.
+		# This avoids having the redo all the ifdefs.
+		if $(RI_DEVKIT) { $(GENFLAGS) += -DOS_MINGW ; }
 
 		# LINKLIBS comes from jambase wrongly initialized
 		# do not use += here
 		LINKLIBS  =  -lws2_32
 		             -lsupc++ ;
+		# MinGW-w64 also uses the Visual Studio libs.
+		if $(RI_DEVKIT)
+		{
+			LINKLIBS  += -ladvapi32 -lkernel32 ;
+			if $(SSL) = yes
+			{
+				LINKLIBS += -lUser32 -lOle32 -lOleaut32 -lGdi32 ;
+			}
+		}
 
 
 	case MVS :
@@ -1313,12 +1318,11 @@
 		switch $(BUILD)
 		{
 		# When we do API builds, we set BUILD=vs2003, vs2005, etc.
-		# These builds should have neither /Zi nor /Z7 symbol
-		# instrumentation, because we don't want to ship debug
-		# symbols to our customers, either embedded in the
-		# .obj/.lib files or in the .pdb database which the linker
-		# would want provided.
-		case vs2* : _Z = ;
+		# 2015-04-21 now that the API is open source and our RPC is public,
+		# include debug symbols embedded in the object files for the
+		# convenience of customers and tech support.
+
+		case vs2* : _Z = /Z7 ;
 		}
 
 		C++FLAGS += /DCASE_INSENSITIVE /DUSE_CRLF ;
@@ -1433,60 +1437,34 @@
 			$(GENFLAGS) += /MDd ;
 			LINKFLAGS   += /DEBUG /NODEFAULTLIB:msvcrt.lib  /fixed:no ;
 
+		# "vsdebug*" sections: link with Visual Studio debug libraries.
+		# These are intended for customer use.
 		case vsdebug :
-			# Static link with Visual Studio debug libraries.
-			# This does not enable debugging our own code, just sets
-			# linker dependencies for VS libraries.
-			# This is intended for customer use.
-
-			OPTIM        = /O2 ;
+			OPTIM        = /O2 $(_Z) ;
 			RCFLAGS      = /d NDEBUG /r ;
 			$(GENFLAGS) += /MTd ;
 
 		case vsdebug_idl0 :
-			# Static link with Visual Studio debug libraries.
-			# This does not enable debugging our own code, just sets
-			# linker dependencies for VS libraries.
-			# This is intended for customer use.
-
-			OPTIM        = /O2 ;
+			OPTIM        = /O2 $(_Z) ;
 			RCFLAGS      = /d NDEBUG /r ;
 			$(GENFLAGS) += /MTd -DITERATOR_DEBUG_LEVEL=0 ;
 
 		case vsdebug_idl1 :
-			# Static link with Visual Studio debug libraries.
-			# This does not enable debugging our own code, just sets
-			# linker dependencies for VS libraries.
-			# This is intended for customer use.
-
-			OPTIM        = /O2 ;
+			OPTIM        = /O2 $(_Z) ;
 			RCFLAGS      = /d NDEBUG /r ;
 			$(GENFLAGS) += /MTd -DITERATOR_DEBUG_LEVEL=1 ;
 
 		case dyn_vsdebug :
-			# Dynamic link with Visual Studio debug libraries.
-			# This does not enable debugging our own code, just sets
-			# linker dependencies for VS libraries.
-			# This is intended for customer use.
-
-			OPTIM        = /O2 ;
+			OPTIM        = /O2 $(_Z) ;
 			RCFLAGS      = /d NDEBUG /r ;
 			$(GENFLAGS) += /MDd ;
 
 		case dyn_vsdebug_idl0 :
-			# Dynamic link with Visual Studio debug libraries.
-			# This does not enable debugging our own code, just sets
-			# linker dependencies for VS libraries.
-			# This is intended for customer use.
-			RCFLAGS      = /d NDEBUG /r ;
+			RCFLAGS      = /d NDEBUG /r $(_Z) ;
 			$(GENFLAGS) += /MDd -DITERATOR_DEBUG_LEVEL=0 ;
 
 		case dyn_vsdebug_idl1 :
-			# Dynamic link with Visual Studio debug libraries.
-			# This does not enable debugging our own code, just sets
-			# linker dependencies for VS libraries.
-			# This is intended for customer use.
-			RCFLAGS      = /d NDEBUG /r ;
+			RCFLAGS      = /d NDEBUG /r $(_Z) ;
 			$(GENFLAGS) += /MDd -DITERATOR_DEBUG_LEVEL=1 ;
 
 		case * :
@@ -2639,6 +2617,59 @@
 		Depends all : $(<) ;
 		MkDistArchive $(<) : $(dirname) ;
 	}
+	
+	rule MakeP4TestsArchive
+	{
+		local bindir = bin.$(EXEC_SUB_TOKENS[1]) ;
+		local pkg    = $(1[1]) ;
+
+		local release_info = $(RELEASE[1-2]) $(PATCHLEVEL) $(RELEASE[3-]) ;
+		local dirname      = $(pkg)-$(release_info:J=.) ;
+		local exec_dir     = [ FSubDirPath P4BIN $(bindir) $(BUILD) ] ;
+		if $(TYPE) && $(TYPE) != opt {
+		exec_dir           = [ FDirName $(exec_dir) $(TYPE) ] ;
+		}
+		local dest_dir     = [ FDirName $(exec_dir) $(dirname) ] ;
+		local dist         = $(pkg)-dist ;
+
+		echo $(exec_dir) ;
+		echo $(dest_dir) ;
+		local _cpflags ;
+		if $(UNIX)
+		{
+			_cpflags = -p ; # to preserve times with cp -p
+		}
+
+		Depends $(dist) : $(dest_dir) ;
+		MkDir $(dest_dir) ;
+
+		local _src ;
+		for _src in $(2)
+		{
+			if $(OS) = NT && $(_src:S) = "" {
+				_src = $(_src:S=.exe) ;
+			}
+			local _dst = $(_src:D=$(dest_dir):G=) ;
+
+			SEARCH_SOURCE on $(_src) = $(exec_dir) $(SUBDIR) $(AllP4) ;
+			CP            on $(_dst) = $(CP) $(_cpflags) ;
+
+			Depends $(dist) : $(_dst) ;
+			Depends $(_dst) : $(dest_dir) ;
+			File $(_dst) : $(_src) ;
+		}
+
+		local _ext ;
+		for _ext in tgz zip
+		{
+			local archive = $(pkg).$(_ext) ;
+			LOCATE on $(archive) = $(exec_dir) ;
+
+			Depends all : $(archive) ;
+			Depends $(archive) : $(dist) ;
+			MkDistArchive $(archive) : $(dest_dir) ;
+		}
+	}
 
 	actions MkTarArchive
 	{
@@ -2648,7 +2679,7 @@
 	actions MkZipArchive
 	{
 		cd $(<:P)
-		zip -9 -r -q $(<:BE)$(<:SE) $(>:BE)$(>:SE)
+		$(ZIP) $(<:BE)$(<:SE) $(>:BE)$(>:SE)
 	}
 
 	actions MkComressedTarArchive

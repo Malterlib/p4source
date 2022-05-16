@@ -16,6 +16,8 @@
 # define NEED_FILE
 # define NEED_STAT
 # define NEED_UTIME
+# define NEED_UTIMES
+# define NEED_TIME_HP
 # define NEED_ERRNO
 # define NEED_READLINK
 
@@ -122,6 +124,38 @@ FileIO::ChmodTime( int modTime, Error *e )
 	if( utime( Name(), &t ) < 0 )
 	    e->Sys( "utime", Name() );
 # endif // HAVE_UTIME
+}
+
+void
+FileIO::ChmodTimeHP( const DateTimeHighPrecision &modTime, Error *e )
+{
+	DateTimeHighPrecision now;
+
+	now.Now();
+
+# if defined(HAVE_UTIMENSAT)
+	struct timespec tv[2];
+
+	tv[0].tv_sec = DateTime::Localize( now.Seconds() );
+	tv[0].tv_nsec = now.Nanos();
+	tv[1].tv_sec = DateTime::Localize( modTime.Seconds() );
+	tv[1].tv_nsec = modTime.Nanos();
+
+	if( utimensat( AT_FDCWD, Name(), tv, 0 ) < 0 )
+	    e->Sys( "utimensat", Name() );
+# elif defined(HAVE_UTIMES)
+	struct timeval	tv[2];
+
+	tv[0].tv_sec = DateTime::Localize( now.Seconds() );
+	tv[0].tv_usec = now.Nanos() / 1000;
+	tv[1].tv_sec = DateTime::Localize( modTime.Seconds() );
+	tv[1].tv_usec = modTime.Nanos() / 1000;
+
+	if( utimes( Name(), tv ) < 0 )
+	    e->Sys( "utimes", Name() );
+# else
+	ChmodTime( modtime.Seconds(), e )
+# endif
 }
 
 # endif // !OS_VMS && !OS_NT
@@ -324,6 +358,42 @@ FileIO::StatModTime()
 	    return 0;
 
 	return (int)( DateTime::Centralize( sb.st_mtime ) );
+}
+
+void
+FileIO::StatModTimeHP(DateTimeHighPrecision *modTime)
+{
+	struct statbL sb;
+
+	if( statL( Name(), &sb ) < 0 )
+	{
+	    *modTime = DateTimeHighPrecision();
+	    return;
+	}
+
+	time_t	seconds = DateTime::Centralize( sb.st_mtime );
+	int	nanosecs = 0;
+
+// nanosecond support for stat is a bit of a portability mess
+#if defined(OS_LINUX)
+    #if defined(_BSD_SOURCE) || defined(_SVID_SOURCE) \
+	|| (__GLIBC_PREREQ(2, 12) \
+	    && ((_POSIX_C_SOURCE >= 200809L) || (_XOPEN_SOURCE >= 700)))
+	nanosecs = sb.st_mtim.tv_nsec;
+    #else
+	nanosecs = sb.st_mtimensec;
+    #endif
+#elif defined(OS_MACOSX)
+	/*
+	 * HFS+ stores timestamps in 1-second resolution
+	 * so nanosecs will always be zero, but maybe
+	 * someone will run on a filesystem that does support
+	 * finer-grained timestamps (eg, ext4).
+	 */
+	nanosecs = sb.st_mtimespec.tv_nsec;
+#endif
+
+	*modTime = DateTimeHighPrecision( seconds, nanosecs );
 }
 
 # endif

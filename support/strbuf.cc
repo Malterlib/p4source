@@ -605,16 +605,6 @@ StrBuf::Reserve( p4size_t oldlen )
 	}
 }
 
-/*
- * StrBuf::<<int - append ascii representation of an int
- */
-
-StrBuf& 
-StrBuf::operator <<( int v )
-{
-	return *this << StrNum( v );
-}
-
 void
 StrBuf::Fill(const char *buf, p4size_t len)
 {

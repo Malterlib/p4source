@@ -44,6 +44,9 @@ class NetTcpEndPoint : public NetEndPoint {
 			    return &listenAddress;
 			}
 	static void	GetListenAddress( int s, int raf_flags, StrBuf &l );
+
+	static bool	IsLocalHost(const char *addr, AddrType type = AT_CONNECT);
+
 	const addrinfo *GetMatchingAddrInfo(
 			    const NetAddrInfo &ai,
 			    int af_target,

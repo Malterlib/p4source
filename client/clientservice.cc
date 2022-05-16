@@ -141,6 +141,8 @@ LookupType( const StrPtr *type )
 	case 0x00D: t = FST_APPLEFILE;			break;	// 99.2 
 	case 0x00E: t = FST_APPLETEXT 	| FST_M_EXEC;	break;	// 2000.2
 	case 0x00F: t = FST_APPLEFILE 	| FST_M_EXEC;	break;	// 99.2 
+	case 0x014: t = FST_UTF8;			break;	// 2015.1
+	case 0x016: t = FST_UTF8 	| FST_M_EXEC;	break;	// 2015.1
 	case 0x018: t = FST_UTF16;			break;	// 2007.2
 	case 0x01A: t = FST_UTF16 	| FST_M_EXEC;	break;	// 2007.2
 
@@ -230,6 +232,7 @@ ClientSvc::FileFromPath( Client *client, const char *vName, Error *e )
 	    e->Set( MsgClient::NotUnderPath )
 		    << f->Name() << client->GetClientPath();
 	    client->OutputError( e );
+	    delete f;
 	    return 0;
 	}
 	return f;
@@ -294,9 +297,15 @@ Client::OutputError( Error *e )
 
 // clientBailoutFile - called if handle is never deleted
 
+// If set, we will not write client side files during a sync.
+static int client_nullsync;
+
 void
 clientOpenFile( Client *client, Error *e )
 {
+	if( (client_nullsync = p4tunable.Get( P4TUNE_FILESYS_CLIENT_NULLSYNC) ) )
+	    return;
+
 	ClientFile *f;
 	FileSys *fs = 0;
 
@@ -519,6 +528,9 @@ clientOpenFile( Client *client, Error *e )
 void
 clientWriteFile( Client *client, Error *e )
 {
+	if( client_nullsync )
+	    return;
+
 	StrPtr *clientHandle = client->GetVar( P4Tag::v_handle, e );
 	StrPtr *data = client->GetVar( P4Tag::v_data, e );
 
@@ -558,6 +570,9 @@ clientWriteFile( Client *client, Error *e )
 void
 clientCloseFile( Client *client, Error *e )
 {
+	if( client_nullsync )
+	    return;
+
 	StrPtr *clientHandle = client->GetVar( P4Tag::v_handle, e );
 	StrPtr *func = client->GetVar( P4Tag::v_func, e );
 	StrPtr *commit = client->GetVar( P4Tag::v_commit );
@@ -882,7 +897,8 @@ clientConvertFile( Client *client, Error *e )
 
 	CharSetCvt::CharSet cs1 = CharSetCvt::Lookup( fromCS->Text() );
 	CharSetCvt::CharSet cs2 = CharSetCvt::Lookup( toCS->Text() );
-	if( (int)cs2 == -1 || (int)cs1 == -1 )
+	if( cs2 == CharSetApi::CSLOOKUP_ERROR ||
+	    cs1 == CharSetApi::CSLOOKUP_ERROR )
 	    goto convertFileFinish;
 
 	f = ClientSvc::File( client, e );
@@ -1035,6 +1051,8 @@ const struct ctTable {
 	FST_XUNICODE,	5, SUBST, CHKSZ,"xunicode", "text","xunicode+C",
 	FST_UTF16,	6, SUBST, CHKSZ,"utf16", "binary","utf16+C",
 	FST_XUTF16,	6, SUBST, CHKSZ,"xutf16", "binary", "xutf16+C",
+	FST_UTF8,	7, SUBST, CHKSZ,"utf8", "text","utf8+C",
+	FST_XUTF8,	7, SUBST, CHKSZ,"xutf8", "text", "xutf8+C",
 	FST_TEXT,	0, OK, OK,	0, 0, 0
 } ;
 
@@ -2614,9 +2632,18 @@ clientCrypto( Client *client, Error *e )
 	StrPtr *token = client->GetVar( P4Tag::v_token, e );
 	StrPtr *truncate = client->GetVar( P4Tag::v_truncate );
 	StrPtr *serverID = client->GetVar( P4Tag::v_serverAddress );
+	StrPtr *usrName = client->GetVar( P4Tag::v_user );
 
 	if( e->Test() )
 	    return;
+
+	StrBuf u;
+	if( usrName )
+	{
+	    u = *usrName;
+	    if( client->protocolNocase )
+	        StrOps::Lower( u );
+	}
 
 	// Set the normalized server address (2007.2) 
 
@@ -2631,7 +2658,7 @@ clientCrypto( Client *client, Error *e )
 	// Yes, the password itself must be digested first.
 
 	StrBuf result;
-	const StrPtr &password = client->GetPassword();
+	const StrPtr &password = client->GetPassword( usrName ? &u : 0 );
 	const StrPtr &password2 = client->GetPassword2();
 
 	if( !password.Length() )
@@ -2742,6 +2769,11 @@ clientSetPassword( Client *client, Error *e )
 	StrPtr *user = client->GetVar( P4Tag::v_user );
 	int sameUser = !user || !user->Compare( client->GetUser() );
 
+	// DVCS can change the user on the fly, so if that happens, accept it
+
+	if( client->GetVar( P4Tag::v_userChanged ) )
+	    sameUser = 1;
+
 	// In 2003.2 the new command 'p4 login' also calls
 	// SetPassword,  check to see if v_data2 has been set
 	// to show that this is a callback from 'login' and 
@@ -2843,16 +2875,19 @@ clientSetPassword( Client *client, Error *e )
 
 	if( data2 && !strcmp( data2->Text(), "logout" ) )
 	{
+	    Ticket t( &client->GetTicketFile() );
+
 	    if( serverID )
 	    {
-	        Ticket t( &client->GetTicketFile() );
 	        const StrPtr *port = serverID;
 	        t.DeleteTicket( *port, *user, e );
 	    }
 
-            Ticket t( &client->GetTicketFile() );
-	    const StrPtr *port = &client->GetPort();
-	    t.DeleteTicket( *port, *user, e );
+	    if( !e->Test() )
+	    {
+		const StrPtr *port = &client->GetPort();
+		t.DeleteTicket( *port, *user, e );
+	    }
 	    return;
 	}
 

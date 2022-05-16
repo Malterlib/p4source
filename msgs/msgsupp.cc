@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSupp error code is: 261
+ * Current high value for a MsgSupp error code is: 269
  */
 
 # include <error.h>
@@ -133,6 +133,7 @@ ErrorId MsgSupp::OptionHuman1000       = { ErrorOf( ES_SUPP, 97, E_INFO, EV_NONE
 ErrorId MsgSupp::OptionSummary         = { ErrorOf( ES_SUPP, 98, E_INFO, EV_NONE, 0 ), "%'--summary (-s)'%: displays summary information." } ;
 ErrorId MsgSupp::OptionShelved         = { ErrorOf( ES_SUPP, 99, E_INFO, EV_NONE, 0 ), "%'--shelved (-S)'%: specifies to access shelved files." } ;
 ErrorId MsgSupp::OptionUnload          = { ErrorOf( ES_SUPP, 100, E_INFO, EV_NONE, 0 ), "%'--unload (-U)'%: enables access to unloaded objects." } ;
+ErrorId MsgSupp::OptionUnloadLimit     = { ErrorOf( ES_SUPP, 264, E_INFO, EV_NONE, 0 ), "%'--unload-limit (-u)'%: threshold number of days after which an unused client will be unloaded." } ;
 ErrorId MsgSupp::OptionOmitLazy        = { ErrorOf( ES_SUPP, 101, E_INFO, EV_NONE, 0 ), "%'--omit-lazy (-z)'%: omits lazy copies from the results." } ;
 ErrorId MsgSupp::OptionLeaveKeywords   = { ErrorOf( ES_SUPP, 102, E_INFO, EV_NONE, 0 ), "%'--leave-keywords (-k)'%: specifies that RCS keywords are not to be expanded in the output." } ;
 ErrorId MsgSupp::OptionOutputFile      = { ErrorOf( ES_SUPP, 103, E_INFO, EV_NONE, 0 ), "%'--file (-o)'%: specifies the name of the output file." } ;
@@ -293,6 +294,14 @@ ErrorId MsgSupp::OptionCreate             = { ErrorOf( ES_SUPP, 257, E_INFO, EV_
 ErrorId MsgSupp::OptionList               = { ErrorOf( ES_SUPP, 258, E_INFO, EV_NONE, 0 ), "%'--list (-l)'%: list all the streams available to your client." } ;
 ErrorId MsgSupp::OptionMainline           = { ErrorOf( ES_SUPP, 259, E_INFO, EV_NONE, 0 ), "%'--mainline (-m)'%: Create this stream as an empty mainline (no parent)." } ;
 ErrorId MsgSupp::OptionMoveChanges        = { ErrorOf( ES_SUPP, 260, E_INFO, EV_NONE, 0 ), "%'--movechanges (-r)'%: Move open files to the stream you are switching to, instead of shelving and reverting them." } ;
+ErrorId MsgSupp::OptionJavaProtocol       = { ErrorOf( ES_SUPP, 262, E_INFO, EV_NONE, 0 ), "%'--java'%: enable Java support via the rsh protocol." } ;
+ErrorId MsgSupp::OptionPullBatch          = { ErrorOf( ES_SUPP, 263, E_INFO, EV_NONE, 0 ), "%'--batch'%: pull N archives in a single request to master." } ;
+ErrorId MsgSupp::OptionDepotType= { ErrorOf( ES_SUPP, 265, E_INFO, EV_NONE, 0 ), "%'--type (-t)'%: specifies the type of depot" } ;
+ErrorId MsgSupp::OptionGlobalLock= { ErrorOf( ES_SUPP, 266, E_INFO, EV_NONE, 0 ), "%'--global (-g)'%: reports or changes global locks from Edge Server" } ;
+ErrorId MsgSupp::OptionEnableDVCSTriggers = { ErrorOf( ES_SUPP, 267, E_INFO, EV_NONE, 0 ), "%'--enable-dvcs-triggers'%: fires any push-* triggers for changelists imported by this unzip command." } ;
+ErrorId MsgSupp::OptionUsers	          = { ErrorOf( ES_SUPP, 269, E_INFO, EV_NONE, 0 ), "%'--users (-u)'%: show the user who modifed the line." } ;
+ErrorId MsgSupp::TooManyLockTrys	  = { ErrorOf( ES_SUPP, 268, E_FATAL, EV_FAULT, 1 ), "Too many trys to get lock %file%." } ;
+
 // ErrorId graveyard'%: retired/deprecated ErrorIds.
 
 ErrorId MsgSupp::ZCLoadLibFailed       = { ErrorOf( ES_SUPP, 24, E_WARN, EV_ADMIN, 0 ), "Perforce failed to load zeroconf dynamic libraries." } ; // DEPRECATED ZeroConf NOTRANS

@@ -101,7 +101,7 @@ Callback( int code, int arg, void *cb_arg )
 //  NetSslCredentials - Methods                                           //
 ////////////////////////////////////////////////////////////////////////////
 
-NetSslCredentials::NetSslCredentials()
+NetSslCredentials::NetSslCredentials(bool isTest)
   : privateKey( NULL ),
     certificate( NULL ),
     fingerprint(),
@@ -111,28 +111,36 @@ NetSslCredentials::NetSslCredentials()
     certL( SSL_X509_L ),
     certO( SSL_X509_O )
 {
-	HostEnv h;
-	Enviro   enviro;
-	char *sslDirStr = NULL;
-
 	ownCert = false;
 	ownKey = false;
 	certEX = SSL_X509_NOTAFTER;
 	certSV = SSL_X509_NOTBEFORE;
 	certUNITS = SSL_X509_DAY;
 
-	h.GetHost( certCN );
-
-	const StrPtr *cachedServerName = enviro.GetCachedServerName();
-	if ( cachedServerName )
+	if ( !isTest )
 	{
-	    enviro.BeServer( cachedServerName );
+	    HostEnv h;
+	    Enviro   enviro;
+	    char *sslDirStr = NULL;
+
+	    h.GetHost( certCN );
+
+	    const StrPtr *cachedServerName = enviro.GetCachedServerName();
+	    if ( cachedServerName )
+	    {
+		enviro.BeServer( cachedServerName );
+	    }
+
+	    sslDirStr = enviro.Get( "P4SSLDIR" );
+	    if ( sslDirStr && sslDirStr[0] != '\0' )
+	    {
+		sslDir = sslDirStr;
+	    }
 	}
-
-	sslDirStr = enviro.Get( "P4SSLDIR" );
-	if ( sslDirStr && sslDirStr[0] != '\0' )
+	else
 	{
-	    sslDir = sslDirStr;
+	    sslDir.Set("/tmp/4kssldir");
+	    certCN.Set("TestHost");
 	}
 }
 
@@ -764,11 +772,11 @@ NetSslCredentials::GetFingerprintFromCert( Error *e )
 	unsigned int n = 0;
 	BIO *bio = NULL;
 	BUF_MEM *bufMemPtr = NULL;
-	unsigned char m[300];
+	unsigned char *asn1pubKey = NULL;
 	unsigned char md[EVP_MAX_MD_SIZE];
 	const EVP_MD *fdig = EVP_sha1();
-	unsigned char *ptr;
-	int l;
+	unsigned char *ptr = NULL;
+	unsigned int len;
 
 	if( !certificate )
 	{
@@ -779,18 +787,32 @@ NetSslCredentials::GetFingerprintFromCert( Error *e )
 	bio = BIO_new(BIO_s_mem());
 	SSLNULLHANDLER( bio, e, "GetFingerprintFromCert BIO_new", fail );
 
-	ptr = m;
-	l = i2d_X509_PUBKEY( X509_get_X509_PUBKEY( certificate ), &ptr ); 
-	EVP_Digest( m, l, md, &n, fdig, NULL );
-
-	if( l > sizeof m )
+	len = i2d_X509_PUBKEY( X509_get_X509_PUBKEY( certificate ), NULL );
+	if( (len == 0) || (len > 20480) ) // 20KB should be enough for anyone
 	{
-	    SSLHANDLEFAIL( retval, e, "GetFingerprintFromCert OVERRUN",
+	    SSLHANDLEFAIL( false, e, "GetFingerprintFromCert cert zero or too big",
 		MsgRpc::SslGetPubKey,
 		failCleanBIO );
 	}
 
-	DEBUGPRINTF( SSLDEBUG_FUNCTION, "pubkey len is: %d", l );
+	ptr = asn1pubKey = new unsigned char[len];
+	if( !ptr )
+	{
+	    SSLHANDLEFAIL( false, e, "GetFingerprintFromCert new asn1pubKey",
+		MsgRpc::SslGetPubKey,
+		failCleanBIO );
+	}
+
+	i2d_X509_PUBKEY( X509_get_X509_PUBKEY( certificate ), &ptr );
+	if( ptr - asn1pubKey != len )
+	{
+	    SSLHANDLEFAIL( false, e, "GetFingerprintFromCert OVERRUN",
+		MsgRpc::SslGetPubKey,
+		failCleanBIO );
+	}
+	EVP_Digest( asn1pubKey, len, md, &n, fdig, NULL );
+
+	DEBUGPRINTF( SSLDEBUG_FUNCTION, "pubkey len is: %d", len );
 	DEBUGPRINTF( SSLDEBUG_FUNCTION, "digest len is: %u", n );
 
 	n--;  // loop through all but last one
@@ -813,6 +835,8 @@ NetSslCredentials::GetFingerprintFromCert( Error *e )
 
 failCleanBIO:
 	BIO_free_all(bio);
+	if( asn1pubKey )
+	    delete asn1pubKey;
 fail:
 	/* nothing to clean up */
 	return;

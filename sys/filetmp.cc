@@ -4,6 +4,8 @@
  * This file is part of Perforce - the FAST SCM System.
  */
 
+# define NEED_SLEEP
+
 # include <stdhdrs.h>
 # include <pid.h>
 
@@ -38,6 +40,8 @@ const char *gblTemp = "/tmp";
 # include "enviro.h"
 # include "pathsys.h"
 # include "filesys.h"
+# include "datetime.h"
+# include "msgsupp.h"
 
 /*
  * FileSys::TempName() - create a temp name in target buffer
@@ -136,4 +140,68 @@ FileSys::MakeGlobalTemp()
 	} while ( ( Stat() & ( FSF_SYMLINK | FSF_EXISTS ) ) && --cnt > 0 );
 
 	delete p;
+}
+
+// This creates a lock file ment to be very temporary
+FileSys *
+FileSys::CreateLock( FileSys *f, Error *e )
+{
+	int t;
+	StrBuf nameit;
+	DateTime nowtime, locktime;
+
+	FileSys *lockFile = Create( (FileSysType)( FST_BINARY|FST_M_EXCL ) );
+
+	lockFile->SetDeleteOnClose();
+
+	nameit.Set( f->Path() );
+	nameit.UAppend( ".lck" );
+
+	lockFile->Set( nameit );
+
+	int lcnt = p4tunable.Get( P4TUNE_FILESYS_LOCKTRY );
+
+	while( --lcnt > 0 )
+	{
+	    if( ( t = lockFile->StatModTime() ) > 0 )
+	    {
+		// file exists
+		locktime.Set( t );
+		nowtime.SetNow();
+		if( nowtime.Compare( locktime ) > p4tunable.Get( P4TUNE_FILESYS_LOCKDELAY ) )
+		{
+		    // lock file old
+		    lockFile->Unlink( e );
+		    if( e->Test() )
+		    {
+			lockFile->ClearDeleteOnClose();
+			delete lockFile;
+			return NULL;
+		    }
+		}
+		else
+		{
+		    // lock file exists, reasonably new, we should wait
+		    sleep( 1 );
+		}
+	    }
+	    else
+	    {
+		// file does not seem to exist, try create
+		lockFile->Open( FOM_WRITE, e );
+
+		if( !e->Test() )
+		    return lockFile;
+
+		// if open failed, we try agin
+		e->Clear();
+	    }
+	}
+
+	// too many retries, error
+	// set error
+	e->Set( MsgSupp::TooManyLockTrys ) << nameit;
+	lockFile->ClearDeleteOnClose();
+	delete lockFile;
+	return NULL;
 }

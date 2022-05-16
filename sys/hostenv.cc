@@ -153,6 +153,12 @@ GetCwd( StrBuf *dest, int = 0 )
 }
 #endif
 
+void
+HostEnv::GetCwdbyCS( StrBuf &result, int charset )
+{
+	::GetCwd( &result, charset );
+}
+
 int
 HostEnv::GetCwd( StrBuf &result, Enviro * enviro )
 {
@@ -292,37 +298,14 @@ HostEnv::GetHomeName(
 	    return 1;
 	}
 
+	enviro->GetHome( result );
+
 # ifdef OS_NT
 # define HAVE_TICKETS
 
         // On NT, try looking in $USERPROFILE, if no luck stash in the
         // windows directory.
 
-	const char *home = enviro->Get( "USERPROFILE" );
-                                                                                
-	if( home )
-	    result.Set( home );
-	else
-	{
-	    int length;
-	    char buffer[MAX_PATH];
-	    WCHAR wbuffer[MAX_PATH];
-
-	    if( !CharSetApi::isUnicode( (CharSetApi::CharSet)enviro->GetCharSet() ) && 
-		GetWindowsDirectoryA( buffer, sizeof( buffer ) ) )
-	    {
-	        result.Set( buffer );
-	    }
-	    else if( length = GetWindowsDirectoryW( wbuffer, sizeof( wbuffer )/sizeof( WCHAR ) ) )
-	    {
-		CharSetCvtUTF168 cvtval;
-		const char *retval = 
-			cvtval.FastCvt( (const char *)wbuffer, sizeof( WCHAR ) * length );
-		if( retval )
-		    result.Set( retval );
-	    }
-	}
-                                                                                
 	if( result.Length() )
 	{
 	    result.Append( "\\" );
@@ -335,11 +318,9 @@ HostEnv::GetHomeName(
 # ifdef OS_VMS
 # define HAVE_TICKETS
 
-	const char *home = enviro->Get( "HOME" );
- 
-	if( home )
+	if( result.Length() )
 	{
-	    result.Set( home );
+	    result.Append( "/" );
 	    result.Append( &name );
 	    result.Append( ".txt" );
 	}
@@ -348,11 +329,8 @@ HostEnv::GetHomeName(
 
 # ifndef HAVE_TICKETS
 
-	const char *home = enviro->Get( "HOME" );
- 
-	if( home )
+	if( result.Length() )
 	{
-	    result.Set( home );
 	    result.Append( "/." );
 	    result.Append( &name );
 	}

@@ -113,6 +113,16 @@ FileSys::CheckType( int scan )
 	    // Always look for a utf8 bom...
 	    int utf8bomPresent = !memcmp( buf, "\xef\xbb\xbf", 3 );
 
+	    if( utf8bomPresent )
+	    {
+		if( controlchar )
+		    goto somebinary;
+
+		CharSetUTF8Valid utf8test;
+		if( utf8test.Valid( buf, len ) )
+		    rettype = FST_UTF8;
+	    }
+
 	    // is there an UTF16 BOM at the start
 	    if( ( *(unsigned short *)buf == 0xfeff ||
 		  *(unsigned short *)buf == 0xfffe ) &&
@@ -271,9 +281,20 @@ FileSys::CheckType( int scan )
 		    }
 		}
 	    }
-	    if( rettype == FST_UNICODE &&
-		!p4tunable.Get( P4TUNE_FILESYS_DETECTUNICODE ) )
-		rettype = FST_TEXT;
+
+	    if( rettype == FST_UNICODE )
+	    {
+		if( highbit )
+		{
+		    CharSetUTF8Valid utf8test;
+		    if( utf8test.Valid( buf, len ) )
+			rettype = FST_UTF8;
+		}
+		if( rettype == FST_UNICODE &&
+			!p4tunable.Get( P4TUNE_FILESYS_DETECTUNICODE ) )
+		    rettype = FST_TEXT;
+	    }
+
 	    if( execbits )
 		rettype |= FST_M_EXEC;
 	    return BestFiletype( (FileSysType)rettype );

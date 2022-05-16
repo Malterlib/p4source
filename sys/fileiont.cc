@@ -20,6 +20,7 @@
 # include <debug.h>
 # include <tunable.h>
 # include <datetime.h>
+# include <charset.h>
 # include <i18napi.h>
 # include <charcvt.h>
 # include <lockfile.h>
@@ -28,6 +29,7 @@
 # include <share.h>
 # include <mbstring.h>
 
+# include "hostenv.h"
 # include "filesys.h"
 # include "pathsys.h"
 # include "fileio.h"
@@ -44,9 +46,9 @@ extern int global_umask;
 // For MinGW builds, the mingw x86 version grouped the DDK into the
 // winnt.h header.  The newer mingw-w64 is more like Visual Studio
 // in that you must include ddk/ntifs.h for the reparse structure.
-// We defined the reparse structure only for OS_NT and OS_MINGWW64.
+// We defined the reparse structure only for OS_NT and OS_MINGW64.
 //
-# if defined( OS_MINGWW64 ) == defined( OS_MINGW )
+# if defined( OS_MINGW64 ) == defined( OS_MINGW )
 typedef struct _REPARSE_DATA_BUFFER {
 	ULONG  ReparseTag;
 	USHORT ReparseDataLength;
@@ -106,7 +108,7 @@ static CreateSymbolicLinkWProc CreateSymbolicLinkW_func = 0;
 static int functionHandlesLoaded = 0;
 
 // Handle the Unicode and LFN file name translation.
-// Caller to nt_wname() must free the memory.
+// Caller to nt_wname() must free the memory through nt_free_wname().
 //
 void
 nt_free_wname( const wchar_t *wname )
@@ -114,79 +116,134 @@ nt_free_wname( const wchar_t *wname )
 	delete [] (char *)wname;
 }
 
+// This function is used for both Unicode mode and Long File Name support.
+// If this function is called, it is assumed we have Unicode mode, or LFN
+// or both, otherwise this function will not be called.
+//
+// If Unicode mode, we are converting from UTF8 to UNICODE.
+// If LFN, we are converting from ANSI to UNICODE.
+// If Unicode mode and LFN, we are converting from UTF8 to UNICODE.
+//
 const wchar_t *
 nt_wname( StrPtr *fname, int lfn, int *newlen )
 {
 	CharSetCvtUTF816 cvt;
 	wchar_t *wname;
+	int len = 0;
 	StrBuf lfname;
 	const char *filename;
-	int namelen;
+	int fnamelen;
 
 	// We want one of these two long filename forms.
-	//   lfn==1: \\?\c:\path
-	//   lfn==2: \\?\UNC\host\share\path
-	// In the UNC case, fname will have two leading back slashes.
-	// Use an offset to eliminate one leading slash in fname.
+	//   if lfn&LFN_ENABLED -> \\?\c:\path
+	//   if lfn&LFN_UNCPATH -> \\?\UNC\host\share\path
 	//
-	if( lfn )
+	if( lfn & LFN_ENABLED )
 	{
-	    if( lfn == 2 )
+	    if( lfn & LFN_UNCPATH )
 		lfname.Set( "\\\\?\\UNC" );
 	    else
 		lfname.Set( "\\\\?\\" );
 
+	    // LFN requires a full pathname.
 	    if( FileSys::IsRelative( *fname ) )
 	    {
+		int cs = GlobalCharSet::Get();
 		StrBuf cwd;
-		cwd.Alloc( _MAX_PATH );
-		_getcwd( cwd.Text(), cwd.Length() );
-		cwd.SetLength();
+		HostEnv::GetCwdbyCS( cwd, cs );
 
 		PathSys *p = PathSys::Create();
+		p->SetCharSet( cs );
 		p->SetLocal( cwd, *fname );
 		lfname.Append( p->Text() );
 		delete p;
 	    }
 	    else
 	    {
-		if( lfn == 2 )
+		// In the UNC case, fname will have two leading back slashes.
+		// Use an offset to remove one leading slash.
+		// \\?\UNC\\host\share\path -> \\?\UNC\host\share\path
+		if( lfn & LFN_UNCPATH )
 		    lfname.Append( &(fname->Text()[1]) );
 		else
 		    lfname.Append( fname->Text() );
 	    }
 
-	   for(int len=0 ; len < lfname.Length(); ++len )
-	   {
-		if( lfname.Text()[len] == '/' )
-		    lfname.Text()[len] = '\\';
-	   }
+	    // The LFN escape bypasses the Win32 API nicety checks, force '\'.
+	    for(int i=0 ; i < lfname.Length(); ++i )
+	    {
+		if( lfname.Text()[i] == '/' )
+		    lfname.Text()[i] = '\\';
+	    }
 
+	    // LFN adjustments to fname.
 	    filename = lfname.Text();
-	    namelen = lfname.Length();
+	    fnamelen = lfname.Length();
 	}
 	else
 	{
+	    // Pass incoming fname through.
 	    filename = fname->Text();
-	    namelen = fname->Length();
+	    fnamelen = fname->Length();
 	}
 
-	// wname is allocated as a char *, use nt_free_wname when done.
-	//
-	if( newlen != NULL )
-	    wname = (wchar_t *)cvt.CvtBuffer( filename, namelen, newlen );
-	else
-	    wname = (wchar_t *)cvt.CvtBuffer( filename, namelen );
-
-	// No error structure, instead return a NULL.
-	if ( cvt.LastErr() != CharSetCvt::NONE )
+	if( lfn & LFN_UTF8 )
 	{
-	    // Right now we are not treating a conversion error as fatal.
-	    // We do not set error codes which allows them to linger.
-	    if( wname )
-		nt_free_wname( wname );
-	    return NULL;
+	    // This is converting from UTF8 to UNICODE.
+	    //
+	    wname = (wchar_t *)cvt.CvtBuffer( filename, fnamelen, &len );
+
+	    // No error structure, instead return a NULL.
+	    if ( cvt.LastErr() != CharSetCvt::NONE )
+	    {
+		if( wname )
+		    nt_free_wname( wname );
+		return NULL;
+	    }
 	}
+	else
+	{
+	    // This is converting from ANSI to UNICODE.
+	    //
+	    // first determine the buffer size needed for conversion
+	    //
+	    len = MultiByteToWideChar (
+				CP_ACP,
+				0,	// Use default flags
+				filename,
+				-1,	// filename is null terminated
+				0,
+				0 );
+
+	    if( len == 0 )
+	    {
+		// Report an error?
+		return NULL;
+	    }
+
+	    wname = (wchar_t *)new char[(len+1)*sizeof(wchar_t)];
+
+	    // perform the actual conversion using the active code page
+	    //
+	    len = MultiByteToWideChar (
+				CP_ACP,
+				0,	// Use default flags
+				filename,
+				-1,	// filename is null terminated
+				wname,
+				len );
+
+	    // No error structure, instead return a NULL.
+	    if( len == 0 )
+	    {
+		if( wname )
+		    nt_free_wname( wname );
+		return NULL;
+	    }
+	}
+
+	if( newlen != NULL )
+	    *newlen = len;
 
 	return wname;
 }
@@ -461,8 +518,9 @@ nt_islink( StrPtr *fname, DWORD *dwFlags, int dounicode, int lfn )
 	if( dounicode || lfn )
 	{
 	    int ret;
-	    if( (ret = ntw_islink( fname, dwFlags, lfn )) >= 0 || lfn )
-		return ret;
+	    if( (ret = ntw_islink( fname, dwFlags, lfn )) >= 0 ||
+		lfn & LFN_ENABLED )
+		    return ret;
 	}
 
 	DWORD fileAttributes = GetFileAttributes( fname->Text() );
@@ -470,11 +528,8 @@ nt_islink( StrPtr *fname, DWORD *dwFlags, int dounicode, int lfn )
 	    return -1;
 
 	if( dwFlags )
-	{
-	    *dwFlags = 0;
 	    if( fileAttributes & FILE_ATTRIBUTE_DIRECTORY )
 		*dwFlags = SYMBOLIC_LINK_FLAG_DIRECTORY;
-	}
 
 	if( fileAttributes & FILE_ATTRIBUTE_REPARSE_POINT )
 	{
@@ -526,7 +581,7 @@ nt_readlink( StrPtr *name, StrBuf &targetBuf, int dounicode, int lfn )
 	if( dounicode || lfn )
 	{
 	    fH = ntw_readlink( name, targetBuf, lfn );
-	    if( fH == INVALID_HANDLE_VALUE && lfn )
+	    if( fH == INVALID_HANDLE_VALUE && lfn & LFN_ENABLED )
 		return -1;
 	}
 	if( fH == INVALID_HANDLE_VALUE )
@@ -564,7 +619,7 @@ nt_readlink( StrPtr *name, StrBuf &targetBuf, int dounicode, int lfn )
 				MAXIMUM_REPARSE_DATA_BUFFER_SIZE;
 	reparseBuffer = (REPARSE_DATA_BUFFER *) malloc( struct_siz );
 	reparseBuffer->ReparseDataLength = MAXIMUM_REPARSE_DATA_BUFFER_SIZE;
-	DWORD returnedLength;
+	DWORD returnedLength = 0;
 	DWORD result = DeviceIoControl( fH, FSCTL_GET_REPARSE_POINT, 0, 0,
 			reparseBuffer, struct_siz, &returnedLength, 0 );
 	CloseHandle( fH );
@@ -635,7 +690,7 @@ ntw_open( StrPtr *fname, int flags, int mode, int lfn )
 
 	// Length check for unicode.
 	// If LFN and Unicode are grouped, this can be removed.
-	if( !lfn && newlen > ( MAX_PATH * 2 ) )
+	if( !(lfn & LFN_ENABLED) && newlen > ( MAX_PATH * 2 ) )
 	{
 	    nt_free_wname( wname );
 	    SetLastError( ERROR_BUFFER_OVERFLOW );
@@ -660,8 +715,9 @@ nt_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 	if( dounicode || lfn )
 	{
 	    int fd;
-	    if( (fd = ntw_open( fname, flags, mode, lfn ) ) >= 0 || lfn )
-		return fd;
+	    if( (fd = ntw_open( fname, flags, mode, lfn ) ) >= 0 ||
+		lfn & LFN_ENABLED )
+		    return fd;
 	}
 
 	if( fname->Length() > MAX_PATH )
@@ -685,15 +741,15 @@ ntw_stat( StrPtr *fname, struct statbL *sb, int lfn )
 	    return -1;
 
 	// Length check for unicode.
-	// If LFN and Unicode are grouped, this can be removed.
-	if( !lfn && newlen > ( MAX_PATH * 2 ) )
+	// If LFN and Unicode are combined, this can be removed.
+	if( !(lfn & LFN_ENABLED) && newlen > ( MAX_PATH * 2 ) )
 	{
 	    nt_free_wname( wname );
 	    SetLastError( ERROR_BUFFER_OVERFLOW );
 	    return -1;
 	}
 
-	if( lfn )
+	if( lfn & LFN_ENABLED )
 	    ret = nt_wstati64( wname, sb );  // LFN
 	else
 	    ret = _wstati64( wname, sb );   // Unicode
@@ -708,8 +764,9 @@ nt_stat( StrPtr *fname, struct statbL *sb, int dounicode, int lfn )
 	if( dounicode || lfn )
 	{
 	    int ret;
-	    if( (ret = ntw_stat( fname, sb, lfn ) ) >= 0 || lfn )
-		return ret;
+	    if( (ret = ntw_stat( fname, sb, lfn ) ) >= 0 ||
+		lfn & LFN_ENABLED )
+		    return ret;
 	}
 
 	if( fname->Length() > MAX_PATH )
@@ -724,7 +781,7 @@ nt_stat( StrPtr *fname, struct statbL *sb, int dounicode, int lfn )
 static int
 ntw_unlink( StrPtr *fname, int lfn )
 {
-	DWORD dwFlags;
+	DWORD dwFlags = 0;
 	const wchar_t *wname=NULL;
 
 	wname = nt_wname( fname, lfn, NULL );
@@ -754,14 +811,15 @@ ntw_unlink( StrPtr *fname, int lfn )
 static int
 nt_unlink( StrPtr *fname, int dounicode, int lfn )
 {
-	DWORD dwFlags;
+	DWORD dwFlags = 0;
 
 	// Allow unicode to fall through.
 	if( dounicode || lfn )
 	{
 	    int ret;
-	    if( (ret = ntw_unlink( fname, lfn )) >= 0 || lfn )
-	    	return ret;
+	    if( (ret = ntw_unlink( fname, lfn )) >= 0 ||
+		lfn & LFN_ENABLED )
+	    	    return ret;
 	}
 
 	// no error returned if directory is not removed.
@@ -833,7 +891,9 @@ nt_openDirHandle( const char *fname )
 // As of Visual Studio 2013, the problem has been fixed.
 // Keep this fix as we still build with older Visual Studios.
 //
-static int nt_convertToFileTime( time_t t32, FILETIME *ft)
+// msec is in milliseconds.
+//
+static int nt_convertToFileTime( time_t t32, int msec, FILETIME *ft)
 {
 	SYSTEMTIME st;
 	struct tm *u_tm;
@@ -843,7 +903,7 @@ static int nt_convertToFileTime( time_t t32, FILETIME *ft)
 	if( !u_tm )
 	    return -1;
 
-	st.wMilliseconds = 0;
+	st.wMilliseconds = msec;
 	st.wDayOfWeek = 0;
 	st.wSecond = u_tm->tm_sec;
 	st.wMinute = u_tm->tm_min;
@@ -857,14 +917,16 @@ static int nt_convertToFileTime( time_t t32, FILETIME *ft)
 	return 0;
 }
 
+// msec is in milliseconds.
+//
 static int
-nt_setFileTimes( HANDLE hFile, time_t t32 )
+nt_setFileTimes( HANDLE hFile, time_t t32, int msec )
 {
 	FILETIME ft;
 	int result;
 
 	if( hFile == INVALID_HANDLE_VALUE || t32 == -1 ||
-		nt_convertToFileTime( t32, &ft ) )
+		nt_convertToFileTime( t32, msec, &ft ) )
 	    return -1;
 	result = SetFileTime( hFile, (LPFILETIME)0, (LPFILETIME)0, &ft ) != 0
 		? 0 : -1 ;
@@ -872,8 +934,10 @@ nt_setFileTimes( HANDLE hFile, time_t t32 )
 	return result;
 }
 
+// msec is in milliseconds.
+//
 static int
-ntw_utime( StrPtr *fname, struct utimbufL *ut, int lfn )
+ntw_utime( StrPtr *fname, struct utimbufL *ut, int msec, int lfn )
 {
 	const wchar_t *wname;
 	int ret;
@@ -882,23 +946,28 @@ ntw_utime( StrPtr *fname, struct utimbufL *ut, int lfn )
 	if( !wname )
 	    return -1;
 
-	ret = nt_setFileTimes( nt_openHandleW( fname, lfn ), ut->modtime );
+	ret = nt_setFileTimes( nt_openHandleW( fname, lfn ),
+				ut->modtime, msec );
 	nt_free_wname( wname );
 	return ret;
 }
 
+// msec is in milliseconds.
+//
 static int
-nt_utime( StrPtr *fname, struct utimbufL *ut, int dounicode, int lfn)
+nt_utime( StrPtr *fname, struct utimbufL *ut, int msec, int dounicode, int lfn)
 {
 	// Allow unicode to fall through.
 	if( dounicode || lfn )
 	{
 	    int ret;
-	    if ( (ret = ntw_utime( fname, ut, lfn ) ) >= 0 || lfn )
-		return ret;
+	    if ( (ret = ntw_utime( fname, ut, msec, lfn ) ) >= 0 ||
+		lfn & LFN_ENABLED )
+		    return ret;
 	}
 
-	return nt_setFileTimes( nt_openHandle( fname->Text() ), ut->modtime );
+	return nt_setFileTimes( nt_openHandle( fname->Text() ),
+				ut->modtime, msec );
 }
 
 static int
@@ -923,8 +992,9 @@ nt_chmod( StrPtr *fname, int m, int dounicode, int lfn )
 	if( dounicode || lfn )
 	{
 	    int ret;
-	    if ((ret = ntw_chmod( fname, m, lfn )) >= 0 || lfn )
-		return ret;
+	    if ((ret = ntw_chmod( fname, m, lfn )) >= 0 ||
+		lfn & LFN_ENABLED )
+		    return ret;
 	}
 
 	return ::_chmod( fname->Text(), m );
@@ -952,8 +1022,9 @@ nt_setattr( StrPtr *fname, int m, int dounicode, int lfn )
 	if( dounicode || lfn )
 	{
 	    int ret;
-	    if ((ret = ntw_setattr( fname, m, lfn )) >= 0 || lfn )
-		return ret;
+	    if ((ret = ntw_setattr( fname, m, lfn )) >= 0 ||
+		lfn & LFN_ENABLED )
+		    return ret;
 	}
 
 	return SetFileAttributesA( fname->Text(), m ) ? 1 : 0 ;
@@ -990,8 +1061,9 @@ nt_rename( StrPtr *fname, StrPtr *nname, int dounicode, int lfn )
 	if( dounicode || lfn )
 	{
 	    int ret;
-	    if( (ret=ntw_rename( fname, nname, lfn )) >= 0 || lfn )
-	    	return ret;
+	    if( (ret=ntw_rename( fname, nname, lfn )) >= 0 ||
+		lfn & LFN_ENABLED )
+	    	    return ret;
 	}
 
 	return ::rename( fname->Text(), nname->Text() );
@@ -1075,8 +1147,9 @@ nt_makelink( StrBuf &target, StrPtr *name, int dounicode, int lfn )
 	if( dounicode || lfn )
 	{
 	    int ret;
-	    if( (ret = ntw_makelink( n_tgt, name, dwFlags, lfn )) >= 0 || lfn )
-	    	return ret;
+	    if( (ret = ntw_makelink( n_tgt, name, dwFlags, lfn )) >= 0 ||
+		lfn & LFN_ENABLED )
+	    	    return ret;
 	}
 
 	if( (*CreateSymbolicLinkA_func)(name->Text(), n_tgt.Text(), dwFlags) )
@@ -1121,7 +1194,8 @@ FileIO::Rename( FileSys *target, Error *e )
 	    target->Unlink( 0 ); // yeech - must not exist to rename
 	}
 
-	if( nt_rename( Path(), target->Path(), DOUNICODE, LFN ) < 0 )
+	if( nt_rename( Path(), target->Path(), DOUNICODE,
+	    LFN|target->GetLFN() ) < 0 )
 	{
 	    // nasty hack coming up.
 	    // one customer is suffering from a rename() problem
@@ -1139,7 +1213,8 @@ FileIO::Rename( FileSys *target, Error *e )
 
 	        target->Unlink( 0 );
 
-	        ret = nt_rename( Path(), target->Path(), DOUNICODE, LFN );
+	        ret = nt_rename( Path(), target->Path(), DOUNICODE,
+		    LFN|target->GetLFN() );
 
 	        if( ret >= 0 )
 	            break;
@@ -1176,7 +1251,6 @@ FileIO::Rename( FileSys *target, Error *e )
 void
 FileIO::Unlink( Error *e )
 {
-	int ret;
 	// yeech - must be writable to remove
 
 	if( *Name() )
@@ -1207,7 +1281,19 @@ FileIO::ChmodTime( int modTime, Error *e )
 	t.actime = 0; // This is ignored by nt_utime
 	t.modtime = DateTime::Localize( modTime );
 
-	if( nt_utime( Path(), &t, DOUNICODE, LFN ) < 0 )
+	if( nt_utime( Path(), &t, 0, DOUNICODE, LFN ) < 0 )
+	    e->Sys( "utime", Name() );
+}
+
+void
+FileIO::ChmodTimeHP( const DateTimeHighPrecision &modTime, Error *e )
+{
+	struct utimbufL t;
+
+	t.actime = 0; // This is ignored by nt_utime
+	t.modtime = DateTime::Localize( modTime.Seconds() );
+
+	if( nt_utime( Path(), &t, modTime.Nanos() / 1000000, DOUNICODE, LFN ) < 0 )
 	    e->Sys( "utime", Name() );
 }
 
@@ -1433,7 +1519,7 @@ FileIO::HasOnlyPerm( FilePerm perms )
 # ifdef OS_MINGW
 
 static int
-nt_getLastModifiedTime( HANDLE hFile )
+nt_getLastModifiedTime( HANDLE hFile, int &msec )
 {
 	// Convert file timestamp to local time, then to time_t.
 	// This is because MINGW doesn't have _mkgmtime, but does have mktime.
@@ -1453,6 +1539,8 @@ nt_getLastModifiedTime( HANDLE hFile )
 
 	FileTimeToSystemTime( &mTime, &stUTC );
 	SystemTimeToTzSpecificLocalTime( NULL, &stUTC, &st );
+	
+	msec = st.wMilliseconds;
 
 	u_tm.tm_sec   = st.wSecond;
 	u_tm.tm_min   = st.wMinute;
@@ -1473,8 +1561,10 @@ nt_getLastModifiedTime( HANDLE hFile )
 // As of Visual Studio 2013, the problem has been fixed.
 // We must keep this fix since we still build with older Visual Studios.
 //
+// msec is in milliseconds.
+//
 static int
-nt_getLastModifiedTime( HANDLE hFile )
+nt_getLastModifiedTime( HANDLE hFile, int &msec )
 {
 	SYSTEMTIME st;
 	struct tm u_tm;
@@ -1490,6 +1580,8 @@ nt_getLastModifiedTime( HANDLE hFile )
 	    return -1;
 
 	FileTimeToSystemTime( &mTime, &st );
+	
+	msec = st.wMilliseconds;
 
 	u_tm.tm_sec   = st.wSecond;
 	u_tm.tm_min   = st.wMinute;
@@ -1511,6 +1603,7 @@ FileIO::StatModTime()
 {
 	HANDLE fH;
 	StrPtr *fname = Path();
+	int msecs = 0;
 
 	if( DOUNICODE || LFN )
 	{
@@ -1520,16 +1613,61 @@ FileIO::StatModTime()
 	    else
 		fH = nt_openDirHandleW( fname, LFN );
 	    if( fH != INVALID_HANDLE_VALUE )
-		return nt_getLastModifiedTime( fH );
+		return nt_getLastModifiedTime( fH, msecs );
 
 	    // We know LFN can not fall through and succeed.
 	    // Unicode case continues to fall through.
 	    if( LFN )
 		return -1;
 	}
+
 	if( nt_islink( fname, NULL, DOUNICODE, LFN ) > 0 )
-	    return nt_getLastModifiedTime( nt_openDirHandle( fname->Text() ) );
-	return nt_getLastModifiedTime( nt_openHandle( fname->Text() ) );
+	    fH = nt_openDirHandle( fname->Text() );
+	else
+	    fH = nt_openHandle( fname->Text() );
+	return nt_getLastModifiedTime( fH, msecs );
+}
+
+void
+FileIO::StatModTimeHP(DateTimeHighPrecision *modTime)
+{
+	HANDLE fH;
+	StrPtr *fname = Path();
+
+	time_t	seconds;
+	int	msecs = 0;
+
+	if( DOUNICODE || LFN )
+	{
+	    // nt_openHandleW() does the unicode filename translation.
+	    if( nt_islink( fname, NULL, DOUNICODE, LFN ) > 0 )
+		fH = nt_openHandleW( fname, LFN );
+	    else
+		fH = nt_openDirHandleW( fname, LFN );
+
+	    if( fH != INVALID_HANDLE_VALUE )
+	    {
+		seconds = nt_getLastModifiedTime( fH, msecs );
+		*modTime = DateTimeHighPrecision( seconds, msecs * 1000000 );
+		return;
+	    }
+
+	    // We know LFN can not fall through and succeed.
+	    // Unicode case continues to fall through.
+	    if( LFN )
+	    {
+		*modTime = DateTimeHighPrecision();
+		return;
+	    }
+	}
+
+	if( nt_islink( fname, NULL, DOUNICODE, LFN ) > 0 )
+	    fH = nt_openDirHandle( fname->Text() );
+	else
+	    fH = nt_openHandle( fname->Text() );
+	
+	seconds = nt_getLastModifiedTime( fH, msecs );
+	*modTime = DateTimeHighPrecision( seconds, msecs * 1000000 );
 }
 
 void
@@ -1662,7 +1800,6 @@ offL_t
 FileIOBinary::GetSize()
 {
 	struct _stati64 sb;
-	int ret;
 
 	if( nt_stat( Path(), &sb, DOUNICODE, LFN ) < 0 )
 	    return -1;

@@ -57,7 +57,7 @@ static int grid[ TT_LAST ][ 7 ] = {
 } ;
 
 int
-Tracker::Over( TrackerType type, int amount )
+Tracker::Over( TrackerType type, P4INT64 amount )
 {
 	// level -1 use dbstat slot in table
 

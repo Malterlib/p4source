@@ -427,7 +427,10 @@ StrOps::RmUniquote( StrBuf &o, const StrPtr &buf )
 	    if( !r )
 		break;
 	    if( q == r )
+	    {
+		q++;
 		continue;
+	    }
 	    if( *q == '\'' )
 	    {
 		o.UAppend( p, q++ - p - 1 );
@@ -1112,6 +1115,28 @@ StrOps::ScrunchArgs( StrBuf &out, int argc, StrPtr *argv, int targetLength,
 }
 
 /*
+ * StrOps::GetDepotFileExtension() - Extracts the .xyz from a path, sans dot.
+ */
+
+void
+StrOps::GetDepotFileExtension( const StrBuf &path, StrBuf &ext )
+{
+	const char *dot = strrchr( path.Text(), '.' );
+	const char *sep = strrchr( path.Text(), '/' );
+
+	// file
+	// di.r/file
+	
+	if( !dot || sep >= dot )
+	    return;
+
+	// file..
+	if( ( path.Length() - ( dot - path.Text() ) ) > 0 )
+	    // file.txt -> 'txt'
+	    ext.Set( dot + 1 );
+}
+
+/*
  * StrOps::GetDepotName() - extracts the depot name from a depot path
  */
 
@@ -1132,6 +1157,31 @@ StrOps::GetDepotName( const char *d, StrBuf &n )
 	n.Append( p, s - p );
 }
 
+
+/*
+ * StrOps::StreamNameInPath() - extract stream name from a depotFile & depth
+ */
+
+int
+StrOps::StreamNameInPath( const char *dFile, int depth, StrBuf &name )
+{
+
+	int slash = 0;
+	const char *t = ( dFile  + 2 );
+
+	// string to depth+1 slashes then remove trailing slash
+
+	for( slash = 0; slash < depth + 1; slash++, t++ )
+	{
+	    t = strchr( t, '/' );
+	    if( !t ) return 0;
+	}
+
+	name.Append( dFile, --t - dFile );
+
+	return --slash;
+
+}
 
 /*
  * StrOps::CommonPath() - Build a common file path given multiple depotpaths.

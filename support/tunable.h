@@ -36,6 +36,7 @@ enum P4TunableName {
 	P4TUNE_DM_BATCH_DOMAINS,		// see dmdomains.cc
 	P4TUNE_DM_CHANGES_THRESH1,		// set dmchanges.cc
 	P4TUNE_DM_CHANGES_THRESH2,		// set dmchanges.cc
+	P4TUNE_DM_COPY_MOVEWARN,
 	P4TUNE_DM_DOMAIN_ACCESSUPDATE,		// see dmadomain.cc
 	P4TUNE_DM_DOMAIN_ACCESSFORCE,		// see dmadomain.cc
 	P4TUNE_DM_FLUSHFORCE,
@@ -80,15 +81,19 @@ enum P4TunableName {
 	P4TUNE_FILESYS_BUFSIZE,			// see filesys.h
 	P4TUNE_FILESYS_CACHEHINT,		// see filesys.cc
 	P4TUNE_FILESYS_DETECTUNICODE,		// see filesys.cc
+	P4TUNE_FILESYS_LOCKDELAY,		// see filetmp.ccc
+	P4TUNE_FILESYS_LOCKTRY,			// see filetmp.cc
 	P4TUNE_FILESYS_MAKETMP,
 	P4TUNE_FILESYS_MAXMAP,			// see readfile.cc
 	P4TUNE_FILESYS_MAXSYMLINK,		// see fileiosym.cc
 	P4TUNE_FILESYS_MAXTMP,
 	P4TUNE_FILESYS_EXTENDLOWMARK,
 	P4TUNE_FILESYS_WINDOWS_LFN,		// see filesys.cc
+	P4TUNE_FILESYS_CLIENT_NULLSYNC,		// see clientservice.cc
 	P4TUNE_INDEX_DOMAIN_OWNER,              // see dmdomains.cc
 	P4TUNE_LBR_AUTOCOMPRESS,		// see submit
 	P4TUNE_LBR_BUFSIZE,			// see lbr.h
+	P4TUNE_LBR_FABRICATE,			// see lbrservice.h
 	P4TUNE_LBR_PROXY_CASE,			// see pxclient.cc
 	P4TUNE_LBR_RCS_EXISTCHECK,		// see usersubmit.cc
 	P4TUNE_LBR_RCS_MAXLEN,			// see lbrkeyed.cc
@@ -97,6 +102,7 @@ enum P4TunableName {
 	P4TUNE_LBR_VERIFY_IN,			// see lbrservice.cc
 	P4TUNE_LBR_VERIFY_OUT,			// see rhservice.cc
 	P4TUNE_LBR_VERIFY_SCRIPT_OUT,		// see rhservice.cc
+	P4TUNE_LOG_ORIGINHOST,			// see rhloggable.cc
 	P4TUNE_MAP_JOINMAX1,
 	P4TUNE_MAP_JOINMAX2,
 	P4TUNE_MAP_MAXWILD,
@@ -108,6 +114,14 @@ enum P4TunableName {
 	P4TUNE_NET_MAX_FAULT_PUB,		// see proxy/pxclient.cc
 	P4TUNE_NET_MAXWAIT,			// see nettcptransport.cc, netssltrancport.cc
 	P4TUNE_NET_PARALLEL_MAX,		// see dmparsend.cc
+	P4TUNE_NET_PARALLEL_THREADS,		// see usersync.cc
+	P4TUNE_NET_PARALLEL_BATCH,		// see usersync.cc
+	P4TUNE_NET_PARALLEL_BATCHSIZE,		// see usersync.cc
+	P4TUNE_NET_PARALLEL_MIN,		// see usersync.cc
+	P4TUNE_NET_PARALLEL_MINSIZE,		// see usersync.cc
+	P4TUNE_NET_PARALLEL_SUBMIT_THREADS,	// see usersubmit.cc
+	P4TUNE_NET_PARALLEL_SUBMIT_BATCH,	// see usersubmit.cc
+	P4TUNE_NET_PARALLEL_SUBMIT_MIN,		// see usersubmit.cc
 	P4TUNE_NET_RCVBUFSIZE,			// see netbuffer.h
 	P4TUNE_NET_REUSEPORT,			// see nettcpendpoint.cc
 	P4TUNE_NET_RFC3484,			// see nettcpendpoint.cc
@@ -118,8 +132,10 @@ enum P4TunableName {
 	P4TUNE_PROXY_MONITOR_LEVEL,		// see pxmonitor.cc
 	P4TUNE_RCS_MAXINSERT,
 	P4TUNE_RCS_NOFSYNC,			// see rcsvfile.cc
+	P4TUNE_RPC_DURABLEWAIT,			// see rhservice.cc
 	P4TUNE_RPC_HIMARK,
 	P4TUNE_RPC_LOWMARK,
+	P4TUNE_RPC_IPADDR_MISMATCH,		// see rhservice.cc, rpcfwd.cc
 	P4TUNE_RPL_CHECKSUM_AUTO,
 	P4TUNE_RPL_CHECKSUM_CHANGE,
 	P4TUNE_RPL_CHECKSUM_TABLE,
@@ -134,10 +150,12 @@ enum P4TunableName {
 	P4TUNE_RPL_JOURNAL_ACK,			// See server / rmtservice.cc
 	P4TUNE_RPL_JOURNAL_ACK_MIN,		// See server / rmtservice.cc
 	P4TUNE_RPL_LABELS_GLOBAL,		// See userlabel/userlabsync
+	P4TUNE_RPL_REPLAY_USERRP,		// See server / rpl.cc
 	P4TUNE_RPL_VERIFY_CACHE,		// See rhservice.cc
 	P4TUNE_RUN_MOVE_ALLOW,			// see usermove.cc
 	P4TUNE_RUN_OBLITERATE_ALLOW,		// see userpurge.cc
 	P4TUNE_RUN_PRUNE_ALLOW,			// see userpurge.cc
+	P4TUNE_RUN_UNZIP_USER_ALLOW,		// see userzip.cc
 	P4TUNE_RUN_USERS_AUTHORIZE,		// see userusers.cc
 	P4TUNE_SERVER_COMMANDLIMITS,		// see dmcaller.cc
 	P4TUNE_SERVER_FILECHARSET,
@@ -146,6 +164,7 @@ enum P4TunableName {
 	P4TUNE_SERVER_ALLOWFETCH,		// DVCS feature enabling
 	P4TUNE_SERVER_ALLOWPUSH,		// DVCS feature enabling
 	P4TUNE_SERVER_ALLOWREWRITE,		// DVCS feature enabling
+	P4TUNE_SERVER_GLOBAL_CLIENT_VIEWS,	// see dmr/dmrprobe.cc
 	P4TUNE_SERVER_MAXCOMMANDS,		// see rhmain.cc
 	P4TUNE_FILETYPE_BYPASSLOCK,		// see useropen.cc
 	P4TUNE_FILETYPE_MAXTEXTSIZE,		// set useropen.cc

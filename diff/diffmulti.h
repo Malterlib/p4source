@@ -50,7 +50,8 @@ class MultiMerge
 
 	void	Dump();
 
-	MergeLine *Read( int &lower, int &upper, StrPtr &string, int chg );
+	MergeLine *Read( int &lower, int &upper, int &change, 
+	                 StrPtr &string, int chg );
 
 	MergeLine *FirstLine() { return chain; } // for FileMultiMerge
 

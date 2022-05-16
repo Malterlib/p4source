@@ -31,11 +31,14 @@ class JnlTracker {
 
 	void	Restart() { npids = 0; }
 
+	int	SawJournalTrailer();
+
     private:
 	IntArray	pids;
 	int		npids;
 	int		markcnt[2];
 	int		consistentcnt;
+	int		sawJTrailer;
 	int		maxpids;
 
 	// for journal scanning

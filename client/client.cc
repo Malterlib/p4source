@@ -62,6 +62,7 @@ Client::Client( Enviro *e ) : Rpc( &service )
 	pubKeyChecked = 0;
 	hostprotoset = 0;
 	syncTime = 0;
+	ownCwd = 1;
 
 	protocolXfiles = -1;
 	protocolNocase = 0;
@@ -196,10 +197,8 @@ Client::RunTag( const char *func, ClientUser *u )
 	{
 	    hostprotoset = 1;
 	    if( GetInitRoot().Length() == 0 )
-	    {
 		SetProtocolDynamic( P4Tag::v_host, GetHost() );
-		SetProtocolDynamic( P4Tag::v_port, GetPort() );
-	    }
+	    SetProtocolDynamic( P4Tag::v_port, GetPort() );
 	}
 
 	// Warning: WaitTag() calls Dispatch() which may call Invoke().

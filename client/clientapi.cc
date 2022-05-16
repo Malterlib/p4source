@@ -57,6 +57,7 @@ void 	ClientApi::SetCharset( const StrPtr *c ) { client->SetCharset( c ); }
 void 	ClientApi::SetClient( const StrPtr *c ) { client->SetClient( c ); }
 void 	ClientApi::SetCwd( const StrPtr *c ) { client->SetCwd( c ); }
 void 	ClientApi::SetCwdNoReload( const StrPtr *c ) { client->SetCwdNoReload( c ); }
+void 	ClientApi::SetExecutable( const StrPtr *c ) { client->SetExecutable( c ); }
 void 	ClientApi::SetHost( const StrPtr *c ) { client->SetHost( c ); }
 void	ClientApi::SetIgnoreFile( const StrPtr *c ) { client->SetIgnoreFile( c ); }
 void 	ClientApi::SetLanguage( const StrPtr *c ) { client->SetLanguage( c ); }
@@ -82,6 +83,7 @@ const StrPtr & ClientApi::GetCharset() { return client->GetCharset(); }
 const StrPtr & ClientApi::GetClient() { return client->GetClient(); }
 const StrPtr & ClientApi::GetClientNoHost() { return client->GetClientNoHost(); }
 const StrPtr & ClientApi::GetCwd() { return client->GetCwd(); }
+const StrPtr & ClientApi::GetExecutable() { return client->GetExecutable(); }
 const StrPtr & ClientApi::GetHost() { return client->GetHost(); }
 const StrPtr & ClientApi::GetIgnoreFile() { return client->GetIgnoreFile(); }
 const StrPtr & ClientApi::GetLanguage() { return client->GetLanguage(); }
@@ -90,6 +92,7 @@ const StrPtr & ClientApi::GetPassword() { return client->GetPassword(); }
 const StrPtr & ClientApi::GetPort() { return client->GetPort(); }
 const StrPtr & ClientApi::GetUser() { return client->GetUser(); }
 const StrPtr & ClientApi::GetConfig() { return client->GetConfig(); }
+const StrArray* ClientApi::GetConfigs() { return client->GetConfigs(); }
 const StrPtr & ClientApi::GetBuild() { return client->GetBuild(); }
 
 Ignore *ClientApi::GetIgnore() { return client->GetIgnore(); }

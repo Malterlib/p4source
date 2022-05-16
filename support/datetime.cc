@@ -17,6 +17,9 @@
 
 # include <datetime.h>
 
+# define MILLION (1000000)
+# define BILLION ((P4INT64) 1000000000L)
+
 /*
  * DateTime - date as stored in license file (string of time(0))
  */
@@ -467,6 +470,89 @@ DateTime::Centralize( time_t localTime )
 	return localTime + centralOffset;
 }
 
+DateTimeHighPrecision &
+DateTimeHighPrecision::operator=( const DateTimeHighPrecision &rhs )
+{
+	if( this != &rhs ) {
+	    seconds = rhs.seconds;
+	    nanos = rhs.nanos;
+	}
+
+	return *this;
+}
+
+DateTimeHighPrecision &
+DateTimeHighPrecision::operator+=( const DateTimeHighPrecision &rhs )
+{
+	P4INT64 sum = ToNanos() + rhs.ToNanos();
+	seconds = sum / BILLION;
+	nanos = sum % BILLION;
+
+	return *this;
+}
+
+DateTimeHighPrecision &
+DateTimeHighPrecision::operator-=( const DateTimeHighPrecision &rhs )
+{
+	P4INT64	diff = ToNanos() - rhs.ToNanos();
+	seconds = diff / BILLION;
+	nanos = diff % BILLION;
+
+	return *this;
+}
+
+bool
+DateTimeHighPrecision::operator==( const DateTimeHighPrecision &rhs ) const
+{
+	return seconds == rhs.seconds && nanos == rhs.nanos;
+}
+
+bool
+DateTimeHighPrecision::operator!=( const DateTimeHighPrecision &rhs ) const
+{
+	return !(*this == rhs);
+}
+
+bool
+DateTimeHighPrecision::operator<( const DateTimeHighPrecision &rhs ) const
+{
+	if( seconds < rhs.seconds )
+	    return true;
+	else if( seconds > rhs.seconds )
+	    return false;
+	else
+	    return nanos < rhs.nanos;
+}
+
+bool
+DateTimeHighPrecision::operator<=( const DateTimeHighPrecision &rhs ) const
+{
+	if( seconds < rhs.seconds )
+	    return true;
+	else if( seconds > rhs.seconds )
+	    return false;
+	else
+	    return nanos <= rhs.nanos;
+}
+
+bool
+DateTimeHighPrecision::operator>( const DateTimeHighPrecision &rhs ) const
+{
+	return !(*this <= rhs );
+}
+
+bool
+DateTimeHighPrecision::operator>=( const DateTimeHighPrecision &rhs ) const
+{
+	return !(*this < rhs);
+}
+
+P4INT64
+DateTimeHighPrecision::ToNanos() const
+{
+	return seconds * BILLION + nanos;
+}
+
 void
 DateTimeHighPrecision::Now()
 {
@@ -540,62 +626,47 @@ DateTimeHighPrecision::Nanos() const
 	return nanos;
 }
 
+// format t2 - *this
 void
 DateTimeHighPrecision::FmtElapsed(
 	StrBuf &buf,
 	const DateTimeHighPrecision t2 ) const
 {
-	int elapsedSeconds, elapsedNanos;
-
-	if( t2.seconds == seconds )
-	{
-	    elapsedSeconds = 0;
-	    elapsedNanos = t2.nanos - nanos;
-	}
-	else if( t2.nanos > nanos )
-	{
-	    elapsedSeconds = t2.seconds - seconds;
-	    elapsedNanos = t2.nanos - nanos;
-	}
-	else
-	{
-	    elapsedSeconds = t2.seconds - seconds - 1;
-	    elapsedNanos = ( 1000000000L + t2.nanos ) - nanos;
-	}
+	P4INT64	delta = t2.ToNanos() - ToNanos();
+	int elapsedSeconds = delta / BILLION;
+	int elapsedNanos = delta % BILLION;
 
 	buf.Alloc( DTHighPrecisionBufSize );
+#if 0
+	// isn't this what we want?
+	sprintf( buf.Text(), "%d.%dms", elapsedSeconds, elapsedNanos/MILLION );
+#else
+	// but this is what the previous code does
 	if( elapsedSeconds )
 	    sprintf( buf.Text(), "%ds", elapsedSeconds );
 	else
-	    sprintf( buf.Text(), "%dms", elapsedNanos / 1000000 );
+	    sprintf( buf.Text(), "%dms", elapsedNanos / MILLION );
+#endif
 	buf.SetLength();
 }
 
+// return (t2 - *this) in nanoseconds
 P4INT64
-DateTimeHighPrecision::ElapsedNanos( const DateTimeHighPrecision &t2 )
+DateTimeHighPrecision::ElapsedNanos( const DateTimeHighPrecision &t2 ) const
 {
-	int elapsedSeconds, elapsedNanos;
+	return t2.ToNanos() - ToNanos();
+}
 
-	if( t2.seconds == seconds )
-	{
-	    elapsedSeconds = 0;
-	    elapsedNanos = t2.nanos - nanos;
-	}
-	else if( t2.nanos > nanos )
-	{
-	    elapsedSeconds = t2.seconds - seconds;
-	    elapsedNanos = t2.nanos - nanos;
-	}
+// return < 0, = 0, or > 0 if *this < rhs, *this == rhs, or *this > rhs, respectively
+int
+DateTimeHighPrecision::Compare( const DateTimeHighPrecision &rhs ) const
+{
+	if( seconds < rhs.seconds )
+	    return -1;
+	else if (seconds > rhs.seconds )
+	    return 1;
 	else
-	{
-	    elapsedSeconds = t2.seconds - seconds - 1;
-	    elapsedNanos = ( 1000000000L + t2.nanos ) - nanos;
-	}
-
-	P4INT64 result = ( ((P4INT64)elapsedSeconds) * 1000000000L ) +
-	                 elapsedNanos;
-
-	return result;
+	    return nanos - rhs.nanos;
 }
 
 void

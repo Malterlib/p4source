@@ -59,6 +59,8 @@ clientReceiveFiles( Client *client, Error *e )
 	StrPtr *threads = client->GetVar( P4Tag::v_peer, e );
 	StrPtr *blockCount = client->GetVar( P4Tag::v_blockCount );
 	StrPtr *blockSize = client->GetVar( P4Tag::v_scanSize );
+	StrPtr *proxyload = client->GetVar( "proxyload" );
+	StrPtr *applicense = client->GetVar( P4Tag::v_app );
 	StrPtr *clientSend = client->GetVar( "clientSend" );
 	StrPtr *confirm = client->GetVar( P4Tag::v_confirm );
 
@@ -84,6 +86,18 @@ clientReceiveFiles( Client *client, Error *e )
 	    tc[i].args.AddArg( client->GetUser() );
 	    tc[i].args.AddArg( "-c" );
 	    tc[i].args.AddArg( client->GetClient() );
+	    if( proxyload )
+	        tc[i].args.AddArg( "-Zproxyload" );
+	    if( applicense )
+	    {
+	        StrBuf appArg; appArg << "-Zapp=" << applicense;
+	        tc[i].args.AddArg( appArg );
+	    }
+	    if( client->GetPassword().Length() )
+	    {
+	        tc[i].args.AddArg( "-P" );
+	        tc[i].args.AddArg( client->GetPassword() );
+	    }
 	    tc[i].args.AddArg( "transmit" );
 	    tc[i].args.AddArg( "-t" );
 	    tc[i].args.AddArg( *token );
@@ -127,6 +141,10 @@ clientReceiveFiles( Client *client, Error *e )
 	    if( status )
 		++errSet;
 	}
+
+	if( errSet )
+	    client->SetError();
+
 	delete []tc;
 
 	if( errSet && confirm )

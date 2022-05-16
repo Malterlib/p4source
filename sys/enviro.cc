@@ -29,6 +29,7 @@
 # include <errornum.h>
 # include <msgsupp.h>
 # include <vararray.h>
+# include <strarray.h>
 # include <pathsys.h>
 # include <filesys.h>
 # include <i18napi.h>
@@ -105,6 +106,7 @@ struct EnviroItem {
 	StrBuf	var;
 	StrBuf	value;
 	Enviro::ItemType type;
+	StrBuf	origin;
 } ;
 
 /*
@@ -118,6 +120,7 @@ class EnviroTable : public VarArray {
 
 	EnviroItem	*GetItem( const StrRef &var );
 	EnviroItem	*PutItem( const StrRef &var );
+	void		RemoveType( Enviro::ItemType ty );
 } ;
 
 const StrPtr *Enviro::sServiceNameStrP = NULL;
@@ -162,12 +165,14 @@ Enviro::Enviro()
 	setKey = &userKey;
 	serviceKey = 0;
 	charset = 0;
+	configFiles = new StrArray;
 }
 
 Enviro::~Enviro()
 {
 	delete symbolTab;
 	delete serviceKey;
+	delete configFiles;
 }
 
 int
@@ -658,241 +663,6 @@ Enviro::GetCharSet()
 	return charset;
 }
 
-
-
-# elif defined ( OS_MACOSX ) || defined ( OS_DARWIN )
-
-/*
- * Enviro on Mac OS X
- */
-
-# include <CoreFoundation/CFPreferences.h>
-
-// Apple's Preferences API here
-//
-// http://developer.apple.com/documentation/CoreFoundation/Reference/CFPreferencesUtils/index.html
-//
-
-CFStringRef applicationID = CFSTR("com.perforce.environment");
-
-void StrBufSetToCFString(
-	 StrBuf *         buf,
-	 CFStringRef      stringRef,
-	 CFStringEncoding encoding )
-{
-	CFDataRef data = CFStringCreateExternalRepresentation(
-	                   kCFAllocatorDefault,
-	                   stringRef,
-	                   encoding,
-	                   '?' );
-	
-	buf->Set( (const char *)CFDataGetBytePtr(data), CFDataGetLength( data ) );
-	CFRelease( data );
-}
-
-extern CFPropertyListRef CFPreferencesCopyValue(CFStringRef, CFStringRef, CFStringRef, CFStringRef) __attribute ((weak_import));
-
-static bool HasCFPreferences()
-{
-	// CoreFoundation should be weak-linked and we can check for
-	// the presence of a CFPreferences symbol dynamically.
-	//   -weak_framework <framework_name>
-
-	// http://developer.apple.com/mac/library/documentation/MacOSX/Conceptual/BPFrameworks/Concepts/WeakLinking.html
-	return (CFPreferencesCopyValue != NULL);
-}
-
-Enviro::Enviro()
-{
-	symbolTab = 0;
-	domain = Enviro::USER;
-}
-
-Enviro::~Enviro()
-{
-	delete symbolTab;
-}
-
-int
-Enviro::BeServer( const StrPtr *name, int checkName )
-{
-	sServiceNameStrP = name;
-	domain = Enviro::SYS;
-	return 1;
-}
-
-void
-Enviro::OsServer()
-{
-}
-
-void
-Enviro::Reload()
-{
-	delete symbolTab;
-	symbolTab = 0;
-}
-
-bool
-Enviro::ReadItemPlatform( ItemType type, const char *var, EnviroItem * a )
-{
-	if ( (type == USER || type == SYS) && HasCFPreferences() )
-	{
-	    CFStringRef userName = kCFPreferencesCurrentUser;
-	    CFStringRef hostName = kCFPreferencesAnyHost;
-
-	    if ( type == SYS )
-	    {
-	        userName = kCFPreferencesAnyUser;
-	        hostName = kCFPreferencesCurrentHost;
-	    }
-
-	    // Reads the var name in UTF-8 format (the default for the Terminal)
-	
-	    // A note about CoreFoundation naming conventions:
-	    //
-	    // <Method>Create() or <Method>Copy means you have to call CFRelease()
-	    // when you are through with your ref object (except for
-	    // CFStringCreateWithCStringNoCopy() because of the "NoCopy" part )
-	    // <Method>Get means you don't have to "release" it, but it you want
-	    // to save it, you musts increment the reference count by calling
-	    // CFRetain( ref )
-	    //
-	    // http://developer.apple.com/documentation/CoreFoundation/Conceptual/CFMemoryMgmt/Concepts/Ownership.html
-	
-	    CFStringRef varRef = CFStringCreateWithCStringNoCopy(
-	                        kCFAllocatorDefault,
-	                        var,
-	                        kCFStringEncodingUTF8,
-	                        kCFAllocatorNull );
-
-	    CFPropertyListRef propRef = CFPreferencesCopyValue(
-	           varRef,
-	           applicationID,
-	           userName,
-	           hostName );
-	           
-	    CFRelease( varRef );
-	    
-	    if ( propRef && (CFGetTypeID( propRef ) == CFStringGetTypeID()) )
-	    {
-	        StrBufSetToCFString( &(a->value),
-	                         (CFStringRef)propRef,
-	                         kCFStringEncodingUTF8 );
-	        a->type = type;
-	        CFRelease( propRef );
-	        return true;
-	    }
-	    
-	    if ( propRef )
-	        CFRelease( propRef );
-	    return false;
-	}
-
-	if (type == ENV)
-	{
-	    char *c = NULL;
-	    if( c = getenv( var ) )
-	    {
-	        a->value.Set( c );
-	        a->type = ENV;
-	        return true;
-	    }
-	}
-
-	// Not set
-
-	return false;
-}
-
-void
-Enviro::Set( const char *var, const char *value, Error *e )
-{
-	if ( !var || !strcasecmp( var, p4passwd ) )
-	    return;
-
-	// Make sure symbol tab is there
-
-	Setup();
-
-	if( !SetEnviro( var, value, e ) || !HasCFPreferences() )
-	    return;
-
-	// Get from preferences
-	CFStringRef domainRef     = kCFPreferencesCurrentUser;
-	CFStringRef hostDomainRef = kCFPreferencesAnyHost;
-
-	if ( domain == SYS )
-	{
-	    domainRef     = kCFPreferencesAnyUser;
-	    hostDomainRef = kCFPreferencesCurrentHost;
-	}
-
-
-	CFStringRef varRef = CFStringCreateWithCStringNoCopy(
-	                           kCFAllocatorDefault,
-	                           var,
-	                           kCFStringEncodingUTF8,
-	                           kCFAllocatorNull );
-
-	CFStringRef valueRef = NULL;
-	
-	// passing NULL to CFPreferencesSetValue removes the value
-	
-	if ( value && *value )
-	{
-	    valueRef = CFStringCreateWithCString(
-	                 kCFAllocatorDefault,
-	                 value,
-	                 kCFStringEncodingUTF8 );
-	}
-	
-	// add to key
-	CFPreferencesSetValue( varRef,
-	                       valueRef,
-	                       applicationID,
-	                       domainRef,
-	                       hostDomainRef );
-
-	CFRelease( varRef );
-	if (valueRef ) CFRelease( valueRef );
-
-	bool success = CFPreferencesSynchronize(
-	                 applicationID,
-	                 domainRef,
-	                 hostDomainRef);
-
-	if ( !success )
-	    e->Sys( "preferences", value ? "set key" : "delete key" );
-	
-	// warn the user if the env variable is also set.
-	if( value && getenv( var ) )
-	    e->Set( MsgSupp::HidesVar ) << var;
-
-	// Make symbol undefined, so next Get resets it
-
-	EnviroItem *a = symbolTab->GetItem( StrRef( (char *)var ) );
-
-	if( a )
-	    a->type = NEW;
-
-	if( var[0] == 'P' && var[1] == '4' && !IsKnown( var ) )
-	    e->Set( MsgSupp::NoSuchVariable ) << var;
-}
-
-void
-Enviro::SetCharSet( int i )
-{
-	// nothing - only important for win32 - so far...
-}
-
-int
-Enviro::GetCharSet()
-{
-	// nothing - only important for win32 - so far...
-	return 0;
-}
-
 # else
 
 /*
@@ -902,11 +672,13 @@ Enviro::GetCharSet()
 Enviro::Enviro()
 {
 	symbolTab = 0;
+	configFiles = new StrArray;
 }
 
 Enviro::~Enviro()
 {
 	delete symbolTab;
+	delete configFiles;
 }
 
 int
@@ -1012,12 +784,29 @@ EnviroTable::PutItem( const StrRef &var )
 }
 
 void
-Enviro::List()
+EnviroTable::RemoveType( Enviro::ItemType ty )
+{
+	EnviroItem *a;
+
+	for( int i = Count(); i > 0 ; )
+	{
+	    a = (EnviroItem *)Get( --i );
+
+	    if( a->type != ty )
+	        continue;
+
+	    delete a;
+	    VarArray::Remove( i );
+	}
+}
+
+void
+Enviro::List( int quiet )
 {
 	const char *const *i;
 
 	for( i = envVars; *i; i++ )
-	    Print( *i );
+	    Print( *i, quiet );
 }
 
 int
@@ -1091,19 +880,34 @@ Enviro::GetItem( const char *var )
 
 	EnviroItem *a = symbolTab->PutItem( StrRef( (char *)var ) );
 
-	if( a->type != NEW )
-	    return a;
-	if ( ReadItemPlatform( SVC, var, a ) )
-	    return a;
+	if( a->type != NEW ||
+	    ReadItemPlatform( SVC, var, a ) ||
+	    ReadItemPlatform( ENV, var, a ) ||
+	    ReadItemPlatform( USER, var, a ) ||
+	    ReadItemPlatform( SYS, var, a ) )
+	{
+	    // If we're resolving home, don't recurse
 
-	if ( ReadItemPlatform( ENV, var, a ) )
-	    return a;
+	    if( !strcmp( var, "HOME" ) || !strcmp( var, "USERPROFILE" ) )
+	        return a;
 
-	if ( ReadItemPlatform( USER, var, a ) )
-	    return a;
+	    StrRef homedir( "$home" );
+	    if( a->value.Contains( homedir ) )
+	    {
+	        // If value contains $home then use real home dir
 
-	if ( ReadItemPlatform( SYS, var, a ) )
+	        StrBuf t, h;
+	        GetHome( h );
+
+	        StrOps::Replace( t, a->value, homedir, h );
+
+	        // We cache the new value so we don't have to do this again
+
+	        a->value.Set( t );
+	    }
+
 	    return a;
+	}
 
 	a->type = UNSET;
 
@@ -1136,16 +940,16 @@ Enviro::Update( const char *var, const char *value )
 }	
 
 void
-Enviro::Print( const char *var )
+Enviro::Print( const char *var, int quiet )
 {
 	StrBuf buf;
-	Format( var, &buf );
+	Format( var, &buf, quiet );
 	if( buf.Length() )
 	    printf( "%s\n", buf.Text() );
 }
 
 void
-Enviro::Format( const char *var, StrBuf *sb )
+Enviro::Format( const char *var, StrBuf *sb, int quiet )
 {
 	EnviroItem *a = GetItem( var );
 	sb->Clear();
@@ -1158,26 +962,48 @@ Enviro::Format( const char *var, StrBuf *sb )
 		*sb << a->var.Text() << "=" << a->value.Text();
 		break;
 	case CONFIG:
-		*sb << a->var.Text() << "=" << a->value.Text() << " (config)";
+		*sb << a->var.Text() << "=" << a->value.Text();
+		if( !quiet )
+		    *sb << " (config '" << a->origin.Text() << "')";
 		break;
 	case ENVIRO:
-		*sb << a->var.Text() << "=" << a->value.Text() << " (enviro)";
+		*sb << a->var.Text() << "=" << a->value.Text();
+		if( !quiet )
+		    *sb << " (enviro)";
 		break;
 	case SVC:
-		*sb << a->var.Text() << "=" << a->value.Text() << " (set -S)";
+		*sb << a->var.Text() << "=" << a->value.Text();
+		if( !quiet )
+		    *sb << " (set -S)";
 		break;
 	case USER:
-		*sb << a->var.Text() << "=" << a->value.Text() << " (set)";
+		*sb << a->var.Text() << "=" << a->value.Text();
+		if( !quiet )
+		    *sb << " (set)";
 		break;
 	case SYS:
-		*sb << a->var.Text() << "=" << a->value.Text() << " (set -s)";
+		*sb << a->var.Text() << "=" << a->value.Text();
+		if( !quiet )
+		    *sb << " (set -s)";
 		break;
 	default:
 		isSet = 0;
 		break;
 	}
-	if( isSet && a->var == "P4CONFIG" )
-	    *sb << " (config '" << GetConfig() << "')";
+
+	if( isSet && !quiet && a->var == "P4CONFIG" )
+	{
+	    if( !configFiles->Count() )
+		*sb << " (config '" << GetConfig() << "')";
+	    else
+	    {
+		const StrBuf *buf;
+		*sb << " (config '";
+		for( int i = 0; ( buf = configFiles->Get( i ) ); i++ )
+		    *sb << ( i ? "', '" : "" ) << buf;
+		*sb << "' )";
+	    }
+	}
 }
 
 void
@@ -1214,6 +1040,8 @@ Enviro::ReadConfig( FileSys *f, Error *e, int checkSyntax, Enviro::ItemType ty )
 	    // Set as config'ed
 
 	    EnviroItem *a = GetItem( var.Text() );
+	    if( a->type == ty && a->origin.Length() ) continue;
+
 	    StrRef cnfdir( "$configdir" );
 	    if( configFile.Length() && line.Contains( cnfdir ) )
 	    {
@@ -1234,6 +1062,7 @@ Enviro::ReadConfig( FileSys *f, Error *e, int checkSyntax, Enviro::ItemType ty )
 	    else
 		a->value.Set( equals + 1 );
 	    a->type = ty;
+	    a->origin.Set( f->Path() );
 	}
 }
 
@@ -1263,14 +1092,23 @@ Enviro::LoadConfig( const StrPtr &cwd, int checkSyntax )
 
 	// Only load P4CONFIG file if it is set.
 
-	char *setFile = Get( "P4CONFIG" );
-
-	if( !setFile )
+	StrBuf setFile;
+	char *s;
+	if( ( s = Get( "P4CONFIG" ) ) )
+	    setFile.Set( s );
+	else
 	    return;
 
 	// Make sure symbol tab is there
 
 	Setup();
+
+	// If we're reloading after changing directory, we need to drop any
+	// settings from previously loaded P4CONFIG files.
+
+	symbolTab->RemoveType( CONFIG );
+	configFile.Clear();
+	configFiles->Clear();
 
 	// client up the directory tree, looking for setFile
 
@@ -1295,7 +1133,7 @@ Enviro::LoadConfig( const StrPtr &cwd, int checkSyntax )
 	    // Can we find the file?
 
 	    e.Clear();
-	    q->SetLocal( *p, StrRef( setFile ) );
+	    q->SetLocal( *p, setFile );
 	    f->Set( *q );
 	    f->Open( FOM_READ, &e );
 
@@ -1305,13 +1143,13 @@ Enviro::LoadConfig( const StrPtr &cwd, int checkSyntax )
 	    // Save the name of the config file
 	    
 	    configFile.Set( f->Name() );
+	    configFiles->Put()->Set( f->Name() );
 
 	    // Slurp contents into client name
 
 	    ReadConfig( f, &e, checkSyntax, CONFIG );
 
 	    f->Close( &e );
-	    break;
 	}
 	while( p->ToParent() );
 
@@ -1393,7 +1231,7 @@ Enviro::GetEnviroFile()
 	    }
 	    else
 	    {
-# if defined( OS_NT ) || defined( OS_DARWIN ) || defined( OS_MACOSX )
+# if defined( OS_NT )
 		return NULL;
 # else
 		// defaults for Unix platforms...
@@ -1533,3 +1371,67 @@ Enviro::GetConfig()
 
 	return configFile;
 }
+
+const StrArray *
+Enviro::GetConfigs()
+{
+	// configFiles - names of all P4CONFIG files found by Config()
+
+	return configFiles;
+}
+
+int
+Enviro::GetHome( StrBuf &result )
+{
+
+# ifdef OS_NT
+
+        // On NT, try $USERPROFILE, if not use windows directory.
+
+	const char *home = Get( "USERPROFILE" );
+                                                                                
+	if( home )
+	    result.Set( home );
+	else
+	{
+	    int length;
+	    char buffer[MAX_PATH];
+	    WCHAR wbuffer[MAX_PATH];
+
+	    if( !CharSetApi::isUnicode( (CharSetApi::CharSet)GetCharSet() ) && 
+		GetWindowsDirectoryA( buffer, sizeof( buffer ) ) )
+	    {
+	        result.Set( buffer );
+	    }
+	    else if( length = GetWindowsDirectoryW( wbuffer,
+				sizeof( wbuffer )/sizeof( WCHAR ) ) )
+	    {
+		CharSetCvtUTF168 cvtval;
+		const char *retval = 
+			cvtval.FastCvt( (const char *)wbuffer,
+					sizeof( WCHAR ) * length );
+		if( retval )
+		    result.Set( retval );
+	    }
+	}
+
+# else
+
+	const char *home = Get( "HOME" );
+ 
+	if( home )
+	    result.Set( home );
+
+# endif
+
+	// Strip the trailing slash, if there is one
+
+	if( result.EndsWith( "/", 1 ) || result.EndsWith( "\\", 1 ) )
+	{
+	    result.SetLength( result.Length() - 1 );
+	    result.Terminate();
+	}
+
+	return( result.Length() ? 1 : 0 );
+}
+

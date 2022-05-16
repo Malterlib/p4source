@@ -24,9 +24,6 @@
 # include "debug.h"
 # include "netdebug.h"
 
-// a guess at a good buffer size; big enough for a max IPv6 address plus surrounding "[...]"
-#define P4_INET6_ADDRSTRLEN	(INET6_ADDRSTRLEN+2)
-
 typedef unsigned int p4_uint32_t;    // don't conflict with any other definitions of uint32_t
 
 // this *should* be defined everywhere that supports IPv6, but just in case ...
@@ -625,6 +622,10 @@ NetUtils::IsLocalAddress( const char *addr )
 	static const NetIPAddr localV4(StrRef("127.0.0.1"), 8);
 	static const NetIPAddr localV6(StrRef("::1"), 128);
 	static const NetIPAddr localMapped(StrRef("::ffff:127.0.0.1"), 104); // 80 + 16 + 8
+
+	// empty string means connect to localhost or bind to all interfaces (including local)
+	if( *addr == '\0' )
+	    return true;
 
 	const NetIPAddr tgtAddr(StrRef(addr), 0);
 

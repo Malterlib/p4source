@@ -136,18 +136,29 @@ NetIPAddr::Parse()
 	else if( NetUtils::IsIpV6Address(cp, NetUtils::IPADDR_PREFIX_PROHIBIT) )
 	{
 	    StrBuf	txt;
-	    if( *cp == '[' )
+	    const char	*bp = cp;
+	    const char	*ep = &cp[m_text.Length()-1];
+
+	    // ignore surrounding brackets
+	    if( (*bp == '[') && (ep > bp) && (*ep == ']') )
 	    {
-	        // ignore surrounding brackets
-	        const char *p;
-	        for( p = cp+1; *p; p++ )
-	            ;
-	        if( (p > cp+1) && (p[-1] == ']') )
+	        bp++;
+	        ep--;
+	    }
+
+	    // ignore any trailing %zoneid
+	    for( const char *p = ep; p > bp; p-- )
+	    {
+	        if( *p == '%' )
 	        {
-	            txt.Set( cp+1, p-cp-2 );
-	            cp = txt.Text();
+		    m_zoneid.Set( p, ep-p+1 );	// but remember it
+	            ep = p - 1;	// and ignore it for inet_pton()
+	            break;
 	        }
 	    }
+
+	    txt.Set( bp, ep-bp+1 );
+	    cp = txt.Text();
 
 	    struct sockaddr_in6 *sin6 = reinterpret_cast<struct sockaddr_in6 *>(&m_addr);
 	    if( inet_pton(AF_INET6, cp, &sin6->sin6_addr) == 1 )

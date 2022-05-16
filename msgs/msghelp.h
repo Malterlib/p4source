@@ -34,6 +34,7 @@ class MsgHelp {
 	static ErrorId HelpAdministration;
 	static ErrorId HelpArchive;
 	static ErrorId HelpAttribute;
+	static ErrorId HelpBackup;
 	static ErrorId HelpBranch;
 	static ErrorId HelpBranches;
 	static ErrorId HelpBroker;
@@ -80,6 +81,7 @@ class MsgHelp {
 	static ErrorId HelpGroups;
 	static ErrorId HelpHave;
 	static ErrorId HelpHelp;
+	static ErrorId HelpIgnores;
 	static ErrorId HelpIndex;
 	static ErrorId HelpInfo;
 	static ErrorId HelpInit;
@@ -162,6 +164,7 @@ class MsgHelp {
 	static ErrorId HelpSnap;
 	static ErrorId HelpSpec;
 	static ErrorId HelpStream;
+	static ErrorId HelpStreamCmds;
 	static ErrorId HelpStreamintro;
 	static ErrorId HelpStreams;
 	static ErrorId HelpSubmit;

@@ -53,6 +53,8 @@
 # include "netconnect.h"
 # include "netstd.h"
 # include "netdebug.h"
+# include "nettcpendpoint.h"
+# include "nettcptransport.h"
 # include <netselect.h>
 # include <msgrpc.h>
 
@@ -182,7 +184,12 @@ NetStdioEndPoint::Connect( Error *e )
 StrPtr *
 NetStdioEndPoint::GetListenAddress( int f )
 {
+#ifdef OS_NT
 	addr.Set( "unknown" );
+#else
+	NetTcpEndPoint::GetListenAddress( s, f, addr );
+#endif
+
         return &addr;
 }
 
@@ -219,14 +226,24 @@ NetStdioTransport::Close( void )
 StrPtr *
 NetStdioTransport::GetAddress( int f )
 {
+#ifdef OS_NT
 	addr.Set( "unknown" );
+#else
+	NetTcpTransport::GetAddress( r, f, addr );
+#endif
+
         return &addr;
 }
 
 StrPtr *
 NetStdioTransport::GetPeerAddress( int f )
 {
+#ifdef OS_NT
 	addr.Set( "unknown" );
+#else
+	NetTcpTransport::GetPeerAddress( r, f, addr );
+#endif
+
         return &addr;
 }
 

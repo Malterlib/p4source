@@ -20,6 +20,7 @@
 # include <strbuf.h>
 # include <strops.h>
 # include <md5.h>
+# include <datetime.h>
 
 # include "pathsys.h"
 # include "filesys.h"
@@ -98,6 +99,10 @@ FileSys::Create( FileSysType t )
 		f = new FileIOAppend;
 		break;
 
+	case FST_UTF8:
+		f = new FileIOUTF8( lt );
+		break;
+
 	case FST_UTF16:
 		f = new FileIOUTF16( lt );
 		break;
@@ -173,31 +178,39 @@ FileSys::SetLFN( const StrPtr &name )
 	int lfn_val = p4tunable.Get( P4TUNE_FILESYS_WINDOWS_LFN );
 	if( lfn_val )
 	{
-	    // For LFN we need an absolute path with a drive spec.
-	    // CWD is still limited by MAX_PATH
+	    // For LFN nt_wname will convert from ANSI to UNICODE.
+	    //
+	    // Use GetCwdbyCS as it determines UTF8 or ANSI.  It
+	    // also provides a better representation of cwd length.
 	    if( IsRelative( name ) )
 	    {
 		StrBuf cwd;
-		cwd.Alloc( _MAX_PATH );
-		_getcwd( cwd.Text(), cwd.Length() );
-		cwd.SetLength();
+		HostEnv::GetCwdbyCS( cwd, GlobalCharSet::Get());
 
 		// If the absolute path is over 255, use LFN support.
-		// If the tunable is 10, LFN is always on for QA.
+		// If the tunable is 10, LFN is always on for Testing.
 		if( lfn_val == 10 || ( cwd.Length() + name.Length() > 255 ) )
-		    LFN = 1;
+		    LFN = LFN_ENABLED;
 	    }
 	    else
 	    {
 		// Here the path is already absolute, assume a drive spec.
 		if( lfn_val == 10 || ( name.Length() > 255 ) )
-		    LFN = 1;
+		    LFN = LFN_ENABLED;
 	    }
 
-	    // If UNC, set LFN=2, later we use "\\?\UNC" instead of "\\?\"
-	    if( IsUNC( name ) )
-		LFN = 2;
+	    if( LFN )
+	    {
+		// If UNC path, later we use "\\?\UNC" instead of "\\?\"
+		if( IsUNC( name ) )
+		    LFN |= LFN_UNCPATH;
+	    }
 	}
+
+	// If DOUNICODE, This flag will cause nt_wname to convert
+	// from UTF8 to UNICODE.
+	if( DOUNICODE )
+	    LFN |= LFN_UTF8;
 }
 # endif
 
@@ -287,6 +300,12 @@ int
 FileSys::GetOwner()
 {
 	return 0;
+}
+
+void
+FileSys::StatModTimeHP(DateTimeHighPrecision *modTime)
+{
+	*modTime = DateTimeHighPrecision();
 }
 
 bool

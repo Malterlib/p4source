@@ -28,6 +28,8 @@ P4Library $(SUPPORTLIB) :
 	hash.cc
 	ident.cc
 	ignore.cc
+	intarray.cc
+	jnlpos.cc
 	jnltrack.cc
 	mangle.cc
 	mapapi.cc

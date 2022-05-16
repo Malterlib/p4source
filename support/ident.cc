@@ -37,7 +37,7 @@ Ident::GetMessage( StrBuf *s, int isServer )
     s->Clear();
 
     *s << "Perforce - The Fast Software Configuration Management System.\n";
-    *s << "Copyright 1995-"ID_Y" Perforce Software.  All rights reserved.\n";
+    *s << "Copyright 1995-" ID_Y " Perforce Software.  All rights reserved.\n";
 
 # if defined( OS_NT ) || defined( OS_LINUX )
     // Add credit for Smartheap memory manager

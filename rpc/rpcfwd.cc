@@ -393,6 +393,10 @@ RpcCrypto::C2S( Rpc *client, Rpc *server )
 		server->SetVar( P4Tag::v_attack, caddrref );
 	    }
 
+	    // if there is no client address due to rsh, use the
+	    // local address of the connection to the server
+	    if( !client->HasAddress() || !addr )
+		addr = server->GetAddress( 0 );
 	    if( addr )
 		server->SetVar( caddrref, *addr );
 	}

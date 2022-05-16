@@ -65,6 +65,7 @@ P4Api p4api :
 	p4tags.h
 	pathsys.h
 	runcmd.h
+	serverhelperapi.h
 	signaler.h
 	spec.h
 	stdhdrs.h
@@ -82,11 +83,15 @@ P4Api p4api :
 
 	clientuser.cc
 	p4api.cc
+	p4dvcsapi.cc
 	;
 
 # Just to make sure the API builds
 
 P4Main p4api : p4api.cc ;
 LinkLibraries p4api : $(CLIENTLIB) $(RPCLIB) $(SUPPORTLIB) ;
+
+P4Main p4dvcsapi : p4dvcsapi.cc ;
+LinkLibraries p4dvcsapi : $(CLIENTLIB) $(RPCLIB) $(SUPPORTLIB) ;
 
 

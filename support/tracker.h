@@ -82,7 +82,7 @@ class Tracker {
 
     			Tracker( int l ) { level = l; }
 
-	int		Over( TrackerType type, int amount );
+	int		Over( TrackerType type, P4INT64 amount );
 
 	static int	UsersToLevel( int users );
 
