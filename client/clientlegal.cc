@@ -15,7 +15,7 @@
 # include <strdict.h>
 # include <strtable.h>
 # include <error.h>
-# include <rpc.h>
+# include <p4rpc.h>
 
 # include <filesys.h>
 # include <handler.h>

@@ -315,6 +315,8 @@ FileIOCompress::GetRealSize()
 
 		comp += res = gzip2.os - buf.Text();
 		break;
+		case FIOC_PASS:
+		break;
 	    }
 	}
 	size = comp;

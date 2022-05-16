@@ -100,7 +100,7 @@ void NtService::Start( int (*entryPt)( DWORD, char ** ), char *svc, Error *e )
 {
 	SERVICE_TABLE_ENTRY dispatch_table[] =
 	{
-	    { TEXT(""), (void (__stdcall *)( DWORD, char **) )StaticRun },
+	    { const_cast<LPSTR>(TEXT("")), (void (__stdcall *)( DWORD, char **) )StaticRun },
 	    { NULL, NULL }
 	} ;
 
