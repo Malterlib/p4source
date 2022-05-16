@@ -10,11 +10,11 @@ Compile
 	}
 	
 	SearchPath += [
-		"../../SDK/p4/client"->MakeAbsolute()
-		, "../../SDK/p4/sys"->MakeAbsolute()
-		, "../../SDK/p4/support"->MakeAbsolute()
-		, "../../SDK/p4/msgs"->MakeAbsolute()
-		, "../../SDK/p4/i18n"->MakeAbsolute()
+		"client"->MakeAbsolute()
+		, "sys"->MakeAbsolute()
+		, "support"->MakeAbsolute()
+		, "msgs"->MakeAbsolute()
+		, "i18n"->MakeAbsolute()
 	]
 }
 
@@ -67,12 +67,12 @@ Compile
 		!!CompileDialect "C"
 		SearchPath += [
 			"../../External/zlib/contrib/minizip"->MakeAbsolute()
-			, "../../SDK/p4/zlib/gzip"->MakeAbsolute()
-			, "../../SDK/p4/dbsupp"->MakeAbsolute()
-			, "../../SDK/p4/diff"->MakeAbsolute()
-			, "../../SDK/p4/net"->MakeAbsolute()
+			, "zlib/gzip"->MakeAbsolute()
+			, "dbsupp"->MakeAbsolute()
+			, "diff"->MakeAbsolute()
+			, "net"->MakeAbsolute()
 		]
-		SearchPath += "../../SDK/p4/rpc"->MakeAbsolute()
+		SearchPath += "rpc"->MakeAbsolute()
 		PreprocessorDefines += ["USE_SSL", "P4_API_ONLY", "NEED_ALL", `OS_@(PerforceOS)`, `ID_OS="@(PerforceOS)"`, `ID_REL="@(ProductVersionMajor).@(ProductVersionMinor)"`, `ID_PATCH="@(ProductVersionRevision)"`, `ID_Y=""`, "ID_M=\"\"", "ID_D=\"\""]
 		PreprocessorDefines += "_CRT_RAND_S"
 		{
