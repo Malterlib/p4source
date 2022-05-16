@@ -38,10 +38,11 @@
 
 extern "C"
 { // OpenSSL
-# include "openssl/err.h"
+# include <openssl/err.h>
 # include <openssl/x509v3.h>
 # include <openssl/ssl.h>
 # include <openssl/x509_vfy.h>
+# include <openssl/opensslv.h>
 }
 # include <stdio.h>
 # include "netdebug.h"
@@ -218,7 +219,11 @@ NetSslCredentials::ReadCredentials(  Error *e )
 	privateKey = PEM_read_PrivateKey(fp, NULL, 0, NULL );
 	SSLNULLHANDLER( privateKey, e, "NetSslCredentials::ReadCredentials PEM_read_PrivateKey", failSetError );
 	// verify that RSA key
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
 	if (privateKey->type != EVP_PKEY_RSA)
+# else // OpenSSL >=1.1
+	if (EVP_PKEY_base_id(privateKey) != EVP_PKEY_RSA)
+# endif
 	{
 	    e->Set( MsgRpc::SslKeyNotRSA );
 	    goto fail;
@@ -446,13 +451,14 @@ NetSslCredentials::ParseConfig( Error *e )
 {
 	StrBuf line, var, value;
 	StrRef configFile( SSL_CONFIGFILE );
-	SmartPointer <PathSys> p( PathSys::Create() );
+	PathSys *p = PathSys::Create();
 	FileSys *f = FileSys::Create( FileSysType( FST_TEXT|FST_L_CRLF ) );
 
 	// Create full pathname to certificate config file
 	p->SetLocal( sslDir, configFile );
 	f->Set( *p );
 	f->Open( FOM_READ, e );
+	delete p;
 
 	// If file doesn't exist then keep defaults and just return
 	if( e->Test() )
@@ -664,7 +670,6 @@ NetSslCredentials::GetCredentialFilepaths( PathSys *keyFile, PathSys *certFile, 
 	certFile->SetLocal(sslDir, certFilename );
 }
 
-
 void
 NetSslCredentials::MakeSslCredentials( Error *e )
 {
@@ -673,9 +678,13 @@ NetSslCredentials::MakeSslCredentials( Error *e )
 	    return;
 	}
 
-	RSA *      rsa = NULL;
+	int       retval;
+	RSA       *rsa = NULL;
 	X509_NAME *name = NULL;
-	int        retval;
+# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+	BIGNUM    *bne = NULL;
+	BN_GENCB  *callback = NULL;
+# endif
 
 	if( ( privateKey = EVP_PKEY_new()) == NULL )
 	{
@@ -687,8 +696,23 @@ NetSslCredentials::MakeSslCredentials( Error *e )
 	certificate = X509_new();
 	SSLHANDLEFAIL( certificate, e, "X509_new", MsgRpc::SslCertGen, fail );
 
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
 	rsa = RSA_generate_key( SSL_X509_NUMBITS, RSA_F4, Callback, NULL );
 	SSLHANDLEFAIL( rsa, e, "RSA_generate_key", MsgRpc::SslCertGen, fail );
+# else
+	rsa = RSA_new();
+	bne = BN_new();
+	retval = BN_set_word(bne, RSA_F4);
+	SSLHANDLEFAIL( retval, e, "BN_set_word", MsgRpc::SslCertGen, fail );
+	callback = BN_GENCB_new();
+	SSLHANDLEFAIL( callback, e, "BN_GENCB_new", MsgRpc::SslCertGen, fail );
+	BN_GENCB_set_old( callback, Callback, NULL );
+	retval = RSA_generate_key_ex( rsa, SSL_X509_NUMBITS, bne, callback);
+	BN_free( bne );
+	BN_GENCB_free( callback );
+	bne = NULL;
+	SSLHANDLEFAIL( retval, e, "RSA_generate_key_ex", MsgRpc::SslCertGen, fail );
+# endif
 	retval = EVP_PKEY_assign_RSA( privateKey, rsa );
 	SSLHANDLEFAIL( retval, e, "EVP_PKEY_assign_RSA", MsgRpc::SslCertGen, fail );
 
@@ -769,7 +793,13 @@ fail:
 	    EVP_PKEY_free( privateKey );
 	    privateKey = NULL;
 	}
-
+	
+# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+	if( bne )
+	    BN_free( bne );
+	if( callback )
+	    BN_GENCB_free( callback );
+# endif
 }
 
 void

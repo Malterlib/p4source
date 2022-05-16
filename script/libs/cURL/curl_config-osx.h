@@ -1,6 +1,9 @@
 /* lib/curl_config.h.  Generated from curl_config.h.in by configure.  */
 /* lib/curl_config.h.in.  Generated from configure.ac by autoheader.  */
 
+// Import OpenSSL so that we can make the config dynamic on OpenSSL's version
+# include <openssl/opensslv.h>
+
 /* to enable curl debug memory tracking */
 /* #undef CURLDEBUG */
 
@@ -48,6 +51,12 @@
 
 /* to disable --libcurl C code generation option */
 /* #undef CURL_DISABLE_LIBCURL_OPTION */
+
+/* to disable MQTT */
+#define CURL_DISABLE_MQTT 1
+
+/* if the OpenSSL configuration won't be loaded automatically */
+/* #undef CURL_DISABLE_OPENSSL_AUTO_LOAD_CONFIG */
 
 /* to disable POP3 */
 #define CURL_DISABLE_POP3 1
@@ -172,9 +181,6 @@
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #define HAVE_DLFCN_H 1
-
-/* Define to 1 if you have the `ENGINE_cleanup' function. */
-#define HAVE_ENGINE_CLEANUP 1
 
 /* Define to 1 if you have the <errno.h> header file. */
 #define HAVE_ERRNO_H 1
@@ -495,7 +501,7 @@
 #define HAVE_OPENSSL_RSA_H 1
 
 /* if you have the function SRP_Calc_client_key */
-/* #undef HAVE_OPENSSL_SRP */
+#define HAVE_OPENSSL_SRP 1
 
 /* Define to 1 if you have the <openssl/ssl.h> header file. */
 #define HAVE_OPENSSL_SSL_H 1
@@ -525,13 +531,15 @@
 #define HAVE_POSIX_STRERROR_R 1
 
 /* if you have <pthread.h> */
-#define HAVE_PTHREAD_H 1
+/* #undef HAVE_PTHREAD_H */
 
 /* Define to 1 if you have the <pwd.h> header file. */
 #define HAVE_PWD_H 1
 
 /* Define to 1 if you have the `RAND_egd' function. */
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
 #define HAVE_RAND_EGD 1
+# endif
 
 /* Define to 1 if you have the recv function. */
 #define HAVE_RECV 1
@@ -926,9 +934,6 @@
 /* Define to enable c-ares support */
 /* #undef USE_ARES */
 
-/* if axTLS is enabled */
-/* #undef USE_AXTLS */
-
 /* if CyaSSL/WolfSSL is enabled */
 /* #undef USE_CYASSL */
 
@@ -959,6 +964,9 @@
 /* if mbedTLS is enabled */
 /* #undef USE_MBEDTLS */
 
+/* if MesaLink is enabled */
+/* #undef USE_MESALINK */
+
 /* Define to enable metalink support */
 /* #undef USE_METALINK */
 
@@ -981,13 +989,13 @@
 /* #undef USE_SCHANNEL */
 
 /* if you want POSIX threaded DNS lookup */
-#define USE_THREADS_POSIX 1
+/* #undef USE_THREADS_POSIX */
 
 /* if you want Win32 threaded DNS lookup */
 /* #undef USE_THREADS_WIN32 */
 
 /* Use TLS-SRP authentication */
-/* #undef USE_TLS_SRP */
+#define USE_TLS_SRP 1
 
 /* Use Unix domain sockets */
 #define USE_UNIX_SOCKETS 1

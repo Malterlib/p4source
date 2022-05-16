@@ -58,3 +58,11 @@ we need (e.g. not doing blocking operations that we can't interrupt when
 enforcing Max* limits).  Changes are:
 
   - the os.execute() edit in loslib.c.
+
+The code assumes a small amount of C++17 support from the compiler.  I.e.
+std::optional and std::any, with a minimum GCC version of 6.  See sys/p4_any.h
+for the code that supports sorta-but-not-really C++17 compilers.  This requirement
+comes from the need to build the API and P4V on Centos 7.  When the minimum
+requirement can be bumped, the rest of the code can jump to full c++17 support.
+A potential win here would be to upgrade to the Sol3 library and have reduced
+compilation times.

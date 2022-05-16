@@ -10,6 +10,7 @@
  */
 
 class Enviro;
+class StrBuf;
 
 class CharSetApi {
 public:
@@ -40,4 +41,6 @@ public:
     static int isUnicode(CharSet);
 
     static unsigned int CharSetCount();
+
+    static void NormalizeLanguage( StrBuf& lang );
 };

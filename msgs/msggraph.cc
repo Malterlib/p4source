@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgGraph error code is 375
+ * Current high value for a MsgGraph error code is 389
  */
 
 # include <error.h>
@@ -30,8 +30,8 @@
 # include <msggraph.h>
 
 ErrorId MsgGraph::CommitDataShort     = { ErrorOf( ES_GRAPH, 1, E_INFO, EV_NONE, 3 ), "commit %sha%\ntree %tree%\n%description%\n" } ;
-ErrorId MsgGraph::UseGraph            = { ErrorOf( ES_GRAPH, 61, E_FAILED, EV_USAGE, 0 ), "Usage: see %'p4 help graph'%" } ;
-ErrorId MsgGraph::UseCatFile          = { ErrorOf( ES_GRAPH, 2, E_FAILED, EV_USAGE, 0 ), "Usage: %'cat-file [ commit | -n repo blob | -t ] object-sha'%" } ;
+ErrorId MsgGraph::UseGraph            = { ErrorOf( ES_GRAPH, 61, E_FAILED, EV_USAGE, 0 ), "Usage: see %'p4 help-graph'%" } ;
+ErrorId MsgGraph::UseCatFile          = { ErrorOf( ES_GRAPH, 2, E_FAILED, EV_USAGE, 0 ), "Usage: %'cat-file [ commit | [ -o localFile ] -n repo blob | -t ] object-sha'%" } ;
 ErrorId MsgGraph::UseChanges          = { ErrorOf( ES_GRAPH, 226, E_FAILED, EV_USAGE, 0 ), "Usage: %'changes [-m max] -n repo commit...'%" } ;
 ErrorId MsgGraph::UseLsTree           = { ErrorOf( ES_GRAPH, 3, E_FAILED, EV_USAGE, 0 ), "Usage: %'ls-tree [ -r [--name-only] ]  treeish-sha'%\n%'       ls-tree [ -r [--name-only] ] -n //repo/name [commit|reference]'%" } ;
 ErrorId MsgGraph::UseDescribe         = { ErrorOf( ES_GRAPH, 230, E_FAILED, EV_USAGE, 0 ), "Usage: %'describe -n repo [-s] commit'%" } ;
@@ -44,7 +44,7 @@ ErrorId MsgGraph::FollowDeletedWildcard = { ErrorOf( ES_GRAPH, 317, E_FAILED, EV
 ErrorId MsgGraph::UseFiles            = { ErrorOf( ES_GRAPH, 224, E_FAILED, EV_USAGE, 0 ), "Usage: %'files [-m max] filespec'%" } ;
 ErrorId MsgGraph::UseFstat            = { ErrorOf( ES_GRAPH, 262, E_FAILED, EV_USAGE, 0 ), "Usage: %'fstat [ -m max ] file...'%" } ;
 ErrorId MsgGraph::UseLock             = { ErrorOf( ES_GRAPH, 246, E_FAILED, EV_USAGE, 0 ), "Usage: %'lock [-c change] file...'%" } ;
-ErrorId MsgGraph::UseLog              = { ErrorOf( ES_GRAPH, 6, E_FAILED, EV_USAGE, 0 ), "Usage: %'log -n repo [ -u user -A date -B date -p -N N -X N --oneline ] [ -a | -m N ] [ commit... ]'%" } ;
+ErrorId MsgGraph::UseLog              = { ErrorOf( ES_GRAPH, 6, E_FAILED, EV_USAGE, 0 ), "Usage: %'log -n repo [ -u user ] [ -A date ] [ -B date ] [ -p ] [ -N N ] [ -X N ] [ --oneline[=tree] [--no-abbrev] ] [ -a | -m N ] [ commit... ]'%" } ;
 ErrorId MsgGraph::UseShowRef          = { ErrorOf( ES_GRAPH, 58, E_FAILED, EV_USAGE, 0 ), "Usage: %'show-ref [ -a -n repo -u user -t type -m N -e|-E filter]'%" } ;
 ErrorId MsgGraph::UseMerge            = { ErrorOf( ES_GRAPH, 7, E_FAILED, EV_USAGE, 0 ), "Usage: %'merge [ -n ] [ --ff-only ] [ --no-ff | --squash ] [ -d description ]  other-branch'%" } ;
 ErrorId MsgGraph::UseMerge2           = { ErrorOf( ES_GRAPH, 330, E_FAILED, EV_USAGE, 0 ), "Usage: %'merge [ -n ] [ --ff-only ] [ --no-ff | --squash ] [ -d description ] --repo repo --target target-branch other-branch'%" } ;
@@ -72,6 +72,9 @@ ErrorId MsgGraph::UseGraphDeleteRepo  = { ErrorOf( ES_GRAPH, 81, E_FAILED, EV_US
 ErrorId MsgGraph::UseGraphLFSPush     = { ErrorOf( ES_GRAPH, 89, E_FAILED, EV_USAGE, 0 ), "Usage: %'lfs-push [ -u user ] -n repo -i /path/to/lfs/file -r sha-256-hash'%" } ;
 ErrorId MsgGraph::UseGraphLFSFetch    = { ErrorOf( ES_GRAPH, 90, E_FAILED, EV_USAGE, 0 ), "Usage: %'lfs-fetch [ -u user ] -n repo -o /path/to/lfs/file -r sha-256-hash'%" } ;
 ErrorId MsgGraph::UseGraphLFSStat     = { ErrorOf( ES_GRAPH, 144, E_FAILED, EV_USAGE, 0 ), "Usage: %'lfs-stat [ -u user ] -n repo oid...'%" } ;
+ErrorId MsgGraph::UseGraphLFSLock     = { ErrorOf( ES_GRAPH, 376, E_FAILED, EV_USAGE, 0 ), "Usage: %'lfs-lock  [-u user ] -n repo -r refpath file'%" } ;
+ErrorId MsgGraph::UseGraphLFSUnlock   = { ErrorOf( ES_GRAPH, 377, E_FAILED, EV_USAGE, 0 ), "Usage: %'lfs-unlock [ -f ] [ -u user ] [ -n repo -r ref file ] | [ lockid ]'%" } ;
+ErrorId MsgGraph::UseGraphLFSLocks    = { ErrorOf( ES_GRAPH, 382, E_FAILED, EV_USAGE, 0 ), "Usage: %'lfs-locks  -n repo [ -r refpath ] [ -p file ]'%" } ;
 ErrorId MsgGraph::UseGraphSubmodule   = { ErrorOf( ES_GRAPH, 252, E_FAILED, EV_USAGE, 0 ), "Usage: %'submodule -n repo [-p path -t submodule -d -l]'%" } ;
 ErrorId MsgGraph::UseGraphVerify      = { ErrorOf( ES_GRAPH, 132, E_FAILED, EV_USAGE, 0 ), "Usage: %'verify [-q] -n repo'%" } ;
 ErrorId MsgGraph::UseGraphPackInfo    = { ErrorOf( ES_GRAPH, 284, E_FAILED, EV_USAGE, 0 ), "Usage: %'pack-info -n repo'%" } ;
@@ -166,6 +169,7 @@ ErrorId MsgGraph::RefTargetMissing    = { ErrorOf( ES_GRAPH, 76, E_WARN, EV_USAG
 ErrorId MsgGraph::InvalidReference    = { ErrorOf( ES_GRAPH, 82, E_FAILED, EV_USAGE, 2 ), "Reference %ref% could not be interpreted in repository %repository%" } ;
 ErrorId MsgGraph::InvalidRepoRef      = { ErrorOf( ES_GRAPH, 282, E_FAILED, EV_USAGE, 1 ), "Reference is not valid for repo %repo%!" };
 ErrorId MsgGraph::InvalidRepo         = { ErrorOf( ES_GRAPH, 83, E_FAILED, EV_USAGE, 1 ), "Repository %repository% does not appear to be valid." } ;
+ErrorId MsgGraph::IndexFileMissing    = { ErrorOf( ES_GRAPH, 385, E_FATAL, EV_FAULT, 0 ), "Pack file missing." } ;
 ErrorId MsgGraph::PackObjectCount     = { ErrorOf( ES_GRAPH, 84, E_FATAL, EV_FAULT, 2 ), "Pack construction wrote %actual% objects rather than the anticipated %expected% objects." } ;
 ErrorId MsgGraph::PackObjectMissing   = { ErrorOf( ES_GRAPH, 85, E_FATAL, EV_FAULT, 1 ), "Pack construction failure: object %sha% missing from database." } ;
 ErrorId MsgGraph::PackFileMissing     = { ErrorOf( ES_GRAPH, 303, E_FATAL, EV_FAULT, 0 ), "Pack file missing." } ;
@@ -175,6 +179,12 @@ ErrorId MsgGraph::InvalidDepotName    = { ErrorOf( ES_GRAPH, 255, E_FAILED, EV_U
 ErrorId MsgGraph::NotASha256          = { ErrorOf( ES_GRAPH, 92, E_FAILED, EV_USAGE, 1 ), "%sha% is not a valid SHA-256 value." } ;
 ErrorId MsgGraph::LFSShaMismatch      = { ErrorOf( ES_GRAPH, 93, E_FAILED, EV_FAULT, 2 ), "LFS file push failure: content sha was %actual% instead of the expected sha %expected%." } ;
 ErrorId MsgGraph::LFSAlreadyPresent   = { ErrorOf( ES_GRAPH, 143, E_INFO, EV_USAGE, 1 ), "LFS blob %sha% already exists." } ;
+ErrorId MsgGraph::LFSLockIdNotFound   = { ErrorOf( ES_GRAPH, 378, E_FAILED, EV_USAGE, 1 ), "LFS lock for '%lockid%' not found." } ;
+ErrorId MsgGraph::LFSLockPathNotFound = { ErrorOf( ES_GRAPH, 379, E_FAILED, EV_USAGE, 3 ), "LFS lock for '%repo%' '%ref%' '%path%' not found." } ;
+ErrorId MsgGraph::LFSLockNotOwner     = { ErrorOf( ES_GRAPH, 380, E_FAILED, EV_USAGE, 1 ), "LFS lock owned by user '%user%'. Use '-f'." } ;
+ErrorId MsgGraph::LFSLockNoLock       = { ErrorOf( ES_GRAPH, 381, E_INFO, EV_USAGE, 0 ), "No such LFS lock." } ;
+ErrorId MsgGraph::NotLFSFile          = { ErrorOf( ES_GRAPH, 386, E_FAILED, EV_USAGE, 1 ), "%file% is not an LFS file." } ;
+ErrorId MsgGraph::FileNotInRepo       = { ErrorOf( ES_GRAPH, 387, E_FAILED, EV_USAGE, 2 ), "%file% is not in repo %repo%." } ;
 ErrorId MsgGraph::AtomicPushFailed    = { ErrorOf( ES_GRAPH, 94, E_FAILED, EV_FAULT, 1 ), "Reference %ref% could not be updated, and the command specified --atomic. No reference updates were performed." } ;
 ErrorId MsgGraph::TriggerErrorMessage = { ErrorOf( ES_GRAPH, 95, E_FAILED, EV_ADMIN, 1 ), "%msg%" } ;
 ErrorId MsgGraph::UseRepo             = { ErrorOf( ES_GRAPH, 96, E_FAILED, EV_USAGE, 0 ), "Usage: %'repo [ -i -o -d -f ] [ repo ]'%" } ;
@@ -285,6 +295,7 @@ ErrorId MsgGraph::SubmoduleOpen       = { ErrorOf( ES_GRAPH, 254, E_FAILED, EV_U
 ErrorId MsgGraph::UnknownRefType      = { ErrorOf( ES_GRAPH, 256, E_FAILED, EV_USAGE, 1 ), "Reference type %refType% unrecognized." } ;
 ErrorId MsgGraph::CommitFileLog       = { ErrorOf( ES_GRAPH, 260, E_INFO, EV_NONE, 5 ), "commit %sha%\n[Merge: %merge%\n]Author: %author%\nDate: %date%\n%description%\n" } ;
 ErrorId MsgGraph::CommitFileLogOneline = { ErrorOf( ES_GRAPH, 367, E_INFO, EV_NONE, 2 ), "%sha% %description%" } ;
+ErrorId MsgGraph::CommitFileLogOnelineTree = { ErrorOf( ES_GRAPH, 389, E_INFO, EV_NONE, 3 ), "%sha% %tree% %description%" } ;
 ErrorId MsgGraph::CantUpgradePackDir  = { ErrorOf( ES_GRAPH, 264, E_INFO, EV_NONE, 1 ), "Failed to rename archive for repo %repo%." } ;
 ErrorId MsgGraph::NoMatchingRepos     = { ErrorOf( ES_GRAPH, 265, E_FAILED, EV_USAGE, 1 ), "%spec% - No matching repos." } ;
 ErrorId MsgGraph::InvalidRevSpec      = { ErrorOf( ES_GRAPH, 266, E_FAILED, EV_USAGE, 1 ), "Unexpected argument syntax[ - %revSpec%]" } ;
@@ -304,9 +315,12 @@ ErrorId MsgGraph::InvalidDefaultBranch = { ErrorOf( ES_GRAPH, 285, E_INFO, EV_US
 ErrorId MsgGraph::LsTree              = { ErrorOf( ES_GRAPH, 286, E_INFO, EV_NONE, 4 ), "%mode% %type% %sha%\t%path%" } ;
 ErrorId MsgGraph::LsTreeNameOnly      = { ErrorOf( ES_GRAPH, 287, E_INFO, EV_NONE, 4 ), "%path%" } ;
 ErrorId MsgGraph::MergeConflict       = { ErrorOf( ES_GRAPH, 288, E_FAILED, EV_USAGE, 1 ), "Merge failed, conflict detected[ for '%depotFile%']." } ;
+ErrorId MsgGraph::MergeConflictSubMod = { ErrorOf( ES_GRAPH, 388, E_FAILED, EV_FAULT, 1 ), "Merge failed, conflict detected in submodule[ for '%depotFile%']." } ;
 ErrorId MsgGraph::MergeNotText        = { ErrorOf( ES_GRAPH, 289, E_FAILED, EV_USAGE, 1 ), "Merge failed, non-textual file '%depotFile%'" } ;
 ErrorId MsgGraph::MergeSkippedResolve = { ErrorOf( ES_GRAPH, 300, E_FAILED, EV_USAGE, 0 ), "Merge failed, some file(s) were skipped in interactive resolve." } ;
 ErrorId MsgGraph::LFSDisabled         = { ErrorOf( ES_GRAPH, 293, E_FAILED, EV_FAULT, 1 ), "Import of LFS objects is disabled for '%repo%'." } ;
+ErrorId MsgGraph::LFSLock             = { ErrorOf( ES_GRAPH, 383, E_INFO, EV_NONE, 6 ), "repo %repo% ref %ref% depotFile %depotFile% lockId %lockid% user %user% created %created%" } ;
+ErrorId MsgGraph::LFSLockDelete       = { ErrorOf( ES_GRAPH, 384, E_INFO, EV_NONE, 6 ), "repo %repo% ref %ref% depotFile %depotFile% lockId %lockid% user %user% deleted %deleted%" } ;
 ErrorId MsgGraph::UseUpdateRef        = { ErrorOf( ES_GRAPH, 294, E_FAILED, EV_USAGE, 0 ), "Usage: %'update-ref -n repo [-u user -v] [-r refs... | -F refs...]'%" } ;
 ErrorId MsgGraph::RepoIndexAlready    = { ErrorOf( ES_GRAPH, 295, E_FAILED, EV_USAGE, 1 ), "'%repo%' - index already exists." } ;
 ErrorId MsgGraph::RepoIndexNone       = { ErrorOf( ES_GRAPH, 296, E_FAILED, EV_USAGE, 1 ), "'%repo%' - index does not exist." } ;

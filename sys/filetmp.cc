@@ -9,11 +9,17 @@
 # include <stdhdrs.h>
 # include <pid.h>
 
+# ifdef HAS_CPP11
+# include <string>
+# include <sstream>
+# include <thread>
+# endif
+
 # if defined(OS_OS2) || defined(OS_NT)
-const char *lclTemp = "t%dt%d.tmp";
+const char *lclTemp = "t%dt%dt%d.tmp";
 const char *gblTemp = ".";
 # define HAVE_TEMP
-# endif
+# endif // OS_OS2 || OS_NT
 
 # ifdef OS_VMS
 # ifdef VI_WORKS_WITH_DIR
@@ -27,8 +33,13 @@ const char *gblTemp = "";
 # endif
 
 # ifndef HAVE_TEMP
+# ifdef HAS_CPP11
+const char *lclTemp = "tmp.%d.%s.%d";
+const char *gblTemp = "/tmp";
+# else
 const char *lclTemp = "tmp.%d.%d";
 const char *gblTemp = "/tmp";
+# endif
 # endif
 
 # include <error.h>
@@ -52,7 +63,7 @@ FileSys::TempName( char *buf )
 {
 	// Format temp file name
 
-	static int count = 0;
+	MT_STATIC int count = 0;
 
 # ifdef OS_OS2
 	const int maxTemp = 1000;
@@ -61,8 +72,20 @@ FileSys::TempName( char *buf )
 # endif
 
 	count = ( count + Random::Integer( 1, 100 ) ) % maxTemp;
-	 
+
+# if defined(OS_OS2) || defined(OS_NT)
+	sprintf( buf, lclTemp, Pid().GetProcID(), Pid().GetID(), count );
+# else // OS_OS2 || OS_NT
+
+# ifdef HAS_CPP11
+	std::stringstream ss;
+	ss << std::this_thread::get_id();
+	sprintf( buf, lclTemp, Pid().GetProcID(), ss.str().c_str(), count );
+# else
 	sprintf( buf, lclTemp, Pid().GetID(), count );
+# endif
+
+# endif // OS_OS2 || OS_NT
 }
 
 /*
@@ -150,9 +173,12 @@ FileSys::CreateLock( FileSys *f, Error *e )
 	StrBuf nameit;
 	DateTime nowtime, locktime;
 
-	FileSys *lockFile = Create( (FileSysType)( FST_BINARY|FST_M_EXCL ) );
+	// We can get called with 'e' set already, which
+	// confuses the result of the Open() call below
+	// and causes a lock failure. Guard
+	// against this by using a local 'e'.
 
-	lockFile->SetDeleteOnClose();
+	FileSys *lockFile = Create( (FileSysType)( FST_BINARY|FST_M_EXCL ) );
 
 	nameit.Set( f->Path() );
 	nameit.UAppend( ".lck" );
@@ -170,11 +196,12 @@ FileSys::CreateLock( FileSys *f, Error *e )
 		nowtime.SetNow();
 		if( nowtime.Compare( locktime ) > p4tunable.Get( P4TUNE_FILESYS_LOCKDELAY ) )
 		{
+		    Error locale;
 		    // lock file old
-		    lockFile->Unlink( e );
-		    if( e->Test() )
+		    lockFile->Unlink( &locale );
+		    if( locale.Test() )
 		    {
-			lockFile->ClearDeleteOnClose();
+			e->Merge( locale );
 			delete lockFile;
 			return NULL;
 		    }
@@ -188,20 +215,32 @@ FileSys::CreateLock( FileSys *f, Error *e )
 	    else
 	    {
 		// file does not seem to exist, try create
-		lockFile->Open( FOM_WRITE, e );
+		Error locale;
+		lockFile->Open( FOM_WRITE, &locale );
 
-		if( !e->Test() )
+		if( !locale.Test() )
+		{
+		    lockFile->SetDeleteOnClose();
 		    return lockFile;
-
-		// if open failed, we try agin
-		e->Clear();
+		}
+		// if open failed, we try again
+	        if( lockFile->RetryCreate() )
+	            sleep( 1 );
+	        else
+	        {
+	            StrBuf einfo;
+	            locale.Fmt( einfo, 0 );
+	            e->Set( MsgSupp::FatalLockError ) <<
+	                nameit << einfo;
+	            delete lockFile;
+	            return NULL;
+	        }
 	    }
 	}
 
 	// too many retries, error
 	// set error
 	e->Set( MsgSupp::TooManyLockTrys ) << nameit;
-	lockFile->ClearDeleteOnClose();
 	delete lockFile;
 	return NULL;
 }

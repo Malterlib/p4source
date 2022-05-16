@@ -12,6 +12,9 @@
 # include <charman.h>
 # include <math.h>
 
+# include <errno.h>
+# include <limits.h>
+
 # include "strbuf.h"
 # include "strdict.h"
 # include "strops.h"
@@ -294,9 +297,28 @@ StrPtr::SEqualF( unsigned char a, unsigned char b )
 }
 
 /*
+ * StrPtr::Atoi64() - strtoll(), with error checking
  * StrPtr::Atoi64() - our own strtoll()
  * StrPtr::Itoa64() - a cheesy sprintf()
  */
+
+bool
+StrPtr::Atoi64( const char *p, P4INT64 *result )
+{
+	char *temp = NULL;
+	bool ok = true;
+	const int prevErrno = errno;
+	errno = 0;
+	*result = strtoll( p, &temp, 0 );
+
+	if( temp == p || *temp != '\0' ||
+            ( ( *result == LLONG_MIN || *result == LLONG_MAX )
+	    && errno == ERANGE ) )
+	    ok = false;
+
+	errno = prevErrno;
+	return ok;
+}
 
 P4INT64
 StrPtr::Atoi64( const char *p )

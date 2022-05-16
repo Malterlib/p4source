@@ -27,15 +27,9 @@ Main p4dvcsapi : p4dvcsapi.cc ;
 
 LinkSSL p4api ;
 LinkSSL p4dvcsapi ;
+LinkPthread p4api ;
+LinkPthread p4dvcsapi ;
 
-LinkLibraries p4api : 
-	$(P4LIBS)$(SLASH)$(CLIENTLIB) 
-	$(P4LIBS)$(SLASH)$(RPCLIB) 
-	$(P4LIBS)$(SLASH)$(SUPPORTLIB) 
-	;
+LinkLibraries p4api : $(P4LIBS)$(SLASH)$(P4APILIB) ;
 
-LinkLibraries p4dvcsapi : 
-	$(P4LIBS)$(SLASH)$(CLIENTLIB) 
-	$(P4LIBS)$(SLASH)$(RPCLIB) 
-	$(P4LIBS)$(SLASH)$(SUPPORTLIB) 
-	;
+LinkLibraries p4dvcsapi : $(P4LIBS)$(SLASH)$(P4APILIB) ;

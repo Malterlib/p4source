@@ -106,8 +106,11 @@ FixWildcards( StrBuf &o )
  * ClientUserColor -- version of output that displays ANSI colors
  */
 
-ClientUserColor::ClientUserColor( int forceColors, int autoLoginPrompt ) :
-    ClientUser( autoLoginPrompt )
+ClientUserColor::ClientUserColor(
+    int forceColors,
+    int autoLoginPrompt,
+    int apiVersion ) :
+    ClientUser( autoLoginPrompt, apiVersion )
 {
 	quiet = 0;
 	colors = 0;

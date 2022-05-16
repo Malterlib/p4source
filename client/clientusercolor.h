@@ -14,7 +14,8 @@ class ClientUserColor : public ClientUser {
 
     public:
 			ClientUserColor( int forceColors = 0,
-			                 int autoLoginPrompt = 1 );
+			                 int autoLoginPrompt = 1,
+			                 int apiVersion = -1 );
 			~ClientUserColor();
 
 	virtual void	HandleError( Error* err );

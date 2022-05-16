@@ -22,6 +22,7 @@
 # include <timer.h>
 # include <progress.h>
 # include <signaler.h>
+# include <p4libs.h>
 
 # include <pathsys.h>
 # include <enviro.h>
@@ -101,6 +102,8 @@ ThreadedTransfer::RunTransfer( ClientApi *client,
 	child.SetProtocol( P4Tag::v_enableGraph, "" );
 	child.SetProtocol( P4Tag::v_expandAndmaps, "" );
 
+	if( client->GetTrans() )
+	    child.SetTrans( client->GetTrans() );
 	child.SetPort( &client->GetPort() );
 	child.SetUser( &client->GetUser() );
 	child.SetClient( &client->GetClient() );
@@ -165,10 +168,18 @@ ThreadedTransfer::Transfer( ClientApi *client,
 
 	auto fn = [&]( ClientApi *client, ClientUser *ui, const char *cmd,
 	               StrArray *args, StrDict *pVars )
-	    { return RunTransfer( client, ui, cmd, args, pVars ); };
+	    {
+	        P4Libraries::InitializeThread( P4LIBRARIES_INIT_P4, e );
+	        const int r = RunTransfer( client, ui, cmd, args, pVars );
+	        P4Libraries::ShutdownThread( P4LIBRARIES_INIT_P4, e );
+	        return r;
+	    };
 
 	const bool sigState = signaler.GetState();
 	signaler.Disable();
+
+	const bool extState = client->ExtensionsEnabled();
+	client->DisableExtensions();
 
 	for( int i = 0; i < threads; i++ )
 	    ts.emplace_back( std::async( std::launch::async, fn,
@@ -188,6 +199,9 @@ ThreadedTransfer::Transfer( ClientApi *client,
 
 	if( !sigState )
 	    signaler.Enable();
+
+	if( extState )
+	    client->EnableExtensions( e );
 
 	return es;
 }
@@ -302,6 +316,12 @@ class P4ExecTranfer : public ClientTransfer
 		}
 		tc[i].args.AddArg( "-p" );
 		tc[i].args.AddArg( client->GetPort() );
+		if( client->GetTrans() )
+		{
+		    tc[i].args.AddArg( "-C" );
+		    tc[i].args.AddArg( CharSetApi::Name( (CharSetApi::CharSet)
+		        client->GetTrans() ) );
+		}
 		tc[i].args.AddArg( "-u" );
 		tc[i].args.AddArg( client->GetUser() );
 		tc[i].args.AddArg( "-c" );

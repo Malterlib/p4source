@@ -9,6 +9,7 @@ class CharStep;
 class StrPtr;
 class StrBuf;
 class StrDict;
+class CharSetCvtCache;
 
 /*
  * CharSetCvt.h - Character set converters
@@ -22,8 +23,10 @@ public:
 
     static CharSetCvt *FindCvt(CharSet from, CharSet to);
 
-    // do not delete  CharSetCvt* returned by FindCachedCvt.  They are kept in a global cache
-    static CharSetCvt *FindCachedCvt(CharSet from, CharSet to);
+    // do not delete  CharSetCvt* returned by FindCachedCvt.
+    //They are kept in a cache
+    static CharSetCvt *FindCachedCvt(CharSetCvtCache *gCharSetCvtCache,
+	                             CharSet from, CharSet to);
 
     virtual ~CharSetCvt();
 
@@ -66,10 +69,11 @@ public:
     static unsigned long offsetsFromUTF8[];
     static unsigned long minimumFromUTF8[];
 
+    static void Init();
+
 protected:
     friend class CharSetCvtCache;  // for the following default constructor
-    CharSetCvt() : lasterr(0), linecnt(1), charcnt(0), fastbuf(0), fastsize(0)
-	    {}
+    CharSetCvt() : lasterr(0), linecnt(1), charcnt(0), fastbuf(0), fastsize(0){}
 
     int lasterr;
     int linecnt;
@@ -89,6 +93,25 @@ private:
 
     CharSetCvt(const CharSetCvt &);	// to prevent copys
     void operator =(const CharSetCvt &);	// to prevent assignment
+};
+
+class CharSetCvtCache
+{
+public:
+        CharSetCvtCache()
+        {
+            fromUtf8To = 0;
+            toUtf8From = 0;
+        }
+
+        ~CharSetCvtCache();
+
+        CharSetCvt * FindCvt(CharSetCvt::CharSet from, CharSetCvt::CharSet to);
+        void         InsertCvt(CharSetCvt::CharSet from, CharSetCvt::CharSet to, CharSetCvt * cvt);
+
+private:
+        CharSetCvt ** fromUtf8To;
+        CharSetCvt ** toUtf8From;
 };
 
 class CharSetCvtFromUTF8 : public CharSetCvt {

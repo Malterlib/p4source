@@ -119,6 +119,16 @@ clientReconcileFlush( Client *client, Error *e )
 	    delete recHandle;
 }
 
+void convertSlash( char *pathSet )
+{
+	while( *pathSet != '\0' )
+	{
+	    if( *pathSet == '\\' )
+	        *pathSet = '/';
+	    pathSet++;
+	}
+}
+
 /*
  * clientReconcileEdit() -- "inquire" about file, for 'p4 reconcile'
  *
@@ -277,7 +287,6 @@ clientTraverseShort( Client *client, StrPtr *cwd, const char *dir, int traverse,
 	StrPtr ignored = client->GetIgnoreFile();
 	StrBuf from;
 	StrBuf to;
-	CharSetCvt *cvt = ( (TransDict *)client->transfname )->ToCvt();
 	const char *fileName;
 	int found = 0;
 
@@ -289,6 +298,7 @@ clientTraverseShort( Client *client, StrPtr *cwd, const char *dir, int traverse,
 
 	if( client != client->translated )
 	{
+	    CharSetCvt *cvt = ( (TransDict *)client->transfname )->ToCvt();
 	    fileName = cvt->FastCvt( f->Name(), strlen(f->Name()), 0 );
 	    if( !fileName )
 		fileName = f->Name();
@@ -443,6 +453,7 @@ clientTraverseShort( Client *client, StrPtr *cwd, const char *dir, int traverse,
 
 	    if( client != client->translated )
 	    {
+		CharSetCvt *cvt = ( (TransDict *)client->transfname )->ToCvt();
 		fileName = cvt->FastCvt( f->Name(), strlen(f->Name()) );
 		if( !fileName )
 		    fileName = f->Name();
@@ -456,6 +467,10 @@ clientTraverseShort( Client *client, StrPtr *cwd, const char *dir, int traverse,
 		{
 		    from.Set( fileName );
 		    from << "/";
+
+#ifdef OS_NT
+	            convertSlash( from.Text() );
+#endif
 
 	            if( client->protocolNocase != StrBuf::CaseUsage() )
 	            {
@@ -531,6 +546,10 @@ clientTraverseShort( Client *client, StrPtr *cwd, const char *dir, int traverse,
 	    else
 	    {
 		from.Set( fileName );
+		
+#ifdef OS_NT
+	        convertSlash( from.Text() );
+#endif
 
 	        if( client->protocolNocase != StrBuf::CaseUsage() )
 	        {
@@ -632,7 +651,6 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 	StrPtr ignored = client->GetIgnoreFile();
 	StrBuf from;
 	StrBuf to;
-	CharSetCvt *cvt = ( (TransDict *)client->transfname )->ToCvt();
 	const char *fileName;
 	StrBuf localDigest;
 
@@ -641,6 +659,7 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 
 	if( client != client->translated )
 	{
+	    CharSetCvt *cvt = ( (TransDict *)client->transfname )->ToCvt();
 	    fileName = cvt->FastCvt( f->Name(), strlen(f->Name()), 0 );
 	    if( !fileName )
 		fileName = f->Name();
@@ -736,6 +755,7 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 
 	    if( client != client->translated )
 	    {
+		CharSetCvt *cvt = ( (TransDict *)client->transfname )->ToCvt();
 		fileName = cvt->FastCvt( f->Name(), strlen(f->Name()) );
 		if( !fileName )
 		    fileName = f->Name();
@@ -772,6 +792,10 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 		{
 		    from.Set( fileName );
 		    from << "/";
+		
+#ifdef OS_NT
+	        convertSlash( from.Text() );
+#endif
 
 	            if( client->protocolNocase != StrBuf::CaseUsage() )
 	            {
@@ -808,6 +832,9 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 	    {
 		from.Set( fileName );
 
+#ifdef OS_NT
+	        convertSlash( from.Text() );
+#endif
 	        if( client->protocolNocase != StrBuf::CaseUsage() )
 	        {
 	            from.SetCaseFolding( client->protocolNocase );
@@ -882,10 +909,16 @@ clientReconcileAdd( Client *client, Error *e )
 	    char *c = mapItem->Text();
 	    switch( *c )
 	    {
-	    case '-': m = MapExclude; j = 1; break;
-	    case '+': m = MapOverlay; j = 1; break;
-	    default:  m = MapInclude; j = 0; break;
+	    case '-': m = MapExclude;   j = 1; break;
+	    case '+': m = MapOverlay;   j = 1; break;
+	    // Special case for &: we want the client to send all
+	    // potentially mapped files
+	    case '&': m = MapInclude;   j = 1; break;
+	    default:  m = MapInclude;   j = 0; break;
 	    }
+#ifdef OS_NT 
+	    convertSlash( c );
+#endif
 	    map->Insert( StrRef( c+j ), StrRef( c+j ), m );
 	}
 
@@ -997,15 +1030,32 @@ clientReconcileAdd( Client *client, Error *e )
 		{
 		    ++i2;
 		}
+
+		if( !( ( i1 + 1 ) % 1000 ) )
+		{
+		    client->Confirm( confirm );
+		    i0 = 0;
+		}
 	    }
 	}
 	else
 	{
+	    int i0 = 0;
+
 	    for( int j = 0; j < files->Count(); j++ )
 	    {
-		client->SetVar( P4Tag::v_file, j, *files->Get(j) );
+		client->SetVar( P4Tag::v_file, i0, *files->Get(j) );
+
 		if( sendDigest )
-		    client->SetVar( P4Tag::v_digest, j, *digests->Get(j) );
+		    client->SetVar( P4Tag::v_digest, i0, *digests->Get(j) );
+
+		i0++;
+
+		if( !( ( j + 1 ) % 1000 ) )
+		{
+		    client->Confirm( confirm );
+		    i0 = 0;		    
+		}
 	    }
 	}
 

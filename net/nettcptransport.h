@@ -82,6 +82,9 @@ class NetTcpTransport : public NetTransport {
 	const NetPortParser &GetPortParser() const;
 	void            SetPortParser(const NetPortParser &portParser);
 
+	int             GetMaxWait();
+	void            SetMaxWait( const int maxWait );
+
 	int		GetFd() { return t; }
 		int		GetInfo( StrBuf * );
 
@@ -106,5 +109,6 @@ class NetTcpTransport : public NetTransport {
 	StrBuf		myAddr;
 	StrBuf		peerAddr;
 	NetPortParser   portParser;
+	int             maxWait;	// in ms
 } ;
 

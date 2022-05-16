@@ -62,6 +62,8 @@ class Diff {
 
 	int		GetChunkCnt() { return (chunkCnt); }
 
+	int		IsIdentical();
+
     private:
 
 	void		Walker( const char *flags, Sequence *s, 

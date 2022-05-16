@@ -22,7 +22,8 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgDm error code is: 984
+ * Current high value for a MsgDm error code is: 1023
+ *                                               Max code is 1023!!!
  */
 
 # include <error.h>
@@ -99,7 +100,9 @@ ErrorId MsgDm::TooManyUsers            = { ErrorOf( ES_DM, 43, E_FAILED, EV_ADMI
 ErrorId MsgDm::MapNotUnder             = { ErrorOf( ES_DM, 44, E_FAILED, EV_CONTEXT, 2 ), "Mapping '%depotFile%' is not under '%prefix%'." } ;
 ErrorId MsgDm::MapNoListAccess         = { ErrorOf( ES_DM, 432, E_FAILED, EV_CONTEXT, 0 ), "User does not have list access for mapped depots." } ;
                                
-                               
+ErrorId MsgDm::NoSuchStorage           = { ErrorOf( ES_DM, 985, E_FAILED, EV_UNKNOWN, 2 ), "Archive information for '%lbrFile%' revision %lbrRev% doesn't exist." } ;
+ErrorId MsgDm::ExSTORAGE               = { ErrorOf( ES_DM, 986, E_WARN, EV_EMPTY, 1 ), "[%argc% - no|No] such archive storage." } ;
+                             
 ErrorId MsgDm::DepotMissing            = { ErrorOf( ES_DM, 45, E_FATAL, EV_FAULT, 1 ), "Depot %depot% missing from depot table!" } ;     // NOTRANS
 ErrorId MsgDm::UnloadNotOwner          = { ErrorOf( ES_DM, 708, E_FAILED, EV_USAGE, 1 ), "Client, label, or task stream %domainName% is not owned by you." } ;
 ErrorId MsgDm::UnloadNotPossible       = { ErrorOf( ES_DM, 776, E_FAILED, EV_USAGE, 2 ), "%domainType% %domainName% has file(s) exclusively or globally opened or has promoted shelves, and may not be unloaded. Revert these opened files and delete the promoted shelves, then retry the unload." } ;
@@ -166,6 +169,7 @@ ErrorId MsgDm::JobDescMissing          = { ErrorOf( ES_DM, 75, E_FAILED, EV_USAG
 ErrorId MsgDm::JobHasChanged           = { ErrorOf( ES_DM, 434, E_FAILED, EV_UNKNOWN, 0 ), "Job has been modified by another user, clear date field to overwrite." } ;
 ErrorId MsgDm::JobFieldAlways          = { ErrorOf( ES_DM, 441, E_FAILED, EV_USAGE, 2 ), "%field% is a read-only always field and can't be changed from '%value%'.\nThe [%spec%|job] may have been updated while you were editing." } ;
 ErrorId MsgDm::BadSpecType             = { ErrorOf( ES_DM, 412, E_FAILED, EV_USAGE, 1 ), "Unknown spec type %type%." } ;
+ErrorId MsgDm::BadSpecData             = { ErrorOf( ES_DM, 995, E_FAILED, EV_USAGE, 1 ), "Invalid spec data '%data%'." } ;
 ErrorId MsgDm::LameCodes               = { ErrorOf( ES_DM, 410, E_FAILED, EV_USAGE, 3 ), "Field codes must be between %low%-%hi% for %type% specs." } ;
 ErrorId MsgDm::JobFieldReadOnly        = { ErrorOf( ES_DM, 77, E_FAILED, EV_USAGE, 2 ), "%field% is read-only and can't be changed from '%value%'." } ;
 ErrorId MsgDm::MultiWordDefault        = { ErrorOf( ES_DM, 78, E_FAILED, EV_USAGE, 1 ), "%field% can't have a default multi-word value." } ;
@@ -306,6 +310,8 @@ ErrorId MsgDm::ChangeDeleteOpen        = { ErrorOf( ES_DM, 202, E_INFO, EV_NONE,
 ErrorId MsgDm::ChangeDeleteHasFix      = { ErrorOf( ES_DM, 203, E_INFO, EV_NONE, 2 ), "%change% has %count% fixes associated with it and can't be deleted." } ;
 ErrorId MsgDm::ChangeDeleteHasFiles    = { ErrorOf( ES_DM, 204, E_INFO, EV_NONE, 2 ), "%change% has %count% files associated with it and can't be deleted." } ;
 ErrorId MsgDm::ChangeDeleteShelved    = { ErrorOf( ES_DM, 517, E_FAILED, EV_CONTEXT, 1 ), "%change% has shelved files associated with it and can't be deleted." } ;
+ErrorId MsgDm::ChangeDeleteHasStream   = { ErrorOf( ES_DM, 1002, E_FAILED, EV_CONTEXT, 1 ), "%change% has a stream associated with it and can't be deleted." } ;
+ErrorId MsgDm::ChangeDeleteTaskUnload     = { ErrorOf( ES_DM, 1018, E_FAILED, EV_CONTEXT, 1 ), "%change% is in unloaded task stream '%stream%' and can't be deleted." } ;
 ErrorId MsgDm::ChangeDeleteSuccess     = { ErrorOf( ES_DM, 205, E_INFO, EV_NONE, 1 ), "%change% deleted." } ;
 ErrorId MsgDm::ChangeNotOwner	       = { ErrorOf( ES_DM, 468, E_FAILED, EV_USAGE, 2 ), "%change% can only be updated by user %user%." };
 ErrorId MsgDm::CommittedNoPerm	       = { ErrorOf( ES_DM, 573, E_FAILED, EV_USAGE, 2 ), "%change% can only be updated by user %user% with -u, or by admin user with -f." };
@@ -355,6 +361,7 @@ ErrorId MsgDm::ImportNotUnder             = { ErrorOf( ES_DM, 544, E_FAILED, EV_
 ErrorId MsgDm::InvalidParent             = { ErrorOf( ES_DM, 542, E_FAILED, EV_CONTEXT, 1 ), "Invalid parent field '%parent%'. Check stream, parent and type." } ;
 ErrorId MsgDm::StreamOverflow            = { ErrorOf( ES_DM, 549, E_FAILED, EV_USAGE, 0 ), "Stream hierarchy in endless loop!" } ;
 ErrorId MsgDm::NoStreamAtChange          = { ErrorOf( ES_DM, 550, E_FAILED, EV_CONTEXT, 2 ), "No stream '%stream%' existed at change %change%" } ;
+ErrorId MsgDm::NoShelvedStreamAtChange   = { ErrorOf( ES_DM, 1010, E_FAILED, EV_CONTEXT, 2 ), "No shelved stream '%stream%' exists at change %change%" } ;
 ErrorId MsgDm::NotStreamReady            = { ErrorOf( ES_DM, 557, E_FAILED, EV_USAGE, 1 ), "Client '%client%' requires an application that can fully support streams." } ;
 ErrorId MsgDm::MissingStream             = { ErrorOf( ES_DM, 575, E_FAILED, EV_UNKNOWN, 2 ), "Missing stream '%name%' in stream hierarchy for '%stream%'." } ;
 ErrorId MsgDm::InvalidStreamFmt          = { ErrorOf( ES_DM, 576, E_FAILED, EV_NONE, 1), "Stream '%stream%' is not the correct format of '//depotname/string'" } ;
@@ -391,6 +398,7 @@ ErrorId MsgDm::ServerDelete            = { ErrorOf( ES_DM, 663, E_INFO, EV_NONE,
 ErrorId MsgDm::NoSuchServer            = { ErrorOf( ES_DM, 664, E_FAILED, EV_UNKNOWN, 1 ), "Server '%server%' doesn't exist." } ;
 ErrorId MsgDm::ServersData             = { ErrorOf( ES_DM, 665, E_INFO, EV_NONE, 6 ), "%serverID% %type% %name% %address% %services% '%description%'" } ;
 ErrorId MsgDm::ServerTypeMismatch      = { ErrorOf( ES_DM, 719, E_FAILED, EV_CONTEXT, 0 ), "Server type is not appropriate for specified server services." } ;
+ErrorId MsgDm::NewStandbyCantMandatory = { ErrorOf( ES_DM, 1001, E_FAILED, EV_ILLEGAL, 0 ), "New %''standby''% or %''forwarding-standby''% server can't have the %''mandatory''% option set. Set the %''mandatory''% option after the server's %''journalcopy''% thread is current." } ;
 ErrorId MsgDm::ServerRplFromMandatory  = { ErrorOf( ES_DM, 964, E_FAILED, EV_CONTEXT, 0 ), "'ReplicatingFrom' field required for a 'standby' or 'forwarding-standby' server." } ;	//NOTRANS
 ErrorId MsgDm::ServerRplFromRplOnly    = { ErrorOf( ES_DM, 965, E_FAILED, EV_CONTEXT, 0 ), "'ReplicatingFrom' field can't be specified for this type of server." } ;	//NOTRANS
 ErrorId MsgDm::ServerRplFromSame       = { ErrorOf( ES_DM, 966, E_FAILED, EV_CONTEXT, 0 ), "'ReplicatingFrom' field can't be the same as the 'ServerID' field." } ;	//NOTRANS
@@ -409,6 +417,15 @@ ErrorId MsgDm::DescribeMove            = { ErrorOf( ES_DM, 495, E_INFO, EV_USAGE
 ErrorId MsgDm::DescribeDiff            = { ErrorOf( ES_DM, 218, E_INFO, EV_NONE, 4 ), "\n==== %depotFile%%depotRev% (%type%[/%type2%]) ====\n" } ;
                                
 ErrorId MsgDm::DiffData                = { ErrorOf( ES_DM, 219, E_INFO, EV_NONE, 4 ), "==== %depotFile%%depotRev% - %localPath% ====[ (%type%)]" } ;
+ErrorId MsgDm::DiffOpenStreamContent   = { ErrorOf( ES_DM, 1008, E_INFO, EV_NONE, 3 ), "==== %streamname1%@%change% - %streamname2% opened for edit ==== content" } ;
+ErrorId MsgDm::Diff2StreamContent      = { ErrorOf( ES_DM, 1011, E_INFO, EV_NONE, 4 ), "==== %streamname1%@%change1% - %streamname2%@%change2% ==== content" } ;
+ErrorId MsgDm::DiffOpenStreamIdentical = { ErrorOf( ES_DM, 1012, E_INFO, EV_NONE, 3 ), "==== %streamname1%@%change% - %streamname2% opened for edit ==== identical" } ;
+ErrorId MsgDm::Diff2StreamIdentical    = { ErrorOf( ES_DM, 1013, E_INFO, EV_NONE, 4 ), "==== %streamname1%@%change1% - %streamname2%@%change2% ==== identical" } ;
+ErrorId MsgDm::StreamDiffNoSpecifier   = { ErrorOf( ES_DM, 1009, E_FAILED, EV_USAGE, 1 ), "Specifier %specifier% can only be used with an opened stream spec name." } ;
+ErrorId MsgDm::StreamDiffNoUnified     = { ErrorOf( ES_DM, 1014, E_FAILED, EV_USAGE, 0 ), "Stream diff doesn't support unified diff." } ;
+ErrorId MsgDm::StreamDiffLeft          = { ErrorOf( ES_DM, 1015, E_INFO, EV_NONE, 1 ), "==== %streamname%@%change% - <none> ====" } ;
+ErrorId MsgDm::StreamDiffRight         = { ErrorOf( ES_DM, 1016, E_INFO, EV_NONE, 1 ), "==== <none> - %streamname%@%change%  ====" } ;
+ErrorId MsgDm::StreamDiffNoStream      = { ErrorOf( ES_DM, 1017, E_FAILED, EV_USAGE, 0 ), "No streams found." } ;
                                
 ErrorId MsgDm::Diff2DataLeft           = { ErrorOf( ES_DM, 220, E_INFO, EV_NONE, 2 ), "==== %depotFile%%depotRev% - <none> ===" } ;
 ErrorId MsgDm::Diff2DataRight          = { ErrorOf( ES_DM, 221, E_INFO, EV_NONE, 2 ), "==== <none> - %depotFile%%depotRev% ====" } ;
@@ -532,8 +549,8 @@ ErrorId MsgDm::LicenseNoChange         = { ErrorOf( ES_DM, 451, E_INFO, EV_NONE,
 
 ErrorId MsgDm::LockSuccess             = { ErrorOf( ES_DM, 276, E_INFO, EV_NONE, 1 ), "%depotFile% - locking" } ;
 ErrorId MsgDm::LockAlready             = { ErrorOf( ES_DM, 277, E_INFO, EV_NONE, 1 ), "%depotFile% - already locked" } ;
-ErrorId MsgDm::LockAlreadyOther        = { ErrorOf( ES_DM, 278, E_INFO, EV_NONE, 3 ), "%depotFile% - already locked by %user%@%client%" } ;
-ErrorId MsgDm::LockAlreadyCommit        = { ErrorOf( ES_DM, 912, E_FAILED, EV_NOTYET, 4 ), "%depotFile% - already locked on Commit Server by %user%@%client% at change %change%" } ;
+ErrorId MsgDm::LockAlreadyOther        = { ErrorOf( ES_DM, 278, E_INFO, EV_NONE, 3 ), "%depotFile% - already locked by %user%[@%client%]" } ;
+ErrorId MsgDm::LockAlreadyCommit       = { ErrorOf( ES_DM, 912, E_FAILED, EV_NOTYET, 4 ), "%depotFile% - already locked on Commit Server by %user%@%client% at change %change%" } ;
 ErrorId MsgDm::LockNoPermission        = { ErrorOf( ES_DM, 279, E_INFO, EV_NONE, 1 ), "%depotFile% - no permission to lock file" } ;
 ErrorId MsgDm::LockBadUnicode          = { ErrorOf( ES_DM, 525, E_INFO, EV_NONE, 1 ), "%depotFile% - cannot submit unicode type file using non-unicode server" } ;
 ErrorId MsgDm::LockUtf16NotSupp        = { ErrorOf( ES_DM, 526, E_INFO, EV_NONE, 1 ), "%depotFile% - utf16 files can not be submitted by pre-2007.2 clients" } ;
@@ -541,7 +558,8 @@ ErrorId MsgDm::LockUtf16NotSupp        = { ErrorOf( ES_DM, 526, E_INFO, EV_NONE,
 ErrorId MsgDm::UnLockSuccess           = { ErrorOf( ES_DM, 280, E_INFO, EV_NONE, 1 ), "%depotFile% - unlocking" } ;
 ErrorId MsgDm::UnLockAlready           = { ErrorOf( ES_DM, 281, E_INFO, EV_NONE, 1 ), "%depotFile% - already unlocked" } ;
 ErrorId MsgDm::UnLockAlreadyOther      = { ErrorOf( ES_DM, 282, E_INFO, EV_NONE, 3 ), "%depotFile% - locked by %user%@%client%" } ;
-ErrorId MsgDm::ShelvedHasWorking           = { ErrorOf( ES_DM, 742, E_INFO, EV_NONE, 2 ), "Cannot submit - files are open by client %client% at change %change%." } ;
+ErrorId MsgDm::ShelvedHasWorking       = { ErrorOf( ES_DM, 742, E_INFO, EV_NONE, 2 ), "Cannot submit - files are open by client %client% at change %change%." } ;
+ErrorId MsgDm::ShelvedHasWorkingStream = { ErrorOf( ES_DM, 1003, E_FAILED, EV_NONE, 3 ), "Cannot submit - stream spec %stream% is open by client %client% and on shelf %change%." } ;
                                
 ErrorId MsgDm::LoggerData              = { ErrorOf( ES_DM, 283, E_INFO, EV_NONE, 3 ), "%sequence% %key% %attribute%" } ;
 
@@ -568,6 +586,9 @@ ErrorId MsgDm::OpenReadOnlyCMap        = { ErrorOf( ES_DM, 925, E_INFO, EV_NONE,
 ErrorId MsgDm::OpenXOpened             = { ErrorOf( ES_DM, 286, E_INFO, EV_NONE, 2 ), "%depotFile% - can't %action% exclusive file already opened" } ;
 ErrorId MsgDm::OpenXOpenedFailed       = { ErrorOf( ES_DM, 777, E_FAILED, EV_NONE, 2 ), "%depotFile% - can't %action% exclusive file already opened" } ;
 ErrorId MsgDm::OpenXOpenedWarn         = { ErrorOf( ES_DM, 980, E_WARN, EV_NONE, 2 ), "%depotFile% - can't %action% exclusive file already opened" } ;
+ErrorId MsgDm::OpenXOpenedLFS          = { ErrorOf( ES_DM, 987, E_INFO, EV_NONE, 2 ), "%depotFile% - can't %action%, LFS file locked by '%user%'" } ;
+ErrorId MsgDm::OpenXOpenedLFSWarn      = { ErrorOf( ES_DM, 988, E_WARN, EV_NONE, 2 ), "%depotFile% - can't %action%, LFS file locked by '%user%'" } ;
+ErrorId MsgDm::OpenXOpenedLFSFailed    = { ErrorOf( ES_DM, 999, E_FAILED, EV_NONE, 2 ), "%depotFile% - can't %action%, LFS file locked by '%user%'.\nUse 'p4 graph lfs-locks' to view LFS lock list." } ;
 ErrorId MsgDm::OpenBadAction           = { ErrorOf( ES_DM, 287, E_INFO, EV_NONE, 3 ), "%depotFile% - can't %action% (already opened for %badAction%)" } ;
 ErrorId MsgDm::OpenBadClient           = { ErrorOf( ES_DM, 288, E_INFO, EV_NONE, 2 ), "%depotFile% - is already opened by client %client%" } ;
 ErrorId MsgDm::OpenBadUser             = { ErrorOf( ES_DM, 289, E_INFO, EV_NONE, 2 ), "%depotFile% - is already opened by user %user%" } ;
@@ -639,6 +660,8 @@ ErrorId MsgDm::ProtectsOwnerUnmap      = { ErrorOf( ES_DM, 955, E_FAILED, EV_ADM
 ErrorId MsgDm::PurgeSnapData           = { ErrorOf( ES_DM, 308, E_INFO, EV_NONE, 4 ), "%depotFile%%depotRev% - copy from %lbrFile% %lbrRev%" } ;
 ErrorId MsgDm::PurgeDeleted            = { ErrorOf( ES_DM, 309, E_INFO, EV_NONE, 6 ), "Deleted [%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ][and added %synInteg% integration ]record(s)." } ;
 ErrorId MsgDm::PurgeCheck              = { ErrorOf( ES_DM, 310, E_INFO, EV_NONE, 6 ), "Would delete [%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ][and add %synInteg% integration ]record(s)." } ;
+ErrorId MsgDm::PurgePurged             = { ErrorOf( ES_DM, 1019, E_INFO, EV_NONE, 6 ), "Purged [%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ][and added %synInteg% integration ]record(s)." } ;
+ErrorId MsgDm::PurgePurgeCheck         = { ErrorOf( ES_DM, 1020, E_INFO, EV_NONE, 6 ), "Would purge [%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ][and add %synInteg% integration ]record(s)." } ;
 ErrorId MsgDm::PurgeNoRecords          = { ErrorOf( ES_DM, 311, E_INFO, EV_NONE, 0 ), "No records to delete." } ;
 ErrorId MsgDm::PurgeData               = { ErrorOf( ES_DM, 312, E_INFO, EV_NONE, 2 ), "%depotFile%%depotRev% - purged" } ;
 ErrorId MsgDm::PurgeActiveTask         = { ErrorOf( ES_DM, 737, E_FAILED, EV_ILLEGAL, 2 ), "Can't %action% active task stream files - '%depotFile%'" } ;
@@ -660,6 +683,7 @@ ErrorId MsgDm::ReopenData              = { ErrorOf( ES_DM, 322, E_INFO, EV_NONE,
 ErrorId MsgDm::ReopenDataNoChange      = { ErrorOf( ES_DM, 323, E_INFO, EV_NONE, 5 ), "%depotFile%%workRev% - nothing changed[; user %user%][; type %type%][; %change%]" } ;
 ErrorId MsgDm::ReopenCharSet           = { ErrorOf( ES_DM, 767, E_INFO, EV_NONE, 3 ), "%depotFile%%workRev% - reopened; charset %charset%" } ;
 ErrorId MsgDm::ReopenBadType           = { ErrorOf( ES_DM, 760, E_INFO, EV_NONE, 2 ), "%depotFile%%workRev% - can't change +l type with reopen; use revert -k and then edit -t to change type." } ;
+ErrorId MsgDm::ReopenStream            = { ErrorOf( ES_DM, 998, E_INFO, EV_NONE, 4 ), "%stream%[@%haveChange%] - reopened[; user %user%][; %change%]" } ;
                                
 ErrorId MsgDm::ResolveAction           = { ErrorOf( ES_DM, 590, E_INFO, EV_NONE, 6 ), "%localPath% - resolving %resolveType% from %fromFile%%fromRev%[ using base %baseFile%][%baseRev%]" } ;
 ErrorId MsgDm::ResolveActionMove       = { ErrorOf( ES_DM, 622, E_INFO, EV_NONE, 3 ), "%localPath% - resolving move to %fromFile%[ using base %baseFile%]" } ;
@@ -735,13 +759,13 @@ ErrorId MsgDm::PosWild                 = { ErrorOf( ES_DM, 515, E_FAILED, EV_USA
 ErrorId MsgDm::ImportGraphBadRef       = { ErrorOf( ES_DM, 978, E_FAILED, EV_USAGE, 0 ), "Import of graph depot must specify a reference." } ;
 ErrorId MsgDm::ImportPlusGraph         = { ErrorOf( ES_DM, 979, E_FAILED, EV_USAGE, 0 ), "Import+ of graph depots are not allowed." } ;
 
-ErrorId MsgDm::StreamOpened	       = { ErrorOf( ES_DM, 904, E_INFO, EV_NONE, 2 ), "Stream %stream%[@%haveChange%] - opened on this client" } ;
+ErrorId MsgDm::StreamOpened	       = { ErrorOf( ES_DM, 904, E_INFO, EV_NONE, 4 ), "Stream %stream%[@%haveChange%] - %action% stream spec %change% " } ;
 ErrorId MsgDm::StreamIsOpen            = { ErrorOf( ES_DM, 905, E_WARN, EV_NOTYET, 1 ), "Stream %stream% is already open on this client." } ;
 ErrorId MsgDm::StreamReverted          = { ErrorOf( ES_DM, 907, E_INFO, EV_NONE, 1 ), "Stream %stream% reverted." } ;
 ErrorId MsgDm::StreamShelveMismatch    = { ErrorOf( ES_DM, 913, E_FAILED, EV_NOTYET, 2 ), "Shelved stream %shelvedStream% does not match client stream [%clientStream%|(none)]." };
 ErrorId MsgDm::StreamNotOpen           = { ErrorOf( ES_DM, 914, E_WARN, EV_NOTYET, 1 ), "Client %client% does not have an open stream." } ;
 ErrorId MsgDm::StreamSwitchOpen        = { ErrorOf( ES_DM, 915, E_FAILED, EV_NOTYET, 1 ), "Can't switch to %stream% while current stream spec has pending changes.  Use 'p4 stream revert' to discard." } ;
-ErrorId MsgDm::StreamMustResolve       = { ErrorOf( ES_DM, 916, E_WARN, EV_NOTYET, 1 ), "Stream %stream% is out of date; run 'p4 stream resolve'." } ;
+ErrorId MsgDm::StreamMustResolve       = { ErrorOf( ES_DM, 916, E_FAILED, EV_NOTYET, 1 ), "Stream %stream% is out of date; run 'p4 stream resolve'." } ;
 ErrorId MsgDm::StreamShelved           = { ErrorOf( ES_DM, 917, E_INFO, EV_NONE, 1 ), "Stream %stream% shelved." };
 ErrorId MsgDm::StreamUnshelved         = { ErrorOf( ES_DM, 918, E_INFO, EV_NONE, 1 ), "Stream %stream% unshelved." };
 ErrorId MsgDm::StreamOpenBadType       = { ErrorOf( ES_DM, 919, E_FAILED, EV_ILLEGAL, 1 ), "Not permitted to open stream spec with type '%type%'." } ;
@@ -751,6 +775,7 @@ ErrorId MsgDm::StreamResolve           = { ErrorOf( ES_DM, 908, E_INFO, EV_NONE,
 ErrorId MsgDm::StreamResolved          = { ErrorOf( ES_DM, 909, E_INFO, EV_NONE, 5 ), "%localStream% %field% - %how% %fromStream%@%fromChange%" } ;
 ErrorId MsgDm::StreamResolveField      = { ErrorOf( ES_DM, 910, E_INFO, EV_NONE, 1 ), "%field% resolve" } ;
 ErrorId MsgDm::StreamResolveAction     = { ErrorOf( ES_DM, 911, E_INFO, EV_NONE, 1 ), "%text%" } ;
+ErrorId MsgDm::StreamlogRevMessage     = { ErrorOf( ES_DM, 1000, E_INFO, EV_USAGE, 6 ), "%change% %action%[ on %date%][ by %user%][@%client%][ %description%]" } ;
 
 ErrorId MsgDm::StreamOwnerReq          = { ErrorOf( ES_DM, 582, E_FAILED, EV_NONE, 1), "Owner field of Stream '%stream%' required." } ;
 ErrorId MsgDm::SubmitUpToDate          = { ErrorOf( ES_DM, 331, E_INFO, EV_NONE, 2 ), "%depotFile% - opened at head rev %workRev%" } ;
@@ -818,10 +843,14 @@ ErrorId MsgDm::UnshelveNotTask         = { ErrorOf( ES_DM, 744, E_FAILED, EV_USA
 ErrorId MsgDm::UnshelveFromRemote      = { ErrorOf( ES_DM, 797, E_INFO, EV_NONE, 2 ), "%depotFile% - can't unshelve from remote server (already opened for %badAction%)" } ;
 ErrorId MsgDm::UnshelveBadChangeView   = { ErrorOf( ES_DM, 820, E_FAILED, EV_NOTYET, 2 ), "%depotFile% - can't unshelve from revision at change %change% (restricted by client's ChangeView)" } ;
 ErrorId MsgDm::UnshelveBadAndmap       = { ErrorOf( ES_DM, 928, E_FAILED, EV_NOTYET, 2 ), "%clientFile% - can't unshelve from revision at change %change% (additionally mapped in client's View)" } ;
+ErrorId MsgDm::UnshelveStreamIsOpen    = { ErrorOf( ES_DM, 1004, E_FAILED, EV_NONE, 1 ), "Cannot unshelve stream %stream%, the specification is already open on this client." } ;
+
 
 ErrorId MsgDm::UserSave                = { ErrorOf( ES_DM, 356, E_INFO, EV_NONE, 1 ), "User %user% saved." } ;
 ErrorId MsgDm::UserNoChange            = { ErrorOf( ES_DM, 357, E_INFO, EV_NONE, 1 ), "User %user% not changed." } ;
 ErrorId MsgDm::UserNotExist            = { ErrorOf( ES_DM, 358, E_FAILED, EV_UNKNOWN, 1 ), "User %user% doesn't exist." } ;
+ErrorId MsgDm::UserNotExistInfo        = { ErrorOf( ES_DM, 994, E_INFO, EV_UNKNOWN, 2 ), "User %user% doesn't exist (Extension owner:%owner%)." } ;
+ErrorId MsgDm::GroupNotExistInfo       = { ErrorOf( ES_DM, 996, E_INFO, EV_UNKNOWN, 2 ), "Groups (%groups%) don't exist (Extension owner:%owner%)." } ;
 ErrorId MsgDm::UserCantDelete          = { ErrorOf( ES_DM, 359, E_INFO, EV_NONE, 2 ), "User %user% has file(s) open on %value% client(s) and can't be deleted." } ;
 ErrorId MsgDm::UserDelete              = { ErrorOf( ES_DM, 360, E_INFO, EV_NONE, 1 ), "User %user% deleted." } ;
                                
@@ -905,7 +934,7 @@ ErrorId MsgDm::MonitorClear            = { ErrorOf( ES_DM, 407, E_INFO, EV_NONE,
 ErrorId MsgDm::MonitorPause            = { ErrorOf( ES_DM, 609, E_INFO, EV_NONE, 1 ), "** process '%id%' record paused **" } ;
 ErrorId MsgDm::MonitorResume           = { ErrorOf( ES_DM, 610, E_INFO, EV_NONE, 1 ), "** process '%id%' record resumed **" } ;
 ErrorId MsgDm::MonitorTerminate        = { ErrorOf( ES_DM, 408, E_INFO, EV_NONE, 1 ), "** process '%id%' marked for termination **" } ;
-ErrorId MsgDm::MonitorCantTerminate    = { ErrorOf( ES_DM, 409, E_INFO, EV_NONE, 1 ), "** process '%id%' can't terminate, runtime < 10 seconds **" } ;
+ErrorId MsgDm::MonitorCantTerminate    = { ErrorOf( ES_DM, 409, E_INFO, EV_NONE, 2 ), "** process '%id%' can't terminate, runtime < %t% seconds **" } ;
 
 ErrorId MsgDm::AdminSpecData           = { ErrorOf( ES_DM, 466, E_INFO, EV_NONE, 1 ), "%depotFile% - created" } ;
 ErrorId MsgDm::AdminPasswordData       = { ErrorOf( ES_DM, 723, E_INFO, EV_NONE, 1 ), "%user% - must reset password" } ;
@@ -1003,16 +1032,30 @@ ErrorId MsgDm::LogFilenameInvalid      = { ErrorOf( ES_DM, 947, E_FAILED, EV_USA
 ErrorId MsgDm::LogFormatInvalid        = { ErrorOf( ES_DM, 948, E_FAILED, EV_USAGE, 0 ), "Log format is invalid." } ;
 ErrorId MsgDm::LogNumericInvalid       = { ErrorOf( ES_DM, 949, E_FAILED, EV_USAGE, 1 ), "Log %property% must be numeric." } ;
 ErrorId MsgDm::LogEventsUnmatched      = { ErrorOf( ES_DM, 950, E_FAILED, EV_USAGE, 0 ), "Log captures no events." } ;
+ErrorId MsgDm::LogEventUnknown         = { ErrorOf( ES_DM, 1021, E_FAILED, EV_NONE, 1 ), "Unknown event type %type%!" } ;
+ErrorId MsgDm::LogEventVerUnknown      = { ErrorOf( ES_DM, 1022, E_FAILED, EV_NONE, 2 ), "Unknown version %version% for event type %type%!" } ;
 ErrorId MsgDm::JournalStateBadFmt      = { ErrorOf( ES_DM, 968, E_FAILED, EV_ADMIN, 1 ), "State file %stateFile% has unexpected content." } ;
-ErrorId MsgDm::ExtensionsData          = { ErrorOf( ES_DM, 969, E_INFO, EV_NONE, 7 ), "'%ext%' rev:%rev%, description:'%description%', developer:%developer%, UUID:%uuid%, version:%version%, enabled:%enabled%" } ;
-ErrorId MsgDm::ExtensionCfgData        = { ErrorOf( ES_DM, 973, E_INFO, EV_NONE, 5 ), "'%cfg%' '%ext%' %owner% %type% %arg%" } ;
+ErrorId MsgDm::JournalStateCkp         = { ErrorOf( ES_DM, 992, E_FAILED, EV_ADMIN, 0 ), "Checkpoint position is not valid for the current operation!" } ;
+
+ErrorId MsgDm::ExtensionsData          = { ErrorOf( ES_DM, 969, E_INFO, EV_NONE, 9 ), "%namespc%%delim1%%ext%%rev% description:'%description%', developer:%developer%, UUID:%uuid%, version:%version%, enabled:%enabled%" } ;
+ErrorId MsgDm::ExtensionCfgData        = { ErrorOf( ES_DM, 973, E_INFO, EV_NONE, 9 ), "'%cfg%' '%namespc%%delim1%%ext%%delim2%%rev% %uuid% %owner% %type% %arg%" } ;
 ErrorId MsgDm::ExtCfgSave              = { ErrorOf( ES_DM, 974, E_INFO, EV_NONE, 1 ), "Extension config %name% saved." } ;
 ErrorId MsgDm::ExtCfgNoChange          = { ErrorOf( ES_DM, 975, E_INFO, EV_NONE, 0 ), "Extension config not changed." } ;
 ErrorId MsgDm::ExtensionDepotMissing   = { ErrorOf( ES_DM, 972, E_FAILED, EV_USAGE, 0 ), "No extensions depot has been defined for this server." } ;
+ErrorId MsgDm::ExtensionBadName        = { ErrorOf( ES_DM, 1005, E_FAILED, EV_USAGE, 0 ), "Extension name must be in <namespace>::<extname>#<rev> format" };
+
 ErrorId MsgDm::VerifyContentFileError  = { ErrorOf( ES_DM, 976, E_FATAL, EV_FAULT, 4 ), "Verify content error: file %file%%rev% %digest% %status%." } ;
 ErrorId MsgDm::VerifyContentError      = { ErrorOf( ES_DM, 977, E_FATAL, EV_FAULT, 0 ), "Verify content detected one or more errors." } ;
+ErrorId MsgDm::NoUpgradeFunc           = { ErrorOf( ES_DM, 991, E_FAILED, EV_NONE, 1 ), "That upgrade function '%funcstr%' does not exist." };
+ErrorId MsgDm::StreamAlreadyOpenInCLNO = { ErrorOf( ES_DM, 989, E_WARN, EV_NOTYET, 2 ), "Stream %stream% already in a different pending changelist %change%." } ;
+ErrorId MsgDm::StreamNotOpenInCLNO     = { ErrorOf( ES_DM, 993, E_WARN, EV_NOTYET, 2 ), "Stream %stream% not open in pending changelist %change%." } ;
+ErrorId MsgDm::StreamNotOpenOnClient   = { ErrorOf( ES_DM, 990, E_WARN, EV_NOTYET, 2 ), "Stream %stream% not opened on client %client%." } ;
+ErrorId MsgDm::StreamNotOpenInDefault  = { ErrorOf( ES_DM, 997, E_WARN, EV_NOTYET, 2 ), "Stream %stream% not open in default changelist." } ;
 ErrorId MsgDm::CommandNotOnServer      = { ErrorOf( ES_DM, 984, E_FAILED, EV_NONE, 0 ), "The upstream server does not support this function." } ;
-
+ErrorId MsgDm::MalformedUUID           = { ErrorOf( ES_DM, 1006, E_FAILED, EV_USAGE, 0 ), "Malformed UUID." } ;
+ErrorId MsgDm::TooManyConfigurables    = { ErrorOf( ES_DM, 1007, E_FATAL, EV_FAULT, 1 ), "Too many configurables - over limit of %n%" };
+ErrorId MsgDm::DataOutOfRange          = { ErrorOf( ES_DM, 1012, E_FAILED, EV_USAGE, 1 ), "Data out of range:  '%value%'." };
+ErrorId MsgDm::ExtensionBadDirectory   = { ErrorOf( ES_DM, 1023, E_FAILED, EV_USAGE, 0 ), "Extension package directory name must be the directory name only. eg: --package ExtName" };
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 
@@ -1031,3 +1074,4 @@ ErrorId MsgDm::IntegOpenOkay           = { ErrorOf( ES_DM, 261, E_INFO, EV_NONE,
 ErrorId MsgDm::IntegSyncDelete         = { ErrorOf( ES_DM, 263, E_INFO, EV_NONE, 5 ), "%depotFile%%workRev% - %'sync'%/%action% from %fromFile%%fromRev%" } ; // NOTRANS
 ErrorId MsgDm::NoNextRev               = { ErrorOf( ES_DM, 48, E_FATAL, EV_FAULT, 1 ), "Can't find %depotFile%'s successor rev!" } ; // NOTRANS
 ErrorId MsgDm::DepotSpecDup            = { ErrorOf( ES_DM, 420, E_FAILED, EV_CONTEXT, 1 ), "There is already a %'spec'% depot called '%depot%'." };	// NOTRANS
+

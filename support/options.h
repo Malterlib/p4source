@@ -15,6 +15,9 @@
  *		x?	- flag takes an optional argument (--long=arg only)
  *		x+	- flag takes a flag and arg (-xyarg or -xy arg)
  *		x#	- flag takes a non-neg numeric arg (-xN or -x N)
+ *		x$	- same as : except it indicates to stop parsing after
+ *		          if more arguments follow, only the first
+ *		          will be assigned to option, the rest not parsed.
  */
 
 const int N_OPTS = 256;
@@ -43,6 +46,7 @@ class Options
 {
     public:
 			Options() { optc = 0; }
+			Options( const Options &other );
 	void		Reset() { optc = 0; }
 
 	enum Opt {
@@ -157,6 +161,7 @@ class Options
 	                Reopen         , // submit -r
 	                Description    , // submit -d
 	                Tamper         , // submit -t
+	                BackgroundXfer , // submit -b
 	                Date           , // unload -d
 	                StreamName     , // unload -s, reload -s
 	                Unchanged      , // revert -a
@@ -230,6 +235,7 @@ class Options
 	                OpenAdd        , // reconcile -a
 	                OpenEdit       , // reconcile -e
 	                OpenDelete     , // reconcile -d
+	                OpenType       , // reconcile -t
 	                UseModTime     , // reconcile -m
 	                Local          , // reconcile -l
 	                OutputBase     , // resolved -o
@@ -297,7 +303,15 @@ class Options
 	                Failoverid     , // failover -s
 	                FailoverQuiesce, // failover -w
 	                FailoverVerification, // failover -v
-			Install        , // --install (extension)
+	                Install        , // --install (extension)
+	                ChangeStart    , // integrated -s change
+	                Target         , // heartbeat -t
+	                Interval       , // heartbeat -i
+	                Wait           , // heartbeat -w
+	                MissingInterval, // heartbeat -m
+	                MissingWait    , // heartbeat -r
+	                MissingCount   , // heartbeat -c
+	                LocalLicense   , // license -u -l
 
 	        // options which have only long-form option names go here:
 
@@ -338,6 +352,7 @@ class Options
 	                Trigger        , // pull -u --trigger
 	                IgnoreHave     , // -p --ignore-have
 	                GraphOnly      , // --graph-only
+	                NoGraph        , // --no-graph
 			MinSize        , // --min-size
 			MaxSize        , // --max-size
 			NameOnly       , // --name-only
@@ -354,6 +369,7 @@ class Options
 			Index          , // --index (filelog)
 			Graph          , // --graph (filelog)
 			Oneline        , // --oneline (filelog)
+			NoAbbrev       , // --no-abbrev (filelog)
 			OneParent      , // --one-parent (filelog)
 			Merges         , // --merges (filelog)
 			CreateSampleExtension, // --sample (extension)
@@ -363,6 +379,18 @@ class Options
 			Script         , // --script
 			ScriptMaxMem   , // --script-MaxMem
 			ScriptMaxTime  , // --script-MaxTime
+			Path           , // --path (extension)
+			NoSync         , // --no-sync
+			NoScript       , // --no-script
+			ScriptLang     , // --script-lang
+			ScriptLangVersion, // --script-lang-version
+			IntoOnly       , // --into-only (integrated)
+			ScriptAPIVersion, // --script-api-version
+			RunExtension   , // --run (extension)
+			ShowMemInfo    , // --show-mem-info
+			Repair         , // --repair
+			DeleteItem     , // --delete <item>
+			SwitchStreamUnrelated  , // switch --allow-unrelated
 
 	                UnusedLastOption
 	} ;

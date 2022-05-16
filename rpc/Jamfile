@@ -4,7 +4,7 @@ SubDirHdrs $(P4) net ;
 
 SubDirC++Flags -I$(SSLINCDIR) [ FDefines Z_PREFIX ] ;
 
-P4Library $(RPCLIB) :
+P4APILibrary $(RPCLIB) :
 	rpc.cc
 	rpcbuffer.cc
 	rpcdebug.cc

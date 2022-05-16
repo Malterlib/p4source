@@ -1,13 +1,13 @@
 #include <p4script53_redefines.h>
 
 /******************************************************************************
-* Author: Alexey Melnichuk <mimir@newmail.ru>
+* Author: Alexey Melnichuk <alexeymelnichuck@gmail.com>
 *
-* Copyright (C) 2014 Alexey Melnichuk <mimir@newmail.ru>
+* Copyright (C) 2014-2021 Alexey Melnichuk <alexeymelnichuck@gmail.com>
 *
 * Licensed according to the included 'LICENSE' document
 *
-* This file is part of lua-lcurl library.
+* This file is part of Lua-cURL library.
 ******************************************************************************/
 
 #ifndef _L52UTIL_H_
@@ -81,6 +81,8 @@ void *lutil_checkudatap   (lua_State *L, int ud, const void *p);
 int   lutil_createmetap   (lua_State *L, const void *p, const luaL_Reg *methods, int nup);
 
 void *lutil_newudatap_impl     (lua_State *L, size_t size, const void *p);
+
+void lutil_pushuint(lua_State *L, unsigned int v);
 
 void lutil_pushint64(lua_State *L, int64_t v);
 

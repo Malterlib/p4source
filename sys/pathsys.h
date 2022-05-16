@@ -36,7 +36,7 @@
  *	GetOS() - returns a string for the OS name
  */
 
-# ifdef HAS_CPP17
+# ifdef HAS_CPP14
 
 # include <memory>
 
@@ -79,7 +79,7 @@ class PathSys : public StrBuf {
 
 	static PathSys *Create();
 	static PathSys *Create( const StrPtr &os, Error *e );
-# ifdef HAS_CPP17
+# ifdef HAS_CPP14
 	static PathSysUPtr CreateUPtr();
 	static PathSysUPtr CreateUPtr( const StrPtr &os, Error *e );
 # endif

@@ -20,6 +20,9 @@
 
 # include "zlinflater.h"
 
+extern "C" void* P4_zalloc( void* opaque, unsigned items, unsigned size );
+extern "C" void P4_zfree( void* opaque, void* ptr );
+
 ZLibInflater::ZLibInflater( FileSys *f, int bsize )
 {
 	this->f = f;
@@ -96,8 +99,8 @@ ZLInflater::Seek( offL_t pos, Error *e )
 	if( zinitDone )
 	    inflateEnd( (z_stream *)zstrm );
 
-	zls->zalloc = Z_NULL;
-	zls->zfree  = Z_NULL;
+	zls->zalloc = P4_zalloc;
+	zls->zfree  = P4_zfree;
 	zls->opaque = Z_NULL;
 	zls->avail_in = 0;
 	zls->next_in = Z_NULL;
@@ -260,8 +263,8 @@ ZLDeflater::Open( Error *e )
 
 	z_stream *zls = (z_stream *)zstrm;
 
-	zls->zalloc = Z_NULL;
-	zls->zfree = Z_NULL;
+	zls->zalloc = P4_zalloc;
+	zls->zfree = P4_zfree;
 	zls->opaque = Z_NULL;
 	zret = deflateInit( zls, Z_DEFAULT_COMPRESSION );
 	if( zret != Z_OK )
@@ -376,8 +379,8 @@ ZLFDeflater::Start( Error *e )
 
 	z_stream *zls = (z_stream *)zstrm;
 
-	zls->zalloc = Z_NULL;
-	zls->zfree = Z_NULL;
+	zls->zalloc = P4_zalloc;
+	zls->zfree = P4_zfree;
 	zls->opaque = Z_NULL;
 	zret = deflateInit( zls, Z_DEFAULT_COMPRESSION );
 	if( zret != Z_OK )

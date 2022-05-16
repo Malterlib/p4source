@@ -154,6 +154,9 @@ RpcForward::Forward( Rpc *src, Rpc *dst )
 	// last is "func"
 
 	dst->Invoke( val.Text() );
+
+	if( src->GetVar( P4Tag::v_needsFlushTransport ) )
+	    dst->FlushTransport();
 }
 
 void

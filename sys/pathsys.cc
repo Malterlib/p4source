@@ -118,7 +118,7 @@ PathSys::Create( const StrPtr &os, Error *e )
 	return 0;
 }
 
-# ifdef HAS_CPP17
+# ifdef HAS_CPP14
 
 PathSysUPtr PathSys::CreateUPtr()
 {

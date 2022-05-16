@@ -241,6 +241,22 @@ RpcService::IsSingle()
 	return endPoint ? endPoint->IsSingle() : 0;
 }
 
+int
+RpcService::IsSSL()
+{
+	return endPoint ? endPoint->IsSSL() : 0;
+}
+
+void
+RpcService::SetCiphers( StrPtr *cipherList, StrPtr *cipherSuites )
+{
+	if( !endPoint )
+	    return;
+	
+	endPoint->SetCipherList( cipherList );
+	endPoint->SetCipherSuites( cipherSuites );
+}
+
 static void RpcCleanup( Rpc *r )
 {
 	r->FlushTransport();
@@ -308,6 +324,13 @@ Rpc::ClientMismatch( Error *e )
 {
 	if( transport )
 	    transport->ClientMismatch( e );
+}
+
+void 
+Rpc::SetMaxWait( const int maxWait )
+{
+	if( transport )
+	    transport->SetMaxWait( maxWait );
 }
 
 void
@@ -984,6 +1007,13 @@ Rpc::Dispatch( DispatchFlag flag, RpcDispatcher *dispatcher )
 	    endDispatch = 0;
 }
 
+NO_SANITIZE_UNDEFINED
+void
+Rpc::RunCallback( const RpcDispatch *disp, Error &ue )
+{
+	(*disp->function)( this, &ue );
+}
+
 void
 Rpc::DispatchOne( RpcDispatcher *dispatcher, bool passError )
 {
@@ -1061,7 +1091,7 @@ Rpc::DispatchOne( RpcDispatcher *dispatcher, bool passError )
 
 	// Invoke requested function.
 
-	(*disp->function)( this, &ue );
+	RunCallback( disp, ue );
 
 	// Take a copy of the errors
 
@@ -1090,7 +1120,7 @@ Rpc::DispatchOne( RpcDispatcher *dispatcher, bool passError )
 
 	if( disp = dispatcher->Find( P4Tag::p_errorHandler ) )
 	{
-	    (*disp->function)( this, &ue );
+	    RunCallback( disp, ue );
 	    return;
 	}
 
@@ -1284,6 +1314,15 @@ Rpc::ForceGetTrack( RpcTrack *track )
 	track->rpc_hi_mark_rev = rpc_hi_mark_rev;
 	track->recvTime = recvTime;
 	track->sendTime = sendTime;
+	if( se.Test() ) track->sendError = se;
+	if( re.Test() ) track->recvError = re;
+	if( se.Test() || re.Test() )
+	{
+	    track->duplexFrecv = duplexFrecv;
+	    track->duplexRrecv = duplexRrecv;
+	}
+	else
+	    track->duplexFrecv = track->duplexRrecv = 0;
 }
 
 void

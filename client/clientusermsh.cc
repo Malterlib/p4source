@@ -33,6 +33,13 @@
 # include <msgclient.h>
 # include <p4tags.h>
 
+# if defined( HAS_CPP11 ) && !defined( HAS_BROKEN_CPP11 )
+# include <vector>
+# include <unordered_map>
+# include <json.hpp>
+using json = nlohmann::json;
+# endif
+
 # include "clientuser.h"
 # include "clientusermsh.h"
 
@@ -68,14 +75,15 @@ class MarshalDict : public StrBuf
 	// Writing dictionary pairs
 
 	void		Add( const char *code, const StrPtr &value )
-			{ AddString( StrRef( code ) ); AddString( value ); }
+			{ AddString( StrRef( code ) ); AddString( value );
+			  AddPair( code, value ); }
 
 	void		Add( const StrPtr &code, const StrPtr &value )
-			{ AddString( code ); AddString( value ); }
+			{ AddString( code ); AddString( value ); AddPair( code, value ); }
 
 	void		Add( const char *code, int value )
-			{ AddString( StrRef( code ) ); AddInt( value ); }
-
+			{ AddString( StrRef( code ) ); AddInt( value );
+			  AddPair( StrRef( code ), value ); }
 
 	// Reading dictionary pairs
 
@@ -87,6 +95,10 @@ class MarshalDict : public StrBuf
 
 	virtual void	AddInt( int value ) = 0;
 	virtual void	AddString( const StrPtr &value ) = 0;
+	virtual void	AddPair( const char *code, const StrPtr &value )
+			{ AddPair( StrRef( code ), value ); }
+	virtual void	AddPair( const StrPtr &code, const int value ) {};
+	virtual void	AddPair( const StrPtr &code, const StrPtr &value ) {};
 
 	void		AddCode( char c )
 			{ Extend( c ); }
@@ -97,6 +109,50 @@ class MarshalDict : public StrBuf
 
 
 } ;
+
+# if defined( HAS_CPP11 ) && !defined( HAS_BROKEN_CPP11 )
+
+/*
+ * JSONDict : a MarshalDict that holds a marshalled JSON Dictionary Object
+ *
+ */
+
+class JSONDict : public MarshalDict
+{
+    public:
+
+	// Read/Write
+
+	void		StartWrite( const char *code ) {}
+	void		EndWrite();
+
+	void		StartRead( Error *e ) {}
+	void		EndRead( Error *e ) {}
+
+
+	// Reading dictionary pairs
+
+	int	Get( StrBuf &var, StrBuf &val ) { return 0; }
+
+    protected:
+
+	// Low level string/int/etc
+
+	void		AddInt( int value ) {}
+	void		AddString( const StrPtr &value ) {}
+
+	void		AddPair( const StrPtr &code, const int value )
+			{ j[ code.Text() ] = value; };
+	void		AddPair( const StrPtr &code, const StrPtr &value )
+			{ j[ code.Text() ] = value.Text(); };
+
+
+    private:
+
+	json		j;
+} ;
+
+# endif
 
 /*
  * PythonDict : a MarshalDict that holds a marshalled Python Dictionary Object
@@ -264,6 +320,27 @@ MarshalDict::GetChar( char c )
 	return 1;
 }
 
+# if defined( HAS_CPP11 ) && !defined( HAS_BROKEN_CPP11 )
+
+/*******************************************************************************
+ *  JSONDict methods
+ ******************************************************************************/
+
+/*
+ * Close a marshalled dictionary and write it to stdout.
+ */
+
+void
+JSONDict::EndWrite() 
+{ 
+	StrBuf output = j.dump( -1, ' ', false,
+	                        json::error_handler_t::replace ).c_str();
+	output << "\n";
+	fwrite( output.Text(), 1, output.Length(), stdout );
+	j.clear();
+}
+
+# endif
 
 /*******************************************************************************
  *  PythonDict methods
@@ -809,7 +886,8 @@ PhpDict::EndRead( Error *e )
  * Constructor. 
  */
 
-ClientUserMarshal::ClientUserMarshal()
+ClientUserMarshal::ClientUserMarshal( int apiVersion )
+    : ClientUser( 0, apiVersion )
 {
 # ifdef OS_NT
 	// both python and ruby marshalled formats are binary
@@ -1103,6 +1181,36 @@ ClientUserMarshal::WriteOutput( StrPtr *buf )
     	fwrite( buf->Text(), 1, buf->Length(), stdout );
 }
 
+# if defined( HAS_CPP11 ) && !defined( HAS_BROKEN_CPP11 )
+
+/*******************************************************************************
+ *  ClientUserJSON methods
+ ******************************************************************************/
+
+/*
+ * ClientUserJSON - ClientUser I/O is marshalled JSON data
+ * 
+ * Just ClientUserMarshal but with a JSON dictionary.
+ */
+
+ClientUserJSON::ClientUserJSON( int apiVersion )
+    : ClientUserMarshal( apiVersion )
+{
+	result = new JSONDict;
+}
+
+/*
+ * ClientUser::Prompt() - don't prompt the user, just collect the response.
+ */
+
+void
+ClientUserJSON::Prompt( const StrPtr &msg, StrBuf &buf, int noEcho, Error *e )
+{
+    ClientUser::Prompt( msg, buf, noEcho, 1, e );
+}
+
+# endif
+
 /*******************************************************************************
  *  ClientUserPython methods
  ******************************************************************************/
@@ -1113,7 +1221,8 @@ ClientUserMarshal::WriteOutput( StrPtr *buf )
  * Just ClientUserMarshal but with a Python dictionary.
  */
 
-ClientUserPython::ClientUserPython()
+ClientUserPython::ClientUserPython( int apiVersion )
+    : ClientUserMarshal( apiVersion )
 {
 	result = new PythonDict;
 }
@@ -1128,7 +1237,8 @@ ClientUserPython::ClientUserPython()
  * Just ClientUserMarshal but with a Ruby dictionary.
  */
 
-ClientUserRuby::ClientUserRuby()
+ClientUserRuby::ClientUserRuby( int apiVersion )
+    : ClientUserMarshal( apiVersion )
 {
 	result = new RubyDict;
 }
@@ -1145,7 +1255,8 @@ ClientUserRuby::ClientUserRuby()
  * output is buffered until the ClientUser object is destroyed.
  */
 
-ClientUserPhp::ClientUserPhp()
+ClientUserPhp::ClientUserPhp( int apiVersion )
+    : ClientUserMarshal( apiVersion )
 {
 	result 		 = new PhpDict;
 	outputBuffer = new StrBuf;

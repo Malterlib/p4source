@@ -1,11 +1,11 @@
 /******************************************************************************
-* Author: Alexey Melnichuk <mimir@newmail.ru>
+* Author: Alexey Melnichuk <alexeymelnichuck@gmail.com>
 *
-* Copyright (C) 2014 Alexey Melnichuk <mimir@newmail.ru>
+* Copyright (C) 2014-2021 Alexey Melnichuk <alexeymelnichuck@gmail.com>
 *
 * Licensed according to the included 'LICENSE' document
 *
-* This file is part of lua-lcurl library.
+* This file is part of Lua-cURL library.
 ******************************************************************************/
 
 #include "l52util.h"
@@ -107,7 +107,7 @@ void *lutil_checkudatap (lua_State *L, int ud, const void *p) {
       }
     }
   }
-  luaL_typerror(L, ud, (const char*)p);  /* else error */
+  luaL_typerror(L, ud, (const char *)p);  /* else error */
   return NULL;              /* to avoid warnings */
 }
 
@@ -139,6 +139,14 @@ void lutil_pushint64(lua_State *L, int64_t v){
     return;
   }
   lua_pushnumber(L, (lua_Number)v);
+}
+
+void lutil_pushuint(lua_State *L, unsigned int v){
+#if LUA_VERSION_NUM >= 503
+  lua_pushinteger(L, (lua_Integer)v);
+#else
+  lua_pushnumber(L, (lua_Number)v);
+#endif
 }
 
 int64_t lutil_checkint64(lua_State *L, int idx){

@@ -55,7 +55,7 @@ FileIOBuffer::SetBufferSize( size_t l )
 {
 	// You can only do this before you open the file.
 
-	if( fd == -1 )
+	if( fd == FD_ERR )
 	    iobuf.SetBufferSize( l );
 }
 

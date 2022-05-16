@@ -33,6 +33,7 @@ class StrArray {
 	void		Remove( int i );
 	int		Search( const StrBuf *key );
 	const StrBuf *	Find( const StrBuf *key );
+	void		Copy( const StrArray *other );
 
     private:
 

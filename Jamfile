@@ -1,15 +1,22 @@
 SubDir P4 ;
 
+USE_EXTENSIONS ?= 1 ;
+
+if $(USE_EXTENSIONS) = 1
+{
+	DEFINES += USE_EXTENSIONS=1 ;
+}
+
 # Define the default language standard.  This is used by the
 # Jamrules C++FLAGS+STD function - it knows to remove the flag if
 # it's already there when adding a different version of the standard.
 
-local C++_VERSION_BASELINE = c++17 ;
+C++_VERSION_BASELINE ?= c++17 ;
 
 # Like the baseline, we define the highest version of the standard we
 # wish to use.
 
-local C++_VERSION_MAX = c++17 ;
+C++_VERSION_MAX ?= c++17 ;
 
 # We want to ensure that certain parts of the code use a portable version
 # of the standard, but we can't do it by default since mixing objects
@@ -25,12 +32,27 @@ if $(C++_LANGUAGE_COMPAT_CHECK) = 1 { C++_VERSION_BASELINE = c++98 ; }
 # set C++_VERSION_MAX in the non-P4API parts of the code (e.g. the server).
 
 local C++FLAGS = [ C++FLAGS+STD $(C++_VERSION_BASELINE) ] ;
+local CCFLAGS = $(CCFLAGS) ;
+local LINKLIBS = $(LINKLIBS) ;
+local DEFINES = $(DEFINES) ;
 
-if $(OS) = NT && $(MSVSVER) >= 15
+if $(OS) = NT && [ FVersionCmp $(MSVSVER) : 15 ] >= 0
 {
 	# VS doesn't keep the __cpluplus macro accurate by default.
 	# https://blogs.msdn.microsoft.com/vcblog/2018/04/09/msvc-now-correctly-reports-__cplusplus/
 	C++FLAGS = /Zc:__cplusplus $(C++FLAGS) ;
+
+	# When building the code with VS2017 or higher, assume we're
+	# not targetting WinXP or below - or in other words, enable
+	# Windows APIs available in Win7+.  0x0501 is defined in the Jamrules.
+	C++FLAGS = -D_WIN32_WINNT=0x0601 [ FRemoveAny $(C++FLAGS) : -D_WIN32_WINNT=0x0501 ] ;
+	 CCFLAGS = -D_WIN32_WINNT=0x0601 [ FRemoveAny  $(CCFLAGS) : -D_WIN32_WINNT=0x0501 ] ;
+}
+
+if $(WIN32_WINNT)
+{
+	C++FLAGS = -D_WIN32_WINNT=$(WIN32_WINNT) [ FRemoveAny $(C++FLAGS) : -D_WIN32_WINNT=0x0501 ] ;
+	 CCFLAGS = -D_WIN32_WINNT=$(WIN32_WINNT) [ FRemoveAny  $(CCFLAGS) : -D_WIN32_WINNT=0x0501 ] ;
 }
 
 if $(OS) = NT
@@ -45,6 +67,76 @@ else
 	C++FLAGS += -DCURL_STATICLIB ;
 }
 
+EnableWarningsAsErrors ;
+
+if $(USE_OPTIMIZED_ZLIB) != 0 && $(USE_OPTIMIZED_ZLIB) != 1
+{
+	if ( $(OSPLAT) = X86_64 || $(OSPLAT) = X64 ) && [ CompilerSupportsZlibOptim ] = 1
+	{
+	    USE_OPTIMIZED_ZLIB  = 1 ;
+	    DEFINES += USE_OPTIMIZED_ZLIB ;
+	}
+}
+
+if $(MALLOC_OVERRIDE) = yes
+{
+	DEFINES += MALLOC_OVERRIDE ;
+
+	if $(USE_MIMALLOC) = yes
+	{
+	    DEFINES += USE_MIMALLOC ;
+	    local _inc = -I $(P4) $(SLASH) mem $(SLASH) mimalloc ;
+	    C++FLAGS += $(_inc:J) ;
+	     CCFLAGS += $(_inc:J) ;
+	    SubInclude P4 mem mimalloc ;
+	}
+
+	if $(USE_JEMALLOC) = yes
+	{
+	    DEFINES += USE_JEMALLOC ;
+
+	    local _a = -I $(P4) $(SLASH) mem $(SLASH) jemalloc $(SLASH) $(OS:L) $(OSVER:L) $(OSPLAT:L) ;
+	    local _b = -I $(P4) $(SLASH) mem $(SLASH) jemalloc $(SLASH) $(OS:L) $(OSVER:L) $(OSPLAT:L)
+	                  $(SLASH) jemalloc ;
+	    local _c ;
+
+	    if $(OS) = NT
+	    {
+	        _c = -I $(P4) $(SLASH) mem $(SLASH) jemalloc $(SLASH) $(OS:L) $(OSVER:L) $(OSPLAT:L)
+	                $(SLASH) jemalloc $(SLASH) msvc_compat ;
+	    }
+
+	    local _incs = $(_a:J) $(_b:J) $(_c:J) ;
+	    C++FLAGS += $(_incs) ;
+	    CCFLAGS += $(_incs) ;
+	    SubInclude P4 mem jemalloc ;
+	}
+
+	if $(USE_RPMALLOC) = yes
+	{
+	    DEFINES += USE_RPMALLOC ;
+	    local _inc = -I $(P4) $(SLASH) mem $(SLASH) rpmalloc ;
+	    C++FLAGS += $(_inc:J) ;
+	     CCFLAGS += $(_inc:J) ;
+	    SubInclude P4 mem rpmalloc ;
+	}
+
+	if $(USE_SMARTHEAP) = yes
+	{
+	    DEFINES += USE_SMARTHEAP ;
+
+	    if $(MEM_DEBUG) = yes
+	    {
+	        DEFINES += MEM_DEBUG=1 DEFINE_NEW_MACRO=1 ;
+	    }
+	    if $(SMARTHEAP_CHECKS) != 0
+	    {
+	        DEFINES += SMARTHEAP_CHECKS=$(SMARTHEAP_CHECKS) ;
+	        DEFINES += MEM_DEBUG=1 DEFINE_NEW_MACRO=1 ;
+	    }
+	}
+}
+
 SubInclude P4 auth ;
 SubInclude P4 client ;
 SubInclude P4 db ;
@@ -56,6 +148,8 @@ SubInclude P4 dm ;
 SubInclude P4 dma ;
 SubInclude P4 dmc ;
 SubInclude P4 dme ;
+SubInclude P4 dmec ;
+SubInclude P4 dmes ;
 SubInclude P4 dmi ;
 SubInclude P4 dml ;
 SubInclude P4 dmobj ;

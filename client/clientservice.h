@@ -52,11 +52,14 @@ enum XDir { FromServer, FromClient };
 class ClientSvc
 {
     public:
-	static FileSys *File( Client *client, Error *e );
-	static FileSys *FileFromPath( Client *client, const char *vName, 
-			              Error *e );
+	static FileSys		*File( Client *client, Error *e );
+	static FileSys		*FileFromPath( Client *client,
+				               const char *vName, Error *e );
+	
+	static int		CheckFilePath( Client *client, FileSys *f,
+				               Error *e );
 
-	static CharSetCvt *XCharset( Client *client, XDir d );
+	static CharSetCvt	*XCharset( Client *client, XDir d );
 };
 
 /*
@@ -78,6 +81,8 @@ class ClientFile : public LastChance {
 
 	StrBuf		diffName;
 	StrBuf		diffFlags;
+
+	StrBuf		symTarget;
 
 	StrBuf		serverDigest;
 	MD5		*checksum;

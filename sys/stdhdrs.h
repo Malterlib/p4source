@@ -75,6 +75,7 @@
  * NEED_TIME_HP - High Precision time, such as gettimeofday, clock_gettime, etc.
  * NEED_TYPES - off_t, etc (always set)
  * NEED_UTIME - utime()
+ * NEED_WIN32FIO - Native Windows file I/O
  */
 
 # if defined( NEED_ACCESS ) || \
@@ -118,7 +119,7 @@
 # endif
 
 # if defined( NEED_GETUID )
-# if defined ( OS_MACOSX ) || defined ( OS_DARWIN ) || defined ( unix )
+# if defined ( OS_MACOSX ) || defined ( OS_DARWIN ) || defined ( __unix__ )
 # define HAVE_GETUID
 # endif
 # endif
@@ -206,18 +207,23 @@ extern int errno;
 # endif // NEED_DBGBREAK
 # endif // OS_NT
 
-// Smart Heap instrumentation.
+# include "malloc_override.h"
+
 # ifdef MEM_DEBUG
-# define NEED_SMARTHEAP
+#   ifdef USE_SMARTHEAP
+#     define NEED_SMARTHEAP
+#   endif
 # endif
+
+// Smart Heap instrumentation.
 # ifdef NEED_SMARTHEAP
-# if defined( USE_SMARTHEAP )
-# ifdef OS_NT
-# include <windows.h>
-# endif // OS_NT
-# include <smrtheap.h>
-# define HAVE_SMARTHEAP
-# endif // USE_SMARTHEAP
+#   if defined( USE_SMARTHEAP )
+#     ifdef OS_NT
+#       include <windows.h>
+#     endif // OS_NT
+#     include <smrtheap.h>
+#     define HAVE_SMARTHEAP
+#   endif // USE_SMARTHEAP
 # endif // NEED_SMARTHEAP
 
 # ifdef NEED_FLOCK
@@ -487,7 +493,7 @@ extern "C" int socketpair(int, int, int, int*);
 # endif
 
 # ifdef NEED_SYSLOG
-#  if defined( unix )
+#  if defined( __unix__ )
 #   define HAVE_SYSLOG
 #   include <syslog.h>
 #  elif defined( OS_NT )
@@ -654,6 +660,7 @@ int truncate(const char *path, off_t length);
 
 # ifdef OS_NT
 #   define MT_STATIC static __declspec(thread)
+#   define P4MT __declspec(thread)
 # elif !defined( OS_BEOS ) && \
        !defined( OS_AS400 ) && \
        !defined( OS_VMS )
@@ -664,11 +671,14 @@ int truncate(const char *path, off_t length);
 #   if ( defined( OS_DARWIN ) && OS_VER < 140 ) || \
        ( defined( OS_MACOSX ) && OS_VER < 1010 )
 #     define MT_STATIC static
+#     define P4MT
 #   else
 #     define MT_STATIC static __thread
+#     define P4MT __thread
 #   endif
 # else
 #   define MT_STATIC static
+#   define P4MT
 # endif
 
 /*
@@ -748,9 +758,21 @@ typedef unsigned int p4size_t;
 # define vsnprintf _vsnprintf 
 # endif
 
+# if defined(_MSC_VER) && _MSC_VER < 1900 || \
+     !defined(_MSC_VER) && defined(_MSC_FULL_VER)
+# define strtoll _strtoi64
+# endif
+
 // C++11 or higher
 # if __cplusplus >= 201103L
+#  ifndef HAS_CPP11
 #   define HAS_CPP11
+#  endif
+# endif
+
+// C++14 or higher
+# if __cplusplus >= 201402L
+#   define HAS_CPP14
 # endif
 
 // C++17 or higher
@@ -758,12 +780,97 @@ typedef unsigned int p4size_t;
 #   define HAS_CPP17
 # endif
 
+# if defined(_MSC_VER) && _MSC_VER < 1900
+#  define HAS_BROKEN_CPP11
+# endif
+
 # ifdef HAS_CPP11
 #   define HAS_PARALLEL_SYNC_THREADS
 # endif
 
-# ifdef HAS_CPP17
+# if defined(HAS_CPP14) && defined(USE_EXTENSIONS) && USE_EXTENSIONS == 1
 #   define HAS_EXTENSIONS
+# endif
+
+# include "sanitizers.h"
+
+# ifdef __GNUC__
+# define GCC_VERSION (__GNUC__ * 10000 \
+                     + __GNUC_MINOR__ * 100 \
+                     + __GNUC_PATCHLEVEL__)
+// E.g.  GCC > 3.2.0
+// #if GCC_VERSION > 30200
+# endif
+
+# ifdef OS_NT
+
+# if defined( NEED_WIN32FIO )
+# define HAVE_WIN32FIO
+
+// Must define _AMD64_, _X86_, _IA64_ or _ARM_ in order to use winnt.h
+// directly without the "No Target Architecture" error.  Use a macro
+// Perforce defined to caused one of those 4 to be defined.
+//
+# ifdef OS_NTX64
+# define _AMD64_
+# endif // OS_NTX64
+# ifdef OS_NTX86
+# define _X86_
+# endif // OS_NTX86
+
+# ifndef OS_MINGW
+# include <windef.h>
+# include <winnt.h>
+# else
+# define WIN32_LEAN_AND_MEAN
+# include <windows.h>
+# endif // !OS_MINGW
+
+// Don't like defining our own handle value here.  The problem is
+// that this is defined in the header Pdh.h, which then causes the
+// Windows header rpc.h to be included.  The P4 rpc.h is found
+// instead and things get very messy.
+//
+# ifndef INVALID_HANDLE_VALUE
+# define INVALID_HANDLE_VALUE ((HANDLE)(LONG_PTR)-1)
+# endif
+
+// This is a special token for invalid handle values when running
+// as a Windows Service.  See fdutil.cc for more detail.
+//
+# define INVALID_HANDLE_VALUE2 ((HANDLE)(LONG_PTR)-2)
+
+typedef struct P4_FD
+{
+	HANDLE fh;
+	int flags;
+	int isStd;
+	unsigned char *ptr;
+	DWORD rcv;
+	int iobuf_siz;
+	unsigned char *iobuf;
+} P4_FD;
+
+typedef struct P4_FD* FD_TYPE;
+
+# endif // NEED_WIN32FIO
+
+# define FD_INIT NULL
+# define FD_ERR NULL
+typedef void* FD_PTR;
+
+# else // OS_NT
+
+# define FD_INIT -1
+# define FD_ERR -1
+typedef int FD_TYPE;
+typedef int FD_PTR;
+
+# endif // !OS_NT
+
+# if !defined( HAS_CPP11 ) && !defined( LLONG_MIN )
+#  define LLONG_MIN (-9223372036854775807LL - 1)
+#  define LLONG_MAX   9223372036854775807LL
 # endif
 
 # endif // P4STDHDRS_H

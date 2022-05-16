@@ -109,16 +109,10 @@ class ClientApi;
 class ClientUser {
 
     public:
-			ClientUser( int autoLoginPrompt = 0 )
-			{
-			    binaryStdout = 0;
-			    outputCharset = 0;
-			    quiet = 0;
-			    autoLogin = autoLoginPrompt;
-			    outputTaggedWithErrorLevel = 0;
-			    transfer = 0;
-			    ssoHandler = 0;
-			}
+			ClientUser(
+			    int autoLoginPrompt = 0,
+			    int apiVersion   = -1 );
+
 	virtual		~ClientUser();
 
 	virtual void	InputData( StrBuf *strbuf, Error *e );
@@ -144,6 +138,7 @@ class ClientUser {
 	virtual void	Prompt( const StrPtr &msg, StrBuf &rsp,
 				int noEcho, int noOutput, Error *e );
 	virtual void	ErrorPause( char *errBuf, Error *e );
+	virtual void	HandleUrl( const StrPtr *url );
 
 	virtual void	Edit( FileSys *f1, Error *e );
 
@@ -217,6 +212,7 @@ class ClientUser {
 	int		outputCharset;	// P4CHARSET for output
 	StrBuf		editFile;
 	int		outputTaggedWithErrorLevel;	// "p4 -s cmd" yes/no
+	int		apiVer;
 	ClientTransfer	*transfer;
 	ClientSSO	*ssoHandler;
 
@@ -224,8 +220,9 @@ class ClientUser {
 
 class ClientUserProgress : public ClientUser {
     public:
-			ClientUserProgress( int autoLoginPrompt = 0 ) :
-			                ClientUser( autoLoginPrompt ) {}
+			ClientUserProgress( int autoLoginPrompt = 0,
+			                    int apiVersion = -1 ) :
+			           ClientUser( autoLoginPrompt, apiVersion ) {}
 	virtual ClientProgress *CreateProgress( int );
 	virtual int	ProgressIndicator();
 } ;

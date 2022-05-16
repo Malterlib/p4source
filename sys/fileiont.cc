@@ -11,6 +11,7 @@
 # define NEED_ERRNO
 # define NEED_SLEEP
 # define NEED_CHDIR
+# define NEED_WIN32FIO
 
 # include <stdhdrs.h>
 
@@ -19,6 +20,7 @@
 # include <strbuf.h>
 # include <debug.h>
 # include <tunable.h>
+# include <md5.h>
 # include <datetime.h>
 # include <charset.h>
 # include <i18napi.h>
@@ -39,6 +41,11 @@ extern int global_umask;
 # define utimbufL _utimbuf
 
 # define DOUNICODE	( CharSetApi::isUnicode((CharSetApi::CharSet)GetCharSetPriv()) )
+
+#define LF 10           // line feed
+#define CR 13           // carriage return
+#define CTRLZ 26        // ctrl-z means eof for text
+
 
 // The REPARSE_DATA_BUFFER is part of the "Windows Driver Kit" according to
 // the MSDN docs, so for the time being we just copy the structure here:
@@ -127,7 +134,6 @@ nt_free_wname( const wchar_t *wname )
 const wchar_t *
 nt_wname( StrPtr *fname, int lfn, int *newlen )
 {
-	CharSetCvtUTF816 cvt;
 	wchar_t *wname;
 	int len = 0;
 	StrBuf lfname;
@@ -189,6 +195,8 @@ nt_wname( StrPtr *fname, int lfn, int *newlen )
 
 	if( lfn & LFN_UTF8 )
 	{
+	    CharSetCvtUTF816 cvt;
+
 	    // This is converting from UTF8 to UNICODE.
 	    //
 	    wname = (wchar_t *)cvt.CvtBuffer( filename, fnamelen, &len );
@@ -491,7 +499,7 @@ ntw_islink( StrPtr *fname, DWORD *dwFlags, int lfn )
 	{
 	    *dwFlags = 0;
 	    if( fileAttributes & FILE_ATTRIBUTE_DIRECTORY )
-		*dwFlags = SYMBOLIC_LINK_FLAG_DIRECTORY;
+	        *dwFlags = SYMBOLIC_LINK_FLAG_DIRECTORY;
 	}
 
 
@@ -506,7 +514,7 @@ ntw_islink( StrPtr *fname, DWORD *dwFlags, int lfn )
 	FindClose( fH );
 	if( findFileDataW.dwReserved0 == IO_REPARSE_TAG_SYMLINK ||
 	    findFileDataW.dwReserved0 == IO_REPARSE_TAG_MOUNT_POINT )
-		return 1;
+	        return 1;
 
 	return 0;
 }
@@ -519,8 +527,8 @@ nt_islink( StrPtr *fname, DWORD *dwFlags, int dounicode, int lfn )
 	{
 	    int ret;
 	    if( (ret = ntw_islink( fname, dwFlags, lfn )) >= 0 ||
-		lfn & LFN_ENABLED )
-		    return ret;
+	        lfn & LFN_ENABLED )
+	            return ret;
 	}
 
 	DWORD fileAttributes = GetFileAttributes( fname->Text() );
@@ -529,7 +537,7 @@ nt_islink( StrPtr *fname, DWORD *dwFlags, int dounicode, int lfn )
 
 	if( dwFlags )
 	    if( fileAttributes & FILE_ATTRIBUTE_DIRECTORY )
-		*dwFlags = SYMBOLIC_LINK_FLAG_DIRECTORY;
+	        *dwFlags = SYMBOLIC_LINK_FLAG_DIRECTORY;
 
 	if( fileAttributes & FILE_ATTRIBUTE_REPARSE_POINT )
 	{
@@ -559,11 +567,11 @@ ntw_readlink( StrPtr *name, StrBuf &targetBuf, int lfn )
 	    return INVALID_HANDLE_VALUE;
 
 	fH = CreateFileW( wname,
-			    GENERIC_READ, FILE_SHARE_READ,
-			    0, OPEN_EXISTING,
-			    (FILE_FLAG_BACKUP_SEMANTICS|
-				FILE_FLAG_OPEN_REPARSE_POINT),
-			    0);
+	                    GENERIC_READ, FILE_SHARE_READ,
+	                    0, OPEN_EXISTING,
+	                    (FILE_FLAG_BACKUP_SEMANTICS|
+	                        FILE_FLAG_OPEN_REPARSE_POINT),
+	                    0);
 	nt_free_wname( wname );
 
 	return fH;
@@ -582,13 +590,13 @@ nt_readlink( StrPtr *name, StrBuf &targetBuf, int dounicode, int lfn )
 	{
 	    fH = ntw_readlink( name, targetBuf, lfn );
 	    if( fH == INVALID_HANDLE_VALUE && lfn & LFN_ENABLED )
-		return -1;
+	        return -1;
 	}
 	if( fH == INVALID_HANDLE_VALUE )
 	{
 	    fH = CreateFile( name->Text(), GENERIC_READ, FILE_SHARE_READ,
-		0, OPEN_EXISTING,
-		(FILE_FLAG_BACKUP_SEMANTICS|FILE_FLAG_OPEN_REPARSE_POINT), 0);
+	        0, OPEN_EXISTING,
+	        (FILE_FLAG_BACKUP_SEMANTICS|FILE_FLAG_OPEN_REPARSE_POINT), 0);
 	}
 	if( fH == INVALID_HANDLE_VALUE )
 	    return -1;
@@ -616,12 +624,12 @@ nt_readlink( StrPtr *name, StrBuf &targetBuf, int dounicode, int lfn )
 	REPARSE_DATA_BUFFER *reparseBuffer;
 	// The REPARSE_DATA_BUFFER size and room for the symlink target.
 	DWORD struct_siz = sizeof(REPARSE_DATA_BUFFER) +
-				MAXIMUM_REPARSE_DATA_BUFFER_SIZE;
+	                        MAXIMUM_REPARSE_DATA_BUFFER_SIZE;
 	reparseBuffer = (REPARSE_DATA_BUFFER *) malloc( struct_siz );
 	reparseBuffer->ReparseDataLength = MAXIMUM_REPARSE_DATA_BUFFER_SIZE;
 	DWORD returnedLength = 0;
 	DWORD result = DeviceIoControl( fH, FSCTL_GET_REPARSE_POINT, 0, 0,
-			reparseBuffer, struct_siz, &returnedLength, 0 );
+	                reparseBuffer, struct_siz, &returnedLength, 0 );
 	CloseHandle( fH );
 	if( !result )
 	{
@@ -677,56 +685,560 @@ nt_readlink( StrPtr *name, StrBuf &targetBuf, int dounicode, int lfn )
 	return retlen;
 }
 
-
-static int
-ntw_open( StrPtr *fname, int flags, int mode, int lfn )
+FD_TYPE
+nt_getStdHandle( int std_desc, int flags )
 {
+	HANDLE std_fh;
+
+	if( std_desc < 0 || std_desc > 2 )
+	    return NULL;
+
+	std_fh = (HANDLE)_get_osfhandle( std_desc );
+
+	// If we are a Windows Service, we want to error on a bad handle.
+
+	if( std_fh == INVALID_HANDLE_VALUE2 )
+	    return NULL;
+
+	FD_TYPE fd = new struct P4_FD;
+
+	fd->flags = flags;
+	fd->isStd = 1;
+	fd->fh = std_fh;
+	fd->ptr = NULL;
+	fd->rcv = 0;
+	if( fd->flags & O_BINARY )
+	{
+	    // Binary reads and writes go directly into caller's buffer.
+
+	    fd->iobuf_siz = 0;
+	    fd->iobuf = NULL;
+	}
+	else
+	{
+	    // Internal buffers for CR LF translations.
+
+	    fd->iobuf_siz = FileSys::BufferSize() * 2;
+	    fd->iobuf = new unsigned char [fd->iobuf_siz];
+	}
+
+	return fd;
+}
+
+// Perform the ansi or ascii conversion to unicode and use the wide
+// character Win32 APIs from the very start.
+//
+// We are not supporting _O_*TEXT* modes or special devices.
+//
+FD_TYPE
+ntw_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
+{
+	// Process the Posix flags into Win32 native actions.
+	// (Modeling our code off of open.c in VS vc/crt/src.)
+	//
+	HANDLE osfh;                    /* OS handle of opened file */
+	DWORD fileaccess;               /* OS file access (requested) */
+	DWORD fileshare;                /* OS file sharing mode */
+	DWORD filecreate = 0;           /* OS method of opening/creating */
+	DWORD fileattribflags;          /* OS file attributes and flags */
+	DWORD isdev = 0;                /* device indicator in low byte */
+	SECURITY_ATTRIBUTES SecurityAttributes;
 	int newlen = 0;
 	const wchar_t *wname;
 
+	// UTF8 is set into the lfn flag.
+	//
 	wname = nt_wname( fname, lfn, &newlen );
 	if( !wname )
-	    return -1;
+	    return FD_ERR;
 
 	// Length check for unicode.
-	// If LFN and Unicode are grouped, this can be removed.
+	// If LFN and Unicode are always set, this can be removed.
 	if( !(lfn & LFN_ENABLED) && newlen > ( MAX_PATH * 2 ) )
 	{
 	    nt_free_wname( wname );
 	    SetLastError( ERROR_BUFFER_OVERFLOW );
-	    return -1;
+	    return FD_ERR;
 	}
 
-	int fd = _wopen( (const wchar_t *)wname, flags, mode );
+	// Establish the default security attributes.
+	//
+	SecurityAttributes.nLength = sizeof( SecurityAttributes );
+	SecurityAttributes.lpSecurityDescriptor = NULL;
+
+	// All files on Windows are set to no inherit.
+	//
+	SecurityAttributes.bInheritHandle = FALSE;
+
+	// Process Posix flags into file access for CreateFile.
+	//
+	switch( flags & (_O_RDONLY | _O_WRONLY | _O_RDWR) )
+	{
+	    case _O_RDONLY:	// read access
+	        fileaccess = GENERIC_READ;
+	        break;
+
+	    case _O_WRONLY:	// write access
+	        if (flags & _O_APPEND)
+	            fileaccess = GENERIC_READ | GENERIC_WRITE;
+	        else
+	            fileaccess = GENERIC_WRITE;
+	        break;
+
+	    case _O_RDWR:	// read and write access
+	        fileaccess = GENERIC_READ | GENERIC_WRITE;
+	        break;
+
+	    default:		// error, bad flags
+	        return FD_ERR;
+
+	}
+
+	// We always use a mode which shares the file.
+	// Also Posix defaults to _SH_DENYNO.
+	//
+	fileshare = FILE_SHARE_READ | FILE_SHARE_WRITE;
+
+#ifdef ALLOW_OPERATIONS_ON_BUSY_FILES
+
+	// Allow delete and rename on an open file for Windows.
+	// The delete or rename is only allowed once.
+	//
+	if( lfn & LFN_MOVEBUSY )
+	    fileshare |= FILE_SHARE_DELETE;
+
+#endif
+
+	// Process Posix open/create method into CreateFile disposition.
+	//
+	switch( flags & (_O_CREAT | _O_EXCL | _O_TRUNC) ) {
+	    case 0:
+	    case _O_EXCL:		// ignore EXCL w/o CREAT
+	        filecreate = OPEN_EXISTING;
+	        break;
+
+	    case _O_CREAT:
+	        filecreate = OPEN_ALWAYS;
+	        break;
+
+	    case _O_CREAT | _O_EXCL:
+	    case _O_CREAT | _O_TRUNC | _O_EXCL:
+	        filecreate = CREATE_NEW;
+	        break;
+
+	    case _O_TRUNC:
+	    case _O_TRUNC | _O_EXCL:	// ignore EXCL w/o CREAT
+	        filecreate = TRUNCATE_EXISTING;
+	        break;
+
+	    case _O_CREAT | _O_TRUNC:
+	        filecreate = CREATE_ALWAYS;
+	        break;
+
+	    default:
+	        return FD_ERR;
+        }
+
+	// Process Posix attributes and flags into CreateFile attributes.
+	//
+	// default
+	fileattribflags = FILE_ATTRIBUTE_NORMAL;
+
+	if( flags & _O_CREAT )
+	{
+	    if ( !((mode & ~global_umask) & _S_IWRITE) )
+	        fileattribflags = FILE_ATTRIBUTE_READONLY;
+	}
+
+# ifdef ALLOW_FILENAMES_TO_BE_CASE_SENSITIVE
+
+	// This Posix flag enables CreateFileW to open a file in case
+	// sensitive mode.  It is also necessary to set a Kernel registry
+	// value to enable NTFS case sensitivity.  A reboot is required.
+	// HKLM/SYSTEM/CurrentControlSet/Control/Kernel
+	//    obcasesensitive = 0
+	// The docs say FILE_ATTRIBUTE_NORMAL is used by itself.  A
+	// unit test has shown this is not the case.
+	//
+	if( lfn & LFN_CSENSITIVE )
+	    fileattribflags |= FILE_FLAG_POSIX_SEMANTICS;
+
+# endif
+
+	// Set temporary file (delete-on-close) attribute if requested.
+	//
+	if( flags & _O_TEMPORARY )
+	{
+	    fileattribflags |= FILE_FLAG_DELETE_ON_CLOSE;
+	    fileaccess |= DELETE;
+	    fileshare |= FILE_SHARE_DELETE;
+	}
+
+	// Set temporary file (delay-flush-to-disk) attribute if requested.
+	//
+	if( flags & _O_SHORT_LIVED )
+	    fileattribflags |= FILE_ATTRIBUTE_TEMPORARY;
+	
+# if (_MSC_VER >= 1800)
+	// Set directory access attribute if requested.
+	//
+	if( flags & _O_OBTAIN_DIR )
+	    fileattribflags |= FILE_FLAG_BACKUP_SEMANTICS;
+# endif
+
+	// Set sequential or random access attribute if requested.
+	//
+	if( flags & _O_SEQUENTIAL )
+	    fileattribflags |= FILE_FLAG_SEQUENTIAL_SCAN;
+	else if( flags & _O_RANDOM )
+	    fileattribflags |= FILE_FLAG_RANDOM_ACCESS;
+
+	osfh = CreateFileW (
+	                wname,
+	                fileaccess,
+	                fileshare,
+	                &SecurityAttributes,
+	                filecreate,
+	                fileattribflags,
+	                NULL ) ;
+
 	nt_free_wname( wname );
+
+	if( osfh == INVALID_HANDLE_VALUE )
+	    return FD_ERR;
+
+	if( flags & (_O_RDWR | _O_TEXT) )
+	{
+	    // MS: We have a text mode file.  If it ends in CTRL-Z, we wish to
+	    // remove the CTRL-Z character, so that appending will work.
+	    // We do this by seeking to the end of file, reading the last
+	    // byte, and shortening the file if it is a CTRL-Z.
+
+	    BOOL bRet;
+	    LARGE_INTEGER offset;
+
+	    offset.QuadPart = -1;
+	    bRet = SetFilePointerEx (
+	                osfh,
+	                offset,
+	                (PLARGE_INTEGER)NULL,
+	                FILE_END );
+	    if( ! bRet )
+	    {
+	        // MS: OS error -- should ignore negative seek error,
+	        // since that means we had a zero-length file.
+	        // All other errors cause a failure.
+	        if( GetLastError() != ERROR_NEGATIVE_SEEK )
+	        {
+	            CloseHandle (osfh);
+	            return FD_ERR;
+	        }
+	    }
+	    else
+	    {
+	        // Seek was OK, read the last char in file. The last
+	        // char is a CTRL-Z if and only if _read returns 0
+	        // and ch ends up with a CTRL-Z.
+
+	        wchar_t ch = 0;
+	        DWORD bytes_read;
+	        BOOL success = FALSE;
+
+	        if( ::ReadFile(osfh, &ch, (DWORD)1, &bytes_read, NULL )
+	            && ch == CTRLZ)
+	        {
+	            // MS: read was OK and we got CTRL-Z! Wipe it out!
+	            success =
+	                SetFilePointerEx( osfh, offset, NULL, FILE_END ) &&
+	                SetEndOfFile( osfh );
+
+	            if( !success )
+	            {
+	                CloseHandle (osfh);
+	                return FD_ERR;
+	            }
+	        }
+
+	        // now rewind the file to the beginning
+	        offset.QuadPart = 0;
+	        bRet = SetFilePointerEx (
+	                        osfh,
+	                        offset,
+	                        (PLARGE_INTEGER)NULL,
+	                        FILE_BEGIN );
+	        if( ! bRet )
+	        {
+	            CloseHandle (osfh);
+	            return FD_ERR;
+	        }
+	    }
+	}
+
+	FD_TYPE fd = new struct P4_FD;
+
+	fd->flags = flags;
+	fd->isStd = 0;
+	fd->fh = osfh;
+	fd->ptr = NULL;
+	fd->rcv = 0;
+	if( fd->flags & O_BINARY )
+	{
+	    // Binary reads and writes go directly into caller's buffer.
+
+	    fd->iobuf_siz = 0;
+	    fd->iobuf = NULL;
+	}
+	else
+	{
+	    // Internal buffers for CR LF transalations.
+
+	    fd->iobuf_siz = FileSys::BufferSize() * 2;
+	    fd->iobuf = new unsigned char [fd->iobuf_siz];
+	}
+
 	return fd;
 }
 
-static int
+//
+//
+//
+FD_TYPE
 nt_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 {
-# ifdef O_NOINHERIT
-	// All files on Windows are set to no inherit.
+	FD_TYPE fd;
+
+	fd = ntw_open( fname, flags, mode, dounicode, lfn );
+
+	if( fd == FD_ERR )
+	{
+	    // Claer LFN_UTF8 so that the MS Unicode conversion is used
+	    // instead of our CVT class in nt_wname().  This is the only
+	    // significant difference as compared to the Posix ::open().
+	    //
+	    int lfn_fallback = lfn & ~LFN_UTF8;
+
+	    fd = ntw_open( fname, flags, mode, dounicode, lfn_fallback );
+	}
+
+	return fd;
+}
+
+int
+nt_close(FD_TYPE fd)
+{
+	BOOL bRet = TRUE;
+
+	// Close handle if it is not a standard handle.
+
+	if( ! fd->isStd )
+	    bRet = CloseHandle( fd->fh );
+	fd->fh = INVALID_HANDLE_VALUE;
+
+	if( fd->iobuf != NULL )
+	{
+	    delete []fd->iobuf;
+	    fd->iobuf = NULL;
+	    fd->iobuf_siz = 0;
+	}
+	delete fd;
+	fd = FD_INIT;
+
+	return bRet ? 0 : -1;
+}
+
+int
+nt_read( FD_TYPE fd, const void *buf, unsigned len )
+{
+	BOOL bRet;
+	DWORD l;
+
+	if( fd->flags & O_BINARY )
+	{
+	    // Special case, when reading on EOF, we look for a
+	    // broken pipe and return 0.  This matches the behavior
+	    // of the Posix read function.
+
+	    if( ::ReadFile( fd->fh, (LPVOID)buf, len, &l, NULL ) == FALSE )
+	    {
+	        DWORD err = GetLastError();
+	        if( err != ERROR_BROKEN_PIPE )
+	            return -1;
+	    }
+	    return l;
+	}
+
+	// Read logic: read whole lines that end in \r, and
+	// arrange so that a following \n translates the \r
+	// into a \n and the \n is dropped.
+
+	// soaknl: we saw a \r, skip this \n
+
+	unsigned char *wrk_buf = (unsigned char *)buf;
+	int wrk_len = len;
+	int soaknl = 0;
+
+	// This code was borrowed from FileIOBuffer::Read().  This code
+	// has been pared down to just the CR/LF case.  This code could
+	// be made simpler by removing the use of memccpy().  MS has
+	// deprecated this function.  Memccpy function is not optimized.
 	//
-	flags |= O_NOINHERIT;
-# endif
-
-	// Allow unicode to fall through.
-	if( dounicode || lfn )
+	while( wrk_len || soaknl )
 	{
-	    int fd;
-	    if( (fd = ntw_open( fname, flags, mode, lfn ) ) >= 0 ||
-		lfn & LFN_ENABLED )
-		    return fd;
+	    // Nothing in the buffer?
+
+	    if( fd->rcv == 0 )
+	    {
+	       fd->ptr = fd->iobuf;
+
+	       // We only read into iobuf limiting to len, translating
+	       // from iobuf into buf should always be safe.
+
+	       bRet = ::ReadFile( fd->fh, fd->iobuf, len,
+	                            &(fd->rcv), NULL );
+	       if( bRet == FALSE )
+	           return -1;
+
+	       if( fd->rcv == 0 )
+	           break;
+	    }
+
+	    // Skipping \n because we saw a \r?
+
+	    if( soaknl )
+	    {
+	       if( *(fd->ptr) == '\n' )
+	           ++(fd->ptr), --(fd->rcv), wrk_buf[-1] = '\n';
+	       soaknl = 0;
+	    }
+
+	    // Trim avail to what's needed
+	    // Fill user buffer; stop at \r
+
+	    unsigned char *p;
+	    int l = fd->rcv < wrk_len ? fd->rcv : wrk_len ;
+
+	    // Copy to next \r.  If we hit one, arrange so that
+	    // if we see \n the next time through (when we know
+	    // there'll be data in the buffer), we translate this
+	    // \r to a \n and drop the subsequent \n.
+	    // LFCRLF reads CRLF.
+
+	    if( p = (unsigned char *)memccpy( wrk_buf, fd->ptr, '\r', l ) )
+	    {
+	       l = p - wrk_buf;
+	       soaknl = 1;
+	    }
+
+	    fd->ptr += l;
+	    fd->rcv -= l;
+	    wrk_buf += l;
+	    wrk_len -= l;
 	}
 
-	if( fname->Length() > MAX_PATH )
+	return len - wrk_len;
+}
+
+int
+nt_write ( FD_TYPE fd, const void *buf, unsigned cnt )
+{
+	int lfcount = 0;	// count of line feeds
+	int charcount = 0;	// count of chars written so far
+	DWORD written;		// count of chars written on this write
+	DWORD lasterr = 0;	// win32 error
+
+	// nothing to do, just return
+	if( cnt == 0 )
+	    return 0;
+
+	if( fd->flags & O_APPEND )
 	{
-	    SetLastError( ERROR_BUFFER_OVERFLOW );
-	    return -1;
+	    // We are appending, seek to the end of the file.
+	    // Return an error if the seek fails.
+	    //
+	    LARGE_INTEGER offset;
+	    offset.QuadPart = 0;
+	    if( SetFilePointerEx (
+	              fd->fh,
+	              offset,
+	              (PLARGE_INTEGER)NULL,
+	              FILE_END ) == 0)
+	    {
+	       // Caller will report the error.
+	       return -1;
+	    }
 	}
 
-	return ::open(fname->Text(), flags, mode);
+	if( fd->flags & O_BINARY )
+	{
+	    // binary mode, no translation
+
+	    if ( ::WriteFile( fd->fh, buf, cnt, &written, NULL ) == FALSE )
+	       return -1;
+	    return written;
+	}
+	else
+	{
+	    // text mode, translate LF's to CR/LF's on output
+
+	    lasterr = 0;		// no win32 error yet
+
+	    char ch;			// current character
+	    unsigned char *q = NULL;
+	    char *p = (char *)buf;	// beginning of input buffer
+
+	    while( (unsigned)(p - (char *)buf) < cnt )
+	    {
+	       q = fd->iobuf;	// start at beginning of iobuf
+
+	       // fill the lf buf, except maybe last char
+
+	       while ( q - fd->iobuf < fd->iobuf_siz - 1 &&
+	              (unsigned)(p - (char *)buf) < cnt )
+	       {
+	           ch = *p++;
+	           if ( ch == LF )
+	           {
+	              ++lfcount;
+	              *q++ = CR;
+	           }
+	           *q++ = ch;
+	       }
+
+	       // write the lf buf and update total
+	       if( ::WriteFile( fd->fh,
+	                     fd->iobuf,
+	                     (int)(q - fd->iobuf),
+	                     (LPDWORD)&written,
+	              	NULL) == FALSE )
+	       {
+	           lasterr = GetLastError();
+	           break;
+	       }
+
+	       charcount += written;
+	       if( written < q - fd->iobuf )
+	           break;
+	    }
+	}
+
+	if( charcount == 0 )
+	{
+	    // If nothing was written, first check for a win32 error,
+	    // otherwise we return -1, let the caller report the error.
+	    // Unless a device and first char was CTRL-Z
+
+	    if( lasterr != 0 )
+	       return -1;
+	    else if( *(char *)buf == CTRLZ )
+	       return 0;
+	    else
+	       return -1;
+	}
+	else
+	{
+	    // return adjusted bytes written
+	    return charcount - lfcount;
+	}
 }
 
 static int
@@ -765,8 +1277,8 @@ nt_stat( StrPtr *fname, struct statbL *sb, int dounicode, int lfn )
 	{
 	    int ret;
 	    if( (ret = ntw_stat( fname, sb, lfn ) ) >= 0 ||
-		lfn & LFN_ENABLED )
-		    return ret;
+	        lfn & LFN_ENABLED )
+	            return ret;
 	}
 
 	if( fname->Length() > MAX_PATH )
@@ -792,15 +1304,15 @@ ntw_unlink( StrPtr *fname, int lfn )
 	{
 	    if( dwFlags == SYMBOLIC_LINK_FLAG_DIRECTORY )
 	    {
-		BOOL bRet = RemoveDirectoryW( wname );
-		nt_free_wname( wname );
-		return bRet ? 0 : -1;
+	        BOOL bRet = RemoveDirectoryW( wname );
+	        nt_free_wname( wname );
+	        return bRet ? 0 : -1;
 	    }
 	    else
 	    {
-		int ret = _wunlink( wname );
-		nt_free_wname( wname );
-		return ret;
+	        int ret = _wunlink( wname );
+	        nt_free_wname( wname );
+	        return ret;
 	    }
 	}
 	else
@@ -818,7 +1330,7 @@ nt_unlink( StrPtr *fname, int dounicode, int lfn )
 	{
 	    int ret;
 	    if( (ret = ntw_unlink( fname, lfn )) >= 0 ||
-		lfn & LFN_ENABLED )
+	        lfn & LFN_ENABLED )
 	    	    return ret;
 	}
 
@@ -861,7 +1373,7 @@ static HANDLE
 nt_openDirHandleW( StrPtr *fname, int lfn )
 {
 	return nt_openDirOrFileHandleW( fname,
-		( FILE_FLAG_BACKUP_SEMANTICS | FILE_ATTRIBUTE_NORMAL ), lfn );
+	        ( FILE_FLAG_BACKUP_SEMANTICS | FILE_ATTRIBUTE_NORMAL ), lfn );
 }
 
 static HANDLE
@@ -884,7 +1396,7 @@ static HANDLE
 nt_openDirHandle( const char *fname )
 {
 	return nt_openDirOrFileHandle( fname,
-		( FILE_FLAG_BACKUP_SEMANTICS | FILE_ATTRIBUTE_NORMAL ) );
+	        ( FILE_FLAG_BACKUP_SEMANTICS | FILE_ATTRIBUTE_NORMAL ) );
 }
 
 // This code corrected a DST datetime problem, job039200
@@ -893,7 +1405,8 @@ nt_openDirHandle( const char *fname )
 //
 // msec is in milliseconds.
 //
-static int nt_convertToFileTime( time_t t32, int msec, FILETIME *ft)
+static int
+nt_convertToFileTime( time_t t32, int msec, FILETIME *ft)
 {
 	SYSTEMTIME st;
 	struct tm *u_tm;
@@ -926,10 +1439,10 @@ nt_setFileTimes( HANDLE hFile, time_t t32, int msec )
 	int result;
 
 	if( hFile == INVALID_HANDLE_VALUE || t32 == -1 ||
-		nt_convertToFileTime( t32, msec, &ft ) )
+	        nt_convertToFileTime( t32, msec, &ft ) )
 	    return -1;
 	result = SetFileTime( hFile, (LPFILETIME)0, (LPFILETIME)0, &ft ) != 0
-		? 0 : -1 ;
+	        ? 0 : -1 ;
 	CloseHandle( hFile );
 	return result;
 }
@@ -947,7 +1460,7 @@ ntw_utime( StrPtr *fname, struct utimbufL *ut, int msec, int lfn )
 	    return -1;
 
 	ret = nt_setFileTimes( nt_openHandleW( fname, lfn ),
-				ut->modtime, msec );
+	                        ut->modtime, msec );
 	nt_free_wname( wname );
 	return ret;
 }
@@ -962,42 +1475,55 @@ nt_utime( StrPtr *fname, struct utimbufL *ut, int msec, int dounicode, int lfn)
 	{
 	    int ret;
 	    if ( (ret = ntw_utime( fname, ut, msec, lfn ) ) >= 0 ||
-		lfn & LFN_ENABLED )
-		    return ret;
+	        lfn & LFN_ENABLED )
+	            return ret;
 	}
 
 	return nt_setFileTimes( nt_openHandle( fname->Text() ),
-				ut->modtime, msec );
+	                	ut->modtime, msec );
 }
 
+// This function returns 0 for success and -1 for failure.
+// (Windows file attribute return TRUE for success and FALSE for failure.)
+// On Windows, S_IEXEC is determined by the file extension.
+// The error condition is collected from GetLastError() in the caller.
+//
 static int
-ntw_chmod( StrPtr *fname, int m, int lfn )
+nt_chmod( StrPtr *fname, int m, int dounicode, int lfn )
 {
 	const wchar_t *wname;
-	int ret;
+	WIN32_FILE_ATTRIBUTE_DATA attr_data;
 
 	wname = nt_wname( fname, lfn, NULL );
 	if( !wname )
 	    return -1;
 
-	ret = _wchmod( (const wchar_t *)wname, m );
-	nt_free_wname( wname );
-	return ret;
-}
-
-static int
-nt_chmod( StrPtr *fname, int m, int dounicode, int lfn )
-{
-	// Allow unicode to fall through.
-	if( dounicode || lfn )
+	if (!GetFileAttributesExW(wname, GetFileExInfoStandard, (void*) &attr_data))
 	{
-	    int ret;
-	    if ((ret = ntw_chmod( fname, m, lfn )) >= 0 ||
-		lfn & LFN_ENABLED )
-		    return ret;
+	    nt_free_wname( wname );
+	    return -1;
 	}
 
-	return ::_chmod( fname->Text(), m );
+	if (m & _S_IWRITE)
+	{
+	    // clear read only bit
+	    attr_data.dwFileAttributes &= ~FILE_ATTRIBUTE_READONLY;
+	}
+	else
+	{
+	    // set read only bit
+	    attr_data.dwFileAttributes |= FILE_ATTRIBUTE_READONLY;
+	}
+
+	// set new attribute
+	if (!SetFileAttributesW(wname, attr_data.dwFileAttributes))
+	{
+	    nt_free_wname( wname );
+	    return -1;
+	}
+
+	nt_free_wname( wname );
+	return 0;
 }
 
 static int
@@ -1023,8 +1549,8 @@ nt_setattr( StrPtr *fname, int m, int dounicode, int lfn )
 	{
 	    int ret;
 	    if ((ret = ntw_setattr( fname, m, lfn )) >= 0 ||
-		lfn & LFN_ENABLED )
-		    return ret;
+	        lfn & LFN_ENABLED )
+	            return ret;
 	}
 
 	return SetFileAttributesA( fname->Text(), m ) ? 1 : 0 ;
@@ -1048,7 +1574,10 @@ ntw_rename( StrPtr *fname, StrPtr *nname, int lfn )
 	    return -1;
 	}
 
-	ret = _wrename( wname, wnname );
+	// allow moving to a different volume
+
+	ret = !MoveFileExW(wname, wnname, MOVEFILE_COPY_ALLOWED);
+
 	nt_free_wname( wname );
 	nt_free_wname( wnname );
 	return ret;
@@ -1062,8 +1591,8 @@ nt_rename( StrPtr *fname, StrPtr *nname, int dounicode, int lfn )
 	{
 	    int ret;
 	    if( (ret=ntw_rename( fname, nname, lfn )) >= 0 ||
-		lfn & LFN_ENABLED )
-	    	    return ret;
+	        lfn & LFN_ENABLED )
+	            return ret;
 	}
 
 	return ::rename( fname->Text(), nname->Text() );
@@ -1148,8 +1677,8 @@ nt_makelink( StrBuf &target, StrPtr *name, int dounicode, int lfn )
 	{
 	    int ret;
 	    if( (ret = ntw_makelink( n_tgt, name, dwFlags, lfn )) >= 0 ||
-		lfn & LFN_ENABLED )
-	    	    return ret;
+	        lfn & LFN_ENABLED )
+	            return ret;
 	}
 
 	if( (*CreateSymbolicLinkA_func)(name->Text(), n_tgt.Text(), dwFlags) )
@@ -1195,7 +1724,7 @@ FileIO::Rename( FileSys *target, Error *e )
 	}
 
 	if( nt_rename( Path(), target->Path(), DOUNICODE,
-	    LFN|target->GetLFN() ) < 0 )
+	               LFN|target->GetLFN() ) )
 	{
 	    // nasty hack coming up.
 	    // one customer is suffering from a rename() problem
@@ -1214,13 +1743,13 @@ FileIO::Rename( FileSys *target, Error *e )
 	        target->Unlink( 0 );
 
 	        ret = nt_rename( Path(), target->Path(), DOUNICODE,
-		    LFN|target->GetLFN() );
+	                         LFN|target->GetLFN() );
 
-	        if( ret >= 0 )
+	        if( !ret )
 	            break;
 	    }
 
-	    if( ret < 0 )
+	    if( ret )
 	    {
 	        StrBuf b;
 	        b << "failed to rename " << target->Name()
@@ -1258,24 +1787,24 @@ FileIO::Unlink( Error *e )
 
 	    if( nt_unlink( Path(), DOUNICODE, LFN ) < 0)
 	    {
-		// Special handling for momentarily busy executable file.
-		// All other errors will not invoke retries.
-		if( errno == EACCES )
-		{
-		    int renameMax  = p4tunable.Get( P4TUNE_SYS_RENAME_MAX );
-		    int renameWait = p4tunable.Get( P4TUNE_SYS_RENAME_WAIT );
+	        // Special handling for momentarily busy executable file.
+	        // All other errors will not invoke retries.
+	        if( errno == EACCES )
+	        {
+	            int renameMax  = p4tunable.Get( P4TUNE_SYS_RENAME_MAX );
+	            int renameWait = p4tunable.Get( P4TUNE_SYS_RENAME_WAIT );
 
-		    for( int i=0; i < renameMax; ++i )
-		    {
-			msleep( renameWait );
+	            for( int i=0; i < renameMax; ++i )
+	            {
+	                msleep( renameWait );
 
-			if( nt_unlink( Path(), DOUNICODE, LFN ) >= 0 )
-			    return;
-		    }
-		}
+	                if( nt_unlink( Path(), DOUNICODE, LFN ) >= 0 )
+	                    return;
+	            }
+	        }
 
-		if( e && ! e->Test() )
-		    e->Sys( "unlink", Name() );
+	        if( e && ! e->Test() )
+	            e->Sys( "unlink", Name() );
 	    }
 	}
 }
@@ -1337,19 +1866,19 @@ FileIO::Truncate( offL_t offset, Error *e )
 	    wname = nt_wname( Path(), LFN, NULL );
 	    if( !wname )
 	    {
-		e->Sys( "truncate", Name() );
-		return;
+	        e->Sys( "truncate", Name() );
+	        return;
 	    }
 	    hFile = CreateFileW( wname, GENERIC_WRITE, FILE_SHARE_WRITE,
-				NULL, OPEN_EXISTING,
-				FILE_ATTRIBUTE_NORMAL, NULL );
+	                        NULL, OPEN_EXISTING,
+	                        FILE_ATTRIBUTE_NORMAL, NULL );
 	    nt_free_wname( wname );
 	}
 	else
 	{
 	    hFile = CreateFile( Name(), GENERIC_WRITE, FILE_SHARE_WRITE,
-				NULL, OPEN_EXISTING,
-				FILE_ATTRIBUTE_NORMAL, NULL );
+	                        NULL, OPEN_EXISTING,
+	                        FILE_ATTRIBUTE_NORMAL, NULL );
 	}
 
 	if (hFile == INVALID_HANDLE_VALUE)
@@ -1363,7 +1892,7 @@ FileIO::Truncate( offL_t offset, Error *e )
 
 	success = SetFilePointerEx( hFile, offset_li, 0, FILE_BEGIN ) &&
 	          SetEndOfFile( hFile );
-			
+	                
 	CloseHandle( hFile );
 
 # endif // HAVE_TRUNCATE
@@ -1383,11 +1912,13 @@ FileIO::Truncate( Error *e )
 	// Try truncate first; if that fails (as it will on secure NCR's),
 	// then open O_TRUNC.
 	
-	int fd;
-	if( ( fd = checkFd( nt_open( Path(), O_WRONLY|O_TRUNC, PERM_0666,
-				DOUNICODE, LFN ) ) ) >= 0 )
+	FD_TYPE fd;
+	fd = checkFd( nt_open( Path(), O_WRONLY|O_TRUNC, PERM_0666,
+	                        DOUNICODE, LFN ) );
+	if( fd != FD_ERR )
 	{
-	    close( fd );
+	    if( nt_close( fd ) < 0 )
+	        e->Sys( "close", Name() );
 	    return;
 	}
 
@@ -1406,6 +1937,7 @@ FileIO::Stat()
 	int flags = 0;
 	struct statbL sb;
 	StrBuf abs_tgt;
+	int islink = 0;
 
 	if( FileSys::SymlinksSupported() &&
 	    nt_islink( Path(), NULL, DOUNICODE, LFN ) > 0 )
@@ -1413,27 +1945,30 @@ FileIO::Stat()
 	    StrBuf linkTarget;
 	    // The StrBuf allocation is done in nt_readlink().
 	    if( nt_readlink( Path(), linkTarget, DOUNICODE, LFN ) < 0 )
-		return flags;
+	        return flags;
 	    flags = FSF_SYMLINK;
 
 	    // Create an absolute path for the symlink target.
 	    if( FileSys::IsRelative( linkTarget ) )
 	    {
-		PathSys *pth = PathSys::Create();
-		pth->Set( Name() );
-		pth->ToParent();
-		pth->SetLocal( StrRef( pth->Text() ), linkTarget );
-		abs_tgt.Set( pth->Text() );
+	        PathSys *pth = PathSys::Create();
+	        pth->Set( Name() );
+	        pth->ToParent();
+	        // SetLocal doesn't work with too many ../../
+	        // as it doesn't check the number of directories
+	        // in root. So do a simple append.
+	        abs_tgt.Set( pth->Text() );
+	        delete pth;
+	        abs_tgt << "/" << linkTarget;
 	    }
 	    else
-		abs_tgt.Set( Name() );
+	        abs_tgt.Set( linkTarget );
 
-	    if( nt_stat( &abs_tgt, &sb, DOUNICODE, LFN ) >= 0 )
-		flags |= FSF_EXISTS;
-	    return flags;
+	    islink = 1;
 	}
 
-	if( nt_stat( Path(), &sb, DOUNICODE, LFN ) < 0 )
+	if( nt_stat( islink ? &abs_tgt :
+		Path(), &sb, DOUNICODE, LFN ) < 0 )
 	    return flags;
 
 	flags |= FSF_EXISTS;
@@ -1460,22 +1995,22 @@ FileIO::GetOwner()
 	    StrBuf linkTarget;
 	    // The StrBuf allocation is done in nt_readlink().
 	    if( nt_readlink( Path(), linkTarget, DOUNICODE, LFN ) < 0 )
-		return uid;
+	        return uid;
 
 	    // Create an absolute path for the target.
 	    if( FileSys::IsRelative( *Path() ) )
 	    {
-		PathSys *pth = PathSys::Create();
-		pth->Set( Name() );
-		pth->ToParent();
-		pth->SetLocal( StrRef( pth->Text() ), linkTarget );
-		abs_tgt.Set( pth->Text() );
+	        PathSys *pth = PathSys::Create();
+	        pth->Set( Name() );
+	        pth->ToParent();
+	        pth->SetLocal( StrRef( pth->Text() ), linkTarget );
+	        abs_tgt.Set( pth->Text() );
 	    }
 	    else
-		abs_tgt.Set( Name() );
+	        abs_tgt.Set( Name() );
 
 	    if( nt_stat( &abs_tgt, &sb, DOUNICODE, LFN ) >= 0 )
-		uid = sb.st_uid;
+	        uid = sb.st_uid;
 	    return uid;
 	}
 
@@ -1528,7 +2063,7 @@ FileIO::HasOnlyPerm( FilePerm perms )
 	 * to verify that the other bits are off.
 	 */
 	if( (sb.st_mode & PERMSMASK) == modeBits )
-		return true;
+	        return true;
 
 	return false;
 # else
@@ -1629,16 +2164,16 @@ FileIO::StatModTime()
 	{
 	    // nt_openHandleW() does the unicode filename translation.
 	    if( nt_islink( fname, NULL, DOUNICODE, LFN ) > 0 )
-		fH = nt_openHandleW( fname, LFN );
+	        fH = nt_openHandleW( fname, LFN );
 	    else
-		fH = nt_openDirHandleW( fname, LFN );
+	        fH = nt_openDirHandleW( fname, LFN );
 	    if( fH != INVALID_HANDLE_VALUE )
-		return nt_getLastModifiedTime( fH, msecs );
+	        return nt_getLastModifiedTime( fH, msecs );
 
 	    // We know LFN can not fall through and succeed.
 	    // Unicode case continues to fall through.
 	    if( LFN )
-		return -1;
+	        return -1;
 	}
 
 	if( nt_islink( fname, NULL, DOUNICODE, LFN ) > 0 )
@@ -1661,23 +2196,23 @@ FileIO::StatModTimeHP(DateTimeHighPrecision *modTime)
 	{
 	    // nt_openHandleW() does the unicode filename translation.
 	    if( nt_islink( fname, NULL, DOUNICODE, LFN ) > 0 )
-		fH = nt_openHandleW( fname, LFN );
+	        fH = nt_openHandleW( fname, LFN );
 	    else
-		fH = nt_openDirHandleW( fname, LFN );
+	        fH = nt_openDirHandleW( fname, LFN );
 
 	    if( fH != INVALID_HANDLE_VALUE )
 	    {
-		seconds = nt_getLastModifiedTime( fH, msecs );
-		*modTime = DateTimeHighPrecision( seconds, msecs * 1000000 );
-		return;
+	        seconds = nt_getLastModifiedTime( fH, msecs );
+	        *modTime = DateTimeHighPrecision( seconds, msecs * 1000000 );
+	        return;
 	    }
 
 	    // We know LFN can not fall through and succeed.
 	    // Unicode case continues to fall through.
 	    if( LFN )
 	    {
-		*modTime = DateTimeHighPrecision();
-		return;
+	        *modTime = DateTimeHighPrecision();
+	        return;
 	    }
 	}
 
@@ -1741,14 +2276,16 @@ FileIO::SetAttribute( FileSysAttr attrs, Error *e )
 void
 FileIOBinary::Open( FileOpenMode mode, Error *e )
 {
+	this->lastOSError = 0;
 	// Save mode for write, close
 
 	this->mode = mode;
 
 	// Get bits for (binary) open
+	// bflags is always O_BINARY
 
 	int bits = openModes[ mode ].bflags;
-	
+
 	// Reset the isStd flag
 
 	isStd = 0;
@@ -1773,7 +2310,7 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 	    ClearDeleteOnClose();
 	    return;
 	}
-# endif
+# endif // O_EXCL
 
 	// open stdin/stdout or real file
 
@@ -1783,22 +2320,30 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 	    // for nice mixing of messages.
 
 	    if( mode == FOM_WRITE )
-		fflush( stdout );
+	        fflush( stdout );
 
-	    fd = openModes[ mode ].standard;
-            checkStdio( fd );
+	    fd = nt_getStdHandle(openModes[ mode ].standard, bits);
+	    if( fd == FD_ERR )
+	        e->Sys( openModes[ mode ].modeName, Name() );
+
+	    checkStdio( (FD_TYPE)fd );
 	    isStd = 1;
 	}
-	else if( (fd = checkFd( nt_open( Path(), bits, PERM_0666, DOUNICODE, LFN ) ) ) <0 )
+	else
 	{
-	    e->Sys( openModes[ mode ].modeName, Name() );
+	    if( (fd = checkFd( nt_open( Path(), bits, PERM_0666,
+	        DOUNICODE, LFN ) ) ) == FD_ERR)
+	    {
+	        this->lastOSError = ::GetLastError();
+	        e->Sys( openModes[ mode ].modeName, Name() );
 # ifdef O_EXCL
-	    // if we failed to create the file probably due to the
-	    // file already existing (O_EXCL)
-	    // then unset delete on close because we didn't create it...
-	    if( ( bits & (O_EXCL|O_CREAT) ) == (O_EXCL|O_CREAT) )
-		ClearDeleteOnClose();
+	        // if we failed to create the file probably due to the
+	        // file already existing (O_EXCL)
+	        // then unset delete on close because we didn't create it...
+	        if( ( bits & (O_EXCL|O_CREAT) ) == (O_EXCL|O_CREAT) )
+	            ClearDeleteOnClose();
 # endif
+	    }
 	}
 
 
@@ -1822,6 +2367,74 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 	}
 }
 
+void
+FileIOBinary::Close( Error *e )
+{
+	if( isStd || fd == FD_ERR )
+	    return;
+
+	if( ( GetType() & FST_M_SYNC ) )
+	    Fsync( e );
+
+	if( nt_close( (FD_TYPE)fd ) < 0 )
+	    e->Sys( "close", Name() );
+
+	fd = FD_INIT;
+
+	if( mode == FOM_WRITE && modTime )
+	    ChmodTime( modTime, e );
+
+	if( mode == FOM_WRITE )
+	    Chmod( perms, e );
+}
+
+
+void
+FileIOBinary::Write( const char *buf, int len, Error *e )
+{
+	// Raw, unbuffered write
+
+	int l;
+
+	if( ( l = nt_write( (FD_TYPE)fd, buf, len ) ) < 0 )
+	    e->Sys( "write", Name() );
+	else
+	    tellpos += l;
+
+	if( checksum && l > 0 )
+	    checksum->Update( StrRef( buf, l ) );
+}
+
+int
+FileIOBinary::Read( char *buf, int len, Error *e )
+{
+	// Raw, unbuffered read
+
+	int l;
+
+	if( ( l = nt_read( (FD_TYPE)fd, buf, len ) ) < 0 )
+	    e->Sys( "read", Name() );
+	else
+	    tellpos += l;
+
+	return l;
+}
+
+// Return 1 if it make sense to retry a file create
+// operation. Used in sys/filetmp.cc.
+int
+FileIOBinary::RetryCreate()
+{
+	if( lastOSError == ERROR_FILE_EXISTS ||
+	    // We can't tell the difference between
+	    // a DELETE PENDING and a real permission
+	    // failure. So we have to retry.
+	    // Brain dead.
+	    lastOSError == ERROR_ACCESS_DENIED )
+	    return 1;
+	return 0;
+}
+
 offL_t
 FileIOBinary::GetSize()
 {
@@ -1833,12 +2446,39 @@ FileIOBinary::GetSize()
 	return sb.st_size;
 }
 
+// Comparing lseek origin to SetFilePointer dwMoveMethod
+// lseek	SetFilePointer
+// SEEK_SET=0	FILE_BEGIN=0
+// SEEK_CUR=1	FILE_CURRENT=1
+// SEEK_END=2	FILE_END=2
+// They match, so we can use the Posix definitions unchanged.
+//
 void
 FileIOBinary::Seek( offL_t offset, Error *e )
 {
-	if( _lseeki64( fd, offset, 0 ) == -1 && e )
-		e->Sys( "Seek", Name() );
-	tellpos = offset;
+	LARGE_INTEGER offset_in;
+	LARGE_INTEGER offset_out;
+
+	// Always seek from the start of the file.
+
+	offset_in.QuadPart = offset;
+	if( SetFilePointerEx (
+	        ((FD_TYPE)fd)->fh,
+	        offset_in,
+	        &offset_out,
+	        FILE_BEGIN ) == 0)
+	{
+	    e->Sys( "Seek", Name() );
+	}
+
+	tellpos = (offL_t)offset_out.QuadPart;
+}
+
+// Not supported on NT.
+int
+FileIOBinary::LinkCount()
+{
+	return -1;
 }
 
 void
@@ -1848,6 +2488,10 @@ FileIOAppend::Open( FileOpenMode mode, Error *e )
 
 	this->mode = mode;
 	
+	// aflags for write, read/write are O_TEXT, otherwise O_BINARY
+
+	int bits = openModes[ mode ].aflags;
+
 	// Reset the isStd flag
 
 	isStd = 0;
@@ -1856,14 +2500,20 @@ FileIOAppend::Open( FileOpenMode mode, Error *e )
 
 	if( Name()[0] == '-' && !Name()[1] )
 	{
-	    fd = openModes[ mode ].standard;
-            checkStdio( fd );
+	    fd = nt_getStdHandle(openModes[ mode ].standard, bits);
+	    if( fd == FD_ERR )
+	        e->Sys( openModes[ mode ].modeName, Name() );
+
+	    checkStdio( (FD_TYPE)fd );
 	    isStd = 1;
 	}
-	else if( ( fd = checkFd( nt_open( Path(), openModes[ mode ].aflags,
-				PERM_0666, DOUNICODE, LFN ) ) ) < 0 )
+	else
 	{
-	    e->Sys( openModes[ mode ].modeName, Name() );
+	    if ( ( fd = checkFd( nt_open( Path(), bits,
+	                        PERM_0666, DOUNICODE, LFN ) ) ) == FD_ERR )
+	    {
+	        e->Sys( openModes[ mode ].modeName, Name() );
+	    }
 	}
 }
 
@@ -1873,21 +2523,43 @@ FileIOAppend::GetSize()
 {
 	offL_t s = 0;
 
-	if( !lockFile( fd, LOCKF_SH ) )
+	if( !lockFile( (FD_TYPE)fd, LOCKF_SH ) )
 	{
 	    BY_HANDLE_FILE_INFORMATION bhfi;
 
-	    if( GetFileInformationByHandle(
-	                    (HANDLE)_get_osfhandle( fd ), &bhfi ) )
+	    if( GetFileInformationByHandle( ((FD_TYPE)fd)->fh, &bhfi ) )
 	        s = ((offL_t)(bhfi.nFileSizeHigh)) * (0x100000000LL) +
 	            (offL_t)(bhfi.nFileSizeLow);
 
-	    lockFile( fd, LOCKF_UN );
+	    lockFile( (FD_TYPE)fd, LOCKF_UN );
 	}
 	else
 	    s = FileIOBinary::GetSize();
 
 	return s;
+}
+
+offL_t
+FileIOAppend::GetCurrentSize()
+{
+	// The intent of this function is to get the size of the current file
+	// (by path), not of a recently rename()'d file that still happens to
+	// be open on this->fd. But since Copy() and Truncate() are used to
+	// "rename" a FileIOAppend file on Windows, the current file should
+	// be the file open on this->fd. Therefore, this function merely
+	// wraps around GetSize().
+	//
+	// But if a FileIOAppend file on Windows is ever instead renamed
+	// using rename() semantics, this function might need changed so
+	// that it returns the correct size of the current file by path.
+	// Or alternatively, if FileIOBinary::GetSize() on Windows can
+	// be fixed so that it doesn't return a stale size of a file
+	// (by path) under high concurrency, this implementation of
+	// FileIOAppend::GetCurrentSize() can be eliminated in favor of
+	// making generic the FileIOAppend::GetCurrentSize() implementation
+	// in fileio.cc.
+
+	return GetSize();
 }
 
 void
@@ -1897,7 +2569,7 @@ FileIOAppend::Write( const char *buf, int len, Error *e )
 	// of the write.  Stdio might break it up into chunks, whereas
 	// write() is supposed to keep it whole.
 
-	if( lockFile( fd, LOCKF_EX ) < 0 )
+	if( lockFile( (FD_TYPE)fd, LOCKF_EX ) < 0 )
 	{
 	    e->Sys( "lock", Name() );
 	    return;
@@ -1905,7 +2577,7 @@ FileIOAppend::Write( const char *buf, int len, Error *e )
 
 	FileIOBinary::Write( buf, len, e );
 
-	if( lockFile( fd, LOCKF_UN ) < 0 )
+	if( lockFile( (FD_TYPE)fd, LOCKF_UN ) < 0 )
 	{
 	    e->Sys( "unlock", Name() );
 	    return;
@@ -1917,6 +2589,12 @@ FileIOAppend::Rename( FileSys *target, Error *e )
 {
 	// File may be open, so to rename we copy 
 	// and truncate FileIOAppend files on NT.
+	//
+	// But if a FileIOAppend file on Windows is ever instead renamed
+	// using rename() semantics, the FileIOAppend::GetCurrentSize()
+	// function on Windows might need changed so that it returns
+	// the correct size of a current file by path, not of a recently
+	// rename()'d file that still happens to be open on this->fd.
 
 	Copy( target, FPM_RO, e );
 
@@ -1935,41 +2613,40 @@ FileSys::SymlinksSupported()
 	    functionHandlesLoaded = 1;
 
 	    CreateSymbolicLinkA_func = (CreateSymbolicLinkAProc)
-		    GetProcAddress(
+	            GetProcAddress(
 	                GetModuleHandle("kernel32.dll"),
 	                "CreateSymbolicLinkA");
 
 	    CreateSymbolicLinkW_func = (CreateSymbolicLinkWProc)
-		    GetProcAddress(
+	            GetProcAddress(
 	                GetModuleHandle("kernel32.dll"),
 	                "CreateSymbolicLinkW");
 
 	    if( CreateSymbolicLinkA_func != 0 &&
-		CreateSymbolicLinkW_func != 0 )
+	        CreateSymbolicLinkW_func != 0 )
 	    {
-		const char *tempdir = getenv("TEMP");
-		if( !tempdir )
-		{
+	        const char *tempdir = getenv("TEMP");
+	        if( !tempdir )
+	        {
 	            CreateSymbolicLinkA_func = 0;
 	            CreateSymbolicLinkW_func = 0;
-		    return 0;
-		}
-		StrBuf testLink;
-		StrBuf testTarget;
-		testLink << tempdir << "\\p4_test_symlink";
-		testTarget << tempdir << "\\p4_test_target";
-		nt_chmod( &testLink, PERM_0666  & ~global_umask, 0, 0 );
-		nt_unlink( &testLink, 0, 0 );
-		int result = nt_makelink( testTarget, &testLink, 0, 0 );
-		nt_unlink( &testLink, 0, 0 );
-		if( result < 0 )
-		{
+	            return 0;
+	        }
+	        StrBuf testLink;
+	        StrBuf testTarget;
+	        testLink << tempdir << "\\p4_test_symlink";
+	        testTarget << tempdir << "\\p4_test_target";
+	        nt_chmod( &testLink, PERM_0666  & ~global_umask, 0, 0 );
+	        nt_unlink( &testLink, 0, 0 );
+	        int result = nt_makelink( testTarget, &testLink, 0, 0 );
+	        nt_unlink( &testLink, 0, 0 );
+	        if( result < 0 )
+	        {
 	            CreateSymbolicLinkA_func = 0;
 	            CreateSymbolicLinkW_func = 0;
-		}
+	        }
 	    }
 	}
 	return CreateSymbolicLinkA_func != 0;
 }
-
 

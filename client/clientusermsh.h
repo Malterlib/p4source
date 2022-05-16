@@ -81,7 +81,7 @@ class MarshalDict;
 class ClientUserMarshal : public ClientUser {
 
     public:
-			ClientUserMarshal();
+			ClientUserMarshal( int apiVersion = -1 );
 			~ClientUserMarshal();
 
 	virtual void	InputData( StrBuf *strbuf, Error *e );
@@ -113,16 +113,28 @@ class ClientUserMarshal : public ClientUser {
 
 } ;
 
+# ifdef HAS_CPP11
+class ClientUserJSON : public ClientUserMarshal {
+
+    public:
+			ClientUserJSON( int apiVersion = -1 );
+
+	virtual void	Prompt( const StrPtr &msg, StrBuf &buf, int noEcho,
+			        Error *e );
+
+} ;
+# endif
+
 class ClientUserPython : public ClientUserMarshal {
 
     public:
-			ClientUserPython();
+			ClientUserPython( int apiVersion = -1 );
 } ;
 
 class ClientUserRuby : public ClientUserMarshal {
 
     public:
-			ClientUserRuby();
+			ClientUserRuby( int apiVersion = -1 );
 } ;
 
 
@@ -143,7 +155,7 @@ class ClientUserRuby : public ClientUserMarshal {
 class ClientUserPhp : public ClientUserMarshal {
 
     public:
-			ClientUserPhp();
+			ClientUserPhp( int apiVersion = -1 );
 			~ClientUserPhp();
 
 	virtual void	WriteOutput( StrPtr *buf );

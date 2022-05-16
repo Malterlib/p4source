@@ -260,7 +260,8 @@ NetProtectAddr::Match( const NetProtectAddr &rhs ) const
 }
 
 /**
- * Match
+ * Match - supports multiple matchers in argument
+ *
  * Common usage (eg, from dmprotects.cc):
  * NetProtectAddr npa( myhostaddress );
  * while (entry = get next protect table entry)
@@ -281,9 +282,37 @@ NetProtectAddr::Match( const StrPtr &cidr ) const
 	p4debug.printf( "  NetProtectAddr::Match(\"%s\") against %s\n", buf.Text(), cidr.Text() );
 #endif
 
-	const NetProtectAddr npa( cidr );
+	char *s = cidr.Text();
+	char *c = s;
+	StrBuf one;
 
-	return Match(npa);
+	while( c )
+	{
+	    // Skip any leading commas
+	    while( *s == ',' )
+	        s++;
+
+	    // EOS
+	    if( *s == 0 )
+	        break;
+
+	    // Find next comma
+	    c = strchr( s, ',' );
+	    if( c )
+	    {
+	        one.Set( s, c - s );
+	        s = c + 1;
+	    }
+	    else // no commma
+	        one = s;
+
+	    const NetProtectAddr npa( one );
+
+	    if( Match( npa ) )
+	        return true;
+	}
+
+	return false;
 }
 
 /*

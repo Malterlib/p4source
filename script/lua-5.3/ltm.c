@@ -23,7 +23,16 @@
 #include "ltm.h"
 #include "lvm.h"
 
+#if 0 // these definitions are moved to ltm.h:
+static const char udatatypename[] = "userdata";
 
+LUAI_DDEF const char *const luaT_typenames_[LUA_TOTALTAGS] = {
+  "no value",
+  "nil", "boolean", udatatypename, "number",
+  "string", "table", "function", udatatypename, "thread",
+  "proto" /* this last case is used for tests only */
+};
+#endif
 
 
 void luaT_init (lua_State *L) {

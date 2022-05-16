@@ -49,6 +49,7 @@ struct P4Tag {
 	static const char c_OpenMatch[];
 	static const char c_OpenMerge2[];
 	static const char c_OpenMerge3[];
+	static const char c_OpenUrl[];
 	static const char c_OutputBinary[];
 	static const char c_OutputData[];
 	static const char c_OutputError[];
@@ -93,6 +94,7 @@ struct P4Tag {
 	static const char v_appliedJnl[];
 	static const char v_appliedPos[];
 	static const char v_andmap[];
+	static const char v_associatedChange[];
 	static const char v_attack[];
 	static const char v_attr[];
 	static const char v_authServer[];
@@ -108,6 +110,7 @@ struct P4Tag {
 	static const char v_caddr[];
 	static const char v_caseHandling[];
 	static const char v_change[];
+	static const char v_change2[];
 	static const char v_changeIdentity[];
 	static const char v_changeImportedBy[];
 	static const char v_changeServer[];
@@ -135,6 +138,7 @@ struct P4Tag {
 	static const char v_committerEmail[];
 	static const char v_committerDate[];
 	static const char v_compare[];
+	static const char v_compCksum[];
 	static const char v_confirm[];
 	static const char v_counter[];
 	static const char v_current[];
@@ -157,12 +161,14 @@ struct P4Tag {
 	static const char v_digestTypeGitBinary[];
 	static const char v_digestTypeSHA256[];
 	static const char v_dir[];
+	static const char v_disabled[];
 	static const char v_enableStreams[];
 	static const char v_enableGraph[];
 	static const char v_endFromRev[];
 	static const char v_endToRev[];
 	static const char v_erev[];
 	static const char v_expandAndmaps[];
+	static const char v_extensionsEnabled[];
 	static const char v_externalAuth[];
 	static const char v_extraTag[];
 	static const char v_extraTagType[];
@@ -206,6 +212,7 @@ struct P4Tag {
 	static const char v_lbrFile[];		// also remote depot
 	static const char v_lbrRev[];		// also remote depot
 	static const char v_lbrType[];		// also remote depot
+	static const char v_lbrRefCount[];
 	static const char v_lbrReplication[];
 	static const char v_leof_num[];
 	static const char v_leof_sequence[];
@@ -214,7 +221,10 @@ struct P4Tag {
 	static const char v_level[];
 	static const char v_lfmt[];
 	static const char v_line[];
+	static const char v_locale[];
 	static const char v_lower[];
+	static const char v_lockId[];
+	static const char v_lockStatus[];
 	static const char v_mangle[];
 	static const char v_matchedLine[];
 	static const char v_matchBegin[];
@@ -328,6 +338,7 @@ struct P4Tag {
 	static const char v_serverUptime[];
 	static const char v_serverLicense[];
 	static const char v_serverLicenseIp[];
+	static const char v_serverSize[];
 	static const char v_serverVersion[];
 	static const char v_sha[];
 	static const char v_showAll[];
@@ -370,6 +381,7 @@ struct P4Tag {
 	static const char v_unmap[];
 	static const char v_unresolved[];
 	static const char v_upper[];
+	static const char v_url[];
 	static const char v_user[];
 	static const char v_userChanged[];
 	static const char v_userName[];
@@ -384,12 +396,14 @@ struct P4Tag {
 	// server-to-server or server-to-proxy variables
 	// clients should not look at these
 
+	static const char v_adjunctMsgs[];
 	static const char v_allTamperCheck[];	// p4 submit
 	static const char v_altArg[];		// p4 jobspec
 	static const char v_altArg2[];		// p4 change
 	static const char v_altArg3[];		// p4 stream
 	static const char v_altArg4[];		// p4 extension
 	static const char v_altArg5[];		// p4 extension
+	static const char v_altArg6[];		// p4 extension
 	static const char v_arg[];
 	static const char v_asBinary[];		// p4 resolve
 	static const char v_attrib[];		// p4 index
@@ -420,6 +434,7 @@ struct P4Tag {
 	static const char v_integRec2[];
 	static const char v_ipaddr[];
 	static const char v_keyVal[];		// p4 index
+	static const char v_label[];
 	static const char v_labelEntity[];
 	static const char v_leaveUnchanged[];	// submit
 	static const char v_lockAll[];		// admin
@@ -427,10 +442,12 @@ struct P4Tag {
 	static const char v_message2[];		// p4 release
 	static const char v_movedFile[];
 	static const char v_movedRev[];
+	static const char v_needsFlushTransport[];
 	static const char v_noretry[];		// p4 specs
 	static const char v_peer[];
 	static const char v_peerAddress[];
 	static const char v_propigate[];	// proxy chaining test
+	static const char v_remoteFetch[];	// no on-demand fetch bg submit
 	static const char v_reopen[];  		// submit
 	static const char v_replace[];		// shelve
 	static const char v_revertUnchanged[];  // submit
@@ -444,7 +461,10 @@ struct P4Tag {
 	static const char v_setViews[];		// set client views even if empty
 	static const char v_shelved[];          // shelve (2009.2)
 	static const char v_shelveFile[];
+	static const char v_shelvedStream[];    // stream is shelved
 	static const char v_state[];
+	static const char v_stream[];       	// stream name
+	static const char v_stream2[];       	// other stream name
 	static const char v_table[];		// remote depot
 	static const char v_traitCount[];	// submit
 	static const char v_tzoffset[];		// server tz offset for proxy

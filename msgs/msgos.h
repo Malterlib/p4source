@@ -17,6 +17,7 @@ class MsgOs {
 	static ErrorId SysUn;
 	static ErrorId SysUn2;
 	static ErrorId Net;
+	static ErrorId Net2;
 	static ErrorId NetUn;
 
 	static ErrorId TooMany;

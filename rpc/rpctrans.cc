@@ -58,6 +58,7 @@ RpcTransport::Send( StrPtr *s, Error *re, Error *se )
 	NetBuffer::Send( s->Text(), s->Length(), re, se );
 }
 
+NO_SANITIZE_UNDEFINED
 int
 RpcTransport::Receive( StrBuf *s, Error *re, Error *se )
 {

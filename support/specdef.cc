@@ -153,11 +153,17 @@ SpecElem::Compare( const SpecElem &other )
 	// These can change:
 	// fmt, seq, maxLength, preset
 
-	return 
-	    tag != other.tag || code != other.code ||
-	    type != other.type || opt != other.opt ||
-	    nWords != other.nWords || values != other.values ||
-	    open != other.open;
+	if( code && ( tag != other.tag || code != other.code ) )
+	    return 1;
+	else if( !code && fixed != other.fixed )
+	    return 1;
+
+	return
+	    type   != other.type   ||
+	    opt    != other.opt    ||
+	    nWords != other.nWords ||
+	    values != other.values ||
+	    open   != other.open;
 }
 
 /*
@@ -214,6 +220,9 @@ SpecElem::Encode( StrBuf *s, int c )
 	if( values.Length() )
 	    *s << ";val:" << values;
 
+	if( fixed.Length() )
+	    *s << ";fixed:" << fixed;
+
 	*s << ";;";
 }
 
@@ -267,6 +276,7 @@ SpecElem::Decode( StrRef *s, Error *e )
 	    else if( !strcmp( w, "fmt" ) ) SetFmt( q, 0 );
 	    else if( !strcmp( w, "open" ) ) SetOpen( q, e );
 	    else if( !strcmp( w, "z" ) ) allowEmpty = 1;
+	    else if( !strcmp( w, "fixed" ) ) fixed = q;
 
 	    // OK if we don't recognise code!
 	}

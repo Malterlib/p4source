@@ -4,12 +4,12 @@ SubDirHdrs $(P4) zlib ;
 
 SubDirC++Flags -I$(SSLINCDIR) [ FDefines Z_PREFIX ] ;
 
-P4Library $(RPCLIB) :
+P4APILibrary $(RPCLIB) :
 	netbuffer.cc
 	netconnect.cc
 	;
 
-P4Library $(RPCLIB) :
+P4APILibrary $(RPCLIB) :
 	netaddrinfo.cc
 	netipaddr.cc
 	netmulti.cc

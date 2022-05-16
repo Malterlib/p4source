@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgOs error code is: 25
+ * Current high value for a MsgOs error code is: 26
  */
 
 # include <error.h>
@@ -37,6 +37,7 @@ ErrorId MsgOs::ChmodBetrayal           = { ErrorOf( ES_OS, 11, E_FATAL, EV_FAULT
 
 // Windows specific
 ErrorId MsgOs::Net                     = { ErrorOf( ES_OS, 3, E_FAILED, EV_COMM, 3 ), "%operation%: %arg%: %errmsg%" } ;
+ErrorId MsgOs::Net2                    = { ErrorOf( ES_OS, 26, E_FAILED, EV_COMM, 3 ), "%operation%: %arg%: %errmsg%, %errstr%" } ;
 ErrorId MsgOs::NetUn                   = { ErrorOf( ES_OS, 4, E_FAILED, EV_COMM, 3 ), "%operation%: %arg%: unknown network error %errno%" } ;
 
 ErrorId MsgOs::TooMany                 = { ErrorOf( ES_OS, 5, E_FATAL, EV_FAULT, 1 ), "%handle%: too many handles!" } ;

@@ -14,6 +14,7 @@
 # include <strbuf.h>
 
 # include "filesys.h"
+# include "fileio.h"
 # include "fblreader.h"
 
 FileSysBufferedLineReader::FileSysBufferedLineReader( FileSys *f )
@@ -23,6 +24,7 @@ FileSysBufferedLineReader::FileSysBufferedLineReader( FileSys *f )
 	this->t = this->lBuf.Alloc( this->size );
 	this->pos = 0;
 	this->len = 0;
+	this->tell = 0;
 }
 
 FileSysBufferedLineReader::~FileSysBufferedLineReader()
@@ -40,6 +42,10 @@ FileSysBufferedLineReader::ReadLine( StrBuf *buf, Error *e )
 	while( buf->Length() < size && ReadOne( &b, e ) == 1 && b != '\n' )
 	    buf->Extend( b );
  
+	tell += buf->Length();
+	if( b == '\n' )
+	    tell++;
+
 	if( !buf->Length() && !b )
 	    return 0;
  
@@ -63,4 +69,18 @@ FileSysBufferedLineReader::ReadOne( char *buf, Error *e )
 	*buf = t[ 0 ];
 	pos = 1;
 	return 1;
+}
+
+offL_t FileSysBufferedLineReader::GetSize()
+{
+	if( src->GetType() & FST_C_MASK )
+	    return ( (FileIOCompress *) src )->GetRealSize();
+	return src->GetSize();
+}
+
+void FileSysBufferedLineReader::Seek( offL_t off, Error *e )
+{
+	src->Seek( off, e );
+	len = 0;
+	tell = off;
 }

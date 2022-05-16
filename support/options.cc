@@ -9,6 +9,7 @@
 # include <error.h>
 # include <errornum.h>
 # include <msgsupp.h>
+# include <msgdm.h>
 # include <strbuf.h>
 
 # include "options.h"
@@ -233,6 +234,8 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionDate,
 	"tamper-check",       Options::Tamper,       't', 0,
 	                      &MsgSupp::OptionTamper,
+	"backgroundXfer",     Options::BackgroundXfer,'b', 0,
+	                      &MsgSupp::OptionBackgroundXfer,
 	"stream",             Options::StreamName,   's', ':',
 	                      &MsgSupp::OptionStreamName,
 	"erase",              Options::Wipe,         'w', 0,
@@ -379,6 +382,8 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionOpenEdit,
 	"delete",             Options::OpenDelete,   'd', 0,
 	                      &MsgSupp::OptionOpenDelete,
+	"type",               Options::OpenType,     't', 0,
+	                      &MsgSupp::OptionOpenType,
 	"modtime",            Options::UseModTime,   'm', 0,
 	                      &MsgSupp::OptionUseModTime,
 	"local",              Options::Local,        'l', 0,
@@ -517,6 +522,22 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionFailoverVerification,
 	"install",            Options::Install, 0, ':',
 	                      &MsgSupp::OptionInstall,
+	"start",              Options::ChangeStart, 's', ':',
+	                      &MsgSupp::OptionChangeStart,
+	"target",             Options::Target, 't', ':',
+	                      &MsgSupp::OptionTarget,
+	"interval",           Options::Interval, 'i', '#',
+	                      &MsgSupp::OptionInterval,
+	"wait",               Options::Wait, 'w', '#',
+	                      &MsgSupp::OptionWait,
+	"missing-interval",   Options::MissingInterval, 'm', '#',
+	                      &MsgSupp::OptionMissingInterval,
+	"missing-wait",       Options::MissingWait, 'r', '#',
+	                      &MsgSupp::OptionMissingWait,
+	"missing-count",      Options::MissingCount, 'c', '#',
+	                      &MsgSupp::OptionMissingCount,
+	"local",              Options::LocalLicense, 'l', 0,
+	                      &MsgSupp::OptionLocalLicense,
 
 	// Options below this line have no short-form equivalent:
 
@@ -588,6 +609,8 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionIgnoreHave,
 	"graph-only",         Options::GraphOnly,  0, 0,
 	                      &MsgSupp::OptionGraphOnly,
+	"no-graph",           Options::NoGraph,  0, 0,
+	                      &MsgSupp::OptionNoGraph,
 	"min-size",           Options::MinSize, 0, ':',
 	                      &MsgSupp::OptionMinSize,
 	"max-size",           Options::MaxSize, 0, ':',
@@ -620,8 +643,10 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionGraph,
 	"one-parent",         Options::OneParent, 0, 0,
 	                      &MsgSupp::OptionOneParent,
-	"oneline",            Options::Oneline, 0, 0,
+	"oneline",            Options::Oneline, 0, '?',
 	                      &MsgSupp::OptionOneline,
+	"no-abbrev",          Options::NoAbbrev, 0, 0,
+	                      &MsgSupp::OptionNoAbbrev,
 	"merges",             Options::Merges, 0, 0,
 	                      &MsgSupp::OptionMerges,
 	"sample",             Options::CreateSampleExtension, 0, ':',
@@ -632,12 +657,52 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionParentNumber,
 	"package",             Options::PkgExtension, 0, ':',
 	                      &MsgSupp::OptionPkgExtension,
-	"script",             Options::Script, 0, ':', 0,
+	"script",             Options::Script, 0, '$', 0,
 	"script-MaxMem",      Options::ScriptMaxMem, 0, '#', 0,
 	"script-MaxTime",     Options::ScriptMaxTime, 0, '#', 0,
+	"path",               Options::Path, 0, ':',
+	                      &MsgSupp::OptionPath,
+	"no-sync",            Options::NoSync, 0, 0,
+	                      &MsgSupp::OptionNoSync,
+	"no-script",          Options::NoScript, 0, 0,
+	                      &MsgSupp::OptionNoScript,
+	"script-lang",          Options::ScriptLang, 0, ':',
+	                      &MsgSupp::OptionScriptLang,
+	"script-lang-version", Options::ScriptLangVersion, 0, ':',
+	                      &MsgSupp::OptionScriptLangVersion,
+	"into-only",          Options::IntoOnly, 0, 0,
+	                      &MsgSupp::OptionIntoOnly,
+	"script-api-version", Options::ScriptAPIVersion, 0, ':',
+	                      &MsgSupp::OptionScriptAPIVersion,
+	"run",                Options::RunExtension, 0, '$',
+	                      &MsgSupp::OptionRunExtensionCmd,
+	"show-mem-info",      Options::ShowMemInfo,  0, 0,
+	                      &MsgSupp::OptionShowMemInfo,
+	"repair",             Options::Repair,  0, 0,
+	                      &MsgSupp::OptionRepair,
+	"delete",             Options::DeleteItem,  'd', ':',
+	                      &MsgSupp::OptionDeleteItem,
+	"allow-unrelated",    Options::SwitchStreamUnrelated, 0, 0,
+	                      &MsgSupp::OptionSwitchStreamUnrelated,
+
 
 	0, 0, 0, 0, 0
 } ;
+
+
+/*
+ * Options::Options() -- Copy constructor
+ */
+Options::Options( const Options &other )
+{
+	optc = other.optc;
+	for( int i = 0; i < optc; i++ )
+	{
+	    vals[ i ]   = other.vals[ i ];
+	    flags[ i ]  = other.flags[ i ];
+	    flags2[ i ] = other.flags2[ i ];
+	}
+}
 
 void
 Options::Parse( int &argc, StrPtr *&argv, const char *opts, 
@@ -652,11 +717,16 @@ Options::ParseLong( int &argc, StrPtr *&argv, const char *opts,
 		const int *longOpts, int flag, const ErrorId &usage, Error *e )
 {
 	int explainMode = 0;
+	P4INT64 intTmp = 0;
+	bool stopParsing = false;
 
 	for( ; argc; argc--, argv++ )
 	{
 	    char *arg;
 	    char *av = argv->Text();
+
+	    if( stopParsing )
+	        break;
 
 	    if( av[0] != '-' || !av[1] )
 		break;
@@ -739,8 +809,12 @@ Options::ParseLong( int &argc, StrPtr *&argv, const char *opts,
 	            break;
 		case ':':
 		case '#':
+		case '$':
 		    // : is --option=value or --option value
 		    // # is --option=N or --option N, N >= 0
+		    // $ is same as : but stops parsing anything after
+		    //   if more arguments follow, only the first
+		    //   will be assigned to option, the rest not parsed.
 
 		    if( *opt_e == '=' )
 		    {
@@ -758,11 +832,16 @@ Options::ParseLong( int &argc, StrPtr *&argv, const char *opts,
 
 		    if( list[i].valueType == '#' && 
 	                (!vals[ optc - 1 ].IsNumeric() ||
+			  vals[ optc - 1 ].IsNumeric() &&
+			  !vals[ optc - 1 ].Atoi64( &intTmp ) ||
 			  vals[ optc - 1 ].Atoi64() < 0 ) )
 		    {
 			e->Set( MsgSupp::NeedsNonNegArg ) << optMsg;
 			goto usage;
 		    }
+		    if( list[i].valueType == '$' )
+		        stopParsing = true;
+
 		    break;
 		}
 	        continue;
@@ -844,8 +923,10 @@ Options::ParseLong( int &argc, StrPtr *&argv, const char *opts,
 
 		case ':':
 		case '#':
+		case '$':
 		    // a: : -avalue or -a value
 		    // a# : -aN or -a N, N >= 0
+		    // a$ is same as a: but stops parsing anything after
 
 		    if( arg[1] )
 		    {
@@ -864,12 +945,16 @@ Options::ParseLong( int &argc, StrPtr *&argv, const char *opts,
 
 		    if( f[1] == '#' && 
 	                (!vals[ optc - 1 ].IsNumeric() ||
+			  vals[ optc - 1 ].IsNumeric() &&
+			  !vals[ optc - 1 ].Atoi64( &intTmp ) ||
 			  vals[ optc - 1 ].Atoi64() < 0 ) )
 		    {
 			StrRef a( f, 1 );
 			e->Set( MsgSupp::NeedsNonNegArg ) << a;
 			goto usage;
 		    }
+		    if( f[1] == '$' )
+		        stopParsing = true;
 		}
 
 		break;
@@ -930,8 +1015,9 @@ void
 Options::ParseTest( int &argc, StrPtr *&argv, const char *opts, 
 		const int *longOpts, Error *e )
 {
+	P4INT64 intTmp = 0;
 	int argi = argc;
-	for( ; argi; argi--, argv[argc - argi] )
+	for( ; argi; argi-- )
 	{
 	    char *arg;
 	    char *av = argv[argc - argi].Text();
@@ -1021,6 +1107,8 @@ Options::ParseTest( int &argc, StrPtr *&argv, const char *opts,
 
 		    if( list[i].valueType == '#' && 
 	                (!vals[ optc - 1 ].IsNumeric() ||
+			  vals[ optc - 1 ].IsNumeric() &&
+			  !vals[ optc - 1 ].Atoi64( &intTmp ) ||
 			  vals[ optc - 1 ].Atoi64() < 0 ) )
 		    {
 			e->Set( MsgSupp::NeedsNonNegArg ) << optMsg;

@@ -1,0 +1,19 @@
+SubDir P4 script libs sqlite3 ;
+
+P4APILibrary $(P4SCRIPT_SQLITE) : sqlite3.c ;
+
+# https://www.sqlite.org/compile.html
+# Some, like SQLITE_OMIT_DECLTYPE and SQLITE_OMIT_DEPRECATED are required by
+# LuaSQLite3 so we leave them in.
+
+ObjectDefines sqlite3.c : SQLITE_THREADSAFE=0 ;
+ObjectDefines sqlite3.c : SQLITE_DEFAULT_MEMSTATUS=0 ;
+ObjectDefines sqlite3.c : SQLITE_DEFAULT_WAL_SYNCHRONOUS=1 ;
+ObjectDefines sqlite3.c : SQLITE_LIKE_DOESNT_MATCH_BLOBS ;
+ObjectDefines sqlite3.c : SQLITE_OMIT_SHARED_CACHE ;
+ObjectDefines sqlite3.c : SQLITE_DEFAULT_FILE_PERMISSIONS=0600 ;
+ObjectDefines sqlite3.c : SQLITE_ENABLE_API_ARMOR ;
+ObjectDefines sqlite3.c : SQLITE_ENABLE_JSON1 ;
+
+# -Os: https://www.sqlite.org/footprint.html
+ObjectCcFlags sqlite3.c : -Os ;

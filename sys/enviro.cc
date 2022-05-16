@@ -38,6 +38,8 @@
 # include <tunable.h>
 # include "enviro.h"
 
+# include <locale.h>
+
 // The global definition
 
 Enviro enviro;
@@ -63,9 +65,11 @@ const static char *const envVars[] = {
 	"P4CONFIG",
 	"P4DEBUG",
 	"P4DESCRIPTION",
+	"P4DIAGLOG",
 	"P4DIFF",
 	"P4DIFFUNICODE",
 	"P4EDITOR",
+	"P4EXTENSIONS",
 	p4enviro,
 	"P4FTPCHANGE",
 	"P4FTPDEBUG",
@@ -151,10 +155,22 @@ const StrPtr *Enviro::GetCachedServerName()
 struct KeyPair {
 	HKEY	hkey;
 	char	*key;
+
+	void ReplaceKey( const char* k )
+	{
+	    free( key );
+	    strcpy( ( key = (char *)malloc( strlen( k ) + 1 ) ), k );
+	};
+
+	KeyPair( const HKEY hk, const char* k )
+	{
+	    hkey = hk;
+	    strcpy( ( key = (char *)malloc( strlen( k ) + 1 ) ), k );
+	}
+
+	~KeyPair() { free( key ); }
 } ;
 
-KeyPair userKey = { HKEY_CURRENT_USER, "software\\perforce\\environment" };
-KeyPair serverKey = { HKEY_LOCAL_MACHINE, "software\\perforce\\environment" };
 
 void	GetRegKey( void *h, const KeyPair *keyPair, Error *e );
 int 	GetRegValue( const char *key, StrBuf *valBuf, const KeyPair *keyPair );
@@ -165,10 +181,24 @@ static bool GetEnvW(const char* var, EnviroItem* item = 0);
 Enviro::Enviro()
 {
 	symbolTab = 0;
-	setKey = &userKey;
+	userKey   = new KeyPair( HKEY_CURRENT_USER,
+	                         "software\\perforce\\environment" );
+	serverKey = new KeyPair( HKEY_LOCAL_MACHINE,
+	                         "software\\perforce\\environment" );
+
+	setKey = userKey;
 	serviceKey = 0;
 	charset = 0;
 	configFiles = new StrArray;
+
+	EnviroItem testRegPath;
+
+	if( ReadItemPlatform( ENV, "P4TEST_REGISTRY_PATH_T4_TEST",
+	                      &testRegPath ) )
+	{
+	    userKey->ReplaceKey( testRegPath.value.Text() );
+	    serverKey->ReplaceKey( testRegPath.value.Text() );
+	}
 }
 
 Enviro::~Enviro()
@@ -176,6 +206,8 @@ Enviro::~Enviro()
 	delete symbolTab;
 	delete serviceKey;
 	delete configFiles;
+	delete userKey;
+	delete serverKey;
 }
 
 int
@@ -194,9 +226,8 @@ Enviro::BeServer( const StrPtr *name, int checkName )
 			   << "\\Parameters";
 
 	    delete serviceKey;
-	    serviceKey = new KeyPair;
-	    serviceKey->hkey = HKEY_LOCAL_MACHINE;
-	    serviceKey->key = serviceKeyName.Value();
+	    serviceKey = new KeyPair( HKEY_LOCAL_MACHINE,
+	                              serviceKeyName.Value() );
 
 	    setKey = serviceKey;
 
@@ -225,7 +256,7 @@ Enviro::BeServer( const StrPtr *name, int checkName )
 	    // Server variables
 
 	    serviceName.Clear();
-	    setKey = &serverKey;
+	    setKey = serverKey;
 	}
 	return 1;
 }
@@ -234,9 +265,8 @@ void
 Enviro::OsServer()
 {
 	delete serviceKey;
-	serviceKey = new KeyPair;
-	serviceKey->hkey = HKEY_LOCAL_MACHINE;
-	serviceKey->key = "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion";
+	serviceKey = new KeyPair( HKEY_LOCAL_MACHINE,
+	    "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion" );
 }
 
 bool
@@ -270,8 +300,8 @@ Enviro::ReadItemPlatform( ItemType type, const char *var, EnviroItem * a )
 
 	    case USER:
 	        if( isUnicode &&
-	            GetRegValueW( var, &a->value, &userKey ) ||
-	            GetRegValue( var, &a->value, &userKey ) )
+	            GetRegValueW( var, &a->value, userKey ) ||
+	            GetRegValue( var, &a->value, userKey ) )
 	        {
 	            a->type = USER;
 	            return true;
@@ -324,8 +354,8 @@ Enviro::ReadItemPlatform( ItemType type, const char *var, EnviroItem * a )
 
                 // not one of our special lookups, so go get it from the registry
 	        if( isUnicode &&
-	            GetRegValueW( var, &a->value, &serverKey ) ||
-	            GetRegValue( var, &a->value, &serverKey ) )
+	            GetRegValueW( var, &a->value, serverKey ) ||
+	            GetRegValue( var, &a->value, serverKey ) )
 	        {
 	            a->type = SYS;
 	            return true;
@@ -919,6 +949,15 @@ Enviro::GetItem( const char *var )
 	return a;
 }
 
+void
+Enviro::GetLocale( StrBuf& l, Error* e )
+{
+	const char* lc = setlocale( LC_ALL, NULL );
+
+	if( lc )
+	    l = lc;
+}
+
 Enviro::ItemType
 Enviro::GetType( const char *var )
 {
@@ -1464,4 +1503,3 @@ Enviro::GetHome( StrBuf &result )
 
 	return( result.Length() ? 1 : 0 );
 }
-

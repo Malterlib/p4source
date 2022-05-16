@@ -44,8 +44,11 @@
 
 # include <diff.h>
 # include <diffsp.h>
+# include <diffsr.h>
 # include <diffan.h>
 # include <diffmerge.h>
+
+#include <tunable.h>
 
 # define DEBUG_MERGE ( p4debug.GetLevel( DT_DIFF ) >= 3 )
 
@@ -250,6 +253,14 @@ DiffMerge::DiffMerge(
 
 	if( e->Test() )
 	    return;
+
+	if( p4tunable.Get( P4TUNE_MERGE_DL_ENDEOL ) && 
+	    flags.sequence == DiffFlags::DashL )
+	{
+	    ((DifflReader *)bf->sequencer)->testEndEOL = 0;
+	    ((DifflReader *)lf1->sequencer)->testEndEOL = 0;
+	    ((DifflReader *)lf2->sequencer)->testEndEOL = 0;
+	}
 
 	/*
 	**  Fork off the two diffs, between the base and l1, and between
@@ -609,6 +620,7 @@ const DiffGrid conservativeGrid[2][2][2][2][2][2] = {
       NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL
 } ;
 
+NO_SANITIZE_UNDEFINED
 DiffDiffs
 DiffMerge::DiffDiff()
 {

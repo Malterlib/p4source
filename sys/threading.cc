@@ -24,6 +24,19 @@
 # include <msgserver.h>
 # include <datetime.h>
 # include <threading.h>
+# include <debug.h>
+# include <tunable.h>
+
+# ifdef HAS_RPMALLOC
+# include <rpmalloc.h>
+# endif
+
+# ifdef USE_SSL
+extern "C"
+{
+# include "openssl/crypto.h"
+}
+# endif
 
 /*
  * Regarding GetThreadCount:
@@ -111,66 +124,266 @@ Threader::GetThreadCount()
 # include <process.h>
 # include "ntthdlist.h"
 
+#ifdef HAS_CPP11
+
+# include <atomic>
+# include <random>
+
+typedef std::atomic< int > THR_COUNT;
+
+#endif
+
 static NtThreadList *NT_ThreadList = 0;
-
-unsigned int WINAPI
-NtThreadProc( void *param )
-{
-	Thread *t = (Thread *)param;
-
-	// Since we are running in the same address space as parent
-	// process we don't want to call DisService.
-
-	NT_ThreadList->AddThread( t, GetCurrentThreadId() );
-
-	t->Run();
-
-	if( !NT_ThreadList->RemoveThread( t ) )
-	{
-	    Error e;
-	    char msg[128];
-
-	    sprintf( msg, "Can't remove thread entry %d", GetCurrentThreadId() );
-	    e.Set( E_FATAL, msg );
-	    AssertLog.Report( &e );
-	}
-
-	delete t;
-	_endthreadex(0);
-
-	return 0;
-}
 
 class MultiThreader : public Threader {
 
+    private:
+
+	const bool useProcessorGroups;
+	const int dbgLevel;
+#ifdef HAS_CPP11
+	const int maxGroups;
+	int groupToCores[ 64 ]; // maxGroups
+	THR_COUNT groupToCurThreads[ 64 ]; // maxGroups
+	int overflowMap[ 64 * 512 ]; // maxGroups * maxCores
+	int nGroups = 0, curGroup = 0;
+	HANDLE curProcess = 0;
+
+	std::ranlux24_base rng; // Fastest generator.
+	std::uniform_int_distribution< int > coreMap;
+
+#endif
+
+	void InitProcessorInfo()
+	{
+#ifdef HAS_CPP11
+	    curProcess = GetCurrentProcess();
+
+	    nGroups = GetActiveProcessorGroupCount();
+
+	    for( int i = 0; i < nGroups; i++ )
+	        groupToCores[ i ] = GetActiveProcessorCount( i );
+
+	    // Initialize the mapping.
+	    for( int i = 0; i < maxGroups; i++ )
+	        groupToCurThreads[ i ] = 0;
+
+	    PROCESSOR_NUMBER pn;
+	    GetCurrentProcessorNumberEx( &pn );
+	    curGroup = pn.Group;
+
+	    // If group 0 has 8 CPUs and group 1 has 4, overflowMap looks like
+	    // 0 0 0 0 0 0 0 0 1 1 1 1.  Then, a random number chosen in that
+	    // range will schedule the thread to a group proportionally to its
+	    // size.
+
+	    int p = 0;
+
+	    for( int i = 0; i < nGroups ; i++ )
+	        for( int j = 0; j < groupToCores[ i ]; j++ )
+	            overflowMap[ p++ ] = i;
+
+	    // Now that the range is known, reset the distribution.
+	    std::uniform_int_distribution< int >::param_type
+	        pt( 0, p - 1 );
+	    coreMap.param( pt );
+
+	    if( dbgLevel >= 1 )
+	    {
+	        p4debug.printf( "nGroups %d\ncurGroup %d\n", nGroups, curGroup );
+	        for( int i = 0; i < nGroups; i++ )
+	            p4debug.printf( "groupToCores %d %d\n", i, groupToCores[ i ] );
+	    }
+
+	    if( dbgLevel >= 9 )
+	    {
+	        p4debug.printf( "overflowMap (p %d): ",p );
+	        for( int i = 0; i < p; i++ )
+	            p4debug.printf( "%d ", overflowMap[ i ] );
+	        p4debug.printf( "\n" );
+	    }
+#endif
+	}
+
+	int DistributeThreads()
+	{
+#ifdef HAS_CPP11
+	    // Note that there's a race between the groupToCurThreads
+	    // comparison and the increment in this function.  It's ok
+	    // though since we're going to at worst get an additional
+	    // thread scheduled on a group before we start spilling into
+	    // the next group.
+
+	    if( nGroups == 1 )
+	        return curGroup;
+
+	    // Prefer our own processor group so as to avoid any cross-group
+	    // overhead such as the CPU cache coherency protocol.
+
+	    if( groupToCurThreads[ curGroup ] < groupToCores[ curGroup ] )
+	    {
+	        groupToCurThreads[ curGroup ]++;
+	        return curGroup;
+	    }
+
+	    for( int g = 0; g < nGroups; g++ )
+	        if( groupToCurThreads[ g ] < groupToCores[ g ] )
+	        {
+	            groupToCurThreads[ g ]++;
+	            return g;
+	        }
+
+	    // All groups have at least one thread assigned to each core,
+	    // so now we start assigning threads to groups randomly,
+	    // biased towards the size of the group.
+
+	    const int rnd = coreMap( rng );
+	    const int group = overflowMap[ rnd ];
+	    groupToCurThreads[ group ]++;
+
+	    return group;
+#else
+	    return 0;
+#endif
+	}
+
+	struct NtThreadProcParam
+	{
+	    Thread *thread;
+	    MultiThreader* ths;
+
+	    NtThreadProcParam( MultiThreader* ths, Thread *t )
+	    {
+	        this->ths = ths;
+	        thread = t;
+	    }
+	};
+
+	static unsigned int __stdcall NtThreadProc( void *param )
+	{
+# ifdef HAS_RPMALLOC
+	    rpmalloc_thread_initialize();
+# endif
+
+	    NtThreadProcParam* data = static_cast< NtThreadProcParam* >( param );
+	    MultiThreader* ths = data->ths;
+	    Thread *t = data->thread;
+	    delete data;
+
+#ifdef HAS_CPP11
+	    GROUP_AFFINITY aff;
+
+	    if( ths->useProcessorGroups )
+	    {
+	        // Note that without initializing the reserved parts
+	        // of this, setting the afinity will error out with
+	        // ERROR_INVALID_PARAMETER.
+	        memset( &aff, 0, sizeof( GROUP_AFFINITY ) );
+	        aff.Mask = 0;
+	        aff.Group = ths->DistributeThreads();
+	        auto ct = GetCurrentThread();
+
+	        if( !SetThreadGroupAffinity( ct, &aff, nullptr ) )
+	        {
+	            ths->groupToCurThreads[ ths->curGroup ]++;
+	            p4debug.printf( "Failed to set affinity to group %d %d\n",
+	                            aff.Group, GetLastError() );
+	            // Affinity set failure - just run the thread as-is.
+	        }
+
+	        if( ths->dbgLevel > 2 )
+	        {
+	            PROCESSOR_NUMBER pnN;
+	            GetCurrentProcessorNumberEx( &pnN );
+
+	             p4debug.printf( "Thread %d distributed to %d, running on "
+	                 "group %d CPU %d total %d\n", GetCurrentThreadId(),
+	                 aff.Group, pnN.Group, pnN.Number,
+	                 ths->groupToCurThreads[ aff.Group ].load() );
+	        }
+	    }
+#endif
+	    // Since we are running in the same address space as parent
+	    // process we don't want to call DisService.
+
+	    NT_ThreadList->AddThread( t, GetCurrentThreadId() );
+
+	    t->Run();
+
+	    if( !NT_ThreadList->RemoveThread( t ) )
+	    {
+	        Error e;
+	        char msg[128];
+
+	        sprintf( msg, "Can't remove thread entry %d",
+	                 GetCurrentThreadId() );
+	        e.Set( E_FATAL, msg );
+	        AssertLog.Report( &e );
+	    }
+
+#ifdef HAS_CPP11
+	    if( ths->useProcessorGroups )
+	        ths->groupToCurThreads[ aff.Group ]--;
+#endif
+
+	    delete t;
+
+# ifdef USE_SSL
+# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+	    OPENSSL_thread_stop();
+# endif
+# endif // USE_SSL
+
+# ifdef HAS_RPMALLOC
+	    rpmalloc_thread_finalize();
+# endif
+
+	    _endthreadex(0);
+
+	    return 0;
+	}
+
     public:
 
+#ifdef HAS_CPP11
 	MultiThreader( ThreadMode tmb )
+	    : useProcessorGroups(
+	          p4tunable.Get( P4TUNE_SYS_THREADING_GROUPS ) ),
+	      dbgLevel( p4debug.GetLevel( DT_THREAD ) ), maxGroups( 64 ),
+	      coreMap( 0, 0 )
+# else
+	MultiThreader( ThreadMode tmb )
+	    : useProcessorGroups(
+	          p4tunable.Get( P4TUNE_SYS_THREADING_GROUPS ) ),
+	      dbgLevel( p4debug.GetLevel( DT_THREAD ) )
+# endif
 	{
+	    if( useProcessorGroups )
+	        InitProcessorInfo();
 	    delete NT_ThreadList;
 	    NT_ThreadList = new NtThreadList();
 	}
 
 	void Launch( Thread *t )
 	{
+	    NtThreadProcParam* data = new NtThreadProcParam( this, t );
+
 	    unsigned int ThreadId;
 
 	    HANDLE h = (HANDLE)_beginthreadex(
 		    NULL,
 		    0,
-		    NtThreadProc,
-		    (void *)t,
+		    &MultiThreader::NtThreadProc,
+		    (void*)data,
 		    0,
 		    &ThreadId );
 
 	    if( !h )
 	    {
-		// create thread failed
 		Error e;
 
-
 		e.Sys( "_beginthreadex()", "NtThreadProc" );
-		e.Set( E_FATAL, "Can't create process" );
+		e.Set( E_FATAL, "Can't create thread" );
 		AssertLog.Report( &e );
 
 		delete t;
@@ -185,6 +398,9 @@ class MultiThreader : public Threader {
 	// In practice most threads will terminate immediately.
 	// Any hold out threads will have to be suspended in Reap.
 	// Windows "net stop" can timeout if we take too long.
+	//
+	// We don't do anything to the processor group tracking
+	// since we assume this object isn't going to be used again.
 
 	void Quiesce()
 	{
@@ -217,6 +433,9 @@ class MultiThreader : public Threader {
 	// Locks have been taken, threads should not proceed further.
 	// Continue with the restart if there are no hold out threads,
 	// otherwise suspend any hold out threads and shutdown.
+	//
+	// We don't do anything to the processor group tracking
+	// since we assume this object isn't going to be used again.
 
 	void Reap()
 	{
@@ -424,8 +643,8 @@ class MultiThreader : public Threader {
 		    if( fd == 0 )
 		    {
 			// must be fd 1 and 2
-			dup(fd);
-			dup(fd);
+			int discard = dup(fd);
+			discard = dup(fd);
 		    }
 		}
 		if( fork() > 0 )

@@ -45,6 +45,7 @@ class VarArray {
 			VarArray( int max );
 			~VarArray();
 
+	bool		Reserve();
 	void		Clear() { numElems = 0; }
 	int		Count() const { return numElems; }
 	void **		ElemTab() { return elems; }
@@ -73,7 +74,7 @@ class VarArray {
     private:
 	friend class VVarArray;
 
-	void **		New();
+	void **		New( const bool justAlloc = false );
 
 	int		maxElems;
 	int		numElems;

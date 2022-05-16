@@ -144,6 +144,15 @@ Handlers::SetError( const StrPtr *name, Error *e )
 	e->Set( MsgOs::NoSuch ) << *name;
 }
 
+void
+Handlers::Release()
+{
+	for( int i = 0; i < numHandlers; i++ )
+	    if( table[ i ].lastChance &&
+	        table[ i ].lastChance->DeleteOnRelease() )
+	        delete table[ i ].lastChance;
+}
+
 Handler *
 Handlers::Find( const StrPtr *name, Error *e ) 
 {

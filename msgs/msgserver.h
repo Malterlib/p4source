@@ -215,6 +215,7 @@ class MsgServer {
 	static ErrorId InvalidConfigScope;
 	static ErrorId ConfigureNone;
 	static ErrorId ConfigureServerNone;
+	static ErrorId WrongConfigServer;
 
 	static ErrorId CounterDelete;
 	static ErrorId CounterSet;
@@ -233,6 +234,7 @@ class MsgServer {
 	static ErrorId DescribeDifferences;
 	static ErrorId DescribeEmpty;
 	static ErrorId DescribeShelved;
+	static ErrorId DescribeStream;
 
 	static ErrorId Diff2Differ;
 	static ErrorId Diff2BadArgs;
@@ -353,6 +355,7 @@ class MsgServer {
 	static ErrorId UseAdmin;
 	static ErrorId UseAdminCheckpoint;
 	static ErrorId UseAdminJournal;
+	static ErrorId UseAdminSeed;
 	static ErrorId UseAdminSpecDepot;
 	static ErrorId UseAdminDBSigs;
 	static ErrorId UseAdminImport;
@@ -495,6 +498,7 @@ class MsgServer {
 	static ErrorId UseMonitorR;
 	static ErrorId UseOpen;
 	static ErrorId UseOpen2;
+	static ErrorId UseOpen3;
 	static ErrorId UseOpened;
 	static ErrorId UseOpened2;
 	static ErrorId UsePasswd;
@@ -510,6 +514,7 @@ class MsgServer {
 	static ErrorId UsePurge;
 	static ErrorId UsePush;
 	static ErrorId UseRelease;
+	static ErrorId UseRelease2;
 	static ErrorId UseReload;
 	static ErrorId UseReconcile;
 	static ErrorId UseRecFlush;
@@ -546,6 +551,7 @@ class MsgServer {
 	static ErrorId UseSpec;
 	static ErrorId UseStatus;
 	static ErrorId UseStatusFlush;
+	static ErrorId UseStorage;
 	static ErrorId UseStream;
 	static ErrorId UseStreamc;
 	static ErrorId UseStreamd;
@@ -559,6 +565,8 @@ class MsgServer {
 	static ErrorId UseSubmitc;
 	static ErrorId UseSubmitd;
 	static ErrorId UseSubmite;
+	static ErrorId UseSubmitf;
+	static ErrorId UseSubmitg;
 	static ErrorId UseSwitch;
 	static ErrorId UseSwitch2;
 	static ErrorId UseSync;
@@ -608,10 +616,11 @@ class MsgServer {
 	static ErrorId NotACommitServer;
 	static ErrorId UnknownReplicationMode;
 	static ErrorId MissingReplicationMode;
-	static ErrorId UnknownReplicationTarget;
 	static ErrorId P4TARGETWasSet;
 	static ErrorId P4TARGETWasNotSet;
 	static ErrorId CommitServerOverrides;
+	static ErrorId UnknownReplicationTarget;
+	static ErrorId IncompleteRplConfig;
 	static ErrorId ReplicaXferFailed;
 	static ErrorId BFNoOverwriteLocal;
 	static ErrorId BadPCache;
@@ -691,12 +700,12 @@ class MsgServer {
 	static ErrorId InvalidServerChain;
 	static ErrorId CommunicationLoop;
 
-        static ErrorId InfoPingTime;
-        static ErrorId InfoPingTimeB;
-        static ErrorId InfoPingCount;
-        static ErrorId InfoPingCountB;
-        static ErrorId ErrorPingProtocol;
-        static ErrorId ErrorPingParam;
+	static ErrorId InfoPingTime;
+	static ErrorId InfoPingTimeB;
+	static ErrorId InfoPingCount;
+	static ErrorId InfoPingCountB;
+	static ErrorId ErrorPingProtocol;
+	static ErrorId ErrorPingParam;
 
 	static ErrorId NoCustomSpec;
 
@@ -857,6 +866,7 @@ class MsgServer {
 	static ErrorId UserPrevRevertFile;
 	static ErrorId UserPrevChangeJob;
 	static ErrorId UserPrevClientFile;
+	static ErrorId UserPrevUserD;
 	static ErrorId UserDeleteNotOnEdge;
 	static ErrorId NoFailover;
 	static ErrorId FailoverFromStandby;
@@ -911,9 +921,15 @@ class MsgServer {
 	static ErrorId ExtListBadArg;
 	static ErrorId ExtCfgNoNameCfg;
 	static ErrorId MandatoryStandbyMissing;
-	static ErrorId ExtensionUUIDDup;
+	static ErrorId ExtensionDuplicate;
 	static ErrorId ExtensionNotFound;
-	static ErrorId UserPrevUserD;
+	static ErrorId ExtPkgBadFilename;
+
+	static ErrorId SeedAlreadyScheduled;
+	static ErrorId SeedNoServerId;
+	static ErrorId SeedCreated;
+	static ErrorId SeedParseFail;
+	static ErrorId UnexpectedCkpPos;
 
 	//nimble
 	static ErrorId BackupOff;		// added in nimble

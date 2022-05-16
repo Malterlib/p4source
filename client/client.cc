@@ -9,6 +9,7 @@
 # include <debug.h>
 # include <strbuf.h>
 # include <strdict.h>
+# include <strarray.h>
 # include <strtable.h>
 # include <error.h>
 # include <i18napi.h>
@@ -24,15 +25,18 @@
 
 # include <msgclient.h>
 # include <msgserver.h>
+# include <msgscript.h>
 # include <msgrpc.h>
 # include <msgsupp.h>
 # include <p4tags.h>
 # include <netportparser.h>
+# include <dmextension.h>
 
 # include "clientuser.h"
 # include "clientusernull.h"
 # include "clientservice.h"
 # include "clientmerge.h"
+# include "clientscript.h"
 # include "client.h"
 
 void clientTrust( Client *, Error * );
@@ -71,6 +75,7 @@ Client::Client( Enviro *e ) : Rpc( &service )
 	protocolNocase = 0;
 	protocolSecurity = 0;
 	protocolUnicode = 0;
+	protocolClientExts = 0;
 
 	if( e )
 	{
@@ -97,21 +102,35 @@ Client::Client( Enviro *e ) : Rpc( &service )
 
 	service.SetProtocol( P4Tag::v_cmpfile ); // has clientCompareFile #1737
 	service.SetProtocol( P4Tag::v_client, P4Tag::l_client );
+	apiVer = atoi( P4Tag::l_client );
+	apiSet = 0;
 
 	buildInfo = p4api_ident.GetIdent();
 
 	finalized = false;
 	initialized = false;
+
+	argv = new StrArray;
+
+	exts = new ClientScript( this );
+	extsEnabled = false;
+	ownExts = true;
+
+	gCharSetCvtCache = new CharSetCvtCache;
 }
 
 Client::~Client()
 {
 	CleanupTrans();
+	delete gCharSetCvtCache;
 	if( ownEnviro )
 	    delete enviro;
 	delete fstatPartial;
 	delete ignore;
 	delete extraVars;
+	delete argv;
+	if( ownExts )
+	    delete exts;
 }
 
 void
@@ -144,7 +163,8 @@ Client::Init( Error *e )
 
 	    DoHandshake( e );	// no-op if not ssl
 
-	    if( !e->Test() && unknownUnicode )
+	    if( !e->Test() && ( unknownUnicode ||
+	        extsEnabled && exts->CanLoad() ) )
 	    {
 		ClientUserNULL cnull( e );
 		
@@ -152,7 +172,17 @@ Client::Init( Error *e )
 
 		SetVar( P4Tag::v_prog, GetProg() );
 
+		const bool enabled = extsEnabled;
+		const int authed = authenticated;
+		// Ensure that output from the first real command on this
+		// connection comes before the any pre-command Extension output.
+		authenticated = 0;
+		extsEnabled = false;
+
 		Run( "discover", &cnull );
+
+		authenticated = authed;
+		extsEnabled = enabled;
 
 		// bad command is expected when connecting to
 		// servers before 2014.2
@@ -173,7 +203,12 @@ Client::Init( Error *e )
 		else
 		{
 		if( !e->Test() )
-		    LearnUnicode( e );
+		{
+		    if( extsEnabled && protocolClientExts )
+		        exts->LoadScripts( true, e );
+		    if( unknownUnicode )
+		        LearnUnicode( e );
+		}
 		}
 		if( e->Test() )
 		    (void) Final( e );
@@ -290,6 +325,31 @@ Client::RunTag( const char *func, ClientUser *u )
 	s << "user-" << ( func ? func : "help" );
 
 	GetEnv();
+
+# ifdef HAS_EXTENSIONS
+
+	ClientScriptAction rPre = ClientScriptAction::FAIL;
+	int nRunPre = 0;
+
+	std::tie( rPre, nRunPre ) =
+	    ExtensionsEnabled() ? exts->Run( "preCommand", func, u, false, &e )
+	                        : std::tuple< ClientScriptAction, int >
+	                          ( ClientScriptAction::PASS, 0 );
+
+	if( e.Test() || rPre == ClientScriptAction::FAIL )
+	{
+	    SetError();
+	    SetFatal();
+	    if( u )
+	        u->Message( &e );
+	    return;
+	}
+
+	if( rPre == ClientScriptAction::REPLACE )
+	    return;
+
+# endif
+
 	Invoke( s.Text() );
 
 	// Advance upper tag, and ensure the new slot is empty.
@@ -306,6 +366,25 @@ Client::RunTag( const char *func, ClientUser *u )
 
 	if( !authenticated )
 	    WaitTag();
+
+# ifdef HAS_EXTENSIONS
+
+	ClientScriptAction rPost = ClientScriptAction::FAIL;
+	int nRunPost = 0;
+
+	std::tie( rPost, nRunPost ) =
+	    ExtensionsEnabled() ? exts->Run( "postCommand", func, u, true, &e )
+	                        : std::tuple< ClientScriptAction, int >
+	                          ( ClientScriptAction::PASS, 0 );
+
+	if( e.Test() || rPost == ClientScriptAction::FAIL )
+	{
+	    SetError();
+	    SetFatal();
+	    if( u )
+	        u->Message( &e );
+	}
+# endif
 }
 
 void
@@ -387,6 +466,7 @@ Client::GetEnv()
 	 */
 
 	const StrPtr &lang = GetLanguage();
+	const StrPtr &locale = GetLocale();
 	const StrPtr &initroot = GetInitRoot();
 
 	translated->SetVar( P4Tag::v_client, GetClient() );
@@ -403,6 +483,7 @@ Client::GetEnv()
 	    SetVar( P4Tag::v_host, GetHost() );
 	if( lang.Length() ) translated->SetVar( P4Tag::v_language, lang );
 	SetVar( P4Tag::v_os, GetOs() );
+	SetVar( P4Tag::v_locale, GetLocale() );
 	translated->SetVar( P4Tag::v_user, GetUser() );
 
 	/*
@@ -455,13 +536,85 @@ Client::NewHandler()
 	}
 }
 
-void
-Client::SetArgv( int ac, char * const * av)
+const StrBuf*
+Client::GetSendArgv( const int i )
 {
-	if (translated != this)
-		translated->SetArgv(ac, av);
+	return argv->Get( i );
+}
+
+int
+Client::GetSendArgc()
+{
+	return argv->Count();
+}
+
+void
+Client::SetArgv( int ac, char* const *av )
+{
+	argv->Clear();
+
+	if( translated != this )
+	{
+	    for( int i = 0; i < ac; i++ )
+	    {
+	        int translen = 0;
+	        const char *transbuf =
+	            ((TransDict*)translated)->ToCvt()->FastCvt( av[ i ],
+	                strlen( av[ i ] ), &translen );
+	        if( transbuf )
+	            argv->Put()->Set( transbuf );
+	        else
+	            argv->Put()->Set( "?" );
+	    }
+
+	    translated->SetArgv( ac, av );
+	}
 	else
-		Rpc::SetArgv(ac, av);
+	{
+	    for( int i = 0; i < ac; i++ )
+	        argv->Put()->Set( av[ i ] );
+
+	    Rpc::SetArgv(ac, av);
+	}
+}
+
+void
+Client::EnableExtensions( Error* e )
+{
+	if( !exts->BuildCheck() )
+	{
+	    e->Set( MsgScript::ExtScriptNotInBuild );
+	    return;
+	}
+
+	extsEnabled = true;
+}
+
+void
+Client::DisableExtensions()
+{
+	extsEnabled = false;
+}
+
+bool
+Client::ExtensionsEnabled()
+{
+	return extsEnabled;
+}
+
+void
+Client::SetExtension( ClientScript* cs, Error* e, const bool callerOwns )
+{
+	EnableExtensions( e );
+
+	if( e->Test() )
+	    return;
+
+	if( ownExts )
+	    delete exts;
+
+	ownExts = !callerOwns;
+	exts = cs;
 }
 
 void
@@ -512,6 +665,8 @@ Client::GetProtocol( const StrPtr &var )
 	    protocolBuf.Set( protocolSecurity );
 	else if( var == P4Tag::v_unicode )
 	    protocolBuf.Set( protocolUnicode );
+	else if( var == P4Tag::v_extensionsEnabled )
+	    protocolBuf.Set( protocolClientExts );
 	else return 0;
 
 	return &protocolBuf;
@@ -589,6 +744,31 @@ Client::FstatPartialClear()
 {
 	delete fstatPartial;
 	fstatPartial = 0;
+}
+
+void
+Client::SetProtocol( const char *p, const char *v )
+{
+	if( !apiSet && !strcmp( P4Tag::v_api, p ) )
+	{
+	    apiVer = atoi( v );
+	    apiSet = 1;
+	}
+	service.SetProtocol( p, v );
+}
+
+void
+Client::SetProtocolV( const char *arg )
+{
+	const char *p;
+	if( !apiSet &&
+	    ( p = strchr( arg, '=' ) ) &&
+	    !strncmp( P4Tag::v_api, arg, p - arg ) )
+	{
+	    apiVer = atoi( p + 1 );
+	    apiSet = 1;
+	}
+	service.SetProtocolV( arg );
 }
 
 StrPtr *

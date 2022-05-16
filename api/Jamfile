@@ -3,6 +3,8 @@ SubDir P4 api ;
 SubDirHdrs $(P4) ;			# just for Jamrules
 SubDirHdrs $(P4) client ;
 SubDirHdrs $(P4) diff ;
+SubDirHdrs $(P4) dme ;
+SubDirHdrs $(P4) dmec ;
 SubDirHdrs $(P4) rpc ;
 SubDirHdrs $(P4) i18n ;
 SubDirHdrs $(P4) sys ;
@@ -19,8 +21,13 @@ P4Api p4api :
 
 	Jamfile.api
 
-	$(CLIENTLIB) 
-	$(RPCLIB) 
+	$(P4APILIB)
+	$(CLIENTLIB)
+	$(RPCLIB)
+	$(P4SCRIPT_C)
+	$(P4SCRIPT)
+	$(P4SCRIPT_CURL)
+	$(P4SCRIPT_SQLITE)
 	$(SUPPORTLIB)
 
 	base64.h
@@ -31,11 +38,16 @@ P4Api p4api :
 	clientmerge.h
 	clientprog.h
 	clientresolvea.h
+	clientscript.h
 	clientuser.h
 	datetime.h
 	debug.h
 	diff.h
 	diffmerge.h
+	dmextension.h
+	dmextension_c.h
+	dmextensiondata_c.h
+	dmextensiondata.h
 	echoctl.h
 	enviro.h
 	error.h
@@ -50,6 +62,7 @@ P4Api p4api :
 	keepalive.h
 	macfile.h
 	macutil.h
+	malloc_override.h
 	mangle.h
 	mapapi.h
 	md5.h
@@ -67,9 +80,11 @@ P4Api p4api :
 	ntmangle.h
 	ntservice.h
 	options.h
+	p4libs.h
 	p4tags.h
 	pathsys.h
 	runcmd.h
+	sanitizers.h
 	serverhelperapi.h
 	sha1.h
 	sha256.h
@@ -96,9 +111,25 @@ P4Api p4api :
 # Just to make sure the API builds
 
 P4Main p4api : p4api.cc ;
-LinkLibraries p4api : $(CLIENTLIB) $(RPCLIB) $(SUPPORTLIB) ;
+
+LinkLibraries p4api :
+	$(CLIENTLIB)
+	$(RPCLIB)
+	$(P4SCRIPT_C)
+	$(P4SCRIPT)
+	$(P4SCRIPT_CURL)
+	$(P4SCRIPT_SQLITE)
+	$(SUPPORTLIB)
+	;
 
 P4Main p4dvcsapi : p4dvcsapi.cc ;
-LinkLibraries p4dvcsapi : $(CLIENTLIB) $(RPCLIB) $(SUPPORTLIB) ;
 
-
+LinkLibraries p4dvcsapi : 
+	$(CLIENTLIB)
+	$(RPCLIB)
+	$(P4SCRIPT_C)
+	$(P4SCRIPT)
+	$(P4SCRIPT_CURL)
+	$(P4SCRIPT_SQLITE)
+	$(SUPPORTLIB)
+	;

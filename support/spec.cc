@@ -17,9 +17,11 @@
 # include <intarray.h>
 # include <error.h>
 # include <errorlog.h>
+# include <debug.h>
 
 # include "specchar.h"
 # include <msgdb.h>
+# include <msgdm2.h>
 # include "specparse.h"
 # include "spec.h"
 
@@ -66,14 +68,18 @@ Spec::Get( int i )
 }
 
 SpecElem *
-Spec::Find( int code, Error *e )
+Spec::Find( int code, Error *e, const StrPtr *fixedTag )
 {
+	int tryFixed = fixedTag && fixedTag->Length();
+
 	for( int i = 0; i < elems->Count(); i++ )
 	{
 	    SpecElem *de = (SpecElem *)elems->Get(i);
 
-	    if( de->code == code )
-	        return de;
+	    if( ( code || !tryFixed ) && de->code == code )
+	       return de;
+	    else if( tryFixed && de->fixed == *fixedTag )
+	       return de;
 	}
 
 	if( e )
@@ -97,6 +103,27 @@ Spec::Find( const StrPtr &tag, Error *e )
 	    e->Set( MsgDb::FieldUnknown ) << tag;
 
 	return 0;
+}
+
+void
+Spec::Dump( const char *msg )
+{
+	if( p4debug.GetLevel( DT_SPEC ) < 5 )
+	    return;
+
+	p4debug.printf("Spec::Dump %s\n", msg);
+	if ( ! elems->Count() )
+	{
+	    p4debug.printf("Spec::Dump .... No elems\n");
+	    return;
+
+	}
+	for( int i = 0; i < elems->Count(); i++ )
+	{
+	    SpecElem *de = (SpecElem *)elems->Get(i);
+	    p4debug.printf("Spec::Dump .... elem  %d code=%d tag=%s fixed=%s\n",i,
+	            de->code, de->tag.Text(), de->fixed.Text());
+	}
 }
 
 /*
@@ -131,6 +158,49 @@ Spec::Decode( StrPtr *string, Error *e )
 }
 
 /*
+ * Spec::EncodeFieldMapToString() -- extract fieldmap from spec elements
+ *         and encode to StrBrf.
+ */
+
+void
+Spec::EncodeFieldMapToString( StrBuf *s,  Error *e )
+{
+	for( int i = 0; i < elems->Count(); i++ )
+	{
+	    SpecElem *se = (SpecElem *)elems->Get(i);
+	    {
+	        StrBuf  c;
+	        c.Clear();
+	        c << se->code;
+	        *s << se->tag << ":" << c << ";";
+	    }
+	}
+	if ( elems->Count() )
+	    *s << ";";
+}
+/*
+ * Spec::ExtractFieldMapToDict() -- extract the fieldmap from spec elements 
+ *          and encode to a StrDict. tag => code 
+ */
+
+void
+Spec::ExtractFieldMapToDict( StrDict *map,  Error *e, int skipAuto )
+{
+
+	for( int i = 0; i < elems->Count(); i++ )
+	{
+	    SpecElem *se = (SpecElem *)elems->Get(i);
+	    if ( skipAuto && !se->code )    // 0 means AutoId
+	        continue;
+	    {
+	        StrBuf  c;
+	        c.Clear();
+	        c << se->code;
+	        map->SetVar( se->tag.Text(), c.Text() );
+	    }
+	}
+}
+/*
  * Spec::Add() - create a single new specElem
  */
 
@@ -153,6 +223,48 @@ Spec::Add( const StrPtr &tag )
 
 	elems->Put( de );
 
+	return de;
+}
+
+/*
+ * Spec::Add() - create a single new specElem copied from a SpecElem
+ */
+
+SpecElem *
+Spec::Add( const SpecElem *se, int atIndex, Error *e )
+{
+	SpecElem *de = new SpecElem;
+	int count = elems->Count();
+
+	de->index = elems->Count();
+	de->type = se->type;
+	de->tag.Set( &se->tag );
+	de->fixed.Set( &se->fixed );
+	de->presets.Set( &se->presets );
+	de->values.Set( &se->values );
+	de->code = se->code;
+	de->subCode.Set( &se->subCode );
+	de->opt  = se->opt;
+	de->nWords = se->nWords;
+	de->maxLength = se->maxLength;
+	de->fmt  = se->fmt;
+	de->seq  = se->seq;
+	de->open = se->open;
+	de->maxWords = se->maxWords;	// used for Streams
+
+	if ( atIndex >= count )
+	{
+	    elems->Put( de );    // add new slot at end.
+	    return de ;
+	}
+
+	elems->Put( 0 );    // add new slot at end.
+
+	int i = count-1;      // orignal count
+	for ( ; i >= atIndex; i-- ) 
+	    elems->Replace( i+1 , elems->Get(i) );
+
+	elems->Replace( atIndex ,de );
 	return de;
 }
 
@@ -244,6 +356,14 @@ Spec::Parse( const char *buf, SpecData *data, Error *e, int validate )
 	        // XXX No word count check!
 
 	        data->SetLine( de, counts[ de->index ]++, &value, e );
+	        if( e->CheckId( MsgDb::FieldUnknown ) )
+	        {
+	            // Set an informative message.
+	            StrBuf field( *e->GetDict()->GetVar("field") );
+	            e->Clear();
+	            e->Set( MsgDm2::SpecMissingBuiltin ) << field;
+	            e->Snap();
+	        }
 
 	        // Only one text block per tag
 
@@ -286,6 +406,8 @@ Spec::Format( SpecData *data, StrBuf *s )
 {
 	s->Clear();
 
+	const StrRef nl("\n");
+	const StrRef nltab("\n\t");
 	// Comment at the front
 
 	*s << comment;
@@ -295,6 +417,7 @@ Spec::Format( SpecData *data, StrBuf *s )
 	    SpecElem *d = (SpecElem *)elems->Get(i);
 	    const char *c = 0;
 	    StrPtr *v;
+	    StrBuf addTabs; 
 
 	    // if no data for this line, don't display it
 	    // Special case for DEFAULT: we'll display a blank entry
@@ -334,6 +457,31 @@ Spec::Format( SpecData *data, StrBuf *s )
 	        // Tag:\n\tvalue1\n\tvalue2...
 
 	        *s << d->tag << ":\n";
+
+		// This code is changed in p19.2 and forward ported to 20.1.
+		// For these servers, specific SpecMgrs handle
+		// the data strings SpecElems of type SDT_LLIST.
+		//
+		// Only customer custom spec SDT_LLIST fields invoke this code.
+	        // job102389 revealed that tabs were not inserted in the
+	        // output form for multiline SDT_LLIST elems.
+	        //
+	        // The 'while()' section below appears to expect
+	        // SpecData->GetLine() to be used iteratively to return
+	        // '\n' separated substrings. It does not, and 
+	        // and instead returns the entire string.
+	        //
+	        // It is a larger task to fulfill that expectation.
+	        // So explicitly insert tabs after newlines for SDT_LLIST.
+	        // Were GetLine() to be fixed, the following fix is a NOOP.
+
+	        if( d->type == SDT_LLIST  &&  v->Contains( nl )
+	                && !v->Contains( nltab ) )
+	        {
+	            StrOps::Replace( addTabs, *v, nl, nltab );
+	            v = &addTabs;
+	        }
+
 
 	        while( v )
 	        {

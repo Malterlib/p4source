@@ -25,7 +25,7 @@ SubDirCcFlags -I$(SSLINCDIR) [ FDefines Z_PREFIX ] ;
 SubDirHdrs $(P4) script libs cURL ;
 SubDirHdrs $(P4) script libs cURL curl ;
 
-Library $(P4SCRIPT_CURL) :
+P4APILibrary $(P4SCRIPT_CURL) :
 	cleartext.c
 	cram.c
 	digest.c
@@ -39,4 +39,3 @@ Library $(P4SCRIPT_CURL) :
 	spnego_sspi.c
 	vauth.c
 ;
-

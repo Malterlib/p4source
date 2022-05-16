@@ -40,6 +40,7 @@ class LastChance {
 			{
 			    handler = 0;
 			    isError = 0;
+			    deleteOnRelease = 0;
 			}
 
 	virtual		~LastChance();
@@ -65,6 +66,14 @@ class LastChance {
 			    return isError;
 			}
 
+	int		DeleteOnRelease()
+			{
+			    return deleteOnRelease;
+			}
+
+    protected:
+	int		deleteOnRelease;
+
     private:
 	Handler		*handler;
 	int		isError;
@@ -88,6 +97,8 @@ class Handlers {
 	int		AnyErrors( const StrPtr *nane );
 
 	void		SetError( const StrPtr *name, Error *e );
+
+	void		Release();
 
     private:
 

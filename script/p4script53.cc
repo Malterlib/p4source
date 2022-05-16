@@ -10,10 +10,13 @@
 # include <debug.h>
 
 # include <p4script.h>
+# include <debugextension.h>
 
-# ifdef HAS_CPP17
+# ifdef HAS_EXTENSIONS
 
 # include <map>
+# include <vector>
+# include <deque>
 # include <functional>
 # include <fstream>
 # include <iostream>
@@ -29,30 +32,51 @@
 # include "p4script53.h"
 # include "lua_cjson_redefines.h"
 
-# include "errorlua.h"
 # include "clientapi.h"
 # include "clientapilua.h"
+# include "clientuserlua.h"
+# include "filesyslua.h"
+# include "errorlua.h"
 
-// We include all of Lua here, compiled as C++ so exceptions work properly,
-// for easier symbol redefinition (to prevent namespace clashes), and for
-// potential performance improvements since the compiler can see everything
-// at once.
+# include <p4error.h>
+# include <p4result.h>
+# include <clientuserp4lua.h>
+# include <p4lua.h>
+# include <p4mapmaker.h>
 
-# include "lua-5.3/one.cc"
+# include <runcmd.h>
+# include <enviro.h>
+# include <strarray.h>
 
 int p4script::impl53::os_execute( void* Lv )
 {
 	auto lua = cast_sol_State( l );
 	lua_State *L = lua->lua_state();
-	const char *cmd = luaL_optstring( L, 1, NULL );
+	const char *cmdLua = luaL_optstring( L, 1, NULL );
+	StrBuf cmd = cmdLua;
+	cmd.TrimBlanks();
 
 	RunArgv args;
 	RunCommand rcmd;
 	Error e;
 	int fds[ 2 ];
 	fds[ 0 ] = fds[ 1 ] = -1;
-	args.AddCmd( cmd );
+
+# ifdef OS_NT
+	Enviro env;
+	const char* comSpec = env.Get( "ComSpec" );
+	args.AddCmd( comSpec ? comSpec : "cmd" );
+	args.AddArg( "/C" );
+	args.AddArg( cmd.Text() );
+# else
+	args.AddCmd( "sh" );
+	args.AddArg( "-c" );
+	args.AddArg( cmd );
+# endif
+
 	rcmd.RunChild( args, ( RCO_AS_SHELL | RCO_USE_STDOUT ), fds, &e );
+
+	bool failed = false;
 
 	// Polling instead of blocking here like system() means we'll be
 	// slower when spawning many short-lived commands.
@@ -69,6 +93,7 @@ int p4script::impl53::os_execute( void* Lv )
 	            p4debug.printf( "SCRIPT p4/os_execute scriptCancelMsg"
 	                            " block\n" );
 
+	        failed = true;
 	        parent.scriptCancelled = true;
 	        rcmd.StopChild();
 	        // The subprocess can still be hanging around at this point
@@ -76,6 +101,7 @@ int p4script::impl53::os_execute( void* Lv )
 	        // so we just disassociate ourselves with it and continue on.
 	        rcmd.SetAbandon();
 	        luaL_error( L, "p4/os_execute" );
+	        rcmd.WaitChild();
 	        break;
 	    }
 
@@ -84,14 +110,15 @@ int p4script::impl53::os_execute( void* Lv )
 
 	if( e.Test() )
 	{
-	    StrBuf fmt;
+	    StrBuf fmt, msg;
 	    e.Fmt( &fmt );
-	    fprintf( stderr, "%s", fmt.Text() );
+	    msg << "p4/os_execute: " << fmt;
+	    return luaL_error( L, msg.Text() );
 	}
 
-	int status = rcmd.WaitChild();
+	int status = failed ? 1 : 0;
 
-	if( cmd != NULL )
+	if( cmdLua != NULL )
 	    return luaL_execresult( L, e.Test() || status );
 	else
 	{
@@ -102,77 +129,79 @@ int p4script::impl53::os_execute( void* Lv )
 
 bool p4script::impl53::timeBreakCb( void* Lv )
 {
-	auto lua = cast_sol_State( l );
-	lua_State *L = lua->lua_state();
+	return false;
+}
+
+static void debugHookShim( lua_State* L, lua_Debug* arv )
+{
 	void *ud = nullptr;
 	lua_getallocf( L, &ud );
-	auto z = static_cast< p4script::impl53* >( ud );
 
-	if( parent.checkTime() )
+	auto z = static_cast< p4script* >( ud );
+	z->debugCb( z, arv );
+}
+
+void p4script::impl53::debugCb( void* Lv, void* arv )
+{
+	auto lua = cast_sol_State( l );
+	lua_State *L = lua->lua_state();
+
+	if( !parent.scriptCancelled && parent.checkTime() )
 	{
 	    realError.Set( MsgScript::ScriptMaxRunErr )
 	        << "time"
 	        << parent.fmtDuration( parent.maxTime ).c_str();
 
 	    if( p4debug.GetLevel( DT_SCRIPT ) > 3 )
-	        p4debug.printf( "SCRIPT p4/timeBreakCb scriptCancelMsg"
-	                        " block\n" );
-	    parent.scriptCancelled = true;
-	    luaL_error( L, "p4/timeBreakCb" );
-	    return true;
-	}
-
-	return false;
-}
-
-void p4script::impl53::debugHook( void *Lv, void *arv )
-{
-	lua_State* L  = (lua_State*)Lv;
-	lua_Debug* ar = (lua_Debug*)arv;
-
-	void *ud = nullptr;
-	lua_getallocf( L, &ud );
-
-	auto z = static_cast< p4script::impl53* >( ud );
-
-	if( !z->parent.scriptCancelled && z->parent.checkTime() )
-	{
-	    z->realError.Set( MsgScript::ScriptMaxRunErr )
-	        << "time"
-	        << z->parent.fmtDuration( z->parent.maxTime ).c_str();
-
-	    if( p4debug.GetLevel( DT_SCRIPT ) > 3 )
 	        p4debug.printf( "SCRIPT p4script::impl53::debugHook "
 	                        "scriptCancelMsg block\n" );
-	    z->parent.scriptCancelled = true;
+	    parent.scriptCancelled = true;
 	    luaL_error( L, "debugHook" );
 	}
 }
 
-void* p4script::impl53::allocator( void *ud, void *ptr, size_t osize,
-	                                   size_t nsize )
+void p4script::impl53::SetRealError( const Error* e )
 {
-	auto z = static_cast< p4script::impl53* >( ud );
+	const bool isExit = realError.CheckId( MsgScript::OsExitRealError );
+	bool allowOsExit = true;
 
-	if( !z->parent.scriptCancelled && z->parent.checkTime() )
+	for( const auto& fn : parent.LuaBindCfgs )
+	    if( isExit && !fn( SCR_BINDING_LUA_OPTS::OS_EXIT ) )
+	        return;
+	
+	realError.Clear();
+	realError = *e;
+	realError.Snap();
+}
+
+void* p4script::impl53::allocator( void *ud, void *ptr, size_t osize,
+	                           size_t nsize )
+{
+	auto a = static_cast< p4script* >( ud );
+	auto z = static_cast< p4script::impl53* >( a->pimpl.get() );
+
+	if( !a->scriptCancelled && a->checkTime() )
 	{
+	    z->realError.Set( MsgScript::ScriptMaxRunErr )
+	        << "time"
+	        << a->fmtDuration( a->maxTime ).c_str();
+
 	    if( p4debug.GetLevel( DT_SCRIPT ) > 3 )
 	        p4debug.printf( "SCRIPT p4script::impl53::allocator "
 	                        "scriptCancel block\n" );
-	    z->parent.scriptCancelled = true;
+	    a->scriptCancelled = true;
 	    return nullptr;
 	}
 
-	z->parent.curMem += nsize - osize;
+	a->curMem += nsize - osize;
 
 	if( nsize == 0 ) // a free is always allowed
 	{
-	    free( ptr );
+	    P4_FREE( ptr );
 	    return nullptr;
 	}
 
-	if( !z->parent.scriptCancelled && z->parent.checkMem() &&
-	    !z->realError.Test() )
+	if( !a->scriptCancelled && a->checkMem() && !z->realError.Test() )
 	{
 	    z->realError.Set( MsgScript::ScriptMaxRunErr )
 	        << "memory"
@@ -188,7 +217,7 @@ void* p4script::impl53::allocator( void *ud, void *ptr, size_t osize,
 	    return NULL;
 	}
 
-	return realloc( ptr, nsize );
+	return P4_REALLOC( ptr, nsize );
 }
 
 const char* p4script::impl53::getImplName() const
@@ -208,7 +237,7 @@ p4script::impl53::impl53( p4script& p, Error *e ) : impl( p, e )
 
 	parent.beginTime();
 
-	auto lua = new sol::state( nullptr, allocator, this );
+	auto lua = new sol::state( nullptr, allocator, &p );
 
 	if( !lua )
 	{
@@ -217,8 +246,7 @@ p4script::impl53::impl53( p4script& p, Error *e ) : impl( p, e )
 	    return;
 	}
 	lua_State *L = lua->lua_state();
-	lua_sethook( L, ((void (*)(lua_State*, lua_Debug*))debugHook),
-	             LUA_MASKCOUNT, maxInsStep );
+	lua_sethook( L, (lua_Hook)debugHookShim, LUA_MASKCOUNT, maxInsStep );
 	sol::set_default_state( L );
 
 	lua->open_libraries( sol::lib::base, sol::lib::package,
@@ -261,8 +289,12 @@ bool p4script::impl53::doStr( const char *buf, Error *e )
 	{
 	    if( realError.Test() )
 	    {
-	         *e = realError;
-	         e->Snap();
+	         if( !realError.CheckId( MsgScript::OsExitRealError ) )
+	         {
+	             *e = realError;
+	             e->Snap();
+	          }
+
 	         realError.Clear();
 	    }
 	    else
@@ -277,9 +309,11 @@ bool p4script::impl53::doStr( const char *buf, Error *e )
 	return ret;
 }
 
-std::optional< std::any >
+p4_std_any::p4_any
 p4script::impl53::doScriptFn( const char* name, Error* e )
 {
+	DEBUGPRINTF( EXTS_INFO, "Executing script function '%s'.", name );
+
 	if( e->Test() )
 	{
 	    e->Set( MsgScript::DoNotBlameTheScript );
@@ -311,7 +345,7 @@ p4script::impl53::doScriptFn( const char* name, Error* e )
 	        return {};
 	    }
 
-	    return std::make_any< sol::object >( mret );
+	    return p4_std_any::p4_any( static_cast< sol::object >( mret ) );
 	}
 	catch( const sol::error& err )
 	{
@@ -332,342 +366,44 @@ p4script::impl53::doScriptFn( const char* name, Error* e )
 	return {};
 }
 
-class FileSysLua : public FileSys {
-
-	public:
-
-	    sol::table data;
-
-	     FileSysLua( FileSysType type );
-	    ~FileSysLua();
-
-	    static std::unique_ptr< FileSysLua > Make( FileSysType type );
-
-	    void Open( FileOpenMode mode, Error *e );
-	    void Write( const char *buf, int len, Error *e );
-	    int  Read( char *buf, int len, Error *e );
-	    int  ReadLine( StrBuf *buf, Error *e );
-	    void Close( Error *e );
-	    int  Stat();
-	    int  StatModTime();
-	    void Truncate( Error *e );
-	    void Truncate( offL_t offset, Error *e ) ;
-	    void Unlink( Error *e = 0 );
-	    void Rename( FileSys *target, Error *e );
-	    void Chmod( FilePerm perms, Error *e );
-	    void ChmodTime( Error *e );
-
-	    std::string fPath() { std::string p( path.Text() ); return p; }
-
-	    std::function< void( FileOpenMode mode, Error *e ) > fOpen, fOpenO;
-	    std::function< void( const char *buf, int len, Error *e ) > fWrite, fWriteO;
-	    std::function< int( char *buf, int len, Error *e ) > fRead, fReadO;
-	    std::function< int( StrBuf *buf, Error *e ) > fReadLine, fReadLineO;
-	    std::function< void( Error *e ) > fClose, fCloseO;
-	    std::function< int() > fStat, fStatO;
-	    std::function< int() > fStatModTime, fStatModTimeO;
-	    std::function< void( Error *e ) > fTruncate, fTruncateO;
-	    std::function< void( offL_t offset, Error *e ) > fTruncate1, fTruncate1O;
-	    std::function< void( Error *e ) > fUnlink, fUnlinkO;
-	    std::function< void( FileSys *target, Error *e ) > fRename, fRenameO;
-	    std::function< void( FilePerm perms, Error *e ) > fChmod, fChmodO;
-	    std::function< void( Error *e ) > fChmodTime, fChmodTimeO;
-} ;
-
-FileSysLua::FileSysLua( FileSysType type )
+bool p4script::impl53::fnExists( const char* name )
 {
-	fOpenO = fOpen = [&]( FileOpenMode mode, Error *e )
-	    { printf( "In FileSysLua::Open() '%s'\n", Path()->Text() ); };
-	fWrite = fWriteO = [&]( const char *buf, int len, Error *e )
-	    { printf( "In FileSysLua::Write()\n" ); };
-	fRead = fReadO = [&]( char *buf, int len, Error *e )
-	    { printf( "In FileSysLua::Read()\n" ); return 0; };
-	fReadLine = fReadLineO = [&]( StrBuf *buf, Error *e )
-	    { printf( "In FileSysLua::ReadLine()\n" ); return 0; };
-	fClose = fCloseO = [&]( Error *e )
-	    { printf( "In FileSysLua::Close()\n" ); };
-	fStat = fStatO = [&]()
-	    { printf( "In FileSysLua::Stat()\n" ); return 0; };
-	fStatModTime = fStatModTimeO = [&]()
-	    { printf( "In FileSysLua::StatModTime()\n" ); return 0; };
-	fTruncate = fTruncateO = [&]( Error *e )
-	    { printf( "In FileSysLua::Truncate()\n" );  };
-	fTruncate1 = fTruncate1O = [&]( offL_t offset, Error *e )
-	    { printf( "In FileSysLua::Truncate1()\n" ); };
-	fUnlink = fUnlinkO = [&]( Error *e )
-	    { printf( "In FileSysLua::Unlink()\n" ); };
-	// todo: filesyslua as the argument type?
-	fRename = fRenameO = [&]( FileSys *target, Error *e )
-	    { printf( "In FileSysLua::Rename()\n" ); };
-	fChmod = fChmodO = [&]( FilePerm perms, Error *e )
-	    { printf( "In FileSysLua::Chmod()\n" );  };
-	fChmodTime = fChmodTimeO = [&]( Error *e )
-	    { printf( "In FileSysLua::ChmodTime()\n" ); };
+	auto lua = cast_sol_State( l );
+
+	const sol::object fn = (*lua)[ name ];
+	const sol::type type = fn.get_type();
+
+	return type == sol::type::function;
 }
 
-FileSysLua::~FileSysLua()
+bool solfnCheck( const sol::protected_function_result& r,
+	        const char* impl, const char* where, Error* e )
 {
+	if( r.valid() && !e->Test() )
+	    return false;
 
+	// Can't call the what() below on valid data.
+	if( r.valid() )
+	    return true;
+
+	sol::error err = r;
+	StrBuf msg;
+	msg << where << ": " << err.what();
+	e->Set( MsgScript::ScriptRuntimeError ) << impl << msg;
+
+	return true;
 }
 
-std::unique_ptr< FileSysLua > FileSysLua::Make( FileSysType type )
+void solExcpESet( const sol::error& err, const char* impl,
+	          const char* where, Error* e )
 {
-	return std::unique_ptr< FileSysLua >( new FileSysLua( type ) );
-}
-
-void FileSysLua::Open( FileOpenMode mode, Error *e )
-{
-	fOpen ? fOpen( mode, (ErrorLua*)e ) : fOpenO( mode, (ErrorLua*)e );
-}
-
-void FileSysLua::Write( const char *buf, int len, Error *e )
-{
-	fWrite ? fWrite ( buf, len, (ErrorLua*)e )
-	       : fWriteO( buf, len, (ErrorLua*)e );
-}
-
-int FileSysLua::Read( char *buf, int len, Error *e )
-{
-	return fRead ? fRead ( buf, len, (ErrorLua*)e )
-	             : fReadO( buf, len, (ErrorLua*)e );
-}
-
-int FileSysLua::ReadLine( StrBuf *buf, Error *e )
-{
-	return fReadLine ? fReadLine ( buf, (ErrorLua*)e )
-	                 : fReadLineO( buf, (ErrorLua*)e );
-}
-
-void FileSysLua::Close( Error *e )
-{
-	fClose ? fClose( (ErrorLua*)e ) : fCloseO( (ErrorLua*)e );
-}
-
-int FileSysLua::Stat()
-{
-	return fStat ? fStat() : fStatO();
-}
-
-int FileSysLua::StatModTime()
-{
-	return fStatModTime ? fStatModTime() : fStatModTimeO();
-}
-
-void FileSysLua::Truncate( Error *e )
-{
-	fTruncate ? fTruncate( (ErrorLua*)e ) : fTruncateO( (ErrorLua*)e );
-}
-
- void FileSysLua::Truncate( offL_t offset, Error *e ) 
-{
-	fTruncate1 ? fTruncate1 ( offset, (ErrorLua*)e )
-	           : fTruncate1O( offset, (ErrorLua*)e );
-}
-
-void FileSysLua::Unlink( Error *e )
-{
-	Error e1;
-	Error *e2 = e ? e : &e1;
-	fUnlink ? fUnlink( (ErrorLua*)e2 ) : fUnlinkO( (ErrorLua*)e2 );
-}
-
-void FileSysLua::Rename( FileSys *target, Error *e )
-{
-	fRename ? fRename ( (FileSysLua*)target, (ErrorLua*)e )
-	        : fRenameO( (FileSysLua*)target, (ErrorLua*)e );
-}
-
-void FileSysLua::Chmod( FilePerm perms, Error *e )
-{
-	fChmod ? fChmod( perms, (ErrorLua*)e ) : fChmodO( perms, (ErrorLua*)e );
-}
-
-void FileSysLua::ChmodTime( Error *e )
-{
-	fChmodTime ? fChmodTime( (ErrorLua*)e ) : fChmodTimeO( (ErrorLua*)e );
-}
-
-class ClientUserLua : public ClientUser
-{
-	public:
-
-	     ClientUserLua();
-	    ~ClientUserLua();
-
-	    void InputData( StrBuf *strbuf, Error *e );
-
-	    void OutputText( const char *data, int length );
-	    void OutputBinary( const char *data, int length );
-	    void OutputInfo( char level, const char *data );
-	    void OutputStat( StrDict *dict );
-	    void HandleError( Error *err );
-	    void OutputError( const char *err );
-	    void Message( Error *err );
-	    void Edit( FileSys *f1, Error *e );
-
-	    void Prompt( Error *err, StrBuf &rsp, int noEcho, Error *e );
-	    void ErrorPause( char *errBuf, Error *e );
-	    FileSys *File( FileSysType type );
-
-	    std::function< void( const char* ) >
-	        fOutputError, fOutputErrorO;
-	    std::function< void( ErrorLua* ) >
-	        fHandleError, fHandleErrorO;
-	    std::function< void( ErrorLua* ) >
-	        fMessage, fMessageO;
-	    std::function< std::string( ErrorLua* ) >
-	        fInputData, fInputDataO;
-	    std::function< void( char level, const char* data ) >
-	        fOutputInfo, fOutputInfoO;
-	    std::function< void( const char* data, int length) >
-	        fOutputText, fOutputTextO;
-	    std::function< void( std::string data, int length ) >
-	        fOutputBinary, fOutputBinaryO;
-	    std::function<
-	        void( std::map< std::string, std::string > ) >
-	        fOutputStat, fOutputStatO;
-
-	    std::unique_ptr< FileSysLua > ff;
-	    sol::function fFile;
-
-	    std::function< std::unique_ptr< FileSysLua >&( FileSysType type ) > fFileO;
-
-	    std::function<
-	        void( ErrorLua *err, std::string rsp, int noEcho, ErrorLua *e ) >
-	        fPrompt, fPromptO;
-
-};
-
-ClientUserLua::ClientUserLua() : ClientUser()
-{
-	fOutputError = fOutputErrorO = []( const char * err )
-	    { printf( "P4::Lua default OutputError: %s\n", err ); };
-	fHandleError = fHandleErrorO = []( ErrorLua *err )
-	    { StrBuf buf; ((Error*)err)->Fmt( buf, EF_NEWLINE );
-	      printf( "P4::Lua default HandleError: %s\n",buf.Text() );
-	    };
-	fMessage = fMessageO = []( ErrorLua *err )
-	    { StrBuf buf; ((Error*)err)->Fmt( buf, EF_NEWLINE );
-	      printf( "P4::Lua default Message: %s\n",buf.Text() );
-	    };
-	fInputData = fInputDataO = []( ErrorLua *e )
-	    { printf( "P4::Lua default InputData" ); return std::string( "blat" ); };
-	fOutputInfo = fOutputInfoO = []( char level, const char* data )
-	    { printf( "P4::Lua default OutputInfo: %s\n", data ); };
-	fOutputText = fOutputTextO = []( const char* data, int length )
-	    { printf( "P4::Lua default OutputText: %s\n",data ); };
-	fOutputBinary = fOutputBinaryO = []( std::string data, int length )
-	    { printf( "P4::Lua default OutputBinary: len %d\n", length ); };
-	fOutputStat = fOutputStatO =
-	    []( std::map< std::string, std::string > m )
-	    {
-	        for( auto const& [key, val] : m )
-	            // todo: these are already filtered, so we don't need
-	            // to do it again.
-	            if( key != "func" && key != "specFormatted" &&
-	                key != "altArg" )
-	                std::cout << "P4::Lua default OutputStat: "
-	                          << key << ':' << val << std::endl;
-	    };
-	fFileO = [&]( FileSysType type ) -> std::unique_ptr< FileSysLua >&
-	{
-	    printf( "ClientUserLua::fFileO\n" );
-	    if( !ff.get() )
-	        ff = FileSysLua::Make( type );
-	    return ff;
-	};
-	fPrompt = fPromptO =
-	    [&]( ErrorLua *err, std::string rsp, int noEcho, ErrorLua *e )
-	    { printf( "ClientUserLua::PromptO fPrompt: %s\n", rsp.c_str() ); };
-}
-
-ClientUserLua::~ClientUserLua()
-{
-}
-
-void ClientUserLua::Message( Error *err )
-{
-	fMessage ? fMessage( (ErrorLua*)err ) : fMessage( (ErrorLua*)err );
-}
-
-void ClientUserLua::InputData( StrBuf *strbuf, Error *e )
-{
-	std::string buf =
-	  fInputData ? fInputData ( (ErrorLua*)e )
-	             : fInputDataO( (ErrorLua*)e );
-	strbuf->Set( buf.c_str() );
-}
-
-void ClientUserLua::Edit( FileSys *f1, Error *e )
-{
-	printf( "ClientUserLua::Edit\n" );
-	ClientUser::Edit( f1, e );
-}
-
-void ClientUserLua::Prompt( Error *err, StrBuf &rsp, int noEcho, Error *e )
-{
-	std::string s( rsp.Text() );
-	fPrompt ? fPrompt ( (ErrorLua*)err, s, noEcho, (ErrorLua*)e )
-	        : fPromptO( (ErrorLua*)err, s, noEcho, (ErrorLua*)e );
-}
-
-void ClientUserLua::ErrorPause( char *errBuf, Error *e )
-{
-	printf("ClientUserLua::ErrorPause\n");
-}
-
-void ClientUserLua::OutputError( const char *err )
-{
-	fOutputError ? fOutputError( err ) : fOutputErrorO( err );
-}
-
-void ClientUserLua::HandleError( Error *err )
-{
-	fHandleError ? fHandleError ( (ErrorLua*)err )
-	             : fHandleErrorO( (ErrorLua*)err );
-}
-
-void ClientUserLua::OutputInfo( char level, const char *data )
-{
-	fOutputInfo ? fOutputInfo( level, data ) : fOutputInfoO( level, data );
-}
-
-void ClientUserLua::OutputText( const char *data, int length )
-{
-	fOutputText ? fOutputText ( data, length )
-	            : fOutputTextO( data, length );
-}
-
-void ClientUserLua::OutputBinary( const char *data, int length )
-{
-	fOutputBinary ? fOutputBinary ( std::string( data ), length )
-	              : fOutputBinaryO( std::string( data ), length );
-}
-
-void ClientUserLua::OutputStat( StrDict *dict )
-{
-	std::map< std::string, std::string > m;
-	StrRef var, val;
-
-	for( int i = 0; dict->GetVar( i, var, val ); i++ )
-	    if( strcmp( var.Text(), "func" ) && 
-	        strcmp( var.Text(), "specFormatted" ) &&
-	        strcmp( var.Text(), "altArg" ) )
-	{
-	    m[ std::string( var.Text() ) ] =  std::string( val.Text() );
-	}
-
-	fOutputStat ? fOutputStat( m ) : fOutputStatO( m );
-}
-
-FileSys *ClientUserLua::File( FileSysType type )
-{
-	std::unique_ptr< FileSysLua >& f( fFile ? fFile ( type )
-	                                        : fFileO( type ) );
-	return f.release();
+	StrBuf msg;
+	msg << where << ": " << err.what();
+	e->Set( MsgScript::ScriptRuntimeError ) << impl << msg;
 }
 
 extern int luaopen_cjson( lua_State *l );
+extern int luaopen_cjson_safe( lua_State *l );
 extern int luaopen_lsqlite3( lua_State *L );
 extern int luaopen_lcurl( lua_State *L );
 extern int luaopen_lcurl_safe( lua_State *L );
@@ -676,6 +412,7 @@ extern int luaopen_lcurl_safe( lua_State *L );
 # include "libs/lua-curlv3/lua/cURL/safe.lua.c"
 # include "libs/lua-curlv3/lua/cURL/utils.lua.c"
 # include "libs/lua-curlv3/lua/curl.lua.c"
+# include "libs/argparse/argparse.lua.cc"
 
 static int loadInlineLuaModule( lua_State *L )
 {
@@ -710,6 +447,9 @@ static int loadInlineLuaModule( lua_State *L )
 	if( name == "cURL.impl.cURL" )
 	    return fn( curlimpl_str );
 
+	if( name == "argparse" )
+	    return fn( argparse_str );
+
 	return 1;
 }
 
@@ -717,9 +457,8 @@ void p4script::impl53::doBindings()
 {
 	auto lua = cast_sol_State( l );
 
-	sol::table ns = lua->create_named_table( "Perforce" );
-
 	luaL_requiref( lua->lua_state(), "cjson", luaopen_cjson, 1 );
+	luaL_requiref( lua->lua_state(), "cjson.safe", luaopen_cjson_safe, 1 );
 
 	// LuaSQLite3 - normally its import for the statically-linked version
 	// is 'lsqlite3complete', but that's a bit long so we just call it by
@@ -732,80 +471,39 @@ void p4script::impl53::doBindings()
 	sol::table searchers = (*lua)[ "package" ][ "searchers" ];
 	searchers.add( loadInlineLuaModule );
 
-	ns.new_enum( "ErrorSeverity",
-	    "E_EMPTY" , ErrorSeverity::E_EMPTY,
-	    "E_INFO"  , ErrorSeverity::E_INFO,
-	    "E_WARN"  , ErrorSeverity::E_WARN,
-	    "E_FAILED", ErrorSeverity::E_FAILED,
-	    "E_FATAL" , ErrorSeverity::E_FATAL
-	);
+	sol::table ns = lua->create_named_table( "Helix" )
+	    .create_named( "Core" ).create_named( "P4API" );
 
-	ns.new_usertype< ErrorLua >( "Error",
-	    "Test" , &ErrorLua::Test,
-	    "Fmt"  , &ErrorLua::Fmt,
-//	    "Test" , &Error::Test,
-	    "Clear", &ErrorLua::Clear
-//	    "Clear", &Error::Clear
-	);
+	ErrorLua::doBindings( lua, ns );
 
-	ns.new_usertype< ClientUserLua >( "ClientUserLua",
-	    "OutputError" , &ClientUserLua::fOutputError,
-	    "HandleError" , &ClientUserLua::fHandleError,
-	    "Message"     , &ClientUserLua::fMessage,
-	    "InputData"   , &ClientUserLua::fInputData,
-	    "OutputInfo"  , &ClientUserLua::fOutputInfo,
-	    "OutputText"  , &ClientUserLua::fOutputText,
-	    "OutputBinary", &ClientUserLua::fOutputBinary,
-	    "OutputStat"  , &ClientUserLua::fOutputStat,
-	    "Prompt"      , &ClientUserLua::fPrompt,
-	    "File"        , &ClientUserLua::fFile,
-	    sol::base_classes, sol::bases< ClientUser >()
-	);
+	ClientUserLua::doBindings( lua, ns, &parent.ClientUserBindCfgs,
+	                           getImplName(), parent.apiVersion );
 
-	ns.new_usertype< FileSysLua >( "FileSysLua", 
-	    "Open"        , &FileSysLua::fOpen,
-	    "Write"       , &FileSysLua::fWrite,
-	    "Read"        , &FileSysLua::fRead,
-	    "ReadLine"    , &FileSysLua::fReadLine,
-	    "Close"       , &FileSysLua::fClose,
-	    "Stat"        , &FileSysLua::fStat,
-	    "StatModeTime", &FileSysLua::fStatModTime,
-	    "Truncate"    , sol::overload( &FileSysLua::fTruncate,
-	                                   &FileSysLua::fTruncate1 ),
-	    "Unlink"      , &FileSysLua::fUnlink,
-	    "Rename"      , &FileSysLua::fRename,
-	    "Chmod"       , &FileSysLua::fChmod,
-	    "ChmodTime"   , &FileSysLua::fChmodTime,
-	    "Path"        , &FileSysLua::fPath,
-	    "data"        , &FileSysLua::data,
-	    "new"         , sol::factories( &FileSysLua::Make ),
-	    sol::base_classes, sol::bases< FileSys >()
-	);
+	FileSysLua::doBindings( lua, ns, getImplName(), parent.apiVersion );
 
-	ns.new_usertype< ClientApiLua >( "ClientApiLua",
-	   "new", sol::factories( [=]() {
-	              auto ca = std::make_unique< ClientApiLua >( lua );
-	              for( const auto& fn : parent.ClientApiBindCfgs )
-	                  fn( *ca );
-	              return ca;
-		} ),
-	    "Init"       , &ClientApiLua::fInit,
-	    "Final"      , &ClientApiLua::fFinal,
-	    "Run"        , &ClientApiLua::fRun,
-	    "SetClient"  , &ClientApiLua::fSetClient,
-	    "SetUser"    , &ClientApiLua::fSetUser,
-	    "SetPort"    , &ClientApiLua::fSetPort,
-	    "SetVersion" , &ClientApiLua::fSetVersion,
-	    "SetProg"    , &ClientApiLua::fSetProg,
-	    "SetVar"     , &ClientApiLua::fSetVar,
-	    "SetProtocol", &ClientApiLua::SetProtocol,
-	    "SetPassword", &ClientApiLua::fSetPassword,
-	    "GetPort"    , &ClientApiLua::fGetPort,
-	    "GetUser"    , &ClientApiLua::fGetUser,
-	    "IsUnicode"  , &ClientApi::IsUnicode,
-	    "SetTrans"   , &ClientApi::SetTrans,
-	    "Null"       , &ClientApiLua::Null
-	);
+	ClientApiLua::doBindings( lua, &ns, &parent.ClientApiBindCfgs );
+
+	if( parent.apiVersion == 1 )
+	{
+	    sol::table ns182 = lua->create_named_table( "Perforce" );
+
+	    // Namespace Perforce -> Helix.Core.P4API.
+	    ns182[ "Error"  ] = ns[ "Error"  ];
+	    ns182[ "ErrorSeverity"  ] = ns[ "ErrorSeverity"  ];
+
+	    // Class name changes.
+	    ns182[ "ClientApiLua"  ] = ns[ "ClientApi"  ];
+	    ns182[ "ClientUserLua" ] = ns[ "ClientUser" ];
+	    ns182[ "FileSysLua"    ] = ns[ "FileSys"    ];
+	}
+	
+	// P4Lua uses P4 namespace
+
+	sol::table ns2 = lua->create_named_table( "P4" );
+
+	P4Lua::P4Lua::doBindings( lua, &ns2, &parent.ClientApiBindCfgs );
+	P4Lua::P4MapMaker::doBindings( lua, ns2 );
+	P4Lua::P4Error::doBindings( lua, ns2 );
 }
 
 # else
@@ -830,4 +528,4 @@ error
 
 */
 
-# endif // HAS_CPP17
+# endif // HAS_EXTENSIONS

@@ -378,26 +378,30 @@
 		local linker = $(2:E=C++) ;
 		local prefix = $(3:E=$(COMPILER_PREFIX:E)$(CROSS_COMPILE:E)) ;
 		local suffix = $(4:E=$(COMPILER_SUFFIX:E)) ;
+		local wrap   = $(COMPILER_WRAPPER:E="") ;
 
 		switch $(1:U)
 		{
 		case *CLANG* :
-			CC   = $(prefix)clang$(suffix) ;
-			C++  = $(prefix)clang++$(suffix) ;
+			CC   = $(wrap) $(prefix)clang$(suffix) ;
+			C++  = $(wrap) $(prefix)clang++$(suffix) ;
+			CC   = [ FRemoveAny $(CC)  : "" ] ;
+			C++  = [ FRemoveAny $(C++) : "" ] ;
 			# make no return value from non-void func an error, and quiet
 			# some of the noisier clang warnings until we clean up the code
 			C++FLAGS += -Wno-parentheses -Wno-switch -Wreturn-type -Werror=return-type ;
 			LINK = $(OSLINK:E=$($(linker))) ;
 
 		case *GCC* :
-			CC   = $(prefix)gcc$(suffix) ;
-			C++  = $(prefix)g++$(suffix) ;
+			CC   = $(wrap) $(prefix)gcc$(suffix) ;
+			C++  = $(wrap) $(prefix)g++$(suffix) ;
+			CC   = [ FRemoveAny $(CC)  : "" ] ;
+			C++  = [ FRemoveAny $(C++) : "" ] ;
 			# no return value from non-void func is an error in Visual Studio
 			# so make it a warning in gcc; unfortunately gcc 3.4.5 does not
 			# support making it an error, so we can't use -Werror=return-type
 			C++FLAGS += -Wreturn-type ;
 			LINK = $(OSLINK:E=$($(linker))) ;
-			LINK = $(prefix)g++$(suffix) ;
 		}
 
 		STRIP  = $(CROSS_COMPILE:E)strip   ;
@@ -548,6 +552,47 @@
 	    }
 
 	    return $(result) ;
+	}
+
+	# Encapsulate the version checks used to detect whether or not the source
+	# is being built with the compilers we updated to in 18.2 (more or less
+	# "modern").
+
+	rule CompilerIsModern
+	{
+	    # Assume an incompatible compiler if the version isn't declared.
+	    if $(CC) = clang && ! $(CLANGVER) || $(CC) = gcc && ! $(GCCVER)
+	       || $(CC) = cl && ! $(MSVSVER)
+	    {
+	        return 0 ;
+	    }
+
+	    if $(CLANGVER) && [ FVersionCmp $(CLANGVER) : 6.0.0 ] >= 0
+	    {
+	        return 1 ;
+	    }
+
+	    if $(GCCVER) && [ FVersionCmp $(GCCVER) : 7.3.0 ] >= 0
+	    {
+	        return 1 ;
+	    }
+
+	    if $(MSVSVER) && [ FVersionCmp $(MSVSVER) : 15 ] >= 0
+	    {
+	        return 1 ;
+	    }
+
+	    return 0 ;
+	}
+
+	rule CompilerSupportsZlibOptim
+	{
+	    if $(GCCVER) && [ FVersionCmp $(GCCVER) : 6.0.0 ] >= 0
+	    {
+	        return 1 ;
+	    }
+
+	    return [ CompilerIsModern ] ;
 	}
 
 #################################################
@@ -727,10 +772,10 @@
 	# to include LLVM/Clang's libc++.
 	STATIC_LIBSTDC++ = no ;
 	# This really ought to be renamed LINK_WITH_STL since some operating systems use a different name.
- 	LINK_WITH_STDC++ = p4 p4d p4p p4broker p4broker_ja p4zk p4sandbox p4sandbox_ja p4vc browsechild mkconf p4dvcsapi p4api perfmerge perfsplit p4migrate ;
+ 	LINK_WITH_STDC++ = p4 p4d p4p p4broker p4broker_ja p4zk p4sandbox p4sandbox_ja p4vc browsechild mkconf p4dvcsapi p4api perfmerge perfsplit p4migrate license p4dctl ;
 
 	# Some parts of libsupp now require symbols from pthread
-	LINK_WITH_PTHREAD = p4 p4d p4p p4broker p4broker_ja p4sandbox p4sandbox_ja p4ftpd browsechild p4api p4dvcsapi ;
+	LINK_WITH_PTHREAD = p4 p4d p4p p4broker p4broker_ja p4sandbox p4sandbox_ja p4ftpd browsechild p4api p4dvcsapi mkconf p4dctl license ;
 
 	# SSL configuration:
 	# Define SSL to include netssl* source code into the libraries and executables
@@ -743,6 +788,7 @@
 	#    SSL is defined but libraries not released with code.
 	SSL     ?= yes ;
 	SSLSTUB ?= no ;
+	SSLVER  ?= 1.0.2 ;
 
 	SetDefaultDirName SSLPREFIX : [ FSubDirPath P4BIN ] ;
 
@@ -756,7 +802,7 @@
 		SSLINCDIR ?= [ FSubDirPath AllP4 p4 sslstub ]
 		             [ FDirName $(SSLPREFIX) inc.$(EXEC_SUB_TOKENS[1]) ] ;
 		SetDefaultDirName SSLINCDIR ;
-    } else {
+	} else {
 		SetDefaultDirName SSLINCDIR : [ FDirName $(SSLPREFIX) inc.$(EXEC_SUB_TOKENS[1]) ] ;
 	}
 
@@ -845,6 +891,8 @@
 	SetLibName DMLIB            : libdm         ;
 	SetLibName FTPLIB           : libp4ftp 	    ;
 	SetLibName LBRLIB           : liblbr        ;
+	SetLibName P4MEMORYMGR      : libp4mmgr     ;
+	SetLibName P4MEMORYMGR_STUB : libp4mmgr_stub ;
 	SetLibName P4EXPLIB         : libp4exp      ;
 	SetLibName P4TD             : libp4thumb    ;
 	SetLibName P4LIB            : libp4         ;
@@ -875,7 +923,11 @@
 	SetLibName SANDSTORM        : libstorm      ;
 	SetLibName P4VSHELL         : libp4vshell   ;
 	SetLibName P4ALIB           : libp4a        ;
+	SetLibName P4APILIB         : libp4api      ;
 	SetLibName P4SCRIPT         : libp4script   ;
+	SetLibName P4SCRIPT_C       : libp4script_c ;
+	SetLibName P4SCRIPT_CSTUB   : libp4script_cstub ;
+	SetLibName P4SCRIPT_S       : libp4script_s ;
 	SetLibName P4SCRIPT_CURL    : libp4script_curl ;
 	SetLibName P4SCRIPT_SQLITE  : libp4script_sqlite ;
 	SetLibName P4V              : libp4v        ;
@@ -953,6 +1005,26 @@
 		    LINKFLAGS = -fprofile-arcs -ftest-coverage -g ;
 		}
 
+	case clang-asan :
+	    OPTIM = -g -fsanitize=address,undefined,shift,pointer-overflow -D_GLIBCXX_DEBUG
+	            -D_GLIBCXX_DEBUG_PEDANTIC -fno-omit-frame-pointer -O0 -Wno-parentheses
+	            -fno-optimize-sibling-calls -Wno-switch -fPIC ;
+	    LINKFLAGS += -fsanitize=address,undefined,integer,shift,pointer-overflow ;
+
+	    LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.asan-x86_64.a ;
+	    LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.builtins-x86_64.a ;
+	    LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.ubsan_standalone_cxx-x86_64.a ;
+	    LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.ubsan_standalone-x86_64.a ;
+	    LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.asan_cxx-x86_64.a ;
+
+	case clang-tsan :
+	    OPTIM = -g -fsanitize=thread -D_GLIBCXX_DEBUG
+	            -D_GLIBCXX_DEBUG_PEDANTIC -fno-omit-frame-pointer -O0 -Wno-parentheses
+	            -fno-optimize-sibling-calls -Wno-switch -fPIC ;
+	    LINKFLAGS += -fsanitize=thread ;
+	    LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.tsan_cxx-x86_64.a ;
+	    LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.tsan-x86_64.a ;
+
 	case *vsdebug* : # special-target builds; see NT section
 
 	case * : 	Echo "Warning -- unknown compilation TYPE" $(TYPE) ;
@@ -984,6 +1056,15 @@
 	BUILD_P4D ?= true ;
 
 	if [ FVersionCmp $(GCCVER) : 4.2 ] >= 0 { OPTIM += -fwrapv ; }  # see job047026
+
+
+	# Backwards compatibility for SMARHEAP vs USE_SMARTHEAP
+	# Setting SMARTHEAP will override USE_SMARTHEAP
+
+	if $(SMARTHEAP)
+	{
+		USE_SMARTHEAP = $(SMARTHEAP) ;
+	}
 
 #################################################
 #
@@ -1274,8 +1355,21 @@
 		_mflags = ;
 		switch $(OSPLAT:U)
 		{
-		case X86    : _mflags = -m32 ; SMARTHEAP ?= yes ; SMARTHEAP_CHECKS ?= 0 ;
-		case X86_64 : _mflags = -m64 ; SMARTHEAP ?= yes ; SMARTHEAP_CHECKS ?= 0 ;
+		case X86    : _mflags = -m32 ;
+		               USE_SMARTHEAP ?= yes ;
+		               SMARTHEAP_CHECKS ?= 0 ;
+		               MALLOC_OVERRIDE ?= yes ;
+		               USE_MIMALLOC ?= no ;
+		               USE_JEMALLOC ?= no ;
+		               USE_RPMALLOC ?= no ;
+
+		case X86_64 : _mflags = -m64 ;
+		               USE_SMARTHEAP ?= yes ;
+		               SMARTHEAP_CHECKS ?= 0 ;
+		               MALLOC_OVERRIDE ?= yes ;
+		               USE_MIMALLOC ?= no ;
+		               USE_JEMALLOC ?= no ;
+		               USE_RPMALLOC ?= no ;
 
 		case PPC    : _mflags = -m32 ;
 		case PPC64  : _mflags = -m64 ;
@@ -1430,10 +1524,7 @@
 
 		# Set minimum API compatibility to WindowsXP (see w32api.h)
 		#
-		# Make sure exceptions are disabled; the API doesn't use any and
-		# some builds of MinGW don't even support them.
-		$(GENFLAGS) += -D_WIN32_WINNT=0x0501 -DWINVER=0x0501
-		               -fno-exceptions ;
+		$(GENFLAGS) += -D_WIN32_WINNT=0x0501 -DWINVER=0x0501 ;
 
 		# For MinGW-w64 set the old MinGW macro as well.
 		# This avoids having the redo all the ifdefs.
@@ -1446,7 +1537,7 @@
 		# MinGW-w64 also uses the Visual Studio libs.
 		if $(RI_DEVKIT)
 		{
-			LINKLIBS  += -ladvapi32 -lkernel32 ;
+			LINKLIBS  += -ladvapi32 -lkernel32 -lshell32 ;
 			if $(SSL) = yes
 			{
 				LINKLIBS += -lUser32 -lOle32 -lOleaut32 -lGdi32 ;
@@ -1589,7 +1680,7 @@
 		# LINKLIBS comes from jambase wrongly initialized
 		# do not use += here
 		LINKLIBS  = setargv.obj advapi32.lib oldnames.lib
-		            kernel32.lib ws2_32.lib ;
+		            kernel32.lib ws2_32.lib shell32.lib ;
 		if $(SSL) = yes
 		{
 			LINKLIBS += User32.lib Ole32.lib Oleaut32.lib Gdi32.lib ;
@@ -1625,8 +1716,19 @@
 
 		switch $(OSPLAT:U)
 		{
-			case X86 : SMARTHEAP ?= yes ; SMARTHEAP_CHECKS ?= 0 ;
-			case X64 : SMARTHEAP ?= yes ; SMARTHEAP_CHECKS ?= 0 ;
+			case X86 : USE_SMARTHEAP ?= yes ;
+		               SMARTHEAP_CHECKS ?= 0 ;
+		               MALLOC_OVERRIDE ?= yes ;
+		               USE_MIMALLOC ?= no ;
+		               USE_JEMALLOC ?= no ;
+		               USE_RPMALLOC ?= no ;
+
+			case X64 : USE_SMARTHEAP ?= yes ;
+		               SMARTHEAP_CHECKS ?= 0 ;
+		               MALLOC_OVERRIDE ?= yes ;
+		               USE_MIMALLOC ?= no ;
+		               USE_JEMALLOC ?= no ;
+		               USE_RPMALLOC ?= no ;
 		}
 
 		# Now, unset STDHDRS so Jam doesn't scan system headers (takes
@@ -1650,7 +1752,7 @@
 			OPTIM = $(_Z) ;
 			RCFLAGS      = /d DEBUG /r ;
 			LINKFLAGS   += /DEBUG ;
-			if $(SMARTHEAP) = yes
+			if $(USE_SMARTHEAP) = yes
 			{
 				LINKFLAGS   += /FORCE ;
 			}
@@ -1829,21 +1931,6 @@
 
 	case * :
 		Exit Don't know "$(OS)$(OSVER) or " $(OS) ;
-	}
-
-	if $(SMARTHEAP) = yes
-	{
-		DEFINES += USE_SMARTHEAP ;
-
-		if $(MEM_DEBUG) = yes
-		{
-			DEFINES += MEM_DEBUG=1 DEFINE_NEW_MACRO=1 ;
-		}
-		if $(SMARTHEAP_CHECKS) != 0
-		{
-			DEFINES += SMARTHEAP_CHECKS=$(SMARTHEAP_CHECKS) ;
-			DEFINES += MEM_DEBUG=1 DEFINE_NEW_MACRO=1 ;
-		}
 	}
 
 	if $(SSL) = yes
@@ -2071,6 +2158,23 @@
 	rule P4Library
 	{
 		Library $(<) : $(>) ;
+	}
+
+	rule P4APILibrary
+	{
+		# Cheesy dynamic scope hack to prevent LibraryFromObjects from
+		# invoking RmTemps on the target objects; otherwise they are
+		# deleted after the Archive pass on the first target, before
+		# the second one can be updated.
+        local NOARUPDATE = true ;
+
+		# Don't call Library on the same dependencies twice, because
+		# that rule calls the Objects rule, and that would result in
+		# two compilations of each dependency.
+
+		Library $(<) : $(>) ;
+		LibraryFromObjects $(P4APILIB) : $(>:S=$(SUFOBJ)) ;
+
 	}
 
 	rule P4DLibrary
@@ -2928,9 +3032,60 @@
 		unix2dos -q $(<) ;
 	}
 
+	rule EnableWarningsAsErrors
+	{
+	    if $(WARNINGS_AS_ERRORS) != 1
+	    { return ; }
+
+	    if $(OS) = NT && $(MSVSVER)
+	    {
+	        C++FLAGS += /WX ;
+	        CCFLAGS += /WX ;
+	        LINKLIBS += /WX ;
+	    }
+	    else
+	    {
+	        C++FLAGS += -Werror ;
+	        CCFLAGS += -Werror ;
+	        if $(GCCVER)
+	        {
+	            LINKLIBS += -Xlinker --fatal-warnings ;
+	        }
+	    }
+	}
+
+	rule LinkMallocLib
+	{
+	    if $(MALLOC_OVERRIDE) != yes
+	    { return ; }
+
+	    # Only licensed for the server.
+	    if $(USE_SMARTHEAP) = yes && $(<:J) != p4d
+	    { return ; }
+
+	    local override_cc = $(P4) $(SLASH) sys $(SLASH) new_override.cc ;
+	    # Include the target name in the object to prevent the Object rule
+	    # from being called from multiple targets in a parallel build and
+	    # clobbering the same file.
+	    local _suffix = - $(<) $(SUFOBJ) ;
+	    local override_obj = [ FAppendSuffix new_override : $(_suffix:J) ] ;
+	    local obj_grist = [ FGristFiles $(override_obj:J) ] ;
+	    Object $(obj_grist) : [ FGristFiles $(override_cc:J) ] ;
+
+	    LinkLibraries $(<) : $(obj_grist) ;
+	    Depends $(<) : $(obj_grist) ;
+
+	    LinkLibraries $(<) : $(P4MEMORYMGR) ;
+
+	    if $(USE_SMARTHEAP) = yes
+	    {
+	        LinkSmartHeap $(<) ;
+	    }
+	}
+
 	rule LinkSmartHeap
 	{
-		if $(SMARTHEAP) != yes { return ; } # short circuit all this
+		if $(USE_SMARTHEAP) != yes { return ; } # short circuit all this
 
 		switch $(OS)-$(OSVER:E)-$(OSPLAT:E)-$(OSCOMP:E)
 		{
@@ -2997,7 +3152,7 @@
 			return ;
 		}
 
-        switch $(OS)-$(OSVER:E)-$(OSPLAT:E)-$(OSCOMP:E)
+		switch $(OS)-$(OSVER:E)-$(OSPLAT:E)-$(OSCOMP:E)
 		{
 		case NT-*-*-* :
 			local _64 dyn d ;
@@ -3011,10 +3166,28 @@
 			if $(TYPE_DEBUG)   { d   = d   ; }
 			local suflib = $(_64:E=32)$(d:E).lib ;
 
-			SetDefaultDirName SSLLIBDIR : [ FDirName $(SSLPREFIX) lib.$(EXEC_SUB_TOKENS[1]) vs$(MSVSVER) $(dyn) ] ;
+			wincrypt     = crypt32.lib ;
 
-			SSLLIB    ?= [ FDirName $(SSLLIBDIR) libeay$(_64:E=32)$(d:E).lib ] ;
-			CRYPTOLIB ?= [ FDirName $(SSLLIBDIR) ssleay$(_64:E=32)$(d:E).lib ] ;
+			if $(SSLVER) = 1.1
+			{
+				SetDefaultDirName SSLLIBDIR : [ FDirName $(SSLPREFIX) lib.$(EXEC_SUB_TOKENS[1]) vs$(MSVSVER) $(d) $(dyn) ] ;
+				SSLLIB    ?= [ FDirName $(SSLLIBDIR) libssl.lib ] ;
+				CRYPTOLIB ?= [ FDirName $(SSLLIBDIR) libcrypto.lib ] ;
+			}
+			else
+			{
+				SetDefaultDirName SSLLIBDIR : [ FDirName $(SSLPREFIX) lib.$(EXEC_SUB_TOKENS[1]) vs$(MSVSVER) $(dyn) ] ;
+				SSLLIB    ?= [ FDirName $(SSLLIBDIR) libeay$(_64:E=32)$(d:E).lib ] ;
+				CRYPTOLIB ?= [ FDirName $(SSLLIBDIR) ssleay$(_64:E=32)$(d:E).lib ] ;
+			}
+
+		case MINGW-64-*-* :
+			wincrypt     = -lcrypt32 ;
+
+			SetDefaultDirName SSLLIBDIR : [ FDirName $(SSLPREFIX) lib.$(EXEC_SUB_TOKENS[1]) ] ;
+
+			SSLLIB    ?= [ FDirName $(SSLLIBDIR) libssl.a    ] ;
+			CRYPTOLIB ?= [ FDirName $(SSLLIBDIR) libcrypto.a ] ;
 
 		case *-*-*-* :
 			SetDefaultDirName SSLLIBDIR : [ FDirName $(SSLPREFIX) lib.$(EXEC_SUB_TOKENS[1]) ] ;
@@ -3024,6 +3197,10 @@
 		}
 
 		local e = [ FAppendSuffix $(<) : $(SUFEXE) ] ;
+		if $(wincrypt)
+		{
+			OnTargetVarPrepend $(e) : LINKLIBS : $(wincrypt) ;
+		}
 		OnTargetVarPrepend $(e) : LINKLIBS : $(CRYPTOLIB) ;
 		OnTargetVarPrepend $(e) : LINKLIBS : $(SSLLIB) ;
 	}
@@ -3184,9 +3361,9 @@
 	rule P4GTLinkage
 	{
 		local _def = [ on $(<) return $(DEFFILE) ] ;
-#		            /DEF:$(_def)
 		local _lf = /subsystem:windows
 		            /DLL
+		            /DEF:$(_def)
 		            /INCREMENTAL:NO
 		            /MACHINE:$(OSPLAT:L) ;
 

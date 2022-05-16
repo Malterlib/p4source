@@ -200,7 +200,12 @@ FileSys::RmDir( const StrPtr &path, Error *e )
 	if( preserveCWD )
 	{
 	    char cwd[ 2048 ];
-	    getcwd( cwd, sizeof( cwd ) );
+	    if( !getcwd( cwd, sizeof( cwd ) ) )
+	    {
+	        e->Sys( "getcwd", strerror( errno ) );
+	        delete p;
+	        return;
+	    }
 
 	    if( !StrPtr::SCompare( p->Text(), cwd ) )
 	    {

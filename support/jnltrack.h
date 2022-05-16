@@ -33,6 +33,8 @@ class JnlTracker {
 
 	int	SawJournalTrailer();
 
+	void	SetCheckpoint() { ckp = 1; }
+
     private:
 	IntArray	pids;
 	int		npids;
@@ -40,6 +42,7 @@ class JnlTracker {
 	int		consistentcnt;
 	int		sawJTrailer;
 	int		maxpids;
+	int		ckp;
 
 	// for journal scanning
 	int		scanstate;

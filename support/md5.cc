@@ -1,4 +1,11 @@
 /*
+ * Copyright 1995, 2019 Perforce Software.  All rights reserved.
+ *
+ * This file is part of Perforce - the FAST SCM System.
+ */
+
+# ifndef USE_SSL
+/*
  * This code implements the MD5 message-digest algorithm.
  * The algorithm is due to Ron Rivest.  This code was
  * written by Colin Plumb in 1993, no copyright is claimed.
@@ -208,6 +215,7 @@ MD5::Final( unsigned char digest[16] )
  * the data and converts bytes into longwords for this routine.
  */
 
+NO_SANITIZE_UNDEFINED
 void 
 MD5::Transform()
 {
@@ -315,3 +323,49 @@ MD5::Final( StrBuf &output )
 	output.Clear();
 	StrOps::OtoX( digest, sizeof( digest ), output );
 }
+
+# else
+
+# include <openssl/md5.h>
+
+# include <stdhdrs.h>
+# include "strbuf.h"
+# include "strops.h"
+# include <md5.h>
+
+MD5::MD5()
+{
+	ctx = (void*)new MD5_CTX;
+	MD5_Init( (MD5_CTX*)ctx );
+}
+
+MD5::~MD5()
+{
+	delete (MD5_CTX*)ctx;
+}
+
+class MD5& MD5::operator=( const MD5& rhs )
+{
+	memcpy( ctx, rhs.ctx, sizeof( MD5_CTX ) );
+	return *this;
+}
+
+void MD5::Update( const StrPtr &buf )
+{
+	MD5_Update( (MD5_CTX*)ctx, buf.Text(), buf.Length() );
+}
+
+void MD5::Final( StrBuf &output )
+{
+	output.Clear();
+	unsigned char c[ MD5_DIGEST_LENGTH ];
+	MD5_Final( c, (MD5_CTX*)ctx );
+	StrOps::OtoX( c, MD5_DIGEST_LENGTH, output );
+}
+
+void MD5::Final( unsigned char digest[ 16 ] )
+{
+	MD5_Final( digest, (MD5_CTX*)ctx );
+}
+
+# endif

@@ -20,6 +20,7 @@
 # define NEED_TIME_HP
 # define NEED_ERRNO
 # define NEED_READLINK
+# define NEED_WIN32FIO
 
 # include <stdhdrs.h>
 
@@ -50,22 +51,26 @@ int global_umask = -1;
 # define O_BINARY 0
 # endif
 
+# ifndef O_CLOEXEC
+# define O_CLOEXEC 0
+# endif
+
 const FileIOBinary::OpenMode FileIOBinary::openModes[4] = {
 	"open for read",
-		O_RDONLY|O_BINARY,
-		O_RDONLY|O_BINARY,
-		0,
+		O_RDONLY|O_BINARY|O_CLOEXEC,  // bflags
+		O_RDONLY|O_BINARY|O_CLOEXEC,  // aflags
+		0,                            // stdio descriptor
 	"open for write",
-		O_WRONLY|O_CREAT|O_TRUNC|O_BINARY,
-		O_WRONLY|O_CREAT|O_APPEND,
+		O_WRONLY|O_CREAT|O_TRUNC|O_BINARY|O_CLOEXEC,
+		O_WRONLY|O_CREAT|O_APPEND|O_CLOEXEC,
 		1,
 	"open for read/write",
-		O_RDWR|O_CREAT|O_BINARY,
-		O_RDWR|O_CREAT|O_APPEND,
+		O_RDWR|O_CREAT|O_BINARY|O_CLOEXEC,
+		O_RDWR|O_CREAT|O_APPEND|O_CLOEXEC,
 		1,
 	"open for untranslated write",
-		O_WRONLY|O_CREAT|O_TRUNC|O_BINARY,
-		O_WRONLY|O_CREAT|O_APPEND|O_BINARY,
+		O_WRONLY|O_CREAT|O_TRUNC|O_BINARY|O_CLOEXEC,
+		O_WRONLY|O_CREAT|O_APPEND|O_BINARY|O_CLOEXEC,
 		1
 } ;
 
@@ -78,6 +83,11 @@ FileIO::FileIO()
 	    global_umask = umask( 0 );
 	    (void)umask( global_umask );
 	}
+}
+
+void
+FileIO::DepotSize( offL_t &len, Error *e )
+{
 }
 
 # if !defined( OS_VMS ) && !defined( OS_NT )
@@ -490,6 +500,9 @@ FileIOBinary::~FileIOBinary()
 void
 FileIOBinary::Open( FileOpenMode mode, Error *e )
 {
+
+	this->lastOSError = 0;
+
 	// Save mode for write, close
 
 	this->mode = mode;
@@ -522,10 +535,10 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 	    ClearDeleteOnClose();
 	    return;
 	}
-# endif
+# endif // O_EXCL
 
 	// open stdin/stdout or real file
-	
+
 	if( Name()[0] == '-' && !Name()[1] )
 	{
 	    // we do raw output: flush stdout
@@ -533,13 +546,14 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 
 	    if( mode == FOM_WRITE )
 		fflush( stdout );
-            
+
 	    fd = openModes[ mode ].standard;
-            checkStdio( fd );
+	    checkStdio( fd );
 	    isStd = 1;
 	}
 	else if( ( fd = checkFd( openL( Name(), bits, PERM_0666 ) ) ) < 0 )
 	{
+	    this->lastOSError = errno;
 	    e->Sys( openModes[ mode ].modeName, Name() );
 # ifdef O_EXCL
 	    // if we failed to create the file probably due to the
@@ -552,7 +566,15 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 
 }
 
-# endif
+// Return 1 if it make sense to retry a file create
+// operation. Used in sys/filetmp.cc.
+int
+FileIOBinary::RetryCreate()
+{
+	if( lastOSError == EEXIST )
+	    return 1;
+	return 0;
+}
 
 void
 FileIOBinary::Close( Error *e )
@@ -580,6 +602,8 @@ FileIOBinary::Close( Error *e )
 	    Chmod( perms, e );
 }
 
+# endif // !OS_NT
+
 void
 FileIOBinary::Fsync( Error *e )
 {
@@ -588,6 +612,8 @@ FileIOBinary::Fsync( Error *e )
 	    e->Sys( "fsync", Name() );
 # endif
 }
+
+# if !defined( OS_NT )
 
 void
 FileIOBinary::Write( const char *buf, int len, Error *e )
@@ -620,8 +646,6 @@ FileIOBinary::Read( char *buf, int len, Error *e )
 	return l;
 }
 
-# if !defined( OS_NT )
-
 offL_t
 FileIOBinary::GetSize()
 {
@@ -643,13 +667,32 @@ FileIOBinary::Seek( offL_t offset, Error *e )
 	tellpos = offset;
 }
 
-# endif
+// Return the links in the filesystem to this file, or -1
+// on an error.
+int
+FileIOBinary::LinkCount()
+{
+	struct statbL sb;
+	if( fd < 0 || fstatL( fd, &sb ) < 0 )
+	    return -1;
+	return sb.st_nlink;
+}
+
+
+# endif // !OS_NT
 
 offL_t
 FileIOBinary::Tell()
 {
 	return tellpos;
 }
+
+void
+FileIOBinary::DepotSize( offL_t &len, Error *e )
+{
+	len = GetSize();
+}
+
 
 FileIODir::FileIODir()
 {
@@ -681,10 +724,10 @@ FileIODir::Close( Error *e )
 {
 }
 
-int
+FD_PTR
 FileIODir::GetFd()
 {
-	return 0;
+	return FD_ERR;
 }
 
 offL_t
@@ -767,7 +810,9 @@ FileIOAppend::Open( FileOpenMode mode, Error *e )
             checkStdio( fd );
 	    isStd = 1;
 	}
-	else if( ( fd = checkFd( openL( Name(), openModes[ mode ].aflags, PERM_0666 ) ) ) < 0 )
+	else if( ( fd = checkFd( openL( Name(),
+			 openModes[ mode ].aflags,
+			 PERM_0666 ) ) ) < 0 )
 	{
 	    e->Sys( openModes[ mode ].modeName, Name() );
 	    ClearDeleteOnClose();
@@ -795,6 +840,29 @@ FileIOAppend::GetSize()
 	return s;
 }
 
+offL_t
+FileIOAppend::GetCurrentSize()
+{
+	offL_t s;
+
+	// Get the size of the current file (by path), not of a recently
+	// rename()'d file that still happens to be open on this->fd.
+
+	FileSys *f = FileSys::Create( FST_BINARY );
+	if( f )
+	{
+	    f->Set( path );
+	    s = f->GetSize();
+	    delete f;
+	}
+	else
+	{
+	    s = -1;
+	}
+
+	return s;
+}
+
 void
 FileIOAppend::Write( const char *buf, int len, Error *e )
 {
@@ -811,13 +879,17 @@ FileIOAppend::Write( const char *buf, int len, Error *e )
 
 	    if( lockFile( fd, LOCKF_EX ) < 0 )
 	    {
-		e->Sys( "lock", Name() );
+		e->Sys( "Write() lock", Name() );
 		return;
 	    }
 
 	    if( fstatL( fd, &sb ) < 0 )
 	    {
-		e->Sys( "fstat", Name() );
+		e->Sys( "Write() fstat", Name() );
+
+		if( lockFile( fd, LOCKF_UN ) < 0 )
+		    e->Sys( "Write() unlock", Name() );
+
 		return;
 	    }
 
@@ -826,7 +898,11 @@ FileIOAppend::Write( const char *buf, int len, Error *e )
 
 	    if( close( fd ) < 0 )
 	    {
-		e->Sys( "close", Name() );
+		e->Sys( "Write() close", Name() );
+
+		if( lockFile( fd, LOCKF_UN ) < 0 )
+		    e->Sys( "Write() unlock", Name() );
+
 		return;
 	    }
 
@@ -847,7 +923,7 @@ FileIOAppend::Write( const char *buf, int len, Error *e )
 
 	if( lockFile( fd, LOCKF_UN ) < 0 )
 	{
-	    e->Sys( "unlock", Name() );
+	    e->Sys( "Write() unlock", Name() );
 	    return;
 	}
 }
@@ -864,7 +940,8 @@ FileIOAppend::Rename( FileSys *target, Error *e )
 
 	if( lockFile( fd, LOCKF_EX ) < 0 )
 	{
-	    e->Sys( "lock", Name() );
+	    e->Sys( "Rename() lock", Name() );
+	    Close( e );
 	    return;
 	}
 
@@ -874,6 +951,12 @@ FileIOAppend::Rename( FileSys *target, Error *e )
 	    // Do the dumb way: copy/truncate.
 
 	    mode = FOM_READ;
+
+	    if( lockFile( fd, LOCKF_UN ) < 0 )
+	    {
+		e->Sys( "Rename() UNLOCK for copying", Name() );
+		// try to keep going
+	    }
 
 	    Close( e );
 	    Copy( target, FPM_RO, e );
@@ -887,19 +970,29 @@ FileIOAppend::Rename( FileSys *target, Error *e )
 
 	target->Chmod( FPM_RO, e );
 
+	if( lockFile( fd, LOCKF_UN ) < 0 )
+	{
+	    e->Sys( "Rename() UNLOCK", Name() );
+	    // let this fall info the next e->Test
+	}
+
 	// Need to set mode to read so it doesn't try to chmod the
 	// file in the destructor
 
 	mode = FOM_READ;
 
 	if( e->Test() )
+	{
+	    Close( e );
 	    return;
+	}
 
 	struct statbL sb;
 
 	if( fstatL( fd, &sb ) < 0 )
 	{
-	    e->Sys( "fstat", Name() );
+	    e->Sys( "Rename() fstat", Name() );
+	    Close( e );
 	    return;
 	}
 
@@ -910,6 +1003,7 @@ FileIOAppend::Rename( FileSys *target, Error *e )
 	    e->Set( MsgOs::ChmodBetrayal ) <<
 	            Name() << target->Name() <<
 	            StrNum( bigMode ) << StrNum( bigINode );
+	    Close( e );
 	    return;
 	}
 

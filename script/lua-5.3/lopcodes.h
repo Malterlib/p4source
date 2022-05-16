@@ -278,6 +278,7 @@ enum OpArgMask {
   OpArgK   /* argument is a constant or register/constant */
 };
 
+// Bringing definitions here (commented out in lopcodes.c):
 #define opmode(t,a,b,c,m) (((t)<<7) | ((a)<<6) | ((b)<<4) | ((c)<<2) | (m))
 
 LUAI_DDEF const lu_byte luaP_opmodes[NUM_OPCODES] = {
@@ -338,7 +339,7 @@ LUAI_DDEF const lu_byte luaP_opmodes[NUM_OPCODES] = {
 #define testTMode(m)	(luaP_opmodes[m] & (1 << 7))
 
 
-
+//LUAI_DDEC const char *const luaP_opnames[NUM_OPCODES+1];  /* opcode names */
 
 
 /* number of list items to accumulate before a SETLIST instruction */

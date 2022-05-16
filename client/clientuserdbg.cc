@@ -26,6 +26,17 @@
  */
 
 void
+ClientUserDebug::HandleError( Error *err )
+{
+	StrBuf buf;
+	err->Fmt( buf, EF_NEWLINE );
+	if( apiVer >= 86 )
+	    OutputTag( err->FmtSeverity(), buf.Text(), buf.Length() );
+	else
+	    OutputError( buf.Text() );
+}
+
+void
 ClientUserDebug::OutputError( const char *errBuf )
 {
 	OutputTag( "error", errBuf, strlen( errBuf ) );
@@ -151,8 +162,11 @@ ClientUserFmt::OutputStat( StrDict *dict )
  * ClientUserMunge -- user-specified munging ("--field" global opt)
  */
 
-ClientUserMunge::ClientUserMunge(Options &opts, int autoLoginPrompt) :
-	ClientUser( autoLoginPrompt )
+ClientUserMunge::ClientUserMunge(
+    Options &opts,
+    int autoLoginPrompt,
+    int apiVersion )
+    : ClientUser( autoLoginPrompt, apiVersion )
 {
 	// Get the list of field substitutions from the Options.
 	
@@ -242,13 +256,12 @@ ClientUserMunge::Munge( StrDict *dict, StrPtrArray *fields, ClientUser *ui )
 		// Go back and remove existing list items.
 
 		StrBuf fn;
-		StrNum y;
+
 		while( x )
 		{
 		    x--;
 		    fn = field;
-		    y = x;
-		    fn.Append( y.Text() );
+		    fn.Append( StrNum( x ).Text() );
 		    d.RemoveVar( fn );
 		}
 	    }

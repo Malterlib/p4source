@@ -37,6 +37,7 @@ class DateTime {
 	void	FmtUTC( char *buf ) const;
 	void 	FmtElapsed( char *buf, const DateTime &t2 );
 	void	FmtUnifiedDiff( char *buf ) const;
+	void	FmtISO8601( char *buf ) const;
 
 	void	SetGit( const StrPtr &gitDate, Error *e );
 	void	FmtGit( StrBuf &buf ) const;

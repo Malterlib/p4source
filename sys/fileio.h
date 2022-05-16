@@ -44,6 +44,7 @@ class FileIO : public FileSys {
 	virtual void	ChmodTimeHP( const DateTimeHighPrecision &modTime, Error *e );
 	virtual void	Unlink( Error *e );
 	virtual void	Rename( FileSys *target, Error *e );
+	virtual void    DepotSize( offL_t &len, Error *e );
 
 # ifdef OS_NT
 	// Currently only implements hidden file handling on NT
@@ -56,7 +57,7 @@ class FileIO : public FileSys {
 class FileIOBinary : public FileIO {
 
     public:
-			FileIOBinary() { fd = -1; isStd = 0; tellpos = 0; };
+			FileIOBinary() { fd=FD_INIT; isStd = 0; tellpos = 0; };
 	virtual   	~FileIOBinary();
 
 	virtual void	Open( FileOpenMode mode, Error *e );
@@ -64,15 +65,18 @@ class FileIOBinary : public FileIO {
 	virtual int	Read( char *buf, int len, Error *e );
 	virtual void	Close( Error *e );
 
-	virtual int	GetFd() { return fd; }
+	virtual FD_PTR	GetFd() { return fd; }
 	virtual offL_t	GetSize();
 	virtual void	Seek( offL_t offset, Error *e );
 	virtual offL_t	Tell();
 	virtual void	Fsync( Error *e );
+	virtual void    DepotSize( offL_t &len, Error *e );
+	virtual int     RetryCreate();
+	virtual int     LinkCount();
 
     protected:
-	
-	int		fd;
+
+	FD_PTR		fd;
 	int		isStd;
 	offL_t		tellpos;
 
@@ -82,6 +86,8 @@ class FileIOBinary : public FileIO {
 		int aflags;	// append text mode
 		int standard;
 	} openModes[4];
+    private:
+	int             lastOSError;
 
 } ;
 
@@ -96,7 +102,7 @@ class FileIODir : public FileIOBinary {
 	int	Read( char *buf, int len, Error *e );
 	void	Close( Error *e );
 
-	int	GetFd();
+	FD_PTR	GetFd();
 	offL_t	GetSize();
 	void	Seek( offL_t offset, Error *e );
 	offL_t	Tell();
@@ -107,19 +113,25 @@ class FileIODir : public FileIOBinary {
 
 class FileIOCompress : public FileIOBinary {
     public:
-	FileIOCompress() : gzip( NULL ), gzbuf( NULL ) { compMode = FIOC_PASS; }
+	FileIOCompress() : gzip( NULL ), gzbuf( NULL ), pos( 0 ), size( -1 )
+	                   { compMode = FIOC_PASS; }
 	virtual	~FileIOCompress();
 
 	virtual void	Open( FileOpenMode mode, Error *e );
 	virtual void	Write( const char *buf, int len, Error *e );
 	virtual int	Read( char *buf, int len, Error *e );
 	virtual void	Close( Error *e );
+	virtual offL_t	GetRealSize();
+	virtual offL_t	Tell() { return pos; }
 	virtual void	Seek( offL_t offset, Error *e );
 
     private:
 	enum { FIOC_PASS, FIOC_GZIP, FIOC_GUNZIP } compMode;
 	Gzip		*gzip;
 	StrFixed	*gzbuf;
+	offL_t		pos;
+	offL_t		size;
+
 } ;
 
 class FileIOBuffer : public FileIOCompress {
@@ -212,6 +224,9 @@ class FileIOAppend : public FileIOBuffer {
 	// for atomic filesize
 	virtual offL_t	GetSize();
 
+	// size of current (not rename()'d) file
+	virtual offL_t	GetCurrentSize();
+
 	// Copies on Windows.
 	// Locks, renames, and removes write on UNIX.
 
@@ -240,7 +255,7 @@ class FileIOEmpty : public FileSys {
 	virtual int	Read( char *buf, int len, Error *e ) { return 0; }
 	virtual void	Close( Error *e ) {}
 
-	virtual int	GetFd() { return -1; }
+	virtual FD_PTR	GetFd() { return FD_ERR; }
 	virtual offL_t	GetSize() { return 0; }
 	virtual void	Seek( offL_t offset, Error * ) {}
 } ;

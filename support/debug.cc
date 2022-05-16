@@ -8,6 +8,7 @@
 # define NEED_TIME
 # define NEED_TIME_HP
 # define NEED_SMARTHEAP
+# define NEED_ERRNO
 
 # if defined( OS_NT )
 # include <winsock2.h>
@@ -105,6 +106,12 @@ MT_STATIC P4DebugConfig *p4debughelp;
 #  define SHSUBP	0
 # endif
 
+# ifdef OS_NTX86
+# define MAX_SHARED_MONITOR	4096
+# else
+# define MAX_SHARED_MONITOR	32768
+# endif
+
 P4Tunable::tunable P4Tunable::list[] = {
 
 	// P4Debug's collection
@@ -139,6 +146,11 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"gconn",        0, -1, -1, 10, 1, 1, 0,
 	"fovr",         0, -1, -1, 10, 1, 1, 0,
 	"script",	0, -1, -1, 10, 1, 1, 0,
+	"stg",          0, -1, -1, 30, 1, 1, 0,
+	"thread",	0, -1, -1, 10, 1, 1, 0,
+	"exts",         0, -1, -1, 10, 1, 1, 0,
+	"protect",      0, 1, -1, 10, 1, 1, 0, // Enabled until paranoia passes
+	"heartbeat",    0, -1, -1, 10, 1, 1, 0,
 
 	// P4Tunable's collection
 	//
@@ -147,12 +159,15 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"cluster.journal.shared",0,	0,	0,	1,	1,	1, 0,
 	"db.isalive",		0,	R10K,	1,	RBIG,	1,	R1K, 0,
 	"db.jnlack.shared",	0,	16,	0,	2048,	1,	B1K, 0,
+	"db.monitor.addthresh",	0,	0,	0,	RBIG,	1,	B1K, 0,
 	"db.monitor.interval",	0,	30,	0,	900,	1,	1, 0,
-	"db.monitor.shared",	0,	256,	0,	4096,	1,	B1K, 0,
+	"db.monitor.minruntime", 0,	10,	1,	120,	1,	1, 0,
+	"db.monitor.term.allow", 0,	0,	0,	2,	1,	1, 0,
+	"db.monitor.shared",	0,	256, 0, MAX_SHARED_MONITOR, 1, B1K, 0,
 	"db.page.migrate",	0,	0,	0,	80,	1,	1, 0,
 	"db.peeking",		0,	2,	0,	3,	1,	1, 0,
 	"db.peeking.usemaxlock",0,	0,	0,	1,	1,	1, 0,
-	"db.reorg.disable",	0,	0,	0,	1,	1,	1, 0,
+	"db.reorg.disable",	0,	1,	0,	1,	1,	1, 0,
 	"db.reorg.misorder",	0,	80,	0,	100,	1,	1, 0,
 	"db.reorg.occup",	0,	8,	0,	100,	1,	1, 0,
 	"db.trylock",		0,	3,	0,	RBIG,	1,	R1K, 0,
@@ -173,9 +188,11 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"diff.sthresh",		0,	R50K,	R1K,	RBIG,	1,	R1K, 0,
 	"dm.annotate.maxsize",	0,	B10M,	0,	BBIG,	1,	B1K, 0,
 	"dm.batch.domains",	0,	0,	R1K,	RBIG,	1,	R1K, 0,
+	"dm.change.restrict.pending",0,	0,	0,	1,	1,	1, 0,
 	"dm.changes.thresh1",	0,	R50K,	1,	RBIG,	1,	R1K, 0,
 	"dm.changes.thresh2",	0,	R10K,	1,	RBIG,	1,	R1K, 0,
 	"dm.changeview.openable", 0,	0,	0,	1,	1,	1, 0,
+	"dm.client.limitprotects", 0,	0,	0,	RBIG,	1,	1, 0,
 	"dm.copy.movewarn",	0,	0,	0,	1,	1,	1, 0,
 	"dm.domain.accessupdate", 0,	300,	1,	RBIG,	1,	1, 0,
 	"dm.domain.accessforce", 0,	3600,	1,	RBIG,	1,	1, 0,
@@ -189,6 +206,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"dm.info.hide",		0,	0,	0,	1,	1,	1,   0,
 	"dm.integ.engine",	0,	3,	0,	3,	1,	1,   0,
 	"dm.integ.maxact",	0,	R100K,	1,	RBIG,	1,	R1K, 0,
+	"dm.integ.streamspec",	0,	0,	0,	1,	1,	1,   0,
 	"dm.integ.tweaks",	0,	0,	0,	256,	1,	1,   0,
 	"dm.integ.undo",	0,	0,	0,	1,	1,	1,   0,
 	"dm.isalive",		0,	R50K,	1,	RBIG,	1,	R1K, 0,
@@ -197,6 +215,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"dm.password.minlength",0,	8,	0,	1024,	1,	1,   0,
 	"dm.protects.allow.admin", 0,   0,      0,      1,      1,      1, 0,
 	"dm.protects.hide",	0,      0,      0,      1,      1,      1, 0,
+	"dm.protects.streamspec", 0,	0,	0,	1,	1,	1,   0,
 	"dm.proxy.protects",	0,	1,	0,	1,	1,	1, 0,
 	"dm.quick.clients",	0,	R10M,	1,	RBIG,	1,	R1K, 0,
 	"dm.quick.domains",	0,	R10M,	1,	RBIG,	1,	R1K, 0,
@@ -226,24 +245,25 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"dm.user.numeric",	0,	0,	0,	1,	1,	1, 0,
 	"dm.user.resetpassword", 0,	0,	0,	1,	1,	1, 0,
 	"filesys.binaryscan",	0,	B64K,	0,	BBIG,	1,	B1K, 0,
-	"filesys.bufsize",	0,	B4K,	B4K,	B10M,	1,	B1K, 0,
+	"filesys.bufsize",	0,	B64K,	B4K,	B10M,	1,	B1K, 0,
 	"filesys.cachehint",	0,	0,	0,	1,	1,	1, 0,
 	"filesys.checklinks",	0,	0,	0,	4,	1,	1, 0,
 	"filesys.detectunicode",0,	1,	0,	1,	1,	1, 0,
 	"filesys.detectutf8",	0,	2,	0,	2,	1,	1, 0,
-	"filesys.lockdelay",	0,	300,	1,	RBIG,	1,	1, 0,
+	"filesys.lockdelay",	0,	90,	1,	RBIG,	1,	1, 0,
 	"filesys.locktry",	0,	100,	1,	RBIG,	1,	1, 0,
 	"filesys.maketmp",	0,	10,	1,	RBIG,	1,	R1K, 0,
 	"filesys.maxmap",	0,	B1G,	0,	BBIG,	1,	B1K, 0,
 	"filesys.maxsymlink",	0,	B1K,	1,	BBIG,	1,	B1K, 0,
 	"filesys.maxtmp",	0,	R1M,	1,	RBIG,	1,	R1K, 0,
+	"filesys.restrictsymlinks", 0,	1,	0,	1,	1,	1, 0,
 	"filesys.utf8bom",	0,	1,	0,	2,	1,	1, 0,
 	"filesys.extendlowmark",0,	B32K,	0,	BBIG,	B1K,	B1K, 0,
 	"filesys.windows.lfn",	0,	1,	0,	10,	1,	1, 0,
 	"filesys.client.nullsync",0,	0,	0,	1,	1,	1, 0,
 	"index.domain.owner",	0,      0,      0,      1,      1,      1, 0,
 	"lbr.autocompress",	0,	0,	0,	1,	1,	1, 0,
-	"lbr.bufsize",		0,	B4K,	1,	BBIG,	1,	B1K, 0,
+	"lbr.bufsize",		0,	B64K,	1,	BBIG,	1,	B1K, 0,
 	"lbr.fabricate",	0,	0,	0,	1,	1,	1, 0,
 	"lbr.proxy.case",	0,	1,	1,	3,	1,	1, 0,
 	"lbr.rcs.existcheck",	0,	1,	0,	1,	1,	1, 0,
@@ -254,16 +274,25 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"lbr.verify.in",	0,	1,	0,	1,	1,	1, 0,
 	"lbr.verify.out",	0,	1,	0,	1,	1,	1, 0,
 	"lbr.verify.script.out",0,	1,	0,	1,	1,	1, 0,
+	"lbr.storage.delay"    ,0,	86400,	0,	BBIG,	1,	1, 0,
+	"lbr.storage.allowsymlink",0,	0,	0,	BBIG,	1,	1, 0,
+	"lbr.storage.skipkeyed",0,	0,	0,	BBIG,	1,	1, 0,
 	"log.originhost",	0,	1,	0,	1,	1,	1, 0,
 	"map.joinmax1",		0,	R10K,	1,	200000, 1,	R1K, 0,
 	"map.joinmax2",		0,	R1M,	1,	RBIG,	1,	R1K, 0,
 	"map.maxwild",          0,      10,     1,      10,     1,      1, 0,
-	"net.autotune",		0,	0,	0,	1,	1,	1, 0,
-	"net.bufsize",		0,	B4K,	1,	BBIG,	1,	B1K, 0,
+	"merge.dl.endeol",	0,	0,	0,	1,	1,	1, 0,
+	"net.autotune",		0,	1,	0,	1,	1,	1, 0,
+	"net.bufsize",		0,	B64K,	1,	BBIG,	1,	B1K, 0,
 	"net.keepalive.disable",0,	0,	0,	1,	1,	R1K, 0,
 	"net.keepalive.idle",	0,	0,	0,	BBIG,	1,	R1K, 0,
 	"net.keepalive.interval",0,	0,	0,	BBIG,	1,	R1K, 0,
 	"net.keepalive.count",	0,	0,	0,	BBIG,	1,	R1K, 0,
+	"net.heartbeat.interval",0,	2000,	1,	RBIG,	1,	R1K, 0,
+	"net.heartbeat.wait",	0,	2000,	1,	RBIG,	1,	R1K, 0,
+	"net.heartbeat.missing.interval",0,2000,1,	RBIG,	1,	R1K, 0,
+	"net.heartbeat.missing.wait",0,	4000,	1,	RBIG,	1,	R1K, 0,
+	"net.heartbeat.missing.count",0,5,	1,	100,	1,	1, 0,
 	"net.maxfaultpub",	0,	100,	0,	BBIG,	1,	1, 0,
 	"net.maxclosewait",	0,	1000,	0,	BBIG,	1,	B1K, 0,
 	"net.maxwait",		0,	0,	0,	BBIG,	1,	B1K, 0,
@@ -306,6 +335,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"rpl.checksum.table",	0,	0,	0,	2,	1,	1, 0,
 	"rpl.compress",		0,	0,	0,	4,	1,	1, 0,
 	"rpl.counter.hook",	0,	1,	0,	1,	1,	1, 0,
+	"rpl.deferred.sends",	0,	0,	0,	1,	1,	1, 0,
 	"rpl.jnl.batch.size",	0,	R100M,	0,	RBIG,	1,	R1K, 0,
 	"rpl.jnlwait.adjust",	0,	25,	0,	RBIG,	1,	R1K, 0,
 	"rpl.jnlwait.interval",	0,	50,	50,	RBIG,	1,	R1K, 0,
@@ -316,12 +346,14 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"rpl.labels.global",	0,	0,	0,	1,	1,	1, 0,
 	"rpl.replay.userrp",	0,	0,	0,	1,	1,	1, 0,
 	"rpl.verify.cache",	0,	0,	0,	1,	1,	1, 0,
+	"run.clientexts.allow",	0,	1,	0,	1,	1,	1, 0,
 	"run.move.allow",	0,	1,	0,	2,	1,	1, 0,
 	"run.obliterate.allow",	0,	1,	0,	1,	1,	1, 0,
 	"run.prune.allow",      0,	1,	0,	1,	1,	1, 0,
 	"run.unzip.user.allow", 0,	0,	0,	1,	1,	1, 0,
 	"run.users.authorize", 	0,	0,	0,	1,	1,	1, 0,
 	"server.commandlimits",	0,	0,	0,	2,	1,	1, 0,
+	"server.ctrlc.filecleanup",0,	0,	0,	1,	1,	1, 0,
 	"server.filecharset",	0,	0,	0,	1,	1,	1, 0,
 	"server.locks.archive",	0,	1,	0,	1,	1,	1, 0,
 	"server.locks.sync",	0,	0,	0,	1,	1,	1, 0,
@@ -333,6 +365,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"server.global.client.views",
 	                        0,	0,	0,	1,	1,	1, 0,
 	"server.maxcommands", 	0,	0,	0,	RBIG,	1,	R1K, 0,
+	"server.maxcommands.allow",	0,	1,	0,	1,	1,	1, 0,
 	"server.start.unlicensed", 0,	0,	0,	1,	1,	1, 0,
 	"filetype.bypasslock",	0,	0,	0,	1,	1,	1, 0,
 	"filetype.maxtextsize",	0,	B10M,	0,	RBIG,	1,	R1K, 0,
@@ -343,7 +376,12 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"submit.collision.check",0,	1,	0,	1,	1,	1, 0,
 	"submit.forcenoretransfer",0,	0,	0,	2,	1,	1, 0,
 	"submit.noretransfer",	0,	0,	0,	1,	1,	1, 0,
+	"submit.allowbgtransfer", 0,	0,	0,	1,	1,	1, 0,
+	"submit.autobgtransfer",0,	0,	0,	1,	1,	1, 0,
 	"submit.unlocklocked",	0,	0,	0,	1,	1,	1, 0,
+	"submit.storagefields",	0,	0,	0,	1,	1,	1, 0,
+	"switch.stream.unrelated",    0,	0,	0,	1,	1,	1, 0,
+	"push.unlocklocked",	0,	0,	0,	1,	1,	1, 0,
 	// vv Smart Heap tunables must be a continuous group vv
 	"sys.memory.poolfree",	0,	SHPOOL,	0,	BBIG,	1,	B1K, 0,
 	"sys.memory.procfree",	0,	SHPROC,	0,	BBIG,	1,	B1K, 0,
@@ -362,14 +400,16 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"sys.memory.stacksize", 0,      0,      0,      B16K,   1,      B1K, 0, 
 	"sys.rename.max",	0,	10,	10,	RBIG,	1,	R1K, 0,
 	"sys.rename.wait",	0,	1000,	50,	RBIG,	1,	R1K, 0,
+	"sys.threading.groups",	0,	0,	0,	1,	1,	1, 0,
 	"rpl.forward.all",	0,	0,	0,	1,	1,	1, 0,
 	"rpl.forward.login",	0,	0,	0,	1,	1,	1, 0,
 	"rpl.pull.position",	0,	0,	0,	RBIG,	1,	R1K, 0,
 	"rpl.pull.reload",	0,	60000,	0,	RBIG,	1,	R1K, 0,
 	"ssl.secondary.suite",	0,	0,	0,	1,	1,	1, 0,
 	"ssl.client.timeout",	0,	30,	1,	RBIG,	1,	1, 0,
-	"ssl.tls.version.min",	0,	10,	10,	12,	1,	1, 0,
-	"ssl.tls.version.max",	0,	12,	10,	12,	1,	1, 0,
+	"ssl.tls.version.min",	0,	10,	10,	13,	1,	1, 0,
+	"ssl.tls.version.max",	0,	12,	10,	13,	1,	1, 0,
+	"ssl.enable.etm",	0,	1,	0,	1,	1,	1, 0,
 	"triggers.io",		0,	0,	0,	1,	1,	1, 0,
 	"istat.mimic.ichanges",	0,	0,	0,	1,	1,	1, 0,
 	"info.p4auth.usercheck",0,	1,	0,	1,	1,	1, 0,
@@ -379,6 +419,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"auth.tickets.nounlocked",0,	0,	0,	2,	1,	1, 0,
 	"auth.sso.allow.passwd",0,	0,	0,	1,	1,	1, 0,
 	"auth.sso.nonldap",	0,	0,	0,	1,	1,	1, 0,
+	"zlib.disable.optim",	0,	0,	0,	1,	1,	1, 0,
 
 	0, 0, 0, 0, 0, 0, 0, 0
 
@@ -387,9 +428,10 @@ P4Tunable::tunable P4Tunable::list[] = {
 } ;
 
 
-MT_STATIC int
+P4MT int
 list2[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 } ;
+	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	    -1, -1, -1, -1, -1, -1, -1 }  ;
 
 int
 P4Tunable::IsKnown( const char *n )
@@ -467,13 +509,7 @@ P4Tunable::UnsetAll()
 	}
 }
 
-int
-P4Tunable::Get( int t ) const
-{
-	return t < DT_LAST && list2[t] != -1 && list2[t] > list[t].value ?
-	    list2[t] : list[t].value;
-}
-
+NO_SANITIZE_UNDEFINED
 void
 P4Tunable::Set( const char *set )
 {
@@ -762,6 +798,11 @@ P4Debug::Event()
 void
 P4Debug::printf( const char *fmt, ... )
 {
+# ifdef OS_NT
+	DWORD saveError = GetLastError();
+# else
+	int saveError = errno;
+# endif
 	if( p4debughelp )
 	{
 	    StrBuf *buf = p4debughelp->Buffer();
@@ -843,6 +884,11 @@ P4Debug::printf( const char *fmt, ... )
 
 	    va_end( l );
 	}
+# ifdef OS_NT
+	SetLastError( saveError );
+# else
+	errno = saveError;
+# endif
 }
 
 P4DebugConfig::P4DebugConfig()

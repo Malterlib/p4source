@@ -1,6 +1,8 @@
 SubDir P4 client ;
 
 SubDirHdrs $(P4) diff ;
+SubDirHdrs $(P4) dme ;
+SubDirHdrs $(P4) dmec ;
 SubDirHdrs $(P4) i18n ;
 SubDirHdrs $(P4) map ;
 SubDirHdrs $(P4) net ;
@@ -18,6 +20,7 @@ if $(OS) = NT
 LinkLibraries p4 :
 	$(CLIENTLIB)
 	$(RPCLIB)
+	$(P4SCRIPT_C)
 	$(P4SCRIPT)
 	$(P4SCRIPT_CURL)
 	$(P4SCRIPT_SQLITE)
@@ -26,7 +29,19 @@ LinkLibraries p4 :
 
 P4Main p4 : clientmain.cc clientaliases.cc ;
 
-P4Library $(CLIENTLIB) : 
+if $(USE_EXTENSIONS) = 1
+{
+	if $(MSVSVER)
+	{
+	    ObjectC++Flags clientscript.cc : /std:c++17 ;
+	}
+	else
+	{
+	    ObjectC++Flags clientscript.cc : -std=c++17 ;
+	}
+}
+
+P4APILibrary $(CLIENTLIB) :
 	client.cc
 	clientapi.cc
 	clientenv.cc
@@ -48,6 +63,15 @@ P4Library $(CLIENTLIB) :
 	clientuserdbg.cc
 	clientusermsh.cc
 	clientusernull.cc
+	p4libs.cc
 	serverhelper.cc
 	serverhelperapi.cc
 	;
+
+P4APILibrary $(P4SCRIPT_C) : clientscript.cc ;
+P4Library $(P4SCRIPT_CSTUB) : clientscript_stub.cc ;
+
+ObjectC++Flags p4libs.cc : -I $(P4)/script/libs/sqlite3 -I $(P4)/script/libs/cURL -I $(P4)/zlib -I$(SSLINCDIR) ;
+
+# LinkMallocLib p4 ;
+LinkLibraries p4 : $(P4MEMORYMGR_STUB) ;

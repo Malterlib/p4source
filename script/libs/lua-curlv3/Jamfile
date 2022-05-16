@@ -9,7 +9,15 @@ SubDirHdrs $(P4)/script/ ;
 SubDirHdrs $(P4)/script/lua-5.3 ;
 SubDirHdrs [ FDirName $(SSLPREFIX) inc.$(EXEC_SUB_TOKENS[1]) ] ;
 
-Library $(P4SCRIPT_CURL) :
+if $(MSVSVER)
+{
+	# VS: "lceasy.cc(1911): warning C4838: conversion from 'SOCKET'
+	# to 'long' requires a narrowing conversion".  Caused by
+	# lcopyeasy.h: FLG_ENTRY( SOCKET_TIMEOUT     )
+	ObjectC++Flags lceasy.cc : /wd4838 ;
+}
+
+P4APILibrary $(P4SCRIPT_CURL) :
 	lceasy.cc
 	lcerror.cc
 	lchttppost.cc
@@ -18,5 +26,6 @@ Library $(P4SCRIPT_CURL) :
 	lcshare.cc
 	lcutils.cc
 	lcurl.cc
+	lcurlapi.cc
 	l52util.cc
 	;

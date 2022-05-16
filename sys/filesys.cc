@@ -6,6 +6,7 @@
 
 # define NEED_FILE
 # define NEED_CHDIR
+# define NEED_WIN32FIO
 
 # include <stdhdrs.h>
 # include <charman.h>
@@ -33,6 +34,8 @@
 # define USE_ERRNO
 
 # include <msgos.h>
+
+bool P4FileSysCreateOnIntr = true;
 
 void
 FileSysCleanup( FileSys *f )
@@ -124,8 +127,8 @@ FileSys::Create( FileSysType t )
 	f->type = t;
 
 	// Arrange for temps to blow on exit.
-
-	signaler.OnIntr( (SignalFunc)FileSysCleanup, f );
+	if( P4FileSysCreateOnIntr )
+	    signaler.OnIntr( (SignalFunc)FileSysCleanup, f );
 
 	return f;
 }
@@ -163,7 +166,8 @@ FileSys::~FileSys()
 	// Once gone, we don't need to delete it
 	// on interrupt anymore.
 
-	signaler.DeleteOnIntr( this );
+	if( P4FileSysCreateOnIntr )
+	    signaler.DeleteOnIntr( this );
 }
 
 int
@@ -295,15 +299,16 @@ FileSys::LowerCasePath()
 /*
  * FileSys::GetFd()
  * FileSys::GetSize()
+ * FileSys::GetCurrentSize()
  * FileSys::Seek()
  *
  * Non-functional stubs.
  */
 
-int
+FD_PTR
 FileSys::GetFd()
 {
-	return -1;
+	return FD_ERR;
 }
 
 int
@@ -328,6 +333,18 @@ offL_t
 FileSys::GetSize()
 {
 	return 0;
+}
+
+offL_t
+FileSys::GetCurrentSize()
+{
+	return 0;
+}
+
+int
+FileSys::LinkCount()
+{
+	return -1;
 }
 
 void
@@ -512,7 +529,13 @@ FileSys::IsUnderPath( const StrPtr &roots )
 	return 0;
 }
 
-# ifdef HAS_CPP17
+void
+FileSys::DepotSize( offL_t &len, Error *e )
+{
+	len = (offL_t) -1;
+}
+
+# ifdef HAS_CPP14
 
 namespace std
 {

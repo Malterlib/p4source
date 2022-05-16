@@ -6,45 +6,22 @@
 
 # define NEED_QUOTE
 
-# include <stdhdrs.h>
-# include <charman.h>
-
-# include <debug.h>
-# include <strbuf.h>
-# include <strdict.h>
+# include "clientapi.h"
+# include <msgclient.h>
+# include <msghelp.h>
+# include <vararray.h>
 # include <strtable.h>
 # include <strarray.h>
 # include <strops.h>
 # include <splr.h>
-# include <error.h>
 # include <options.h>
-# include <handler.h>
-# include <vararray.h>
-# include <rpc.h>
-
-# include <pathsys.h>
-# include <filesys.h>
-
-# include <ticket.h>
 # include <enviro.h>
 # include <i18napi.h>
-# include <charcvt.h>
-# include <charset.h>
+# include <charman.h>
 # include <hostenv.h>
-# include <errorlog.h>
-# include <p4tags.h>
-
 # include <regmatch.h>
 
-# include <msgclient.h>
-# include <msgsupp.h>
-# include <msghelp.h>
-
-# include "client.h"
-# include "clientmerge.h"
-# include "clientuser.h"
 # include "clientuserdbg.h"
-# include "clientusermsh.h"
 # include "clientaliases.h"
 
 /*
@@ -133,7 +110,7 @@ ClientAliases::ClientAliases(
 	aliasesFile = 0;
 	ioDict = 0;
 
-	Client client;
+	ClientApi client;
 	Options opts;
 	parsedArgc = argc;
 	parsedArgv = argv;
@@ -1130,7 +1107,7 @@ ClientCommand::RunCommand( StrDict *dict, Error *e )
 	// the client object itself (-u, -h, -p, etc.), then processing
 	// those variables that will be arguments to the server command.
 
-	Client client;
+	ClientApi client;
 	AliasSubstitution subst( &client, dict );
 
 	for( int ac = 0; ac < w_argf; ac++ )
@@ -1480,7 +1457,7 @@ ClientCommand::HandleSpecialOperators(
  **************************************************************************/
 
 AliasSubstitution::AliasSubstitution(
-	Client *c,
+	ClientApi *c,
 	StrDict *d )
 {
 	this->client = c;

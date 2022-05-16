@@ -158,6 +158,7 @@
  */
 
 class Client;
+class ClientScript;
 class Ignore;
 
 class ClientApi : public StrDict {
@@ -172,6 +173,7 @@ class ClientApi : public StrDict {
 				int fnames = -2, int dialog = -2 );
 
 	void		SetProtocol( const char *p, const char *v );
+	void		SetProtocol( const char *p );
 	void		SetProtocolV( const char *p );
 	StrPtr *	GetProtocol( const char *v );
 
@@ -180,12 +182,14 @@ class ClientApi : public StrDict {
 	int		Final( Error *e );
 	int		Dropped();
 	int		GetErrors();
+	int		GetFatals();
 	int		GetTrans();
 	int		IsUnicode();
 
 	void		RunTag( const char *func, ClientUser *ui );
 	void		WaitTag( ClientUser *ui = 0 );
 
+	void		SetArgv( int ac, char *const *av );
 	void		SetCharset( const char *c );
 	void		SetClient( const char *c );
 	void		SetCwd( const char *c );
@@ -230,6 +234,7 @@ class ClientApi : public StrDict {
 	void		DefinePort( const char *c, Error *e );
 	void		DefineUser( const char *c, Error *e );
 
+	const int	&GetAPI();
 	const StrPtr	&GetCharset();
 	const StrPtr	&GetClient();
 	const StrPtr	&GetClientNoHost();
@@ -249,12 +254,20 @@ class ClientApi : public StrDict {
 	const StrPtr	&GetBuild();
 	const StrPtr	&GetVersion();
 
+	Enviro *	GetEnviro();
 	Ignore *	GetIgnore();
 
 	void		SetIgnorePassword();
 
 	StrPtr 		*GetEVar( const StrPtr &var );
 	void		SetEVar( const StrPtr &var, const StrPtr &val );
+	void		VSetVarV( const char *var );
+
+	void		EnableExtensions( Error* e );
+	void		DisableExtensions();
+	bool		ExtensionsEnabled();
+	void		SetExtension( ClientScript* cs, Error* e,
+				      const bool callerOwns = false );
 
     public:
 	// The old interface, where ui was held from the start

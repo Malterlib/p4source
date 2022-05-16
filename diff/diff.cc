@@ -494,3 +494,15 @@ Diff::DiffSummary()
 			c_deleted, l_deleted,
 			c_edited, l_edited_in, l_edited_out );
 }
+
+int
+Diff::IsIdentical()
+{
+	int retval = 0;
+
+	if( diff && diff->GetSnake() && !diff->GetSnake()->next )
+	    retval = 1;
+
+	return retval; 
+}
+

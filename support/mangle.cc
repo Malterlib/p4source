@@ -101,7 +101,9 @@ Mangle::DoIt(
 	memcpy( buf, key.Text(), key.Length() > 16 ? 16 : key.Length() );
 
 	if( decipher || digest )
-	    StrOps::XtoO( data.Text(), (unsigned char *)src, 16 );
+	    StrOps::XtoO( data.Text(),
+	                  (unsigned char *)src, data.Length() ? 16 : 0 );
+
 	else
 	    memcpy( src, data.Text(), data.Length() );
 

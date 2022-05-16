@@ -4,6 +4,8 @@
  * This file is part of Perforce - the FAST SCM System.
  */
 
+# include <new>
+
 # include <stdhdrs.h>
 
 # include <debug.h>
@@ -37,11 +39,11 @@ VarArray::~VarArray()
 }
 
 void **
-VarArray::New()
+VarArray::New( const bool justAlloc )
 {
 	// realloc
 
-	if( numElems >= maxElems )
+	if( numElems >= maxElems || justAlloc )
 	{
 	    // grow geometrically, please
 	    int newMax = ( maxElems + 50 ) * 3 / 2;
@@ -62,7 +64,15 @@ VarArray::New()
 		p4debug.printf("VarArray extend %d\n", maxElems );
 	}
 
-	return &elems[ numElems++ ];
+	return justAlloc ? NULL : &elems[ numElems++ ];
+}
+
+bool
+VarArray::Reserve()
+{
+	try { New( true ); }
+	catch( const std::bad_alloc& e ) { return false; }
+	return true;
 }
 
 void

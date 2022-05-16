@@ -12,7 +12,7 @@
 # include <ctype.h>
 
 JnlTracker::JnlTracker()
-    : pids(10)
+    : pids( 10 ), ckp( 0 )
 {
 	Clear();
 }
@@ -191,6 +191,8 @@ JnlTracker::ScanJournal( const char *p, int l, const char **xact )
 		    }
 		}
 		else if( c == '3' )
+	            sawJTrailer = 1;
+		else if( ckp && c == '1' )
 	            sawJTrailer = 1;
 		goto outstring;
 	    }

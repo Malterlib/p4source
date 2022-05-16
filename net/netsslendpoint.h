@@ -53,12 +53,24 @@ class NetSslEndPoint : public NetTcpEndPoint
 		    delete serverCredentials;
 	    }
 
+	virtual void
+	SetCipherList(const StrPtr *value)
+	    {
+		    customCipherList.Set(value);
+	    }
+	virtual void
+	SetCipherSuites(const StrPtr *value)
+	    {
+		    customCipherSuites.Set(value);
+	    }
+
 	void	    Listen( Error *e );
 	void            ListenCheck( Error *e );
 	NetTransport *  Connect( Error *e );
 	NetTransport *  Accept( KeepAlive *, Error *e );
 	virtual void    GetMyFingerprint(StrBuf &value);
 	virtual void    GetExpiration( StrBuf &buf );
+	virtual int     IsSSL() { return 1; };
 
     private:
 	/*
@@ -67,5 +79,9 @@ class NetSslEndPoint : public NetTcpEndPoint
 	 * credentials are NetSslTransport data members instead.
 	 */
 	NetSslCredentials *serverCredentials;
+
+	// Cipher List/Suites are only set server side
+	StrBuf          customCipherList;
+	StrBuf          customCipherSuites;
 } ;
 # endif //USE_SSL

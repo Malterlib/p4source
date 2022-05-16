@@ -14,6 +14,7 @@
 # include <debug.h>
 # include <tunable.h>
 
+# include <charman.h>
 # include "maphalf.h"
 # include "mapchar.h"
 # include "mapstring.h"
@@ -386,6 +387,7 @@ MapHalf::Match2( const StrPtr &from, MapParams &params )
 
 	char *input;
 	MapChar *mc;
+	int debugon = DEBUG_MATCH;
 
 	// Check non-wildcard tail.  Handles '....gif' efficiently.
 
@@ -416,7 +418,7 @@ MapHalf::Match2( const StrPtr &from, MapParams &params )
 
 	for(;;)
 	{
-	    if( DEBUG_MATCH )
+	    if( debugon )
 		p4debug.printf("matching %c vs %s\n", mc->c, input );
 
 	    switch( mc->cc )

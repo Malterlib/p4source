@@ -32,6 +32,8 @@ class MsgDb {
 	static ErrorId JnlVersionMismatch;
 	static ErrorId JnlVersionError;
 	static ErrorId CheckpointNoOverwrite;
+	static ErrorId SeedNoOverwrite;
+	static ErrorId SeedUnexpected;
 	static ErrorId TableCheckSum;
 	static ErrorId DbOpen;
 	static ErrorId WriteNoLock;
@@ -40,6 +42,7 @@ class MsgDb {
 	static ErrorId Read;
 	static ErrorId Stumblebum;
 	static ErrorId GetFormat;
+	static ErrorId OpFormat;
 	static ErrorId ScanNoLock;
 	static ErrorId Scan;
 	static ErrorId ScanFormat;
@@ -90,6 +93,8 @@ class MsgDb {
 	static ErrorId AddressChanged;
 	static ErrorId LicenseNeedsApplication;
 	static ErrorId BadIPservice;
+	static ErrorId BadXCapLine;
+	static ErrorId BadXCapWord;
 
 	static ErrorId TreeCorrupt;
 	static ErrorId TreeNotOpened;
@@ -106,6 +111,8 @@ class MsgDb {
 	static ErrorId MapCheckFail;
 
 	static ErrorId CaseMismatch;
+
+	static ErrorId GenNumPageTooNew;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

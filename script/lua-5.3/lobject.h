@@ -525,6 +525,7 @@ typedef struct Table {
 #define luaO_nilobject		(&luaO_nilobject_)
 
 
+// Bringing definition here (commented out in lobject.c):
 LUAI_DDEC const TValue luaO_nilobject_ = { 0 };
 
 /* size of buffer for 'luaO_utf8esc' function */

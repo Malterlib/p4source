@@ -9,9 +9,9 @@ extern "C" {
 #ifdef OS_NT
 int lockFileByHandle( HANDLE h, int flag );
 #endif
-int lockFile( int fd, int flag );
-int checkFd( int fd );
-void checkStdio( int fd = -1 );
+int lockFile( FD_TYPE fd, int flag );
+FD_TYPE checkFd( FD_TYPE fd );
+void checkStdio( FD_TYPE fd = FD_INIT );
 
 }
 

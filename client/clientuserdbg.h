@@ -12,7 +12,7 @@ class ClientUserDebug : public ClientUser {
 
     public:
 
-	ClientUserDebug()
+	ClientUserDebug( int apiVersion ) : ClientUser( 0, apiVersion  )
 	{
 	    outputTaggedWithErrorLevel = 1;
 	}
@@ -24,6 +24,8 @@ class ClientUserDebug : public ClientUser {
 	virtual void 	OutputError( const char *errBuf );
 	virtual void 	OutputText( const char *data, int length );
 
+	virtual void 	HandleError( Error *err );
+
 } ;
 
 /*
@@ -33,6 +35,8 @@ class ClientUserDebug : public ClientUser {
 class ClientUserDebugMsg : public ClientUserDebug {
 
     public:
+
+	ClientUserDebugMsg( int apiVersion ) : ClientUserDebug( apiVersion ) {}
 
 	virtual void	Message( Error* err );
 	virtual void	Prompt( Error *err, StrBuf &rsp, int noEcho,Error *e );
@@ -47,7 +51,8 @@ class ClientUserFmt : public ClientUser {
 
     public:
 
-	ClientUserFmt( const StrPtr *fmt ) { this->fmt = fmt; };
+	ClientUserFmt( const StrPtr *fmt, int apiVersion = -1 )
+	    : ClientUser( 0 , apiVersion ) { this->fmt = fmt; };
 
 	void		Message( Error *err );
 	void		OutputStat( StrDict *dict );
@@ -65,7 +70,9 @@ class ClientUserMunge : public ClientUser {
 
     public:
 
-	ClientUserMunge( Options &opts, int autoLoginPrompt = 0 );
+	ClientUserMunge( Options &opts, int autoLoginPrompt = 0,
+	                 int apiVersion = -1 );
+
 	void		OutputStat( StrDict *dict );
 
 	static void	Munge( StrDict *spec, StrPtrArray *fields, 

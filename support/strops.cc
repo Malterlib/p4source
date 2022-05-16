@@ -15,13 +15,18 @@
 # include <charman.h>
 # include <charset.h>
 # include <debug.h>
+# include <tunable.h>
 # include <validate.h>
 # include <error.h>
 # include <regmatch.h>
 
 # include "strbuf.h"
 # include "strdict.h"
+# include "strcheck.h"
 # include "strops.h"
+
+# include <msgdm.h>
+# include <msgdm2.h>
 
 /*
  * StrOps::Words() - break a string apart at white space
@@ -536,6 +541,61 @@ StrOps::Expand2( StrBuf &o, const StrPtr &buf, StrDict &dict )
 
 		p = t + 1;
 	    }
+	}
+
+	o.Append( p );
+}
+
+/*
+ * StrOps::AddIndex() - add index to %var% parameters (%var% to %vari%)
+ */
+
+void
+StrOps::AddIndex( StrBuf &o, const StrPtr &buf, const int i )
+{
+	const char *p = buf.Text();
+	const char *q, *s;
+
+	// Handle sequences of
+	//	text %var% ...
+
+	while( q = strchr( p, '%' ) )
+	{
+	    if( q[1] == '\'' ) // %' stuff '%: include stuff, uninspected...
+	    {
+	        for( s = q + 2; *s; s++ )
+	            if( s[0] == '\'' && s[1] == '%' )
+	                break;
+	        if( ! *s )
+		    break; // %'junk
+		o.UAppend( p, q - p );
+		q += 2;
+		o.UAppend( q, s - q );
+		p = s + 2;
+		continue;
+	    }
+
+	    // variables: (p)text (q)%var(s)%
+
+	    if( !( s = strchr( q + 1, '%' ) ) )
+	    {
+		// %junk
+		break;
+	    }
+	    else if( s == q + 1 )
+	    {
+		// %% - [ %% ] not handled!
+		o.Append( p, s - p );
+		p = s + 1;
+		continue;
+	    }
+
+	    // Append index to var name
+
+	    o.Append( p, s - p );
+	    o << i;
+	    o.Append( s, 1 );
+	    p = s + 1;
 	}
 
 	o.Append( p );
@@ -1458,6 +1518,144 @@ StrOps::StreamNameInPath( const char *dFile, int depth, StrBuf &name )
 
 	return --slash;
 
+}
+
+/*
+ * StrOps::CheckStr() - check string, prohibiting rev chars or wildcards
+ */
+
+void
+StrOps::CheckStr( const StrPtr *in, int check, Error *e )
+{
+	// check for length
+
+	if( in->Length() > p4tunable.Get( P4TUNE_DM_MAXKEY ) )
+	{
+	    e->Set( MsgDm::IdTooLong );
+	    return;
+	}
+
+	if( check == DSC_ANY )
+	    return;
+
+	// Check for illegals
+
+	char *s = in->Text();
+	char *d = s;
+	char allnumeric = 1;
+
+	// No dashes
+
+	if( !( check & DSC_DASHNUM ) && *d == '-' )
+	{
+	    e->Set( MsgDm::IdHasDash ) << s;
+	    return;
+	}
+
+	// No empty IDs
+
+	if( !( check & DSC_EMPTY ) && !*d )
+	{
+	    e->Set( MsgDm::IdEmpty );
+	    return;
+	}
+
+	for( ; *d; ++d )
+	{
+	    if( allnumeric && !isAdigit( d ) ) 
+	    {
+	        allnumeric = 0;
+	    }
+
+	    if( !isAprint( d ) )
+	    {
+	        e->Set( MsgDm::IdNonPrint ) << s;
+	        return;
+	    }
+	    else if( isAspace( d ) )
+	    {
+	        if( check & DSC_NOWHITESPACE )
+	        {
+	            e->Set( MsgDm2::IdHasWhitespace ) << s;
+	            return;
+	        }
+	        if( check & DSC_CLEAN )
+	        {
+	            *d = '_';
+	        }
+	    }
+	    else if( *d == '@' || *d == '#' )
+	    {
+	        if( !( check & DSC_REV ) )
+	        {
+	            e->Set( MsgDm::IdHasRev ) << s;
+	            return;
+	        }
+	    }
+	    else if( *d == '/' )
+	    {
+	        if( !( check & DSC_SLASH ) )
+	        {
+	            e->Set( MsgDm::IdHasSlash ) << s;
+	            return;
+	        }
+	        else if( check & DSC_REL )
+	        {
+	            continue;
+	        }
+	        else if( ( !d[1] || d[1] == '/' ) && d > s )
+	        {
+	            e->Set( MsgDm::IdNullDir ) << s;
+	        }
+	        else if( d[1] == '.' &&
+	                 ( d[2] == 0 || 
+	                   d[2] == '/' ||
+	                   ( d[2] == '.' && ( d[3] == 0 || d[3] == '/' ) ) ) )
+	        {
+	            e->Set( MsgDm::IdRelPath ) << s;
+	            return;
+	        }
+	    }
+	    else if( !( check & DSC_WILD ) && ( 
+	            *d == '*' || 
+	            ( d[0] == '.' && d[1] == '.' && d[2] == '.' ) ) )
+	    {
+	        e->Set( MsgDm::IdWild ) << s;
+	        return;
+	    }
+	    else if( ( check & DSC_NOTAPERCENT ) &&  d[0] == '%'  )
+	    {
+	        e->Set( MsgDm::IdHasPercent ) << s;
+	        return;
+	    }
+	    else if( ( check & DSC_NOPERCENT ) &&
+	             ( d[0] == '%' && d[1] == '%' ) )
+	    {
+	        e->Set( MsgDm::IdWild ) << s;
+	        return;
+	    }
+	    else if( ( check & DSC_NOCOMMA ) && *d == ',' )
+	    {
+	        e->Set( MsgDm::IdHasComma ) << s;
+	        return;
+	    }
+	    else if( ( check & DSC_NOEQUALS ) && *d == '=' )
+	    {
+	        e->Set( MsgDm2::IdHasEquals ) << s;
+	        return;
+	    }
+	}
+
+	if( !( check & ( DSC_DASHNUM | DSC_NNEGNUM ) ) && allnumeric )
+	{
+	    e->Set( MsgDm::IdNumber ) << s;
+	    return;
+	}
+	if( !( check & DSC_EMBEDNUL ) && ( d - s ) != in->Length() )
+	{
+	    e->Set( MsgDm::IdEmbeddedNul ) << s;
+	    return;
+	}
 }
 
 /*

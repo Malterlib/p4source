@@ -137,6 +137,10 @@ struct RpcTrack {
 	int		rpc_hi_mark_rev;
 	int		sendTime;
 	int		recvTime;
+	Error		sendError;
+	Error		recvError;
+	int		duplexFrecv;
+	int		duplexRrecv;
 } ;
 
 class RpcService {
@@ -154,6 +158,8 @@ class RpcService {
 	int		CheaterCheck( const char *port );
 	void		Unlisten();
 	int		IsSingle();
+	int		IsSSL();
+	void		SetCiphers( StrPtr *cipherList, StrPtr *cipherSuites );
 	void		GetHost( StrPtr *peerAddr, StrBuf & hostBuf, Error *e );
 	virtual void	GetMyFingerprint(StrBuf &value);
 	void		GetExpiration( StrBuf &buf );
@@ -199,6 +205,7 @@ class Rpc : public StrDict {
 	void		DoHandshake( Error *e );
 	void		CheckKnownHost( Error *e, const StrRef & trustfile );
 	void    	ClientMismatch( Error *e );
+	void    	SetMaxWait( const int maxWait );
 	void            GetEncryptionType( StrBuf &value );
 	void            GetPeerFingerprint(StrBuf &value);
 	void            GetExpiration(StrBuf &value);
@@ -338,6 +345,8 @@ class Rpc : public StrDict {
 
 	friend class RpcForward;
 	friend class RpcMulti;
+
+	void		RunCallback( const RpcDispatch *disp, Error &ue );
 
 	RpcService	*service;
 	RpcTransport	*transport;		// send/receive transport

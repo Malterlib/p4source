@@ -50,8 +50,9 @@
  *	FileSys::Truncate() - set file to zero length if it exists
  *	FileSys::Unlink() - remove single file
  *
- *	FileSys::GetFd() - return underlying int fd, FST_BINARY only
+ *	FileSys::GetFd() - return underlying FD_TYPE fd, FST_BINARY only
  *	FileSys::GetSize() - return file size, FST_BINARY,TEXT,ATEXT only
+ *	FileSys::GetCurrentSize() - size of current (not rename()'d) ATEXT file
  *	FileSys::GetOwner() - return the UID of the file owner
  *	FileSys::GetDiskSpace() - fill in data about filesystem space usage.
  *	FileSys::Seek() - seek to offset, FST_BINARY,TEXT,ATEXT only
@@ -181,6 +182,8 @@ enum LFNModeFlags {
 	LFN_ENABLED 	= 0x01,
 	LFN_UNCPATH	= 0x02,
 	LFN_UTF8	= 0x04,
+	LFN_MOVEBUSY	= 0x08,
+	LFN_CSENSITIVE	= 0x10,
 } ;
 
 enum FileDigestType
@@ -214,7 +217,7 @@ class DiskSpaceInfo {
 	StrBuf		*fsType;
 } ;
 
-# ifdef HAS_CPP17
+# ifdef HAS_CPP14
 
 # include <memory>
 
@@ -258,7 +261,7 @@ class FileSys {
 				return f;
 			}
 
-# ifdef HAS_CPP17
+# ifdef HAS_CPP14
 
 	static FileSysUPtr CreateUPtr( FileSysType type ) {
 				FileSysUPtr f =
@@ -370,6 +373,7 @@ class FileSys {
 
 
 	virtual int	Stat() = 0;
+	virtual int     LinkCount();
 	virtual int	StatModTime() = 0;
 	virtual void	StatModTimeHP(DateTimeHighPrecision *modTime);
 	virtual void	Truncate( Error *e ) = 0;
@@ -385,11 +389,13 @@ class FileSys {
 
 	// NB: these for ReadFile only; interface will likely change
 	virtual bool	HasOnlyPerm( FilePerm perms );
-	virtual int	GetFd();
+	virtual FD_PTR	GetFd();
 	virtual int     GetOwner();
 	virtual offL_t	GetSize();
+	virtual offL_t	GetCurrentSize();
 	virtual void	Seek( offL_t offset, Error * );
 	virtual offL_t	Tell();
+	virtual void    DepotSize( offL_t &len, Error * );
 
 	// Convenience wrappers for above
 
@@ -412,9 +418,11 @@ class FileSys {
 
 	void		MakeGlobalTemp();
 	virtual void	MakeLocalTemp( char *file );
+	static void	TempName( char *buf );
 	int		IsDeleteOnClose() { return isTemp; }
 	virtual void	SetDeleteOnClose() { isTemp = 1; }
 	virtual void	ClearDeleteOnClose() { isTemp = 0; }
+	virtual int     RetryCreate() { return 0; }
 
 	// Meta operations
 
@@ -467,6 +475,7 @@ class FileSys {
 	void		GetDiskSpace( DiskSpaceInfo *info, Error *e );
 
 	void		LowerCasePath();
+
     protected:
 
 	FileOpenMode	mode;		// read or write
@@ -483,7 +492,6 @@ class FileSys {
 # endif
 
     private:
-	void		TempName( char *buf );
 
 	int		isTemp;
 	int		preserveCWD;

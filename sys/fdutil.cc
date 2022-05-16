@@ -9,6 +9,7 @@
 # define NEED_FCNTL
 # define NEED_FLOCK
 # define NEED_STAT
+# define NEED_WIN32FIO
 
 # include <stdhdrs.h>
 # include <largefile.h>
@@ -33,7 +34,7 @@ extern "C" status_t _kunlock_node_(int fd);
 #endif
 
 int
-lockFile( int fd, int flag )
+lockFile( FD_TYPE fd, int flag )
 {
 
 # if defined( OS_OS2 ) || defined( MAC_MWPEF ) || defined( OS_VMS62 )
@@ -56,7 +57,7 @@ lockFile( int fd, int flag )
 # else
 # ifdef OS_NT
 
-	return lockFileByHandle( (HANDLE)_get_osfhandle( fd ), flag );
+	return lockFileByHandle( fd->fh, flag );
 # else
 # if defined(LOCK_UN) && !defined(sgi) && !defined(OS_QNX) && !defined(OS_AIX)
 
@@ -175,9 +176,59 @@ lockFile( int fd, int flag )
 
 }
 
-int
-checkFd( int fd )
+// Windows:
+//    When running as a service, these are the handle values.
+//	GetStdHandle( STD_INPUT_HANDLE ) = 0x0
+//	GetStdHandle( STD_OUTPUT_HANDLE ) = 0x0
+//	GetStdHandle( STD_ERROR_HANDLE ) = 0x0
+//
+//	(HANDLE)_get_osfhandle( 0 ) = 0xfffffffffffffffe
+//	(HANDLE)_get_osfhandle( 1 ) = 0xfffffffffffffffe
+//	(HANDLE)_get_osfhandle( 2 ) = 0xfffffffffffffffe
+//
+//	From the p4dposix tool on a Perforce Windows Service:
+//	(//depot/main/p4-tools/debugging/p4dposix)
+//	   __pioinfo[0] (blk 1: 3 out of 32 fds in use, 0 cs allocated):
+//	   fd=0: cs=0 flags=0xc1, FOPEN FDEV FTEXT  oshnd=0xfffffffffffffffe
+//	   fd=1: cs=0 flags=0xc1, FOPEN FDEV FTEXT  oshnd=0xfffffffffffffffe
+//	   fd=2: cs=0 flags=0xc1, FOPEN FDEV FTEXT  oshnd=0xfffffffffffffffe
+//
+//	INVALID_HANDLE_VALUE = 0xffffffffffffffff
+//	INVALID_HANDLE_VALUE = (HANDLE)(LONG_PTR)-1
+//	(HANDLE)(LONG_PTR)-2 = 0xfffffffffffffffe
+//
+//    The HANDLE values 0x0 and 0xfffffffffffffffe are technically
+//    invalid.  This is some sort of internal token MS is using to
+//    avoid triggering the sanity checks.
+//
+//    Could not find a formal definition of the Handle values
+//    returned by _get_osfhandle().  Based on the next paragraph
+//    I think we can assume -2 is a special token.
+//
+//    The Handle values defined as -4, -5 and -6 are special values
+//    for Process, Thread and Thread Effective tokens.
+//    See the header processthreadsapi.h
+//
+//	From the p4dposix tool on a Perforce Windows Application:
+//	    __pioinfo[0] (blk 1: 3 out of 32 fds in use, 4 cs allocated):
+//	    fd=0: cs=1 flags=0xc1, FOPEN FDEV FTEXT  oshnd=0x0000000000000050
+//	    fd=1: cs=1 flags=0xc1, FOPEN FDEV FTEXT  oshnd=0x0000000000000054
+//	    fd=2: cs=1 flags=0xc1, FOPEN FDEV FTEXT  oshnd=0x0000000000000058
+//
+//    When running as an application, the first 3 file descriptors
+//    are also allocated.
+//
+//    This indicates that when running as a Windows Service or as a
+//    Windows application, the file descriptors 0, 1 and 2 are not
+//    available for use.  For Windows checkStdio() and checkFd()
+//    do not need to do anything.
+//
+FD_TYPE
+checkFd( FD_TYPE fd )
 {
+# ifdef OS_NT
+	return fd;
+# else // OS_NT
         // If the fd > 2 then it's not stdio: continue
 
         if( fd < 0 || fd > 2 )
@@ -191,11 +242,7 @@ checkFd( int fd )
         // Rather than straight close the old fd, lets assign it to /dev/null
         // Use w+ so we do the right thing regardless of STDIN or STDOUT/ERR
 
-# ifdef OS_NT
-        int nulfd = openL( "nul", O_RDWR );
-# else
         int nulfd = openL( "/dev/null", O_RDWR );
-# endif
 
         if( nulfd < 0 || dup2( nulfd, fd ) < 0 )
             close( fd );
@@ -204,11 +251,15 @@ checkFd( int fd )
             close( nulfd );
 
         return newfd;
+# endif // OS_NT
 }
 
 void
-checkStdio( int fd )
+checkStdio( FD_TYPE fd )
 {
+# ifdef OS_NT
+	return;
+# else // OS_NT
         if( fd < 0 || fd > 2 )
         {
             // Check them all
@@ -221,12 +272,8 @@ checkStdio( int fd )
         // First, fstat the fd (if it doesn't exist, the claim it)
         
 	struct statbL sb;
-        if( fstatL( fd, &sb ) < 0 ) {
-# ifdef OS_NT
-            int nulfd = openL( "nul", O_RDWR );
-# else
+	if( fstatL( fd, &sb ) < 0 ) {
             int nulfd = openL( "/dev/null", O_RDWR );
-# endif
             if( nulfd >= 0 && nulfd != fd )
             {
                 dup2( nulfd, fd );
@@ -237,9 +284,12 @@ checkStdio( int fd )
         
         // It's possible that if it exist, then it might be a file
         // but we probably don't care about that.
+# endif // OS_NT
 }
 
 #ifdef OS_NT
+// Primarily used from bt_fio.cc
+//
 int
 lockFileByHandle(HANDLE h, int flag )
 {

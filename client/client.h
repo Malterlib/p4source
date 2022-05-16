@@ -116,7 +116,9 @@
 const int ClientTags = 4; // max pending RunTags()
 
 class ClientUser;
+class ClientScript;
 class CharSetCvt;
+class CharSetCvtCache;
 class Ignore;
 class Enviro;
 class StrBufDict;
@@ -152,6 +154,8 @@ class Client : public Rpc {
 	void		WaitTag( ClientUser *ui = 0 );
 
 	void		SetArgv(int ac, char * const * av);
+	const StrBuf*	GetSendArgv( const int i );
+	int		GetSendArgc( );
 
     public:
 	// for fine tuning caller's use
@@ -229,6 +233,7 @@ class Client : public Rpc {
 	const StrPtr	&GetCwd();
 	const StrPtr	&GetHost();
 	const StrPtr	&GetLanguage();
+	const StrPtr	&GetLocale();
 	const StrPtr	&GetOs();
 	const StrPtr	&GetPassword();
 	const StrPtr	&GetPassword( const StrPtr *user, int forceTFile = 0 );
@@ -248,6 +253,7 @@ class Client : public Rpc {
 	const StrPtr	&GetVersion();
 	const StrPtr	&GetBuild() { return buildInfo; }
 	const StrPtr	&GetExecutable() { return exeName; }
+	const int	&GetAPI() { return apiVer; }
 
 	void		SetIgnorePassword() 
 			{ ignoreList |= VAR_P4PASSWD; }
@@ -255,14 +261,12 @@ class Client : public Rpc {
 	int		IsIgnorePassword()
 			{ return ( ignoreList & VAR_P4PASSWD ); }
 
-	void		SetProtocol( const char *p, const char *v )
-			{ service.SetProtocol( p, v ); }
+	void		SetProtocol( const char *p, const char *v );
 
 	void		SetProtocol( const char *p )
 			{ service.SetProtocol( p ); }
 
-	void		SetProtocolV( const char *arg )
-			{ service.SetProtocolV( arg ); }
+	void		SetProtocolV( const char *arg );
 
 	void		Dispatcher( RpcDispatch *d )
 			{ service.Dispatcher( d ); }
@@ -270,6 +274,13 @@ class Client : public Rpc {
 	StrPtr		*GetEVar( const char *k );
 	StrPtr		*GetEVar( const StrPtr *k );
 	void		SetEVar( const StrPtr *k, const StrPtr *v );
+
+	void		EnableExtensions( Error* e );
+	void		DisableExtensions();
+	bool		ExtensionsEnabled();
+	void		SetExtension( ClientScript* cs, Error* e,
+				      const bool callerOwns = false );
+	ClientScript	*GetExtensions() { return exts; }
 
     public:
 	// for use by the client service implementation
@@ -295,6 +306,7 @@ class Client : public Rpc {
 
 	void		NewHandler();
 	CharSetCvt	*fromTransDialog, *toTransDialog;
+	CharSetCvtCache	*gCharSetCvtCache;
         StrDict		*translated, *transfname, *fstatPartial;
 	int		unknownUnicode;
 	int		content_charset; // file content charset
@@ -306,6 +318,7 @@ class Client : public Rpc {
 	int		protocolNocase;	// 'nocase' protocol
 	int		protocolSecurity;  // server 'security' protocol
 	int		protocolUnicode;	// server 'unicode' protocol
+	int		protocolClientExts;
 
         StrPtr *	GetProtocol( const StrPtr &var );
 
@@ -333,6 +346,7 @@ class Client : public Rpc {
 	void		*closure;
 
     protected:
+
 	virtual RpcType	GetRpcType()
 	{
 	    return RPC_CLIENT;
@@ -350,7 +364,9 @@ class Client : public Rpc {
 	int		fatals;
 	Error		transErr;	// Last translation error
 
+	StrArray	*argv;
 	StrBuf		charset;	// character set
+	StrBuf		locale;		// user's locale
 	StrBuf		client;		// client's name
 	StrBuf		clientPath;	// Authorized areas of the filesystem
 	StrBuf		tempPath;	// Temp file directory
@@ -377,6 +393,8 @@ class Client : public Rpc {
 	StrBuf		charsetVar;
 	StrBuf		initRoot;
 	StrRef		buildInfo;
+	int		apiVer;
+	int		apiSet;
 
 	Enviro		*enviro;	// environment vars
 	Ignore		*ignore;	// naughty list
@@ -396,4 +414,8 @@ class Client : public Rpc {
 	void		LateUnicodeSetup( const char *, Error * );
 
 	bool		finalized, initialized;
+
+	bool		extsEnabled;
+	ClientScript	*exts;
+	bool		ownExts;
 } ;

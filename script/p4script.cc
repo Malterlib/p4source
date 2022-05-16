@@ -10,15 +10,14 @@
 // For doFile()
 #include <stdhdrs.h>
 #include <error.h>
-#include <strbuf.h>
-#include <filesys.h>
+#include <clientapi.h>
 
 #include <p4script.h>
 #include <msgscript.h>
 #include <msgdm.h>
 #include <debug.h>
 
-# ifdef HAS_CPP17
+# ifdef HAS_EXTENSIONS
 
 p4script::impl::impl( p4script& p, Error *e )
 : parent( p )
@@ -49,12 +48,17 @@ const char* p4script::impl::getImplVersion() const
 	return "no scripting engine version";
 }
 
+p4script::impl* p4script::GetImpl()
+{
+	return pimpl.get();
+}
+
 int p4script::os_execute( void* Lv )
 {
-	switch( ((p4script::impl*) Lv)->parent.scriptType )
+	switch( ((p4script*) Lv)->scriptType )
 	{
 	    case P4SCRIPT_LUA_53:
-	        return ((p4script::impl53*)Lv)->os_execute( Lv );
+	        return ((p4script*)Lv)->pimpl->os_execute( Lv );
 	        break;
 	    default:
 	        p4debug.printf( "p4script::os_execute() bad case!\n" );
@@ -64,10 +68,10 @@ int p4script::os_execute( void* Lv )
 
 bool p4script::timeBreakCb( void* Lv )
 {
-	switch( ((p4script::impl*) Lv)->parent.scriptType )
+	switch( static_cast< p4script* >( Lv )->scriptType )
 	{
 	    case P4SCRIPT_LUA_53:
-	        return ((p4script::impl53*)Lv)->timeBreakCb( Lv );
+	        return ((p4script*)Lv)->pimpl->timeBreakCb( Lv );
 	        break;
 	    default:
 	        p4debug.printf( "p4script::timeBreakCb() bad case!\n" );
@@ -75,9 +79,38 @@ bool p4script::timeBreakCb( void* Lv )
 	}
 }
 
+void p4script::debugCb( void* Lv, void* arv )
+{
+	switch( static_cast< p4script* >( Lv )->scriptType )
+	{
+	    case P4SCRIPT_LUA_53:
+	        ((p4script*)Lv)->pimpl->debugCb( Lv, arv );
+	        return;
+	        break;
+	    default:
+	        p4debug.printf( "p4script::debugCb() bad case!\n" );
+	        return;
+	}
+}
+
+void p4script::SetRealError( void* Lv, const Error* e )
+{
+	switch( static_cast< p4script* >( Lv )->scriptType )
+	{
+	    case P4SCRIPT_LUA_53:
+	        ((p4script*)Lv)->pimpl->SetRealError( e );
+	        return;
+	        break;
+	    default:
+	        p4debug.printf( "p4script::SetRealError() bad case!\n" );
+	        return;
+	}
+}
+
 p4script::~p4script() {}
 
-p4script::p4script( const SCR_VERSION v, Error *e ) : scriptType( v )
+p4script::p4script( const SCR_VERSION v, const int apiVersion, Error *e )
+  : apiVersion( apiVersion ), scriptType( v )
 {
 	switch( v )
 	{
@@ -98,10 +131,10 @@ void p4script::SetMaxTime( const uint32_t max )
 
 void p4script::SetMaxMem( const scriptMem_t max )
 {
-	maxMem = max;
+	maxMem = max * 1048576; // megabytes -> bytes
 }
 
-void p4script::ConfigBinding( const SCR_BINDING_LIBNAME lib, std::any cfg,
+void p4script::ConfigBinding( const SCR_BINDING_LIBNAME lib, p4_std_any::p4_any cfg,
 	                      Error* e )
 {
 	try
@@ -110,16 +143,27 @@ void p4script::ConfigBinding( const SCR_BINDING_LIBNAME lib, std::any cfg,
 	{
 	    case P4SCRIPT_CLIENTAPI:
 	        ClientApiBindCfgs.push_back(
-	            std::any_cast< std::function< void( ClientApiLua& ) >
+	            p4_std_any::any_cast< std::function< void( ClientApi& ) >
 	                         >( cfg ) );
 	        break;
+	    case P4SCRIPT_CLIENTUSER:
+	        ClientUserBindCfgs.push_back(
+	            p4_std_any::any_cast< std::function< void( ClientUserLua& ) >
+	                         >( cfg ) );
+	        break;
+	    case P4SCRIPT_LUA53:
+	        LuaBindCfgs.push_back(
+	            p4_std_any::any_cast< std::function< bool( SCR_BINDING_LUA_OPTS ) >
+	                         >( cfg ) );
+	        break;
+
 	    default:
 	        StrBuf msg = "p4script::ConfigBinding() bad case!";
 	        e->Set( MsgDm::DevErr ) << msg;
 	        return;
 	}
 	}
-	catch( const std::bad_any_cast& err )
+	catch( const std::exception& err )
 	{
 	   StrBuf msg = "p4script::ConfigBinding() error! ";
 	   msg << err.what();
@@ -192,7 +236,7 @@ bool p4script::doStr( const char *buf, Error *e )
 	return pimpl->doStr( buf, e );
 }
 
-std::optional< std::any > p4script::doScriptFn( const char* name, Error* e )
+p4_std_any::p4_any p4script::doScriptFn( const char* name, Error* e )
 {
 	if( e->Test() )
 	{
@@ -201,6 +245,11 @@ std::optional< std::any > p4script::doScriptFn( const char* name, Error* e )
 	}
 
 	return pimpl->doScriptFn( name, e );
+}
+
+bool p4script::fnExists( const char* name )
+{
+	return pimpl->fnExists( name );
 }
 
 std::string p4script::fmtDuration( const scriptTime_t &dur ) const
@@ -233,6 +282,11 @@ std::string p4script::getElapsedTime() const
 	return fmtDuration( curTime );
 }
 
+int p4script::getAPIVersion() const
+{
+	return apiVersion;
+}
+
 const char* p4script::getImplName() const
 {
 	return pimpl->getImplName();
@@ -243,7 +297,7 @@ const char* p4script::getImplVersion() const
 	return pimpl->getImplVersion();
 }
 
-# else // HAS_CPP17
+# else // HAS_EXTENSIONS
 
 # include <stdio.h>
 
@@ -260,7 +314,7 @@ bool p4script::doFile( const char *name, Error *e )
 	return false;
 }
 
-void p4script::SetMaxTime( const uint32_t max )
+void p4script::SetMaxTime( const unsigned int max )
 {
 }
 

@@ -141,6 +141,7 @@ class MsgDm {
 	static ErrorId JobFieldReadOnly;
 	static ErrorId JobFieldAlways;
 	static ErrorId BadSpecType;
+	static ErrorId BadSpecData;
 	static ErrorId LameCodes;
 	static ErrorId MultiWordDefault;
 	static ErrorId ProtectedCodes;
@@ -277,6 +278,8 @@ class MsgDm {
 	static ErrorId ChangeDeleteHasFix;
 	static ErrorId ChangeDeleteHasFiles;
 	static ErrorId ChangeDeleteShelved;
+	static ErrorId ChangeDeleteHasStream;
+	static ErrorId ChangeDeleteTaskUnload;
 	static ErrorId ChangeDeleteSuccess;
 	static ErrorId ChangeNotOwner;
 	static ErrorId CommittedNoPerm;
@@ -331,6 +334,7 @@ class MsgDm {
 	static ErrorId InvalidParent;
 	static ErrorId StreamOverflow;
 	static ErrorId NoStreamAtChange;
+	static ErrorId NoShelvedStreamAtChange;
 	static ErrorId NotStreamReady;
 	static ErrorId MissingStream;
 	static ErrorId InvalidStreamFmt;
@@ -347,7 +351,6 @@ class MsgDm {
 	static ErrorId StreamParentIsTask;
 	static ErrorId StreamBadConvert;
 	static ErrorId StreamDepthDiffers;
-
 	static ErrorId DepotsData;
 	static ErrorId DepotsDataExtra;
 
@@ -363,6 +366,7 @@ class MsgDm {
 	static ErrorId NoSuchServer;
 	static ErrorId ServersData;
 	static ErrorId ServerTypeMismatch;
+	static ErrorId NewStandbyCantMandatory;
 	static ErrorId ServerRplFromMandatory;
 	static ErrorId ServerRplFromRplOnly;
 	static ErrorId ServerRplFromSame;
@@ -375,6 +379,8 @@ class MsgDm {
 	static ErrorId ServerCantConfig;
 	static ErrorId ServerSvcInvalid;
 
+	static ErrorId NoSuchStorage;
+
 	static ErrorId DescribeChange;
 	static ErrorId DescribeChangePending;
 	static ErrorId DescribeData;
@@ -382,6 +388,15 @@ class MsgDm {
 	static ErrorId DescribeDiff;
 
 	static ErrorId DiffData;
+	static ErrorId DiffOpenStreamContent;
+	static ErrorId Diff2StreamContent;
+	static ErrorId DiffOpenStreamIdentical;
+	static ErrorId Diff2StreamIdentical;
+	static ErrorId StreamDiffNoSpecifier;
+	static ErrorId StreamDiffNoUnified;
+	static ErrorId StreamDiffLeft;
+	static ErrorId StreamDiffRight;
+	static ErrorId StreamDiffNoStream;
 
 	static ErrorId Diff2DataLeft;
 	static ErrorId Diff2DataRight;
@@ -539,6 +554,9 @@ class MsgDm {
 	static ErrorId OpenXOpened;
 	static ErrorId OpenXOpenedFailed;
 	static ErrorId OpenXOpenedWarn;
+	static ErrorId OpenXOpenedLFS;
+	static ErrorId OpenXOpenedLFSWarn;
+	static ErrorId OpenXOpenedLFSFailed;
 	static ErrorId OpenBadAction;
 	static ErrorId OpenBadClient;
 	static ErrorId OpenBadUser;
@@ -616,6 +634,8 @@ class MsgDm {
 	static ErrorId PurgeSnapData;
 	static ErrorId PurgeDeleted;
 	static ErrorId PurgeCheck;
+	static ErrorId PurgePurged;
+	static ErrorId PurgePurgeCheck;
 	static ErrorId PurgeNoRecords;
 	static ErrorId PurgeData;
 	static ErrorId PurgeActiveTask;
@@ -637,6 +657,7 @@ class MsgDm {
 	static ErrorId ReopenDataNoChange;
 	static ErrorId ReopenCharSet;
 	static ErrorId ReopenBadType;
+	static ErrorId ReopenStream;
 
 	static ErrorId ResolveAction;
 	static ErrorId ResolveActionMove;
@@ -723,6 +744,7 @@ class MsgDm {
 	static ErrorId StreamResolved;
 	static ErrorId StreamResolveField;
 	static ErrorId StreamResolveAction;
+	static ErrorId StreamlogRevMessage;
 
 	static ErrorId SubmitUpToDate;
 	static ErrorId SubmitWasAdd;
@@ -737,7 +759,7 @@ class MsgDm {
 	static ErrorId SubmitNewResolve;
 	static ErrorId SubmitChanges;
 	static ErrorId ShelvedHasWorking;
-
+	static ErrorId ShelvedHasWorkingStream;
 	static ErrorId SyncAdd;
 	static ErrorId SyncDelete;
 	static ErrorId SyncReplace;
@@ -790,10 +812,13 @@ class MsgDm {
 	static ErrorId UnshelveFromRemote;
 	static ErrorId UnshelveBadChangeView;
 	static ErrorId UnshelveBadAndmap;
+	static ErrorId UnshelveStreamIsOpen;
 
 	static ErrorId UserSave;
 	static ErrorId UserNoChange;
 	static ErrorId UserNotExist;
+	static ErrorId UserNotExistInfo;
+	static ErrorId GroupNotExistInfo;
 	static ErrorId UserCantDelete;
 	static ErrorId UserDelete;
 
@@ -807,6 +832,7 @@ class MsgDm {
 
 	static ErrorId ExARCHIVES;
 	static ErrorId ExCHANGE;
+	static ErrorId ExSTORAGE;
 	static ErrorId ExSTREAM;
 	static ErrorId ExUSER;
 
@@ -980,15 +1006,30 @@ class MsgDm {
 	static ErrorId LogFormatInvalid;
 	static ErrorId LogNumericInvalid;
 	static ErrorId LogEventsUnmatched;
+	static ErrorId LogEventUnknown;
+	static ErrorId LogEventVerUnknown;
 	static ErrorId JournalStateBadFmt;
+	static ErrorId JournalStateCkp;
+
 	static ErrorId ExtensionsData;
 	static ErrorId ExtensionCfgData;
 	static ErrorId ExtCfgSave;
 	static ErrorId ExtCfgNoChange;
 	static ErrorId ExtensionDepotMissing;
+	static ErrorId ExtensionBadName;
+
 	static ErrorId VerifyContentFileError;
 	static ErrorId VerifyContentError;
+	static ErrorId NoUpgradeFunc;
+	static ErrorId StreamAlreadyOpenInCLNO;
+	static ErrorId StreamNotOpenInCLNO;
+	static ErrorId StreamNotOpenInDefault;
+	static ErrorId StreamNotOpenOnClient;
 	static ErrorId CommandNotOnServer;
+	static ErrorId MalformedUUID;
+	static ErrorId TooManyConfigurables;
+	static ErrorId DataOutOfRange;
+	static ErrorId ExtensionBadDirectory;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

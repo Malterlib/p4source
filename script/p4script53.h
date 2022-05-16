@@ -9,7 +9,7 @@
 // Disable the stand-alone interpreter.
 # define MAKE_LIB
 
-#define SOL_CXX17_FEATURES 1
+#define SOL_CXX17_FEATURES 0
 #define SOL_NO_COMPAT 1
 // This causes an anonymous namespace error when luaconf.h is set to static.
 #define SOL_CHECK_ARGUMENTS 1

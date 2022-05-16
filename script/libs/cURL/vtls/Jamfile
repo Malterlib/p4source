@@ -25,12 +25,13 @@ SubDirCcFlags -I$(SSLINCDIR) [ FDefines Z_PREFIX ] ;
 SubDirHdrs $(P4) script libs cURL ;
 SubDirHdrs $(P4) script libs cURL curl ;
 
-Library $(P4SCRIPT_CURL) :
+P4APILibrary $(P4SCRIPT_CURL) :
 	axtls.c
 	cyassl.c
 	darwinssl.c
 	gskit.c
 	gtls.c
+	keylog.c
 	mbedtls.c
 	nss.c
 	openssl.c

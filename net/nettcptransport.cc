@@ -68,6 +68,7 @@ NetTcpTransport::NetTcpTransport( int t, bool fromClient )
 	this->t = t;
 	breakCallback = 0;
 	lastRead = 0;
+	maxWait = -1;
 	selector = new NetTcpSelector( t );
 
 	/* SendOrReceive() likes non-blocking I/O. */
@@ -269,7 +270,7 @@ NetTcpTransport::GetPeerAddress( int t, int raf_flags, StrBuf &peerAddr )
 	    else
 	    {
 		StrBuf buf;
-		Error::StrError(buf, errno);
+		Error::StrNetError( buf );
 		DEBUGPRINTF( DEBUG_CONNECT,
 			"Unable to get peer address: %s", buf.Text());
 	    }
@@ -291,7 +292,7 @@ NetTcpTransport::GetPortNum( int t )
 	if( getsockname( t, saddrp, &addrlen ) < 0 || addrlen > sizeof addr )
 	{
 	    StrBuf buf;
-	    Error::StrError(buf, errno);
+	    Error::StrNetError( buf );
 	    DEBUGPRINTF( DEBUG_CONNECT,
 		    "Unable to get sockname: %s", buf.Text());
 	    return -1;
@@ -312,7 +313,7 @@ NetTcpTransport::IsSockIPv6( int t )
 	if( getsockname( t, saddrp, &addrlen ) < 0 || addrlen > sizeof addr )
 	{
 	    StrBuf buf;
-	    Error::StrError(buf, errno);
+	    Error::StrNetError( buf );
 	    DEBUGPRINTF( DEBUG_CONNECT,
 		    "Unable to get sockname: %s", buf.Text());
 	    return false;
@@ -380,7 +381,7 @@ NetTcpTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	int doWrite = io.sendPtr != io.sendEnd && !se->Test();
 
 	int dataReady;
-	int maxwait = p4tunable.Get( P4TUNE_NET_MAXWAIT );
+	int maxwait = GetMaxWait();
 	int autotune = p4tunable.Get( P4TUNE_NET_AUTOTUNE );
 	int doGoAround = 0;
 	int retCode = 0;
@@ -392,7 +393,6 @@ NetTcpTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	}
 	if( maxwait )
 	{
-	    maxwait *= 1000;
 	    waitTime.Start();
 	}
 
@@ -405,25 +405,26 @@ NetTcpTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	if( !doRead && !doWrite )
 	    return 0;
 
+	// 500 is .5 seconds.
+	const int timeout = !maxwait || maxwait > 500 ? 500 : maxwait;
+
 	do
 	{
 	    readable = doRead;
 	    writable = doWrite;
 
-	    // 500 is .5 seconds.
-
 	    int tv = -1;
 	    if( ( readable && breakCallback ) || maxwait )
 	    {
-	        tv = 500;
+	        tv = timeout;
 	        if( breakCallback )
 	        {
 	            tv = breakCallback->PollMs();
 	            if( tv < 1 )
-	                tv = 500;
+	                tv = timeout;
 	        }
 	        if( tv < 1 ) // in case of overflow, be sane
-	            tv = 500;
+	            tv = timeout;
 	    }
 
 	    if( ( dataReady = selector->Select( readable, writable, tv ) ) < 0 )
@@ -657,7 +658,7 @@ NetTcpTransport::Close( void )
 	    const int max = p4tunable.Get( P4TUNE_NET_MAXCLOSEWAIT );
 
 	    if( selector->Select( r, w, max ) >= 0 && r )
-	        read( t, buf, 1 );
+	        int discard = read( t, buf, 1 );
 	}
 
 	if( DEBUG_INFO )
@@ -748,6 +749,23 @@ NetTcpTransport::GetPortParser() const
 void NetTcpTransport::SetPortParser(const NetPortParser &portParser)
 {
     this->portParser = portParser;
+}
+
+int
+NetTcpTransport::GetMaxWait()
+{
+	if( maxWait < 0 )
+	{
+	    maxWait = p4tunable.Get( P4TUNE_NET_MAXWAIT ) * 1000;
+	}
+
+	return maxWait;
+}
+
+void
+NetTcpTransport::SetMaxWait( const int maxWait )
+{
+	this->maxWait = maxWait;
 }
 
 int
@@ -845,6 +863,7 @@ NetTcpTransport::GetInfo( StrBuf *b )
 			TD( snd_zerowin );
 			b->Extend( '\n' );
 # endif
+			b->Terminate();
 			return 1;
 		}
 # endif

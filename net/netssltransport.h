@@ -45,7 +45,11 @@
 // Dynamic locking code only being used on NT in 2012.1, will be used on
 // other platforms in 2012.2 (by that time I will include pthreads to the
 // HPUX build). In 2012.1 HPUX has many compile errors for pthreads.
-#ifndef OS_HPUX
+//
+// OpenSSL 1.1 handles these internally so are no longer required
+
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
+# ifndef OS_HPUX
 
 # ifdef OS_NT
 struct CRYPTO_dynlock_value
@@ -78,7 +82,8 @@ DynDestroyFunction(struct CRYPTO_dynlock_value *l, const char *file, int line);
 
 }
 
-#endif //OS_HPUX
+# endif // OS_HPUX
+# endif // !OpenSSL 1.1
 
 ////////////////////////////////////////////////////////////////////////////
 //  Class NetSslTransport                                                 //
@@ -89,7 +94,8 @@ class NetSslTransport : public NetTcpTransport
 
     public:
 	NetSslTransport( int t, bool fromClient );
-	NetSslTransport( int t, bool fromClient, NetSslCredentials &cred );
+	NetSslTransport( int t, bool fromClient, NetSslCredentials &cred,
+	                 StrPtr *cipherList, StrPtr *cipherSuites );
 	~NetSslTransport();
 
 	void            ValidateCredentials( Error *e );
@@ -129,6 +135,8 @@ class NetSslTransport : public NetTcpTransport
 	StrBuf          cipherSuite;
 	bool            clientNotSsl;
 	NetSslCredentials credentials;
+	StrPtr *        customCipherList;
+	StrPtr *        customCipherSuites;
 } ;
 
 # endif //USE_SSL

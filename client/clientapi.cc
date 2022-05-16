@@ -30,6 +30,7 @@ void 	ClientApi::Run( const char *func, ClientUser *i ) { client->Run( func, i )
 int 	ClientApi::Final( Error *e ) { return client->Final( e ); }
 int 	ClientApi::Dropped() { return client->Dropped(); }
 int 	ClientApi::GetErrors() { return client->GetErrors(); }
+int 	ClientApi::GetFatals() { return client->GetFatals(); }
 int	ClientApi::GetTrans() { return client->output_charset; }
 int	ClientApi::IsUnicode() { return client->IsUnicode(); }
 
@@ -38,9 +39,11 @@ void	ClientApi::WaitTag( ClientUser *u ) { client->WaitTag( u ); }
 
 StrPtr  *ClientApi::VGetVar( const StrPtr &var ) { return client->translated->GetVar( var ); }
 void    ClientApi::VSetVar( const StrPtr &var, const StrPtr &val ) { client->translated->SetVar( var, val ); }
+void    ClientApi::VSetVarV( const char *var ) { client->SetVarV( var ); }
 StrPtr  *ClientApi::GetEVar( const StrPtr &var ) { return client->GetEVar( &var ); }
 void    ClientApi::SetEVar( const StrPtr &var, const StrPtr &val ) { client->SetEVar( &var, &val ); }
 
+void 	ClientApi::SetArgv( int ac, char *const *av ) { client->SetArgv( ac, av ); }
 void 	ClientApi::SetCharset( const char *c ) { client->SetCharset( c ); }
 void 	ClientApi::SetClient( const char *c ) { client->SetClient( c ); }
 void 	ClientApi::SetCwd( const char *c ) { client->SetCwd( c ); }
@@ -84,6 +87,7 @@ void 	ClientApi::DefinePassword( const char *c, Error *e ) { client->DefinePassw
 void 	ClientApi::DefinePort( const char *c, Error *e ) { client->DefinePort( c, e ); }
 void 	ClientApi::DefineUser( const char *c, Error *e ) { client->DefineUser( c, e ); }
 
+const int &ClientApi::GetAPI() { return client->GetAPI(); }
 const StrPtr & ClientApi::GetCharset() { return client->GetCharset(); }
 const StrPtr & ClientApi::GetClient() { return client->GetClient(); }
 const StrPtr & ClientApi::GetClientNoHost() { return client->GetClientNoHost(); }
@@ -102,11 +106,17 @@ const StrArray* ClientApi::GetConfigs() { return client->GetConfigs(); }
 const StrPtr & ClientApi::GetBuild() { return client->GetBuild(); }
 const StrPtr & ClientApi::GetVersion() { return client->GetVersion(); }
 
+Enviro* ClientApi::GetEnviro() { return client->GetEnviro(); }
 Ignore *ClientApi::GetIgnore() { return client->GetIgnore(); }
 
 void	ClientApi::SetIgnorePassword() { client->SetIgnorePassword(); }
 
 void 	ClientApi::SetProtocol( const char *p, const char *v ) { client->SetProtocol( p, v ); }
+void 	ClientApi::SetProtocol( const char *p ) { client->SetProtocol( p ); }
 void 	ClientApi::SetProtocolV( const char *p ) { client->SetProtocolV( p ); }
 StrPtr	*ClientApi::GetProtocol( const char *v ) { return client->GetProtocol( StrRef( v ) ); }
 
+void 	ClientApi::EnableExtensions( Error* e ) { client->EnableExtensions( e ); }
+void 	ClientApi::DisableExtensions() { client->DisableExtensions(); }
+bool 	ClientApi::ExtensionsEnabled() { return client->ExtensionsEnabled(); }
+void	ClientApi::SetExtension( ClientScript* cs, Error* e, const bool callerOwns ) { client->SetExtension( cs, e, callerOwns ); }

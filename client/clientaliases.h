@@ -10,7 +10,7 @@ class HostEnv;
 class FileSys;
 class VarArray;
 class Options;
-class Client;
+class ClientApi;
 class StrDict;
 class RegMatch;
 class StrPtrLineReader;
@@ -37,8 +37,8 @@ int clientRunCommand(
 
 void clientParseOptions( Options &opts, int &argc, StrPtr *&argv, Error *e );
 void clientParseOptions( Options &opts, int &argc, char **&argv, Error *e );
-void clientSetVariables( Client &client, Options &opts );
-int  clientPrepareEnv  ( Client &client, Options &opts, Enviro &enviro );
+void clientSetVariables( ClientApi &client, Options &opts );
+int  clientPrepareEnv  ( ClientApi &client, Options &opts, Enviro &enviro );
 
 class CommandPattern;
 
@@ -371,7 +371,7 @@ class ClientAliases
 class AliasSubstitution
 {
     public:
-			AliasSubstitution( Client *c, StrDict *d );
+			AliasSubstitution( ClientApi *c, StrDict *d );
 			~AliasSubstitution();
 
 	int		Substitute( StrBuf *b );
@@ -380,7 +380,7 @@ class AliasSubstitution
 
 	void		GetValue( StrPtr &var, StrBuf *val );
 
-	Client		*client;
+	ClientApi	*client;
 	StrDict		*dict;
 } ;
 

@@ -9,13 +9,14 @@
  * Generally, compiling with the C++ compiler and linking with the
  * three provided libraries is sufficient to build this sample program.
  * 
- * See the Perforce C/C++ API User's Guide at
- * www.perforce.com/perforce/technical.html for further information.
+ * See the Perforce C/C++ API User's Guide for further information.
+ * https://www.perforce.com/manuals/p4api/Content/P4API/Home-p4api.html
  *
- * $Id: //guest/perforce_software/p4/2018-2/api/p4dvcsapi.cc#1 $
+ * $Id: //depot/r20.1/p4/api/p4dvcsapi.cc#1 $
  */
 
 # include "serverhelperapi.h"
+# include "p4libs.h"
 
 int main( int argc, char **argv );
 int main( int argc, char **argv )
@@ -24,7 +25,16 @@ int main( int argc, char **argv )
 	StrBuf msg;
 	Error e;
 	int doClone = 0;
-	
+
+	P4Libraries::Initialize( P4LIBRARIES_INIT_ALL, &e );
+
+	if( e.Test() )
+	{
+	    e.Fmt( &msg );
+	    fprintf( stderr, "%s\n", msg.Text() );
+	    return 1;
+	}
+
 	const char *p4port = 0;
 	const char *cloneTarget = 0;
 	
@@ -135,6 +145,15 @@ int main( int argc, char **argv )
 
 	client->Final( &e );
 	delete client;
+
+	P4Libraries::Shutdown( P4LIBRARIES_INIT_ALL, &e );
+
+	if( e.Test() )
+	{
+	    e.Fmt( &msg );
+	    fprintf( stderr, "%s\n", msg.Text() );
+	    return 1;
+	}
 
 	return 0;
 }

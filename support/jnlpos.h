@@ -28,6 +28,7 @@ public:
 	JnlPos( int num = 0, P4INT64 offset = 0 )
 	: journalNumber(num)
 	, journalOffset(offset)
+	, isCheckpoint(false)
 	{
 	}
 
@@ -35,6 +36,7 @@ public:
 	JnlPos( const JnlPos &rhs )
 	: journalNumber(rhs.journalNumber)
 	, journalOffset(rhs.journalOffset)
+	, isCheckpoint(false)
 	{
 	}
 
@@ -42,6 +44,7 @@ public:
 	JnlPos( const char *txt )
 	: journalNumber(0)
 	, journalOffset(0)
+	, isCheckpoint(false)
 	{
 	    Parse( txt );
 	}
@@ -49,7 +52,9 @@ public:
 	// construct a JnlPos with the max possible journalNumber and journalOffset
 	inline
 	JnlPos( JnlPosSpecial what )
-	: journalNumber(((unsigned int)~0) >> 1), journalOffset(((unsigned P4INT64)~0) >> 1 )
+	: journalNumber(((unsigned int)~0) >> 1)
+	, journalOffset(((unsigned P4INT64)~0) >> 1 )
+	, isCheckpoint(false)
 	{
 	}
 
@@ -59,11 +64,17 @@ public:
 	P4INT64
 	GetJnlOffset() const { return journalOffset; }
 
+	bool
+	IsCheckpoint() const { return isCheckpoint; }
+
 	void
 	SetJnlNum(int jnlNum) { journalNumber = jnlNum; }
 
 	void
 	SetJnlOffset(P4INT64 jnlOffset) { journalOffset = jnlOffset; }
+
+	void
+	SetCheckpoint(bool isCkp) { isCheckpoint = isCkp; }
 
 	inline
 	bool
@@ -90,6 +101,7 @@ public:
 	    {
 		journalNumber = rhs.journalNumber;
 		journalOffset = rhs.journalOffset;
+		isCheckpoint = rhs.isCheckpoint;
 	    }
 
 	    return *this;
@@ -127,6 +139,7 @@ public:
 private:
 	int	journalNumber;
 	P4INT64	journalOffset;
+	bool	isCheckpoint;
 };
 
 bool

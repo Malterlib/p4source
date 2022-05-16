@@ -28,6 +28,13 @@
 bool
 operator<(const JnlPos &lhs, const JnlPos &rhs)
 {
+	// Checkpoints are less than journals?
+	// This is here for completeness, but should never be used
+	if( lhs.IsCheckpoint() && !rhs.IsCheckpoint() )
+	    return true;
+	if( !lhs.IsCheckpoint() && rhs.IsCheckpoint() )
+	    return false;
+
 	if( lhs.GetJnlNum() < rhs.GetJnlNum() )
 	    return true;
 	if( lhs.GetJnlNum() > rhs.GetJnlNum() )
@@ -41,7 +48,8 @@ bool
 operator==(const JnlPos &lhs, const JnlPos &rhs)
 {
 	return (lhs.GetJnlNum() == rhs.GetJnlNum()) &&
-		(lhs.GetJnlOffset() == rhs.GetJnlOffset());
+		(lhs.GetJnlOffset() == rhs.GetJnlOffset()) &&
+		(lhs.IsCheckpoint() == rhs.IsCheckpoint());
 }
 
 bool
@@ -101,8 +109,12 @@ JnlPos::Parse( const char *txt )
 	char	*endptr = NULL;
 
 	journalNumber = strtol( txt, &endptr, 10 );
-	if( *endptr == '/' )
-	    SetJnlOffset( strtol(endptr+1, NULL, 10) );
+	if( *endptr == '/' || *endptr == '#' )
+	{
+	    SetJnlOffset( strtol( endptr + 1, NULL, 10 ) );
+	    if( *endptr == '#' )
+	        isCheckpoint = true;
+	}
 	else
 	    SetJnlOffset( 0 );
 }
@@ -116,8 +128,7 @@ JnlPos::Parse( const StrPtr &txt )
 const StrPtr &
 JnlPos::Fmt( StrBuf &buf )
 {
-	buf << journalNumber << "/" << journalOffset;
-
+	buf << journalNumber << ( isCheckpoint ? "#" : "/" ) << journalOffset;
 	return buf;
 }
 

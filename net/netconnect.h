@@ -86,10 +86,13 @@ class NetEndPoint {
 				    return *GetHost();
 				}
 
-	virtual void             GetMyFingerprint(StrBuf &value)
+	virtual void		GetMyFingerprint(StrBuf &value)
 				{
 				    value.Clear();
 				}
+	
+	virtual void		SetCipherList( const StrPtr *value ) {}
+	virtual void		SetCipherSuites( const StrPtr *value ) {}
 	virtual bool		IsAccepted()
 				{
 				    return isAccepted;
@@ -102,8 +105,9 @@ class NetEndPoint {
 
 	virtual NetTransport *	Connect( Error *e ) = 0;
 	virtual NetTransport *	Accept( KeepAlive *, Error *e ) = 0;
-
+	
 	virtual int 		IsSingle() = 0;
+	virtual int 		IsSSL() { return 0; };
 
 	NetPortParser &		GetPortParser() { return ppaddr; }
 
@@ -119,6 +123,7 @@ class NetTransport : public KeepAlive {
     public:
 	virtual		~NetTransport();
 	virtual void    ClientMismatch( Error *e );
+	virtual void    SetMaxWait( const int maxWait ) {}
 	virtual void	DoHandshake( Error * /* e */) {} // default: do nothing
 
 	virtual bool	HasAddress() = 0;

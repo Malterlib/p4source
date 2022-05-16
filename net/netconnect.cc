@@ -117,8 +117,11 @@ NetTransport::CheckForHandshake( int fd )
 	    // not able to read 3 bytes, connection screwed up
 	    return PeekTimeout;
 	}
-	if( (buffer[0] == SSLPROTOCOL) && (buffer[1] == SSLVERSION_BYTE1)
-	    && (buffer[2] == SSLVERSION_BYTE2) )
+	if( buffer[0] == SSLPROTOCOL && buffer[1] == SSLVERSION_BYTE1 &&
+	    ( buffer[2] == SSLVERSION_BYTE2_TLS10 ||
+	      buffer[2] == SSLVERSION_BYTE2_TLS11 ||
+	      buffer[2] == SSLVERSION_BYTE2_TLS12 ||
+	      buffer[2] == SSLVERSION_BYTE2_TLS13 ) )
 	{
 	    return PeekSSL;
 	}

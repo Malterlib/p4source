@@ -16,6 +16,7 @@
 # include <msgsupp.h>
 
 # include <datetime.h>
+# include <limits.h>
 
 # define MILLION (1000000)
 # define BILLION ((P4INT64) 1000000000L)
@@ -24,13 +25,21 @@
  * DateTime - date as stored in license file (string of time(0))
  */
 
-int
-DateTimeParse( const char *&c, const char delim )
+static int
+DateTimeParse( const char *&c, const char delim, Error *e )
 {
 	int r = 0;
 
 	for( ; *c && isAdigit( c ) && *c != delim; ++c )
+	{
+	    if( r > ( INT_MAX - *c + '0' ) / 10 )
+	    {
+	        e->Set( MsgSupp::InvalidDate ) << c;
+	        return 0;
+	    }
+
 	    r = r * 10 + *c - '0';
+	}
 
 	// skip delim
 
@@ -63,9 +72,9 @@ DateTime::Set( const char *date, Error *e )
 
 	// Just a time in seconds?
 
-	tval = DateTimeParse( date, '/' );
+	tval = DateTimeParse( date, '/', e );
 
-	if( !*date )
+	if( !*date || e->Test() )
 	    return;
 
 	// parse date
@@ -77,8 +86,14 @@ DateTime::Set( const char *date, Error *e )
 	// This expects yy/mm/dd.
 
 	tm.tm_year = tval;
-	tm.tm_mon = DateTimeParse( date, '/' );
-	tm.tm_mday = DateTimeParse( date, ' ' );
+	tm.tm_mon = DateTimeParse( date, '/', e );
+	if( e->Test() )
+	    return;
+
+	tm.tm_mday = DateTimeParse( date, ' ', e );
+	if( e->Test() )
+	    return;
+
 
 	// Allow both : and ' ' to separate date/time
 
@@ -107,9 +122,18 @@ DateTime::Set( const char *date, Error *e )
 
 	if( !( wholeDay = !*date ) )
 	{
-	    tm.tm_hour = DateTimeParse( date, ':' );
-	    tm.tm_min = DateTimeParse( date, ':' );
-	    tm.tm_sec = DateTimeParse( date, 0 );
+	    tm.tm_hour = DateTimeParse( date, ':', e );
+	    if( e->Test() )
+	        return;
+
+	    tm.tm_min = DateTimeParse( date, ':', e );
+	    if( e->Test() )
+	        return;
+
+	    tm.tm_sec = DateTimeParse( date, 0, e );
+	    if( e->Test() )
+	        return;
+
 	}
 
 	// -1 for isdst tells mktime to figure it out
@@ -398,6 +422,37 @@ DateTime::FmtUnifiedDiff( char *buf ) const
 	else
 	{
 	    strcpy( buf, "1970/01/01 00:00:01.000000000 -0000" );
+	}
+
+}
+
+
+/*
+ * format date to ISO 8601
+ *
+ */
+void
+DateTime::FmtISO8601( char *buf ) const
+{
+	struct tm *tm = gmtime( &tval );
+
+	// Don't die for a bogus date.
+
+	if( tm )
+	{
+	    int isdst = tm->tm_isdst;
+
+	    sprintf( buf, "%04d-%02d-%02dT%02d:%02d:%02d+00:00",
+		    tm->tm_year < 1900 ? tm->tm_year + 1900 : tm->tm_year,
+		    tm->tm_mon + 1,
+		    tm->tm_mday,
+		    tm->tm_hour,
+		    tm->tm_min,
+		    tm->tm_sec );
+	}
+	else
+	{
+	    strcpy( buf, "1970-01-01T00:00:01+00:00" );
 	}
 
 }

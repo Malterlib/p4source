@@ -12,6 +12,7 @@
 # define NEED_TYPES
 # define NEED_STAT
 # define NEED_FLOCK
+# define NEED_WIN32FIO
 
 # include <stdhdrs.h>
 
@@ -1147,19 +1148,20 @@ ServerHelper::FirstFetch(
 
 	// Issue fetch command
 	int argc = 0;
+	StrBuf dv = "-v", dm = "-m", da = "-A", dp = StrNum( depth ).Text();
 
 	if( debugFlag )
 	{
-	    args[argc++] = ( char * ) "-v";
+	    args[argc++] = ( char * ) dv.Text();
 	}
 
 	if( depth )
 	{
-	    args[argc++] = ( char * ) "-m";
-	    args[argc++] = (char *) StrNum( depth ).Text();
+	    args[argc++] = ( char * ) dm.Text();
+	    args[argc++] = (char *) dp.Text();
 	}
 	if( noArchivesFlag )
-	    args[argc++] = ( char * ) "-A";
+	    args[argc++] = ( char * ) da.Text();
 
 	SetCommand( "fetch", ui );
 	client.SetArgv( argc, args );
@@ -1452,13 +1454,17 @@ ServerHelper::OutputStat( StrDict *varList )
 
 	        if( !map.XCompareN( var ) )
 	        {
-	            StrOps::GetDepotName( val.Text(), depot );
+	            p = val.Text();
+	            if ( *p == '"' )
+	                StrOps::GetDepotName( val.Text()+1, depot );
+	            else
+	                StrOps::GetDepotName( val.Text(), depot );
 
-	           if( !empty.XCompareN( depot ) )
-	           {
+	            if( !empty.XCompareN( depot ) )
+	            {
 	                commandError.Set( MsgClient::CloneRemoteInvalid );
 	                break;
-	           }
+	            }
 
 	            if( count++ )
 	            {
@@ -1481,7 +1487,6 @@ ServerHelper::OutputStat( StrDict *varList )
 
 	            lhs.Clear();
 
-	            p = val.Text();
 	            quoted = (*p++ == '"' );
 
 	            while( *p != 0 )
@@ -1693,10 +1698,10 @@ LockCheck( Error *e )
 
 	if( !e->Test() )
 	{
-	    int ffd, afd;
+	    FD_TYPE ffd, afd;
 
-	    ffd = fsys->GetFd();
-	    afd = altsys->GetFd();
+	    ffd = (FD_TYPE)fsys->GetFd();
+	    afd = (FD_TYPE)altsys->GetFd();
 
 // Because Solaris locking is at a process level not a file descriptor
 // level, we can't do all the checks we want

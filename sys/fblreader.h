@@ -23,6 +23,10 @@ class FileSysBufferedLineReader : public FileSys {
 			~FileSysBufferedLineReader();
 
 	virtual int	ReadLine( StrBuf *buf, Error *e );
+	virtual offL_t	GetSize();
+	virtual void	Seek( offL_t off, Error *e );
+	virtual offL_t	Tell()
+	                { return tell; }
 
 	// These are all simple pass-through wrappers for FileSys virtual
 	// methods.
@@ -31,6 +35,8 @@ class FileSysBufferedLineReader : public FileSys {
 	                { src->Set( name ); }
 	virtual void	Set( const StrPtr &name, Error *e )
 	                { src->Set( name, e ); }
+	virtual StrPtr *Path()
+	                { return src->Path(); }
 	virtual void	Open( FileOpenMode mode, Error *e )
 	                { src->Open( mode, e ); }
 	virtual void	Write( const char *buf, int len, Error *e )
@@ -66,4 +72,5 @@ class FileSysBufferedLineReader : public FileSys {
 	int		pos;
 	int		len;
 	int		size;
+	offL_t		tell;
 } ;

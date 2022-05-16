@@ -184,18 +184,22 @@ class Spec {
 	// Manipulating the Spec itself -- building and examining it
 
 	SpecElem *	Add( const StrPtr &tag );
+	SpecElem *	Add( const SpecElem *se, int atIndex, Error *e );
 	SpecElem *	Get( int i );
 	SpecElem *	Find( const StrPtr &tag, Error *e = 0 );
-	SpecElem *	Find( int code, Error *e = 0 );
+	SpecElem *	Find( int code, Error *e=0, const StrPtr *fixedTag=0 );
 	int		Count();
 
 	void		Decode( StrPtr *encoded, Error *e );
 	void		Encode( StrBuf *encoded );
+	void		ExtractFieldMapToDict( StrDict *map,  Error *e, int skipAuto=0);
+	void		EncodeFieldMapToString( StrBuf *s, Error *e );
 
 	const StrPtr *	GetComment() { return &comment; }
 	void		SetComment( const StrPtr &c ) { comment = c; }
 
 	SpecElem *	Add( char *t ) { return Add( StrRef( t ) ); }
+	void		Dump( const char *msg );
 
     private:
 
@@ -281,6 +285,7 @@ class SpecElem {
 
 	SpecType	type;		// how it is formatted
 	StrBuf		tag;		// name of the field
+	StrBuf		fixed;		// fixed name for a default field
 	StrBuf		presets;	// (pre)set codes
 	StrBuf		values;		// what values can be had
 	int		code;		// what it's use it

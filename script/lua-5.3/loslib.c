@@ -135,17 +135,20 @@ static time_t l_checktime (lua_State *L, int arg) {
 #endif				/* } */
 /* }================================================================== */
 
-
+#ifdef P4SCRIPT_H
 // This is os_execute() with Perforce edits.
 # include <error.h>
+# include <msgscript.h>
 # include <runcmd.h>
+#endif 
 
 static int os_execute (lua_State *L) {
+#ifdef P4SCRIPT_H
   void *ud = nullptr;
 
   if( lua_getallocf( L, &ud ) )
     return p4script::os_execute( ud );
-
+#endif
   const char *cmd = luaL_optstring(L, 1, NULL);
   int stat = system(cmd);
   if (cmd != NULL)
@@ -366,10 +369,12 @@ static int os_difftime (lua_State *L) {
 
 
 static int os_setlocale (lua_State *L) {
+#ifdef P4SCRIPT_H
   void *ud = nullptr;
 
   if( lua_getallocf( L, &ud ) )
     return luaL_error(L, "The os_setlocale() function is unavailable.");
+#endif
 
   static const int cat[] = {LC_ALL, LC_COLLATE, LC_CTYPE, LC_MONETARY,
                       LC_NUMERIC, LC_TIME};
@@ -383,10 +388,17 @@ static int os_setlocale (lua_State *L) {
 
 
 static int os_exit (lua_State *L) {
+#ifdef P4SCRIPT_H
   void *ud = nullptr;
 
   if( lua_getallocf( L, &ud ) )
+  {
+    Error e;
+    e.Set( MsgScript::OsExitRealError );
+    p4script::SetRealError( ud, &e );
     return luaL_error(L, "The os_exit() function is unavailable.");
+  }
+#endif
 
   int status;
   if (lua_isboolean(L, 1))

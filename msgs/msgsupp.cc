@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSupp error code is: 351
+ * Current high value for a MsgSupp error code is: 398
  */
 
 # include <error.h>
@@ -171,6 +171,7 @@ ErrorId MsgSupp::OptionSubmitOpts      = { ErrorOf( ES_SUPP, 126, E_INFO, EV_NON
 ErrorId MsgSupp::OptionReopen          = { ErrorOf( ES_SUPP, 127, E_INFO, EV_NONE, 0 ), "%'--reopen (-r)'%: specifies that the files should be reopened after submit." } ;
 ErrorId MsgSupp::OptionDescription     = { ErrorOf( ES_SUPP, 128, E_INFO, EV_NONE, 0 ), "%'--description (-d)'%: specifies the description of the change." } ;
 ErrorId MsgSupp::OptionTamper          = { ErrorOf( ES_SUPP, 129, E_INFO, EV_NONE, 0 ), "%'--tamper-check (-t)'%: specifies that file digests should be used to detect tampering." } ;
+ErrorId MsgSupp::OptionBackgroundXfer  = { ErrorOf( ES_SUPP, 358, E_INFO, EV_NONE, 0 ), "%'--backgroundXfer (-b)'%: specifies edge archive transfer occurs in background." } ;
 ErrorId MsgSupp::OptionCompress        = { ErrorOf( ES_SUPP, 130, E_INFO, EV_NONE, 0 ), "%'--compress (-z)'%: specifies that the output should be compressed." } ;
 ErrorId MsgSupp::OptionDate            = { ErrorOf( ES_SUPP, 131, E_INFO, EV_NONE, 0 ), "%'--date (-d)'%: specifies to unload all objects older than that date." } ;
 ErrorId MsgSupp::OptionStreamName      = { ErrorOf( ES_SUPP, 132, E_INFO, EV_NONE, 0 ), "%'--stream (-s)'%: specifies the stream name." } ;
@@ -248,6 +249,7 @@ ErrorId MsgSupp::OptionPropagating     = { ErrorOf( ES_SUPP, 203, E_INFO, EV_NON
 ErrorId MsgSupp::OptionOpenAdd         = { ErrorOf( ES_SUPP, 204, E_INFO, EV_NONE, 0 ), "%'--add (-a)'%: specifies files should be opened for add." } ;
 ErrorId MsgSupp::OptionOpenEdit        = { ErrorOf( ES_SUPP, 205, E_INFO, EV_NONE, 0 ), "%'--edit (-e)'%: specifies files should be opened for edit." } ;
 ErrorId MsgSupp::OptionOpenDelete      = { ErrorOf( ES_SUPP, 206, E_INFO, EV_NONE, 0 ), "%'--delete (-d)'%: specifies files should be opened for delete." } ;
+ErrorId MsgSupp::OptionOpenType        = { ErrorOf( ES_SUPP, 352, E_INFO, EV_NONE, 0 ), "%'--type (-t)'%: specifies files should be opened for edit when the file type changed." } ;
 ErrorId MsgSupp::OptionUseModTime      = { ErrorOf( ES_SUPP, 207, E_INFO, EV_NONE, 0 ), "%'--modtime (-m)'%: specifies the file modification time should be checked." } ;
 ErrorId MsgSupp::OptionLocal           = { ErrorOf( ES_SUPP, 208, E_INFO, EV_NONE, 0 ), "%'--local (-l)'%: specifies local syntax for filenames." } ;
 ErrorId MsgSupp::OptionOutputBase      = { ErrorOf( ES_SUPP, 209, E_INFO, EV_NONE, 0 ), "%'--output-base (-o)'%: specifies to display the revision used as the base." } ;
@@ -338,6 +340,7 @@ ErrorId MsgSupp::OptionDaemonSafe         = { ErrorOf( ES_SUPP, 293, E_INFO, EV_
 ErrorId MsgSupp::OptionTrigger            = { ErrorOf( ES_SUPP, 294, E_INFO, EV_NONE, 0 ), "%'--trigger'%: Pull archive content using an external trigger." } ;
 ErrorId MsgSupp::OptionIgnoreHave         = { ErrorOf( ES_SUPP, 295, E_INFO, EV_NONE, 0 ), "%'--ignore-have'%: specifies that the publish option (-p) ignore any have records." } ;
 ErrorId MsgSupp::OptionGraphOnly          = { ErrorOf( ES_SUPP, 296, E_INFO, EV_NONE, 0 ), "%'--graph-only'%: skip any non-graph results." } ;
+ErrorId MsgSupp::OptionNoGraph            = { ErrorOf( ES_SUPP, 368, E_INFO, EV_NONE, 0 ), "%'--no-graph'%: skip any graph results." } ;
 ErrorId MsgSupp::OptionMinSize            = { ErrorOf( ES_SUPP, 297, E_INFO, EV_NONE, 0 ), "%'--min-size'%: Pull archive trigger min file size." } ;
 ErrorId MsgSupp::OptionMaxSize            = { ErrorOf( ES_SUPP, 298, E_INFO, EV_NONE, 0 ), "%'--max-size'%: Pull archive trigger max file size." } ;
 ErrorId MsgSupp::OptionNameOnly           = { ErrorOf( ES_SUPP, 299, E_INFO, EV_NONE, 0 ), "%'--name-only'%: List only filenames." } ;
@@ -357,13 +360,15 @@ ErrorId MsgSupp::OptionFirstParent        = { ErrorOf( ES_SUPP, 327, E_INFO, EV_
 ErrorId MsgSupp::OptionIndex              = { ErrorOf( ES_SUPP, 328, E_INFO, EV_NONE, 0 ), "%'--index'%: use graph index." } ;
 ErrorId MsgSupp::OptionGraph              = { ErrorOf( ES_SUPP, 329, E_INFO, EV_NONE, 0 ), "%'--graph'%: walk the DAG." } ;
 ErrorId MsgSupp::OptionOneParent          = { ErrorOf( ES_SUPP, 343, E_INFO, EV_NONE, 0 ), "%'--one-parent'%: follow only one parent with difference." } ;
-ErrorId MsgSupp::OptionOneline            = { ErrorOf( ES_SUPP, 331, E_INFO, EV_NONE, 0 ), "%'--oneline'%: display git --oneline output" } ;
+ErrorId MsgSupp::OptionOneline            = { ErrorOf( ES_SUPP, 331, E_INFO, EV_NONE, 0 ), "%'--oneline[=tree]'%: display git --oneline output" } ;
+ErrorId MsgSupp::OptionNoAbbrev           = { ErrorOf( ES_SUPP, 365, E_INFO, EV_NONE, 0 ), "%'--no-abbrev'%: do not abbreviate SHA values." } ;
 ErrorId MsgSupp::OptionMerges             = { ErrorOf( ES_SUPP, 346, E_INFO, EV_NONE, 0 ), "%'--merges'%: display only merge commits" } ;
 ErrorId MsgSupp::OptionInstall            = { ErrorOf( ES_SUPP, 338, E_INFO, EV_NONE, 0 ), "%'--install'%: submit extension file into extension depot." } ;
 ErrorId MsgSupp::OptionCreateSampleExt    = { ErrorOf( ES_SUPP, 345, E_INFO, EV_NONE, 0 ), "%'--sample'%: create a sample extension." } ;
 ErrorId MsgSupp::OptionParentNumber       = { ErrorOf( ES_SUPP, 344, E_INFO, EV_NONE, 0 ), "%'--parent-number'%: undo the change relative to the specified parent" } ;
 ErrorId MsgSupp::OptionUndo               = { ErrorOf( ES_SUPP, 342, E_INFO, EV_NONE, 0 ), "%'--undo'%: back out some existing commits" } ;
 ErrorId MsgSupp::OptionPkgExtension       = { ErrorOf( ES_SUPP, 347, E_INFO, EV_NONE, 0 ), "%'--package'%: generate extension package." } ;
+ErrorId MsgSupp::OptionPath               = { ErrorOf( ES_SUPP, 353, E_INFO, EV_NONE, 0 ), "%'--path'%: affected path." } ;
 ErrorId MsgSupp::OptionRepoName2          = { ErrorOf( ES_SUPP, 323, E_INFO, EV_NONE, 0 ), "%'--repo (-n)'%: specifies the repo." } ;
 ErrorId MsgSupp::OptionRetry              = { ErrorOf( ES_SUPP, 318, E_INFO, EV_NONE, 0 ), "%'--retry (-R)'%: retry transfer of files that failed to transfer." } ;
 ErrorId MsgSupp::OptionReference          = { ErrorOf( ES_SUPP, 325, E_INFO, EV_NONE, 0 ), "%'--reference (-r)'%: specifies the reference." } ;
@@ -385,7 +390,28 @@ ErrorId MsgSupp::JsmnKeyNotFound          = { ErrorOf( ES_SUPP, 317, E_FAILED, E
 ErrorId MsgSupp::ManifestKeyNotFound      = { ErrorOf( ES_SUPP, 339, E_FAILED, EV_CONFIG, 1 ), "The \"%tname%\" key is required in the extension manifest." } ;
 ErrorId MsgSupp::ManifestValueEmpty       = { ErrorOf( ES_SUPP, 340, E_FAILED, EV_CONFIG, 1 ), "The \"%tname%\" value is empty. It is required in the extension manifest." } ;
 ErrorId MsgSupp::ManifestValueTypeInvalid = { ErrorOf( ES_SUPP, 341, E_FAILED, EV_CONFIG, 1 ), "The key \"%tname%\" was expected to have a value with the type of \"%expected%\", but was \"%observed%\"." } ;
+ErrorId MsgSupp::ManifestParseError       = { ErrorOf( ES_SUPP, 357, E_FAILED, EV_CONFIG, 1 ), "Manifest file failed to parse:  %error%" } ;
 ErrorId MsgSupp::InvalidIntegerRange      = { ErrorOf( ES_SUPP, 351, E_FAILED, EV_USAGE, 3 ), "Invalid range for '%value%'. Must be between '%min%' and '%max%'." } ;
+ErrorId MsgSupp::OptionNoSync             = { ErrorOf( ES_SUPP, 361, E_INFO, EV_NONE, 0 ), "%'--no-sync'%: do not sync after switch." } ;
+ErrorId MsgSupp::OptionNoScript           = { ErrorOf( ES_SUPP, 354, E_INFO, EV_NONE, 0 ), "%'--no-script'%: do not run client-side Extensions." } ;
+ErrorId MsgSupp::OptionScriptLang         = { ErrorOf( ES_SUPP, 355, E_INFO, EV_NONE, 0 ), "%'--script-lang'%: script implementation language name." } ;
+ErrorId MsgSupp::OptionScriptLangVersion  = { ErrorOf( ES_SUPP, 356, E_INFO, EV_NONE, 0 ), "%'--script-lang-version'%: script implementation language version." } ;
+ErrorId MsgSupp::OptionChangeStart        = { ErrorOf( ES_SUPP, 359, E_INFO, EV_NONE, 0 ), "%'--start (-s)'%: show integrations from this change forward." } ;
+ErrorId MsgSupp::OptionIntoOnly           = { ErrorOf( ES_SUPP, 360, E_INFO, EV_NONE, 0 ), "%'--into-only'%: show integrations from the named path only." } ;
+ErrorId MsgSupp::OptionScriptAPIVersion   = { ErrorOf( ES_SUPP, 362, E_INFO, EV_NONE, 0 ), "%'--script-api-version'%: script API version." } ;
+ErrorId MsgSupp::OptionRunExtensionCmd    = { ErrorOf( ES_SUPP, 363, E_INFO, EV_NONE, 0 ), "%s'--run'%: run an Extension-supplied command." } ;
+ErrorId MsgSupp::OptionShowMemInfo        = { ErrorOf( ES_SUPP, 364, E_INFO, EV_NONE, 0 ), "%'--show-mem-info'%: report process memory statistics on exit." } ;
+ErrorId MsgSupp::FatalLockError           = { ErrorOf( ES_SUPP, 366, E_FAILED, EV_FAULT, 2 ), "Unrecoverable lock error '%file%' (%errmsg%)." } ;
+ErrorId MsgSupp::OptionRepair             = { ErrorOf( ES_SUPP, 384, E_INFO, EV_NONE, 0 ), "%'--repair'%: attempt to edit malformed spec, likely caused by unsupported spec edits." } ;
+ErrorId MsgSupp::OptionDeleteItem         = { ErrorOf( ES_SUPP, 367, E_INFO, EV_NONE, 0 ), "%'--delete (-d)'%: specifies that the object should be deleted." } ;
+ErrorId MsgSupp::OptionTarget             = { ErrorOf( ES_SUPP, 369, E_INFO, EV_NONE, 0 ), "%'--target (-t)'%: target server to be monitored." } ;
+ErrorId MsgSupp::OptionInterval           = { ErrorOf( ES_SUPP, 370, E_INFO, EV_NONE, 0 ), "%'--interval (-i)'%: time in milliseconds between heartbeat requests." } ;
+ErrorId MsgSupp::OptionWait               = { ErrorOf( ES_SUPP, 371, E_INFO, EV_NONE, 0 ), "%'--wait (-w)'%: time in milliseconds to wait after request until heartbeat is declared missing." } ;
+ErrorId MsgSupp::OptionMissingInterval    = { ErrorOf( ES_SUPP, 372, E_INFO, EV_NONE, 0 ), "%'--missing-interval (-m)'%: time in milliseconds between heartbeat requests after a missing response." } ;
+ErrorId MsgSupp::OptionMissingWait        = { ErrorOf( ES_SUPP, 373, E_INFO, EV_NONE, 0 ), "%'--missing-wait (-r)'%: time in milliseconds to wait after request until heartbeat is considered to have not been resumed." } ;
+ErrorId MsgSupp::OptionMissingCount       = { ErrorOf( ES_SUPP, 374, E_INFO, EV_NONE, 0 ), "%'--missing-count (-c)'%: max number of consecutive missing responses before heartbeat is declared dead." } ;
+ErrorId MsgSupp::OptionSwitchStreamUnrelated  = { ErrorOf( ES_SUPP, 389, E_INFO, EV_NONE, 0 ), "%'--allow-unrelated'%: required when switching to stream in a different stream hierarchy." } ;
+ErrorId MsgSupp::OptionLocalLicense       = { ErrorOf( ES_SUPP, 398, E_INFO, EV_NONE, 0 ), "%'--local (-l)'%: this server only." } ;
 
 // ErrorId graveyard'%: retired/deprecated ErrorIds.
 

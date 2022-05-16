@@ -51,6 +51,9 @@ class MsgGraph {
 	static ErrorId UseGraphLFSPush;
 	static ErrorId UseGraphLFSFetch;
 	static ErrorId UseGraphLFSStat;
+	static ErrorId UseGraphLFSLock;
+	static ErrorId UseGraphLFSUnlock;
+	static ErrorId UseGraphLFSLocks;
 	static ErrorId UseGraphSubmodule;
 	static ErrorId UseGraphVerify;
 	static ErrorId UsePermissionG;
@@ -149,6 +152,7 @@ class MsgGraph {
 	static ErrorId InvalidReference;
 	static ErrorId InvalidRepoRef;
 	static ErrorId InvalidRepo;
+	static ErrorId IndexFileMissing;
 	static ErrorId PackObjectCount;
 	static ErrorId PackObjectMissing;
 	static ErrorId PackFileMissing;
@@ -158,6 +162,12 @@ class MsgGraph {
 	static ErrorId NotASha256;
 	static ErrorId LFSShaMismatch;
 	static ErrorId LFSAlreadyPresent;
+	static ErrorId LFSLockIdNotFound;
+	static ErrorId LFSLockPathNotFound;
+	static ErrorId LFSLockNotOwner;
+	static ErrorId LFSLockNoLock;
+	static ErrorId NotLFSFile;
+	static ErrorId FileNotInRepo;
 	static ErrorId AtomicPushFailed;
 	static ErrorId TriggerErrorMessage;
 	static ErrorId UseRepo;
@@ -285,10 +295,13 @@ class MsgGraph {
 	static ErrorId LsTree;
 	static ErrorId LsTreeNameOnly;
 	static ErrorId MergeConflict;
+	static ErrorId MergeConflictSubMod;
 	static ErrorId MergeNotText;
 	static ErrorId MergeSkippedResolve;
 	static ErrorId CantSubmitEmpty;
 	static ErrorId LFSDisabled;
+	static ErrorId LFSLock;
+	static ErrorId LFSLockDelete;
 	static ErrorId UseUpdateRef;
 	static ErrorId RepoIndexAlready;
 	static ErrorId RepoIndexNone;
@@ -346,6 +359,7 @@ class MsgGraph {
 	static ErrorId HaveSpecificNoRev;
 	static ErrorId NotOnReplica;
 	static ErrorId CommitFileLogOneline;
+	static ErrorId CommitFileLogOnelineTree;
 	static ErrorId WarnNoWriteAccess;
 	static ErrorId BadParentNumber;
 	static ErrorId RefTagUpdateNoForce;

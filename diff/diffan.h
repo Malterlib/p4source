@@ -19,6 +19,8 @@
  *	SymmetricVector - array with index symmetric about 0
  */
 
+class VSequence;
+
 struct Snake {
 	Snake 	*next;
 	// u-x == v-y 'cause they match
@@ -55,18 +57,18 @@ class DiffAnalyze {
 
     public:
 
-	DiffAnalyze( Sequence *fromFile, Sequence *toFile, int fastMaxD = 0);
+	DiffAnalyze( VSequence *fromFile, VSequence *toFile, int fastMaxD = 0);
 	~DiffAnalyze();
 
-	Sequence	*GetFromFile() { return A; };
-	Sequence	*GetToFile() { return B; };
+	VSequence	*GetFromFile() { return A; };
+	VSequence	*GetToFile() { return B; };
 	Snake		*GetSnake() { return FirstSnake; };
 
     private:
 
 	LineNo		maxD;
-	Sequence	*A;
-	Sequence	*B;
+	VSequence	*A;
+	VSequence	*B;
 
 	Snake 		*FirstSnake;
 	Snake		*LastSnake;

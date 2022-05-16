@@ -17,20 +17,25 @@
 # endif
 
 # include <debug.h>
-# include <strbuf.h>
-# include <strdict.h>
+# include <tunable.h>
+# include "clientapi.h"
 # include <strtable.h>
 # include <strarray.h>
+# include "clientmerge.h"
+# include "clientusercolor.h"
 # include <strops.h>
 # include <splr.h>
 # include <error.h>
+# include <p4libs.h>
 # include <errornum.h>
 # include <options.h>
-# include <handler.h>
 # include <rpc.h>
-
 # include <pathsys.h>
-# include <filesys.h>
+
+# include "client.h"
+# include "clientuserdbg.h"
+# include "clientusermsh.h"
+# include "clientaliases.h"
 
 # include <ident.h>
 # include <ticket.h>
@@ -43,20 +48,16 @@
 # include <hostenv.h>
 # include <errorlog.h>
 # include <ignore.h>
-# include <p4tags.h>
 # include <md5.h>
+# include <msgscript.h>
+# include <string>
+# include <dmextension.h>
+# include <dmextension_c.h>
 # include <p4script.h>
+# include "clientscript.h"
 
 # include <msgclient.h>
 # include <msgsupp.h>
-
-# include "client.h"
-# include "clientmerge.h"
-# include "clientuser.h"
-# include "clientusercolor.h"
-# include "clientuserdbg.h"
-# include "clientusermsh.h"
-# include "clientaliases.h"
 
 # if defined(OS_NT) && (_MSC_VER >= 1900)
 extern "C" errno_t __cdecl _p4_configure_narrow_argv(_crt_argv_mode const mode);
@@ -87,6 +88,10 @@ static const char long_usage[] =
 "	-V		print client version\n"
 "	-x file		read named files as xargs\n"
 "	-G		format input/output as marshalled Python objects\n"
+# if defined( HAS_CPP11 ) && !defined( HAS_BROKEN_CPP11 )
+"	-Mj		format output as line-delimited JSON objects, with\n"
+"			non-UTF8 characters replaced with U+FFFD.\n"
+# endif
 "	-z tag		format output as 'tagged' (like fstat)\n"
 "	-I		show progress indicators\n"
 "\n"
@@ -174,12 +179,19 @@ main( int argc, char **argv )
 
 	AssertLog.SetTag( "Perforce client" );
 
+	P4Libraries::Initialize( P4LIBRARIES_INIT_ALL, &e );
+	AssertLog.Abort( &e );
+
 	strncpy( argv0, argv[0], sizeof( argv0 ) - 1 );
 
 	int uidebug = 0;
 	int ret = clientMain( --argc, ++argv, uidebug, &e );
 
 	AssertLog.Report( &e );
+
+	e.Clear();
+	P4Libraries::Shutdown( P4LIBRARIES_INIT_ALL, &e );
+	AssertLog.Abort( &e );
 
 	if( uidebug )
 	    printf( "exit: %d\n", ret );
@@ -197,7 +209,7 @@ main( int argc, char **argv )
 }
 
 void
-setVarsAndArgs( Client &client, int argc, char **argv, Options &opts)
+setVarsAndArgs( ClientApi &client, int argc, char **argv, Options &opts)
 {
 	// Set the version used in server log and monitor output
 	StrBuf v;
@@ -243,7 +255,10 @@ static int clientLongOpts[] = { Options::Client,
 	                   Options::Variable, Options::Xargs, 
 	                   Options::Aliases, Options::Field,
 	                   Options::Color, Options::Script,
-	                   Options::ScriptMaxMem, Options::ScriptMaxTime, 0 };
+	                   Options::ScriptMaxMem, Options::ScriptMaxTime,
+	                   Options::NoScript, Options::ScriptLang,
+	                   Options::ScriptLangVersion, Options::ScriptAPIVersion,
+	                   0 };
 
 static const char *clientOptFlags =
 	"?b:c:C:d:eE:F:GRhH:M:p:P:l:L:qQ:r#sIu:v:Vx:z:Z:"; 
@@ -284,7 +299,7 @@ clientParseOptions( Options &opts, int &argc, char **&argv, Error *e )
 }
 
 void
-clientSetVariables( Client &client, Options &opts )
+clientSetVariables( ClientApi &client, Options &opts )
 {
 	StrPtr *s;
 	if( s = opts[ 'c' ] ) client.SetClient( s );
@@ -296,7 +311,7 @@ clientSetVariables( Client &client, Options &opts )
 }
 
 int
-clientPrepareEnv( Client &client, Options &opts, Enviro &enviro )
+clientPrepareEnv( ClientApi &client, Options &opts, Enviro &enviro )
 {
 	// Misc -E environment updates
 
@@ -429,16 +444,11 @@ clientRunCommand(
 	if( p4debug.GetLevel( DT_TIME ) >= 1 )
 	    debugHelper.Install();
 
-	if( opts[ Options::Script ] )
-	{
-	    p4script scr( P4SCRIPT_LUA_53, e );
-	    if( s = opts[ Options::ScriptMaxMem ] )
-	        scr.SetMaxMem( (scriptMem_t)s->Atoi64() );
-	    if( s = opts[ Options::ScriptMaxTime ] )
-	        scr.SetMaxTime( s->Atoi64() );
-	    s = opts[ Options::Script ];
-	    return !scr.doFile( s->Text(), e ) || e->Test();
-	}
+	// Always explicitly disable it in unoptimized builds.
+#ifdef USE_OPTIMIZED_ZLIB
+	if( p4tunable.Get( P4TUNE_ZLIB_DISABLE_OPTIM ) )
+#endif
+	    P4Libraries::DisableZlibOptimization();
 
 	// If we recognize the command (merge3, set), do it now */
 
@@ -484,7 +494,7 @@ clientRunCommand(
 	        return clientLegalHelp( e );
 	}
 
-	Client client;
+	ClientApi client;
 	Enviro enviro;
 	if( clientPrepareEnv( client, opts, enviro ) )
 	    return 1;
@@ -497,7 +507,8 @@ clientRunCommand(
 	    client.SetPassword( s );
 	    memset( s->Text(), '\0', s->Length() );
 	}
-	client.SetExecutable( argv0 );
+	StrBuf argv0B( argv0 );
+	client.SetExecutable( &argv0B );
 
 	// Specify a batch size
 
@@ -539,6 +550,91 @@ clientRunCommand(
 	// Set the client program name
 	client.SetProg( "p4" );
 
+	if( !opts[ Options::NoScript ] )
+	{
+	    Error eIgnore;
+	    client.EnableExtensions( &eIgnore );
+	}
+
+	if( ( s = opts[ Options::Script ] ) )
+	{
+	    const StrPtr* script = s;
+# ifdef HAS_EXTENSIONS
+	    Client client1;
+	    client1.SetArgv( argc, argv );
+	    ClientUser ui;
+	    std::unique_ptr< ExtensionCallerData >
+	        ecdC( new ExtensionCallerDataC );
+	    auto ecd = (ExtensionCallerDataC*)ecdC.get();
+	    ecd->sourcePath = script->Text();
+	    int apiVersion = 99999;
+	    if( ( s = opts[ Options::ScriptAPIVersion ] ) )
+	        apiVersion = s->Atoi();
+	    ecd->apiVersion = apiVersion;
+	    ecd->client = &client1;
+	    ecd->ui = &ui;
+
+	    StrBuf lang = "Lua";
+
+	    SCR_VERSION dv = ClientScript::scrVerFromFileName( script->Text() );
+	    SCR_VERSION v = dv == P4SCRIPT_UNKNOWN ? P4SCRIPT_LUA_53 : dv;
+
+	    if( ( s = opts[ Options::ScriptLang ] ) )
+	        if( s->CCompare( StrRef( "lua"  ) ) )
+	        {
+	            e->Set( MsgScript::ScriptLangUnknown ) << s;
+	            return 1;
+	        }
+	        else
+	            lang = *s;
+
+	    if( ( s = opts[ Options::ScriptLangVersion ] ) )
+	        if( *s != "53" )
+	        {
+	            e->Set( MsgScript::ScriptLangVerUnknown ) << lang << s;
+	            return 1;
+	        }
+
+	    ExtensionClient scr( v, apiVersion, std::move( ecdC ), e );
+# else
+	    ExtensionClient scr( P4SCRIPT_UNKNOWN, NULL, e );
+# endif
+	    if( e->Test() )
+	        return 1;
+	    if( s = opts[ Options::ScriptMaxMem ] )
+	        scr.SetMaxMem( (scriptMem_t)s->Atoi64() );
+	    if( s = opts[ Options::ScriptMaxTime ] )
+	        scr.SetMaxTime( s->Atoi64() );
+	    s = opts[ Options::Script ];
+
+	    std::string c_port = client.GetPort().Text();
+	    std::string c_language = client.GetLanguage().Text();
+	    std::string c_host = client.GetHost().Text();
+	    std::string c_user = client.GetUser().Text();
+	    std::string c_version = client.GetVersion().Text();
+	    std::string c_charset = client.GetCharset().Text();
+	    std::string c_client = client.GetClient().Text();
+
+# ifdef HAS_EXTENSIONS
+	    auto fn = [=]( ClientApi& ca )
+	    {
+	        ca.SetPort( c_port.c_str() );
+	        ca.SetLanguage( c_language.c_str() );
+	        ca.SetHost( c_host.c_str() );
+	        ca.SetUser( c_user.c_str() );
+	        ca.SetVersion( c_version.c_str() );
+	        ca.SetCharset( c_charset.c_str() );
+	        ca.SetClient( c_client.c_str() );
+	    };
+	    scr.ConfigBinding( P4SCRIPT_CLIENTAPI,
+	                       p4_std_any::p4_any
+	        ( static_cast< std::function< void( ClientApi& ) > >( fn ) ), e );
+# endif
+
+	    return !scr.doFile( script->Text(), e ) || e->Test();
+	}
+
+
     restart:
 
 	// Connect.
@@ -556,29 +652,34 @@ clientRunCommand(
 	if( !( ui = callerUI ) ) {
 
 	if( opts[ 's' ] )
-	    ui = new ClientUserDebug;
+	    ui = new ClientUserDebug( client.GetAPI() );
 	else if( opts[ 'e' ] )
-	    ui = new ClientUserDebugMsg;
+	    ui = new ClientUserDebugMsg( client.GetAPI() );
 	else if( opts[ 'F' ] )
-	    ui = new ClientUserFmt( opts[ 'F' ] );
+	    ui = new ClientUserFmt( opts[ 'F' ], client.GetAPI() );
 	else if( opts[ Options::Field ] )
-	    ui = new ClientUserMunge( opts );
+	    ui = new ClientUserMunge( opts, client.GetAPI() );
 	else if( opts[ 'G' ] )
-	    ui = new ClientUserPython;
+	    ui = new ClientUserPython( client.GetAPI() );
 	else if( opts[ 'R' ] )
-	    ui = new ClientUserRuby;
+	    ui = new ClientUserRuby( client.GetAPI() );
 	else if( ( s = opts[ 'M' ] ) && ( *s == "g" ) )
-	    ui = new ClientUserPython;
+	    ui = new ClientUserPython( client.GetAPI() );
+# if defined( HAS_CPP11 ) && !defined( HAS_BROKEN_CPP11 )
+	else if( ( s = opts[ 'M' ] ) && ( *s == "j" ) )
+	    ui = new ClientUserJSON( client.GetAPI() );
+# endif
 	else if( ( s = opts[ 'M' ] ) && ( *s == "r" ) )
-	    ui = new ClientUserRuby;
+	    ui = new ClientUserRuby( client.GetAPI() );
 	else if( ( s = opts[ 'M' ] ) && ( *s == "p" ) )
-	    ui = new ClientUserPhp;
+	    ui = new ClientUserPhp( client.GetAPI() );
 	else if( opts[ 'I' ] )
-	    ui = new ClientUserProgress( 1 );
+	    ui = new ClientUserProgress( 1, client.GetAPI() );
 	else if( enviro.Get( "P4COLORS" ) && strlen(enviro.Get( "P4COLORS" )) )
-	    ui = new ClientUserColor( opts[ Options::Color ] ? 1 : 0 );
+	    ui = new ClientUserColor( opts[ Options::Color ] ? 1 : 0, 1,
+	                              client.GetAPI() );
 	else
-	    ui = new ClientUser( 1 );
+	    ui = new ClientUser( 1, client.GetAPI() );
 
 	if( opts[ 'q' ] )
 	    ui->SetQuiet();
@@ -638,10 +739,7 @@ clientRunCommand(
 		    if( !nwords )
 	                continue; //blank line in file
 
-	            setVarsAndArgs( client, argc, argv, opts );
-
-	            for( int i = 1; i < nwords; i++ )
-		        client.translated->SetVar( "", words[ i ] );
+	            setVarsAndArgs( client, nwords, words, opts );
 
 		    client.Run( words[0], ui );
 		    fflush( stdout );
@@ -691,7 +789,7 @@ clientRunCommand(
 
 		    // Set this arg.
 
-		    client.translated->SetVar( "", &s );
+		    client.SetVar( "", &s );
 		}
 
 		// Dispatch
@@ -724,7 +822,7 @@ clientRunCommand(
 		{
 		    if( !count )
 			setVarsAndArgs( client, argc, argv, opts );
-		    client.translated->SetVar( "", &s );
+		    client.SetVar( "", &s );
 		}
 
 		if( eof ? count : ++count == batchSize )

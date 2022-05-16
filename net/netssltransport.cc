@@ -109,13 +109,16 @@ extern "C"
 
 const char *P4SslVersionString = OPENSSL_VERSION_TEXT;
 unsigned long sCompileVersion =  OPENSSL_VERSION_NUMBER;
+
 unsigned long sVersion1_0_0 =  0x1000000f;
 const char *sVerStr1_0_0 = "1.0.0";
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
 # ifdef OS_NT
 static HANDLE mutexArray[ CRYPTO_NUM_LOCKS ];
 # else
 static pthread_mutex_t mutexArray[ CRYPTO_NUM_LOCKS ];
 # endif
+# endif // !OpenSSL 1.1
 
 typedef struct {
     int		value;
@@ -230,16 +233,21 @@ NetSslTransport::NetSslTransport( int t, bool fromClient )
 	this->ssl = NULL;
 	this->clientNotSsl = false;
 	cipherSuite.Set("encrypted");
+	customCipherList = 0;
+	customCipherSuites = 0;
 }
 
 NetSslTransport::NetSslTransport( int t, bool fromClient,
-				NetSslCredentials &cred )
+				NetSslCredentials &cred, StrPtr *cipherList,
+				StrPtr *cipherSuites )
     : NetTcpTransport( t, fromClient ), credentials(cred)
 {
 	this->bio = NULL;
 	this->ssl = NULL;
 	this->clientNotSsl = false;
 	cipherSuite.Set("encrypted");
+	customCipherList = cipherList;
+	customCipherSuites = cipherSuites;
 }
 NetSslTransport::~NetSslTransport()
 {
@@ -256,14 +264,14 @@ NetSslTransport::~NetSslTransport()
 # endif
 
 SSL_CTX *
-NetSslTransport::CreateAndInitializeSslContext(const char *conntypename)
+NetSslTransport::CreateAndInitializeSslContext( const char *conntypename )
 {
     char	msgbuf[128];
-    size_t	bufsize = sizeof(msgbuf) - 1;
+    size_t	bufsize = sizeof( msgbuf ) - 1;
 
     SNPRINTF1( msgbuf, bufsize,
-	    "NetSslTransport::Ssl%sInit - Initializing CTX structure.",
-	    conntypename );
+	       "NetSslTransport::Ssl%sInit - Initializing CTX structure.",
+	       conntypename );
     TRANSPORT_PRINT_VAR( SSLDEBUG_FUNCTION, msgbuf );
 
     /*
@@ -287,9 +295,9 @@ NetSslTransport::CreateAndInitializeSslContext(const char *conntypename)
      *	the effect is to also disable all subsequent protocol versions."
      */
 
-    /*
-     * Start by allowing all protocol versions
-     */
+     /*
+      * Start by allowing all protocol versions
+      */
 
     SSL_CTX	*ctxp = SSL_CTX_new( SSLv23_method() );
     SNPRINTF1( msgbuf, bufsize, "NetSslTransport::Ssl%sInit SSL_CTX_new", conntypename );
@@ -335,6 +343,9 @@ NetSslTransport::CreateAndInitializeSslContext(const char *conntypename)
 	{ 10,	SSL_OP_NO_TLSv1,	"NO_TLSv1.0" },
 	{ 11,	SSL_OP_NO_TLSv1_1,	"NO_TLSv1.1" },
 	{ 12,	SSL_OP_NO_TLSv1_2,	"NO_TLSv1.2" },
+# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+	{ 13,	SSL_OP_NO_TLSv1_3,	"NO_TLSv1.3" },
+# endif
 	{ 0,	0,			NULL}
     };
 
@@ -344,18 +355,16 @@ NetSslTransport::CreateAndInitializeSslContext(const char *conntypename)
      */
     if( tlsmin < 10 )
 	tlsmin = 10;
-    if( tlsmin > 12 )
-	tlsmin = 12;
+    if( tlsmin > 13 )
+	tlsmin = 13;
 
     if( tlsmax < 10 )
 	tlsmax = 10;
-    if( tlsmax > 12 )
-	tlsmax = 12;
 
     if( SSLDEBUG_FUNCTION )
     {
 	p4debug.printf( "NetSslTransport::Ssl%sInit tlsmin=%d, tlsmax=%d\n",
-	    conntypename, tlsmin, tlsmax );
+			conntypename, tlsmin, tlsmax );
     }
 
     // disallow protocols below the requested minimum
@@ -365,8 +374,8 @@ NetSslTransport::CreateAndInitializeSslContext(const char *conntypename)
 	{
 	    SSL_CTX_set_options( ctxp, vp->proto );
 	    SNPRINTF2( msgbuf, bufsize,
-		"NetSslTransport::Ssl%sInit SSL_CTX_set_options(%s)",
-		conntypename, vp->name );
+		       "NetSslTransport::Ssl%sInit SSL_CTX_set_options(%s)",
+		       conntypename, vp->name );
 	    SSLLOGFUNCTION( msgbuf );
 	}
     }
@@ -378,11 +387,22 @@ NetSslTransport::CreateAndInitializeSslContext(const char *conntypename)
 	{
 	    SSL_CTX_set_options( ctxp, vp->proto );
 	    SNPRINTF2( msgbuf, bufsize,
-		"NetSslTransport::Ssl%sInit SSL_CTX_set_options(%s)",
-		conntypename, vp->name );
+		       "NetSslTransport::Ssl%sInit SSL_CTX_set_options(%s)",
+		       conntypename, vp->name );
 	    SSLLOGFUNCTION( msgbuf );
 	}
     }
+
+#ifdef SSL_OP_NO_ENCRYPT_THEN_MAC
+    if( !p4tunable.Get( P4TUNE_SSL_ENABLE_ETM ) )
+    {
+	SSL_CTX_set_options( ctxp, SSL_OP_NO_ENCRYPT_THEN_MAC );
+	SNPRINTF2( msgbuf, bufsize,
+		       "NetSslTransport::Ssl%sInit SSL_CTX_set_options(%s)",
+		       conntypename,"SSL_OP_NO_ENCRYPT_THEN_MAC" );
+	SSLLOGFUNCTION( msgbuf );
+    }
+#endif
 
     return ctxp;
 }
@@ -395,6 +415,7 @@ NetSslTransport::CreateAndInitializeSslContext(const char *conntypename)
  * @param error structure
  * @return none
  */
+
 void
 NetSslTransport::SslClientInit(Error *e)
 {
@@ -416,11 +437,13 @@ NetSslTransport::SslClientInit(Error *e)
 
 	if( !sClientCtx )
 	{
-#ifdef OS_NT
+# ifdef OS_NT
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
 	    InitLockCallbacks( e );
 	    if( e->Test())
 		return;
-#endif // OS_NT
+# endif // !OpenSSL 1.1
+# endif // OS_NT
 
 	    ValidateRuntimeVsCompiletimeSSLVersion( e );
 	    if( e->Test() )
@@ -429,15 +452,19 @@ NetSslTransport::SslClientInit(Error *e)
 			"Version mismatch between compile OpenSSL version and runtime OpenSSL version." );
 		return;
 	    }
-
+	    
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
 	    /*
 	     * Added due to job084753: Swarm is a web app that reuses processes.
 	     * For some reason in this environment the SSL error stack is not removed
 	     * when the process is reused so we need to explicitly remove any previous
 	     * state prior to setting up a new SSL Context.
+	     *
+	     * Deprecated in OpenSSL 1.1.0
 	     */
 	    ERR_remove_thread_state(NULL);
 	    // probably cannot check for error return from this call :-)
+# endif // !OpenSSL 1.1
 
 	    SSL_load_error_strings();
 	    SSLCHECKERROR( e,
@@ -495,6 +522,7 @@ NetSslTransport::GetPeerFingerprint(StrBuf &value)
  * @param error structure
  * @return nothing
  */
+
 void
 NetSslTransport::SslServerInit(StrPtr *hostname, Error *e)
 {
@@ -516,12 +544,15 @@ NetSslTransport::SslServerInit(StrPtr *hostname, Error *e)
 
 	if( !sServerCtx )
 	{
-#ifdef OS_NT
+# ifdef OS_NT
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
 	    InitLockCallbacks( e );
 	    if( e->Test())
 		return;
-#endif // OS_NT
+# endif // !OpenSSL 1.1
+# endif // OS_NT
 
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
 	    /*
 	     * Added due to job084753: Swarm is a web app that reuses client processes.
 	     * See the SslClientInit code for more info.
@@ -529,9 +560,12 @@ NetSslTransport::SslServerInit(StrPtr *hostname, Error *e)
 	     * Adding the fix to the SslClientInit here on the server side to be
 	     * symmetric and to make sure that later we do not see a similar problem
 	     * here. (Currently, we have not seen this issue on the server side.)
+	     *
+	     * Deprecated in OpenSSL 1.1.0
 	     */
 	    ERR_remove_thread_state(NULL);
 	    // probably cannot check for error return from this call :-)
+# endif // !OpenSSL 1.1
 
 	    SSL_load_error_strings();
 	    SSLCHECKERROR( e,
@@ -635,20 +669,44 @@ NetSslTransport::DoHandshake( Error *e )
 	{
 	    ssl = SSL_new( sServerCtx );
 	    SSLNULLHANDLER( ssl, e, "NetSslTransport::DoHandshake SSL_new", fail );
-	    if ( p4tunable.Get( P4TUNE_SSL_SECONDARY_SUITE ) )
+	    if( customCipherList )
+	    {
+		SSL_set_cipher_list( ssl, customCipherList->Text() );
+		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_cipher_list custom" );
+	    }
+	    else if ( p4tunable.Get( P4TUNE_SSL_SECONDARY_SUITE ) )
 	    {
 		SSL_set_cipher_list( ssl, SSL_SECONDARY_CIPHER_SUITE );
 		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_cipher_list secondary" );
-	    } else
+	    }
+	    else
 	    {
 		SSL_set_cipher_list( ssl, SSL_PRIMARY_CIPHER_SUITE );
 		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_cipher_list primary" );
 	    }
+
+# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+	    // TLS 1.3 can send session-resumption info after the main handshake, which
+	    // will cause us to hang, so since we don't use sessions, disable that.
+	    SSL_set_num_tickets( ssl, 0 );
+	    
+	    if( customCipherSuites )
+	    {
+		SSL_set_ciphersuites( ssl, customCipherSuites->Text() );
+		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_ciphersuites custom" );
+	    }
+# endif
 	}
 	else
 	{
 	    ssl = SSL_new( sClientCtx );
 	    SSLNULLHANDLER( ssl, e, "NetSslTransport::DoHandshake SSL_new", fail );
+
+	    StrBuf suites;
+	    suites << SSL_PRIMARY_CIPHER_SUITE << ":"
+	           << SSL_SECONDARY_CIPHER_SUITE << ":HIGH";
+	    SSL_set_cipher_list( ssl, suites.Text() );
+	    SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_cipher_list primary+secondary+high" );
 	}
 
 	/*
@@ -777,15 +835,16 @@ NetSslTransport::SslHandshake( Error *e )
 	int       readable;
 	int       writable;
 	int       counter = 0;
-	/* select timeout */
-	const int tv = HALF_SECOND;
 	int	  sslClientTimeoutMs
 	    = p4tunable.Get( P4TUNE_SSL_CLIENT_TIMEOUT ) * 1000;
 	DateTimeHighPrecision dtBeforeSelect, dtAfterSelect;
-	int maxwait = p4tunable.Get( P4TUNE_NET_MAXWAIT ) * 1000;
-	if( maxwait && 
-	    ( sslClientTimeoutMs == 0 || maxwait < sslClientTimeoutMs ) )
+	int maxwait = GetMaxWait();
+	if( maxwait && maxwait > sslClientTimeoutMs )
 	    sslClientTimeoutMs = maxwait;
+
+	/* select timeout */
+	const int tv = !maxwait || maxwait > HALF_SECOND ?
+	    HALF_SECOND : maxwait;
 
 	while ( !done )
 	{
@@ -851,7 +910,9 @@ NetSslTransport::SslHandshake( Error *e )
 			{
 			    // Timeout code for new client using SSL going against old server.
 			    if(!isAccepted && (counter > sslClientTimeoutMs)) {
-				TRANSPORT_PRINTF( SSLDEBUG_ERROR,"NetSslTransport::SslHandshake failed on client side: %d", errorRet);
+				TRANSPORT_PRINTF( SSLDEBUG_ERROR,
+				    "NetSslTransport::SslHandshake failed on client side: %d (timeout after %dms)",
+				    errorRet, counter);
 				e->Set( MsgRpc::SslConnect) << GetPortParser().String();
 				Close();
 				return false;
@@ -888,11 +949,13 @@ NetSslTransport::SslHandshake( Error *e )
 		ERR_error_string( ERR_get_error(), sslErrorBuf );
 		TRANSPORT_PRINTF( SSLDEBUG_ERROR, "Handshake Failed: %s", sslErrorBuf );
 		e->Set( MsgRpc::SslProtocolError ) << sslErrorBuf;
-		return false;
-		break;
 	    default:
 		StrBuf errBuf;
-		if( Error::IsNetError() )
+		if( errorRet == SSL_ERROR_SSL )
+		{
+		    errBuf.Set( " (SSL protocol error)" );
+		}
+		else if( Error::IsNetError() )
 		{
 		    StrBuf tmp;
 		    Error::StrNetError( tmp );
@@ -970,11 +1033,10 @@ NetSslTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	int  doWrite = 0;
 
 	int dataReady;
-	int maxwait = p4tunable.Get( P4TUNE_NET_MAXWAIT );
+	int maxwait = GetMaxWait();
 	Timer waitTime;
 	if( maxwait )
 	{
-	    maxwait *= 1000;
 	    waitTime.Start();
 	}
 
@@ -1047,7 +1109,7 @@ NetSslTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 		tv = 0;
 	    else if( (readable && breakCallback) || maxwait )
 	    {
-		tv = HALF_SECOND;
+		tv = !maxwait || maxwait > HALF_SECOND ? HALF_SECOND : maxwait;
 		if( breakCallback )
 		{
 		    int p = breakCallback->PollMs();
@@ -1175,21 +1237,21 @@ NetSslTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 		case SSL_ERROR_SYSCALL:
 		    /*
 		     * an I/O error occurred check underlying SSL ERR for info
-		     * if none then report errno
+		     * if none then report StrNetError()
 		     */
 		    errErrorNum = ERR_get_error();
 	            if ( errErrorNum == 0 )
 	            {
 	        	if( l == 0)
 	        	{
-	        	    TRANSPORT_PRINT( SSLDEBUG_ERROR, "SSL_read encountered an EOF." );
 	        	    re->Net( "read", "SSL_read encountered an EOF." );
+	        	    TRANSPORT_PRINT( SSLDEBUG_ERROR, "SSL_read encountered an EOF." );
 	        	}
 	        	else if ( l < 0 )
 	        	{
-	        	    Error::StrError(buf, errno);
-	        	    TRANSPORT_PRINTF( SSLDEBUG_ERROR, "SSL_read encountered a system error: %s", buf.Text() );
+	        	    Error::StrNetError( buf );
 	        	    re->Net( "read", buf.Text() );
+	        	    TRANSPORT_PRINTF( SSLDEBUG_ERROR, "SSL_read encountered a system error: %s", buf.Text() );
 	        	}
 	        	else
 	        	{
@@ -1207,9 +1269,9 @@ NetSslTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	            else
 	            {
 	        	ERR_error_string( errErrorNum, errErrorStr );
+	        	re->Net( "read", errErrorStr );
 	        	TRANSPORT_PRINTF( SSLDEBUG_ERROR,
 	        		"SSL_read encountered a syscall ERR: %s", errErrorStr );
-	        	re->Net( "read", errErrorStr );
 	            }
 	            re->Set( MsgRpc::SslRecv );
 	            goto end;
@@ -1217,14 +1279,14 @@ NetSslTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 		default:
 		    if( l == 0 )
 		    {
-			TRANSPORT_PRINT( SSLDEBUG_FUNCTION,
-			    "SSL_read attempted on closed connection." );
 			if( doWrite )
 			{
 			    // Error: connection was closed but we had stuff to write
 			    re->Net( "read", "socket" );
 			    re->Set( MsgRpc::SslRecv );
 			}
+			TRANSPORT_PRINT( SSLDEBUG_FUNCTION,
+			    "SSL_read attempted on closed connection." );
 			/*
 			 * Connection closed but did not shutdown SSL cleanly.
 			 * The p4 proxy will do this if the command issued by
@@ -1234,11 +1296,11 @@ NetSslTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 		    }
 
 		    /* ERROR */
+		    re->Net( "read", "socket" );
+		    re->Set( MsgRpc::SslRecv );
 		    TRANSPORT_PRINTF( SSLDEBUG_ERROR,
 			    "SSL_read returned unknown error: %d",
                                   sslError );
-		    re->Net( "read", "socket" );
-		    re->Set( MsgRpc::SslRecv );
 		    goto end;
 		}
 	    }
@@ -1304,22 +1366,22 @@ NetSslTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 		case SSL_ERROR_SYSCALL:
 		    /*
 		     * an I/O error occurred check underlying SSL ERR for info
-		     * if none then report errno
+		     * if none then report StrNetError()
 		     */
 		    errErrorNum = ERR_get_error();
 	            if ( errErrorNum == 0 )
 	            {
 	        	if( l == 0)
 	        	{
-	        	    TRANSPORT_PRINT( SSLDEBUG_ERROR, "SSL_write encountered an EOF." );
 	        	    se->Net( "write", "SSL_write encountered an EOF." );
+	        	    TRANSPORT_PRINT( SSLDEBUG_ERROR, "SSL_write encountered an EOF." );
 	        	}
 	        	else if ( l < 0 )
 	        	{
-	        	    Error::StrError(buf, errno);
+	        	    Error::StrNetError( buf );
+	        	    se->Net( "write", buf.Text() );
 	        	    TRANSPORT_PRINTF( SSLDEBUG_ERROR,
 	        		    "SSL_write encountered a system error: %s", buf.Text() );
-	        	    se->Net( "write", buf.Text() );
 	        	}
 	        	else
 	        	{
@@ -1335,9 +1397,9 @@ NetSslTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	            else
 	            {
 	        	ERR_error_string( errErrorNum, errErrorStr );
+	        	se->Net( "write", errErrorStr );
 	        	TRANSPORT_PRINTF( SSLDEBUG_ERROR,
 	        		"SSL_write encountered a syscall ERR: %s", errErrorStr );
-	        	se->Net( "write", errErrorStr );
 	            }
 	            se->Set( MsgRpc::SslSend );
 	            goto end;
@@ -1356,11 +1418,11 @@ NetSslTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 		    }
 
 		    /* ERROR */
+		    se->Net( "write", "socket" );
+		    se->Set( MsgRpc::SslSend );
 		    TRANSPORT_PRINTF( SSLDEBUG_ERROR,
 			    "SSL_write returned unknown error: %d",
                                   sslError );
-		    se->Net( "write", "socket" );
-		    se->Set( MsgRpc::SslSend );
 		    goto end;
 		}
 	    }
@@ -1410,7 +1472,7 @@ NetSslTransport::Close( void )
 	    char buf[1];
 
 	    if( selector->Select( r, w, max ) >= 0 && r )
-		read( t, buf, 1 );
+		int discard = read( t, buf, 1 );
 	}
 
 	if (ssl)
@@ -1446,7 +1508,7 @@ NetSslTransport::Close( void )
 	    char buf[1];
 
 	    if( selector->Select( r, w, max ) >= 0 && r )
-		read( t, buf, 1 );
+		int discard = read( t, buf, 1 );
 	}
 
 	NET_CLOSE_SOCKET(t);
@@ -1515,6 +1577,10 @@ NetSslTransport::GetVersionString( StrBuf &sb, unsigned long version )
 // Dynamic locking code only being used on NT in 2012.1, will be used on
 // other platforms in 2012.2 (by that time I will include pthreads to the
 // HPUX build). In 2012.1 HPUX has many compile errors for pthreads.
+//
+// OpenSSL 1.1 handles these internally so are no longer required
+
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 #ifndef OS_HPUX
 
 static void LockingFunction( int mode, int n, const char *file, int line )
@@ -1687,5 +1753,5 @@ static int ShutdownLockCallbacks( void )
 }
 
 # endif // !OS_HPUX
-
+# endif // !OpenSSL 1.1
 # endif //USE_SSL

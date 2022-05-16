@@ -24,12 +24,17 @@
 # include <strbuf.h>
 # include <strops.h>
 # include <error.h>
+# include <msgsupp.h>
 
 # include <pathsys.h>
 # include <filesys.h>
 
 # include "strarray.h"
 # include <runcmd.h>
+
+# ifdef OS_NT
+bool DoRunShell( const char *cmd );
+# endif
 
 /*
  * RunCommand::SetArgs() - clear buffer and add (quoted) args 
@@ -752,9 +757,14 @@ RunCommand::RunChild( RunArgs &cmd, int opts, int fds[2], Error *e )
 	// the shell execution since it exposed a security risk (job020599)
 
 	char *argv[CMD_ARGSIZE];
-	int argc;
+	int argc = cmd.Argc( argv, CMD_ARGSIZE );
 
-	argc = cmd.Argc( argv, CMD_ARGSIZE );
+	if( argc >= CMD_ARGSIZE )
+	{
+	    e->Set( MsgSupp::TooMany );
+	    return;
+	}
+
 	argv[argc] = 0;
 	DoRunChild( cmd.Text(), argv, opts, fds, e);
 }
@@ -835,6 +845,12 @@ RunCommand::DoRunChild( char *cmdText, char *argv[], int opts, int fds[2], Error
 
 	    wp[1] = dup( rp[0] );
 	    wp[0] = dup( rp[1] );
+
+	    if( wp[0] < 0 || wp[1] < 0 )
+	    {
+		e->Sys( "dup", strerror( errno ) );
+		return;
+	    }
 	}
 	else
 
@@ -886,19 +902,39 @@ RunCommand::DoRunChild( char *cmdText, char *argv[], int opts, int fds[2], Error
 	    // Set stdin to wp[0]
 
 	    if( 0 != wp[0] )
-		{ close( 0 ); dup( wp[0] ); close( wp[0] ); }
+	    {
+	        close( 0 );
+	        if( dup( wp[0] ) < 0 )
+	        {
+	            e->Sys( "dup", strerror( errno ) );
+	            _exit( -1 );
+	        }
+	        close( wp[0] );
+	    }
 
 	    // Set stdout to rp[1] and maybe stderr to rp[1]
 
 	    if( !( opts & RCO_USE_STDOUT ) && 1 != rp[1] )
 	    {
-		close( 1 ); dup( rp[1] );
+		close( 1 );
+	        if( dup( rp[1] ) < 0 )
+	        {
+	            e->Sys( "dup", strerror( errno ) );
+	            _exit( -1 );
+	        }
 
 		// The Server can emit logging on stderr, if using p4 rpc
 		// protocol avoid redirecting stderr to the protocol stream.
 
 		if( ~opts & RCO_P4_RPC )
-		    { close( 2 ); dup( rp[1] ); }
+		{
+	            close( 2 );
+	            if( dup( rp[1] ) < 0 )
+	            {
+	                e->Sys( "dup", strerror( errno ) );
+	                _exit( -1 );
+	            }
+	        }
 
 		close( rp[1] );
 	    }
@@ -908,7 +944,11 @@ RunCommand::DoRunChild( char *cmdText, char *argv[], int opts, int fds[2], Error
 	    // Send errno and the nil.
 
 	    buf = StrNum( errno );
-	    write( errchk[1], buf.Text(), buf.Length()+1 );
+	    if( write( errchk[1], buf.Text(), buf.Length()+1 ) < 0 )
+	    {
+	        e->Sys( "write", strerror( errno ) );
+	        _exit( -1 );
+	    }
 
 	    _exit( -1 );
 	    break;
@@ -1080,6 +1120,56 @@ RunCommand::WaitChild()
 
 # endif
 
+
+/*
+ * Helper method for launching via the shell in a way that handles default
+ * application resolving, etc (you can 'run' a URL or file to launch the
+ * appropriate application.
+ *
+ * On NT, this requires using the shellapi.
+ * On Linux and Mac, this calls xdg-open or open respectively.
+ * Other platforms are not supported: canLaunch set to 0.
+ */
+int
+RunCommand::RunShell( const StrPtr *cmd, int &canLaunch, Error *e )
+{
+	int status = 0;
+	canLaunch = 1;
+
+#if defined(OS_NT)
+	// On NT, use ShellExecuteEx (see runshell.cc to avoid header class)
+	status = !DoRunShell( cmd->Text() );
+	if( status )
+	    e->Sys( "start", cmd->Text() );
+
+#else // !OS_NT
+	// On Linux and Mac, call {xdg-,}open to handle the arg
+
+	RunArgs args;
+#if defined( OS_MACOSX ) || defined( OS_DARWIN )
+	args.AddCmd( "open" );
+	args.AddArg( cmd->Text() );
+#elif defined( OS_LINUX )
+	args.AddCmd( "xdg-open" );
+	args.AddArg( cmd->Text() );
+#else
+	canLaunch = 0;
+#endif
+	if( canLaunch )
+	{
+	    RunCommand *rc = new RunCommand;
+	    rc->abandon = true;
+	    int fds[2] = { -1, -1 };
+	    rc->RunChild( args, RCO_AS_SHELL, fds, e );
+	    if( !e->Test() && rc->PollChild( 500 ) )
+	        status = rc->WaitChild();
+	    delete rc;
+	}
+#endif // !OS_NT-end
+
+	return status;
+}
+
 /*
  *
  * RunCommandIo::Run() -- generic version built upon RunChild()
@@ -1178,7 +1268,10 @@ RunCommandIo::ReadError( Error *e )
 	}
 
 	if( !len || !WaitChild() )
+	{
+	    errBuf.Terminate();
 	    return 0;
+	}
 
 	StrOps::StripNewline( errBuf );
 

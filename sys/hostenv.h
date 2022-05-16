@@ -19,12 +19,15 @@
  */
 
 class Enviro;
+class Error;
 
 class HostEnv {
 
     public:
 	static void	GetCwdbyCS( StrBuf &result, int charset );
 	int		GetCwd( StrBuf &result, Enviro * = 0 );
+	static void	GetCwdbyCS( StrBuf &result, Error *e, int charset );
+	int		GetCwd( StrBuf &result, Error *e, Enviro * = 0 );
 	int		GetHost( StrBuf &result );
 	int		GetUser( StrBuf &result, Enviro * = 0 );
 	int		GetTicketFile( StrBuf &result, Enviro * = 0 );

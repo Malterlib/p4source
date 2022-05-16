@@ -81,6 +81,7 @@ class Enviro {
 
 	void		SetCharSet( int );	// for i18n support
 	int		GetCharSet();
+	void		GetLocale( StrBuf& l, Error* e );
 	
 	const StrPtr	&GetConfig();
 	const StrArray	*GetConfigs();
@@ -109,6 +110,8 @@ class Enviro {
 # ifdef OS_NT
 	KeyPair		*setKey;
 	KeyPair		*serviceKey;
+	KeyPair		*userKey;
+	KeyPair		*serverKey;
 	StrBuf		serviceKeyName;
 	int		charset;
 # endif /* OS_NT */

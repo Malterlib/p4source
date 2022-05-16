@@ -9,6 +9,7 @@
 # define NEED_TYPES
 # define NEED_MMAP
 # define NEED_FLOCK
+# define NEED_WIN32FIO
 
 # include <stdhdrs.h>
 
@@ -22,6 +23,9 @@
 # include "zlib.h"
 
 # include "zlinflater.h"
+
+extern "C" void* P4_zalloc( void* opaque, unsigned items, unsigned size );
+extern "C" void P4_zfree( void* opaque, void* ptr );
 
 ZLMemInflater::ZLMemInflater( FileSys *f, offL_t, Error *e )
     : ZLibInflater( f, 65536 )
@@ -44,8 +48,8 @@ ZLMemInflater::Seek( offL_t pos, Error *e )
 	if( zinitDone )
 	    inflateEnd( (z_stream *)zstrm );
 
-	zls->zalloc = Z_NULL;
-	zls->zfree  = Z_NULL;
+	zls->zalloc = P4_zalloc;
+	zls->zfree  = P4_zfree;
 	zls->opaque = Z_NULL;
 	zls->next_in = maddr + pos;
 	P4INT64 bytesAvail = ( size - pos );
@@ -99,7 +103,7 @@ ZLMemInflater::Open( Error *e )
 {
 	size = f->GetSize();
 
-	int fd = f->GetFd();
+	FD_TYPE fd = (FD_TYPE)f->GetFd();
 
 # ifdef HAVE_MMAP
 
@@ -121,7 +125,7 @@ ZLMemInflater::Open( Error *e )
 	}
 # else
 # ifdef OS_NT
-	mapHandle = CreateFileMapping( (HANDLE)_get_osfhandle(fd), NULL,
+	mapHandle = CreateFileMapping( fd->fh, NULL,
 	                                   PAGE_READONLY, 0, 0, NULL );
 	if( mapHandle != NULL )
 	{

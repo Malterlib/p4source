@@ -18,6 +18,8 @@
 # include <error.h>
 # include <errorpvt.h>
 
+# include <cstddef>
+
 const char *
 Error::severityText[] = { "empty", "info", "warning", "error", "error" };
 
@@ -58,6 +60,8 @@ Error::operator =( const Error &s )
 	genericCode = s.genericCode;
 	if( s.ep )
 	    *ep = *s.ep;
+	else
+	    ep->Clear();
 }
 
 /*
@@ -67,24 +71,30 @@ Error::operator =( const Error &s )
 Error &
 Error::Merge( const Error &source )
 {
+	if( !ep )
+	{
+	    if( source.ep )
+	    {
+		// just copy the error private from the source
+		ep = new ErrorPrivate;
+		*ep = *source.ep;
+	    }
+	}
+	else
+	{
+	    if( severity == E_EMPTY )
+		ep->Clear();
+
+	    // need to merge the error privates
+	    ep->Merge( source.ep );
+	}
+
 	/* If source error more severe than mine, save severity & generic */
 
 	if( source.severity >= severity )
 	{
 	    severity = source.severity;
 	    genericCode = source.genericCode;
-	}
-
-	if( !ep )
-	{
-	    // just copy the error private from the source
-	    ep = new ErrorPrivate;
-	    *ep = *source.ep;
-	}
-	else
-	{
-	    // need to merge the error privates
-	    ep->Merge( source.ep );
 	}
 
 	return *this;
@@ -371,12 +381,41 @@ ErrorPrivate::operator =( const ErrorPrivate &s )
 		ids[i] = s.ids[i];
 
 	// Snap ids[].fmt.
-	// If self-assign, we skip this if they are already in the fmtBuf.
-	// Otherwise, we skip only if they are constants (via Error::Set())
-	// and thus global.
+	// If self-assign, we always snap the formats since messages with
+	// formats elsewhere might have been added to this instance since
+	// the last snap.
+	// If not self-assign, we skip only if they are constants
+	// (via Error::Set()) and thus global.
 
-	if( isSelf ? ( fmtSource != isFmtBuf ) : ( fmtSource != isConst ) )
+	if( isSelf || fmtSource != isConst )
 	{
+	    StrBuf oldfmtbuf;	// must persist in this scope for later copying
+
+	    if( isSelf )
+	    {
+		// Since all of ErrorPrivate is, uh, public, the formats could
+		// be anywhere, including (perhaps just some and perhaps not
+		// consistently) already in our fmtbuf. Those that are
+		// already in our fmtbuf must be copied elsewhere so that
+		// they can be safely collected along with those that are not.
+
+		oldfmtbuf.Set( fmtbuf );
+
+		// Adjust the address of only those formats
+		// that were just copied.
+
+		char *p = fmtbuf.Text();
+		char *e = fmtbuf.End();	// trailing \0, even if nullStrBuf
+		ptrdiff_t d = oldfmtbuf.Text() - p;
+
+		for( int i = 0; i < errorCount; i++ )
+		{
+		    const char *q = ids[ i ].fmt;
+		    if( p <= q && q <= e )	// "<=" for zero-length format
+			ids[ i ].fmt = q + d;
+		}
+	    }
+
 	    int i;
 
 	    fmtbuf.Clear();
@@ -407,7 +446,7 @@ ErrorPrivate::operator =( const ErrorPrivate &s )
 void
 ErrorPrivate::Merge( const ErrorPrivate *ep )
 {
-	if( ep == this || ep->errorCount == 0 )
+	if( !ep || ep == this || ep->errorCount == 0 )
 	    return;
 
 	int	i;

@@ -89,6 +89,14 @@ InitPRNG()
  * after the PRNG has been initialized (if needed).
  * Bury some of the OS-dependent cruft here.
  */
+
+# if defined(__GNUG__) && GCC_VERSION >= 40600 || defined(__clang__)
+# pragma GCC diagnostic push
+# pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+# pragma clang diagnostic push
+# pragma clang diagnostic ignored "-Wdeprecated-declarations"
+# endif
+
 static unsigned int
 GetRandomInt()
 {
@@ -111,6 +119,11 @@ GetRandomInt()
 	    return RANDOM();
 #endif // OS_NT
 }
+
+# if defined(__GNUG__) && GCC_VERSION >= 40600 || defined(__clang__)
+# pragma GCC diagnostic push
+# pragma clang diagnostic push
+# endif
 
 /*
  * fill buffer with random bytes

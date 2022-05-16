@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgDb error code is: 93
+ * Current high value for a MsgDb error code is: 99
  */
 
 # include <error.h>
@@ -48,6 +48,8 @@ ErrorId MsgDb::JnlBadMarker            = { ErrorOf( ES_DB, 76, E_FATAL, EV_ADMIN
 ErrorId MsgDb::JnlCaseUsageBad         = { ErrorOf( ES_DB, 80, E_FATAL, EV_ADMIN, 2 ), "Case-handling mismatch: server uses %caseUsage% but journal flags are %flags%!" } ;
 ErrorId MsgDb::JnlVersionMismatch      = { ErrorOf( ES_DB, 81, E_INFO, EV_NONE, 2 ), "Server version %serverVersion% is replaying a version %journalVersion% journal/checkpoint." } ;
 ErrorId MsgDb::CheckpointNoOverwrite   = { ErrorOf( ES_DB, 90, E_FATAL, EV_NONE, 0 ), "A full checkpoint should not be replayed into a non-empty database. Please remove the existing %'db.*'% files and retry the operation. The '%'-jrF'%' flag can be specified to bypass this check." } ;
+ErrorId MsgDb::SeedNoOverwrite         = { ErrorOf( ES_DB, 94, E_FATAL, EV_NONE, 0 ), "A replica seed journal cannot be replayed into a non-empty database. Please remove the existing %'db.*'% files and retry the operation." } ;
+ErrorId MsgDb::SeedUnexpected          = { ErrorOf( ES_DB, 95, E_INFO, EV_NONE, 0 ), "Unexpected replica seed journal note encountered." } ;
 ErrorId MsgDb::TableCheckSum           = { ErrorOf( ES_DB, 84, E_INFO, EV_NONE, 6 ), "Table %table% checksums %result%. %when% version %tableVersion%: expected %expected%, actual %actual%." } ;
 ErrorId MsgDb::JnlVersionError         = { ErrorOf( ES_DB, 82, E_FAILED, EV_NONE, 2 ), "Server version %serverVersion% cannot replay a version %journalVersion% journal/checkpoint." } ;
 ErrorId MsgDb::DbOpen                  = { ErrorOf( ES_DB, 15, E_FATAL, EV_ADMIN, 1 ), "Database open error on %table%!" } ;
@@ -57,6 +59,7 @@ ErrorId MsgDb::ReadNoLock              = { ErrorOf( ES_DB, 18, E_FATAL, EV_FAULT
 ErrorId MsgDb::Read                    = { ErrorOf( ES_DB, 19, E_FATAL, EV_FAULT, 1 ), "Database get error on %table%!" } ;//NOTRANS
 ErrorId MsgDb::Stumblebum              = { ErrorOf( ES_DB, 20, E_FATAL, EV_ADMIN, 0 ), "Database must be 98.1 through " ID_REL " format." } ;//NOTRANS
 ErrorId MsgDb::GetFormat               = { ErrorOf( ES_DB, 21, E_FATAL, EV_FAULT, 2 ), "dbget: %table% record format %level% unsupported!" } ;//NOTRANS
+ErrorId MsgDb::OpFormat                = { ErrorOf( ES_DB, 97, E_FATAL, EV_FAULT, 3 ), "db%op%: %table% record format %level% unsupported!" } ;//NOTRANS
 ErrorId MsgDb::ScanNoLock              = { ErrorOf( ES_DB, 22, E_FATAL, EV_FAULT, 1 ), "dbscan %table%: no read lock!" } ;//NOTRANS
 ErrorId MsgDb::Scan                    = { ErrorOf( ES_DB, 23, E_FATAL, EV_FAULT, 1 ), "Database scan error on %table%!" } ;//NOTRANS
 ErrorId MsgDb::ScanFormat              = { ErrorOf( ES_DB, 24, E_FATAL, EV_FAULT, 2 ), "dbscan: %table% record format %level% unsupported!" } ;//NOTRANS
@@ -108,6 +111,8 @@ ErrorId MsgDb::LicenseBad              = { ErrorOf( ES_DB, 60, E_FAILED, EV_ADMI
 ErrorId MsgDb::AddressChanged          = { ErrorOf( ES_DB, 75, E_FAILED, EV_ADMIN, 0 ), "Server license %'IP'%address changed, cannot proceed." } ;
 ErrorId MsgDb::LicenseNeedsApplication = { ErrorOf( ES_DB, 83, E_FAILED, EV_ADMIN, 0 ), "License needs an application." } ;
 ErrorId MsgDb::BadIPservice            = { ErrorOf( ES_DB, 88, E_FAILED, EV_ADMIN, 0 ), "Licensed client service cannot be %'localhost'% %'(127.0.0.1'% or %'::1)'%" } ;//CONTENTIOS
+ErrorId MsgDb::BadXCapLine             = { ErrorOf( ES_DB, 98, E_FAILED, EV_ADMIN, 1 ), "Extra capability line malformed: %line%" } ;
+ErrorId MsgDb::BadXCapWord             = { ErrorOf( ES_DB, 99, E_FAILED, EV_ADMIN, 1 ), "Expected key=value pair but got '%word%'" } ;
 
 ErrorId MsgDb::TreeCorrupt	       = { ErrorOf( ES_DB, 66, E_FATAL, EV_FAULT, 0 ), "BTree is corrupt!" } ;
 ErrorId MsgDb::TreeNotOpened	       = { ErrorOf( ES_DB, 67, E_FATAL, EV_FAULT, 0 ), "BTree could not be opened or created!" } ;//NOTRANS
@@ -123,6 +128,8 @@ ErrorId MsgDb::DoNotBlameTheDb         = { ErrorOf( ES_DB, 93, E_FATAL, EV_FAULT
 ErrorId MsgDb::MapCheckFail	       = { ErrorOf( ES_DB, 72, E_FAILED, EV_TOOBIG, 0 ), "%'MapCheck'% rejected too many rows." } ;
 
 ErrorId MsgDb::CaseMismatch	       = { ErrorOf( ES_DB, 77, E_FATAL, EV_FAULT, 0 ), "BTree Case Order Mismatch! Check %'p4d -Cx'% flag usage." } ;
+
+ErrorId MsgDb::GenNumPageTooNew	       = { ErrorOf( ES_DB, 96, E_FATAL, EV_FAULT, 0 ), "Generation number on page repeatedly newer than generation number on metapage." } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 

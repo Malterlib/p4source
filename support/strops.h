@@ -16,6 +16,7 @@
  *	StrOps::Sub() - replace one character with another
  *	StrOps::Expand() - expand a string doing %var% substitutions
  *	StrOps::Expand2() - expand a string doing [%var%|opt] substitutions
+ *	StrOps::AddIndex() - add index to %var% parameters (%var% to %vari%)
  *	StrOps::Indent() - fill by indenting contents of another buffer
  *	StrOps::Replace() - replace all occurences of a string
  *	StrOps::Lines() - break buffer into \r\n or \n separated lines
@@ -31,6 +32,7 @@
  *	StrOps::ScrunchArgs() - try to display argv in a limited output buffer.
  *	StrOps::CommonPath() - construct common filepath across multiple calls.
  *	StrOps::StripNewline() - strip \r\n from end of buffer
+ *	StrOps::CheckStr() - check string conforms to a specified ruleset.
  *
  * 	StrOps::CharCnt() - Count characters in text using the server's charset
  * 	StrOps::CharCopy() - copy counting characters (not bytes)
@@ -70,6 +72,7 @@ class StrOps {
 	static void	Expand( StrBuf &o, const StrPtr &s, StrDict &d,
 	                        StrDict *u = 0 );
 	static void	Expand2( StrBuf &o, const StrPtr &s, StrDict &d );
+	static void	AddIndex( StrBuf &o, const StrPtr &s, const int i );
 	static void	RmUniquote( StrBuf &o, const StrPtr &s );
 	static void	Indent( StrBuf &o, const StrPtr &s );
 	static void	Replace( StrBuf &o, const StrPtr &i,
@@ -130,6 +133,7 @@ class StrOps {
 	static void	LFtoCRLF( const StrBuf *in, StrBuf *out );
 	static int      StreamNameInPath( const char *df, int depth, 
 	                        StrBuf &n );
+	static void	CheckStr( const StrPtr *in, int flags, Error *e );
 
 	// i18n
 

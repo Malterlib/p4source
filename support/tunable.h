@@ -9,7 +9,10 @@ enum P4TunableName {
 	P4TUNE_CLUSTER_JOURNAL_SHARED = DT_LAST,// see db/dbjournal2.cc
 	P4TUNE_DB_ISALIVE,
 	P4TUNE_DB_JNLACK_SHARED,
+	P4TUNE_DB_MONITOR_ADDTHRESH,
 	P4TUNE_DB_MONITOR_INTERVAL,
+	P4TUNE_DB_MONITOR_MINRUNTIME,
+	P4TUNE_DB_MONITOR_TERMALLOW,
 	P4TUNE_DB_MONITOR_SHARED,
 	P4TUNE_DB_PAGE_MIGRATE,
 	P4TUNE_DB_PEEKING,
@@ -35,9 +38,11 @@ enum P4TunableName {
 	P4TUNE_DIFF_STHRESH,
 	P4TUNE_DM_ANNOTATE_MAXSIZE,
 	P4TUNE_DM_BATCH_DOMAINS,		// see dmdomains.cc
+	P4TUNE_DM_CHANGE_RESTRICT_PENDING,
 	P4TUNE_DM_CHANGES_THRESH1,		// set dmchanges.cc
 	P4TUNE_DM_CHANGES_THRESH2,		// set dmchanges.cc
 	P4TUNE_DM_CHANGEVIEW_OPENABLE,		// see dmlimit.cc
+	P4TUNE_DM_CLIENT_LIMITPROTECTS,		// see dmlimit.cc
 	P4TUNE_DM_COPY_MOVEWARN,
 	P4TUNE_DM_DOMAIN_ACCESSUPDATE,		// see dmadomain.cc
 	P4TUNE_DM_DOMAIN_ACCESSFORCE,		// see dmadomain.cc
@@ -51,6 +56,7 @@ enum P4TunableName {
 	P4TUNE_DM_INFO_HIDE,
 	P4TUNE_DM_INTEG_ENGINE,
 	P4TUNE_DM_INTEG_MAXACT,
+	P4TUNE_DM_INTEG_STREAMSPEC,
 	P4TUNE_DM_INTEG_TWEAKS,
 	P4TUNE_DM_INTEG_UNDO,
 	P4TUNE_DM_ISALIVE,			// set dmcaller.cc
@@ -59,6 +65,7 @@ enum P4TunableName {
 	P4TUNE_DM_PASSWORD_MINLENGTH,
 	P4TUNE_DM_PROTECTS_ALLOW_ADMIN,
 	P4TUNE_DM_PROTECTS_HIDE,
+	P4TUNE_DM_PROTECTS_STREAMSPEC,		// see dmaprotect.cc
 	P4TUNE_DM_PROXY_PROTECTS,
 	P4TUNE_DM_QUICK_CLIENTS,
 	P4TUNE_DM_QUICK_DOMAINS,
@@ -99,6 +106,7 @@ enum P4TunableName {
 	P4TUNE_FILESYS_MAXMAP,			// see readfile.cc
 	P4TUNE_FILESYS_MAXSYMLINK,		// see fileiosym.cc
 	P4TUNE_FILESYS_MAXTMP,
+	P4TUNE_FILESYS_RESTRICTSYMLINKS,	// see clientservice.cc
 	P4TUNE_FILESYS_UTF8BOM,			// see fileiouni.cc
 	P4TUNE_FILESYS_EXTENDLOWMARK,
 	P4TUNE_FILESYS_WINDOWS_LFN,		// see filesys.cc
@@ -116,16 +124,25 @@ enum P4TunableName {
 	P4TUNE_LBR_VERIFY_IN,			// see lbrservice.cc
 	P4TUNE_LBR_VERIFY_OUT,			// see rhservice.cc
 	P4TUNE_LBR_VERIFY_SCRIPT_OUT,		// see rhservice.cc
+	P4TUNE_LBR_STORAGE_DELAY,               // see userstorage.cc
+	P4TUNE_LBR_STORAGE_ALLOWSYMLINK,        // see userstorage.cc
+	P4TUNE_LBR_STORAGE_SKIPKEYED,           // see dmstorageupgrade.cc
 	P4TUNE_LOG_ORIGINHOST,			// see rhloggable.cc
 	P4TUNE_MAP_JOINMAX1,
 	P4TUNE_MAP_JOINMAX2,
 	P4TUNE_MAP_MAXWILD,
+	P4TUNE_MERGE_DL_ENDEOL,
 	P4TUNE_NET_AUTOTUNE,
 	P4TUNE_NET_BUFSIZE,			// see netbuffer.h
 	P4TUNE_NET_KEEPALIVE_DISABLE,		// see nettcptransport.cc
 	P4TUNE_NET_KEEPALIVE_IDLE,		// see nettcptransport.cc
 	P4TUNE_NET_KEEPALIVE_INTERVAL,		// see nettcptransport.cc
 	P4TUNE_NET_KEEPALIVE_COUNT,		// see nettcptransport.cc
+	P4TUNE_NET_HEARTBEAT_INTERVAL,		// see userheartbeat.cc
+	P4TUNE_NET_HEARTBEAT_WAIT,		// see userheartbeat.cc
+	P4TUNE_NET_HEARTBEAT_MISSING_INTERVAL,	// see userheartbeat.cc
+	P4TUNE_NET_HEARTBEAT_MISSING_WAIT,	// see userheartbeat.cc
+	P4TUNE_NET_HEARTBEAT_MISSING_COUNT,	// see userheartbeat.cc
 	P4TUNE_NET_MAX_FAULT_PUB,		// see proxy/pxclient.cc
 	P4TUNE_NET_MAXCLOSEWAIT,		// see nettcptransport.cc, netssltrancport.cc
 	P4TUNE_NET_MAXWAIT,			// see nettcptransport.cc, netssltrancport.cc
@@ -168,6 +185,7 @@ enum P4TunableName {
 	P4TUNE_RPL_CHECKSUM_TABLE,
 	P4TUNE_RPL_COMPRESS,			// See server / rpl.cc
 	P4TUNE_RPL_COUNTER_HOOK,		// See server / userpull.cc
+	P4TUNE_RPL_DEFERRED_SENDS,		// See server / usersync.cc
 	P4TUNE_RPL_JNL_BATCH_SIZE,		// See server / rpl.cc
 	P4TUNE_RPL_JNLWAIT_ADJUST,		// See server / rhservice.cc
 	P4TUNE_RPL_JNLWAIT_INTERVAL,		// See server / rhservice.cc
@@ -178,12 +196,14 @@ enum P4TunableName {
 	P4TUNE_RPL_LABELS_GLOBAL,		// See userlabel/userlabsync
 	P4TUNE_RPL_REPLAY_USERRP,		// See server / rpl.cc
 	P4TUNE_RPL_VERIFY_CACHE,		// See rhservice.cc
+	P4TUNE_RUN_CLIENTEXTS_ALLOW,		// see rhservice.cc
 	P4TUNE_RUN_MOVE_ALLOW,			// see usermove.cc
 	P4TUNE_RUN_OBLITERATE_ALLOW,		// see userpurge.cc
 	P4TUNE_RUN_PRUNE_ALLOW,			// see userpurge.cc
 	P4TUNE_RUN_UNZIP_USER_ALLOW,		// see userzip.cc
 	P4TUNE_RUN_USERS_AUTHORIZE,		// see userusers.cc
 	P4TUNE_SERVER_COMMANDLIMITS,		// see dmcaller.cc
+	P4TUNE_SERVER_CTRLC_FILECLEANUP,	// see rhmain.cc
 	P4TUNE_SERVER_FILECHARSET,
 	P4TUNE_SERVER_LOCKS_ARCHIVE,		// see userarchive.cc
 	P4TUNE_SERVER_LOCKS_SYNC,		// see usersync.cc
@@ -194,6 +214,7 @@ enum P4TunableName {
 	P4TUNE_SERVER_ALLOWREWRITE,		// DVCS feature enabling
 	P4TUNE_SERVER_GLOBAL_CLIENT_VIEWS,	// see dmr/dmrprobe.cc
 	P4TUNE_SERVER_MAXCOMMANDS,		// see rhmain.cc
+	P4TUNE_SERVER_MAXCOMMANDS_ALLOW,	// see rhmain.cc
 	P4TUNE_SERVER_START_UNLICENSED,		// see rhmain.cc
 	P4TUNE_FILETYPE_BYPASSLOCK,		// see useropen.cc
 	P4TUNE_FILETYPE_MAXTEXTSIZE,		// set useropen.cc
@@ -204,7 +225,12 @@ enum P4TunableName {
 	P4TUNE_SUBMIT_COLLISIONCHECK,		// see usersubmit.cc
 	P4TUNE_SUBMIT_FORCENORETRANSFER,	// see usersubmit.cc
 	P4TUNE_SUBMIT_NORETRANSFER,		// see usersubmit.cc
+	P4TUNE_SUBMIT_ALLOWBGTRANSFER,		// see usersubmit.cc
+	P4TUNE_SUBMIT_AUTOBGTRANSFER,		// see usersubmit.cc
 	P4TUNE_SUBMIT_UNLOCK_LOCKED,		// see usersubmit.cc
+	P4TUNE_SUBMIT_STORAGEFIELDS,            // see userstorage.cc
+	P4TUNE_SWITCH_STREAM_UNRELATED,         // see userswitch.cc
+	P4TUNE_PUSH_UNLOCK_LOCKED,		// see userpush.cc
 	// vv Smart Heap tunables must be a continuous group vv
 	P4TUNE_SYS_MEMORY_POOLFREE,		// see shhandler.cc
 	P4TUNE_SYS_MEMORY_PROCFREE,		// see shhandler.cc
@@ -223,6 +249,7 @@ enum P4TunableName {
 	P4TUNE_SYS_MEMORY_STACKSIZE,
 	P4TUNE_SYS_RENAME_MAX,			// see fileiont.cc
 	P4TUNE_SYS_RENAME_WAIT,			// see fileiont.cc
+	P4TUNE_SYS_THREADING_GROUPS,		// see threading.cc
 	P4TUNE_RPL_FORWARD_ALL,
 	P4TUNE_RPL_FORWARD_LOGIN,		// see rhmain.cc
 	P4TUNE_RPL_PULL_POSITION,		// see userpull.cc
@@ -231,6 +258,7 @@ enum P4TunableName {
 	P4TUNE_SSL_CLIENT_TIMEOUT,		// see netssltransport.cc
 	P4TUNE_SSL_TLS_VERSION_MIN,		// see netssltransport.cc
 	P4TUNE_SSL_TLS_VERSION_MAX,		// see netssltransport.cc
+	P4TUNE_SSL_ENABLE_ETM,			// see netssltransport.cc
 	P4TUNE_TRIGGERS_IO,			// see rhtrigger.cc
 	P4TUNE_ISTAT_MIMIC_ICHANGES,		// see dmistat.cc & DIOR_SPLIT
 	P4TUNE_INFO_P4AUTH_USERCHECK,		// see userinfo.cc
@@ -240,7 +268,9 @@ enum P4TunableName {
 	P4TUNE_AUTH_TICKETS_NOUNLOCKED,		// see login.cc
 	P4TUNE_AUTH_SSO_ALLOW_PASSWD,		// see login.cc
 	P4TUNE_AUTH_SSO_NONLDAP,		// see login.cc
+	P4TUNE_ZLIB_DISABLE_OPTIM,
 
 	P4TUNE_LAST
 
 }  ;
+

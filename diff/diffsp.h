@@ -96,10 +96,21 @@ class Sequencer {
 };
 
 /*
+ * VSequence - an abstract abstract sequence of elements
+ */
+
+class VSequence {
+    public:
+	virtual LineNo	Lines() const = 0;
+	virtual int	Equal( LineNo lA, VSequence *B, LineNo lB ) = 0;
+	virtual int	ProbablyEqual( LineNo lA, VSequence *B, LineNo lB ) =0;
+};
+
+/*
  * Sequence - a file as an abstract sequence of elements
  */
 
-class Sequence {
+class Sequence : public VSequence {
 
     public:
 
@@ -121,13 +132,13 @@ class Sequence {
 	LineLen		LengthLeft( LineNo l ) 
 				{ return Off(l+1) - readfile->Tell(); }
 
-	int		Equal( LineNo lA, Sequence *B, LineNo lB ) {
-			    return ProbablyEqual( lA, B, lB ) &&
-				    sequencer->Equal( lA, B, lB );
+	int		Equal( LineNo lA, VSequence *B, LineNo lB ) {
+			    return ProbablyEqual( lA, (Sequence*)B, lB ) &&
+				    sequencer->Equal( lA, (Sequence*)B, lB );
 			}
 
-	int		ProbablyEqual( LineNo lA, Sequence *B, LineNo lB ) {
-			    return Hash( lA ) == B->Hash( lB );
+	int		ProbablyEqual( LineNo lA, VSequence *B, LineNo lB ) {
+			    return Hash( lA ) == ((Sequence*)B)->Hash( lB );
 			}
 
 	void 		StoreLine( HashVal HashValue, Error *e );
@@ -153,4 +164,3 @@ class Sequence {
 	ReadFile	*readfile;
 
 };
-

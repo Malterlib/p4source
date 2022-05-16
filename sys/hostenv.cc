@@ -8,6 +8,7 @@
  * Hostenv.cc - describe user's environment
  */
 
+# define NEED_ERRNO
 # define NEED_GETCWD
 # define NEED_GETHOSTNAME
 # define NEED_GETPWUID
@@ -18,6 +19,7 @@
 # include <i18napi.h>
 # include <charcvt.h>
 # include <enviro.h>
+# include <error.h>
 
 # ifdef OS_NT
 # define WIN32_LEAN_AND_MEAN
@@ -93,7 +95,7 @@ static void lowerCaseDrive( char *path83 )
 	}
 }
 static void
-GetCwd( StrBuf *dest, int charset = 0 )
+GetCwd( StrBuf *dest, Error *e, int charset = 0 )
 {
 	CHAR cwd[_MAX_PATH];
 	if( !CharSetApi::isUnicode( (CharSetApi::CharSet)charset ) )
@@ -144,11 +146,15 @@ GetCwd( StrBuf *dest, int charset = 0 )
 }
 #else
 static void
-GetCwd( StrBuf *dest, int = 0 )
+GetCwd( StrBuf *dest, Error *e, int = 0 )
 {
 	dest->Clear();
 	dest->Alloc( 256 );
-	getcwd( dest->Text(), dest->Length() );
+	if( !getcwd( dest->Text(), dest->Length() ) )
+	{
+	    e->Sys( "getcwd", strerror( errno ) );
+	    return;
+	}
 	dest->SetLength();
 }
 #endif
@@ -156,11 +162,25 @@ GetCwd( StrBuf *dest, int = 0 )
 void
 HostEnv::GetCwdbyCS( StrBuf &result, int charset )
 {
-	::GetCwd( &result, charset );
+	Error e;
+	::GetCwd( &result, &e, charset );
+}
+
+void
+HostEnv::GetCwdbyCS( StrBuf &result, Error *e, int charset )
+{
+	::GetCwd( &result, e, charset );
 }
 
 int
 HostEnv::GetCwd( StrBuf &result, Enviro * enviro )
+{
+	Error e;
+	return GetCwd( result, &e, enviro );
+}
+
+int
+HostEnv::GetCwd( StrBuf &result, Error *e, Enviro * enviro )
 {
 	Enviro *tmpenviro = NULL;
 
@@ -176,7 +196,7 @@ HostEnv::GetCwd( StrBuf &result, Enviro * enviro )
 	    return 1;
 	}
 
-	::GetCwd( &result, enviro->GetCharSet() );
+	::GetCwd( &result, e, enviro->GetCharSet() );
 
 	delete tmpenviro;
 

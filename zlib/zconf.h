@@ -8,6 +8,8 @@
 #ifndef ZCONF_H
 #define ZCONF_H
 
+/* This include does prefixing as below, but with an updated set of names */
+
 /*
  * If you *really* need a unique prefix for all types and library functions,
  * compile with -DZ_PREFIX. The "standard" zlib should be compiled without it.
@@ -387,6 +389,9 @@
 #ifndef FAR
 #  define FAR
 #endif
+#ifndef far
+#  define far
+#endif
 
 #if !defined(__MACTYPES__)
 typedef unsigned char  Byte;  /* 8 bits */
@@ -432,7 +437,7 @@ typedef uLong FAR uLongf;
    typedef unsigned long z_crc_t;
 #endif
 
-#ifdef HAVE_UNISTD_H    /* may be set to #if 1 by ./configure */
+#if !defined(_WIN32)
 #  define Z_HAVE_UNISTD_H
 #endif
 

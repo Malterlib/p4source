@@ -6,7 +6,7 @@
  * Diff code written by James Strickland, May 1997.
  */
 
-#include <stdlib.h> // for realloc()
+# include <new>
 
 # define NEED_TYPES
 
@@ -85,7 +85,7 @@ Sequence::~Sequence()
 	delete sequencer;
 	readfile->Close();
 	delete readfile;
-	if( line ) free( line );
+	if( line ) delete[] line;
 }
 
 /*
@@ -117,6 +117,7 @@ Sequence::StoreLine( HashVal HashValue, Error *e )
 void 
 Sequence::GrowLineBuf( Error *e )
 {
+	const LineNo prevLineMax = lineMax;
 	LineNo CharsPerLine;
 
 	/*
@@ -145,20 +146,21 @@ Sequence::GrowLineBuf( Error *e )
 	    break;
 	}
 
-	/* SunOS 4.1.4 didn't like to realloc 0. */
-
-	VarInfo *l;
-
-	if( line )
-	    l = (VarInfo *)realloc( line, (sizeof(VarInfo)) * lineMax );
-	else
-	    l = (VarInfo *)malloc( (sizeof(VarInfo)) * lineMax );
-
-	if( l )
-	    line = l;
-
-	if( !l )
-	    e->Sys( "malloc", "out of memory" );
+	try
+	{
+	    if( line )
+	    {
+	        VarInfo *lt = new VarInfo[ lineMax ];
+	        memcpy( lt, line, sizeof( VarInfo ) * prevLineMax );
+	        delete[] line;
+	        line = lt;
+	    }
+	    else
+	        line = new VarInfo[ lineMax ];
+	} catch( const std::bad_alloc& ex )
+	{
+	    e->Sys( "new", "out of memory" );
+	}
 }
 
 /*

@@ -44,6 +44,10 @@ extern const char *nt_sock_errlist[];  // for WSABASEERR + 1 to 112, start=0
 extern const char *nt_sock_errlist2[];  // for WSABASEERR + 1001 to 1004
 # endif /* OS_NT */
 
+# ifndef WSA_IPSEC_NAME_POLICY_ERROR
+# define WSA_IPSEC_NAME_POLICY_ERROR 11033
+# endif
+
 /*
  * Error::Sys() - add a system error message into an Error struct
  * Error::Net() - add a network error message into an Error struct
@@ -147,17 +151,42 @@ Error::Net(
 	const char *arg )
 {
 	DWORD errnum = WSAGetLastError();
-	DWORD e = errnum - WSABASEERR;
+	DWORD e = errnum;
 
-	// errnum == 0 means we don't have the actual error
-	if( errnum == 0 )
-	    Set( MsgOs::NetUn ) << op << arg << 0;
-	else if( e >= 1001 && e <= 1004 ) 
-	    Set( MsgOs::Net ) << op << arg << nt_sock_errlist2[ e - 1001 ];
-	else if( e >= 1 && e <= 112 )
-	    Set( MsgOs::Net ) << op << arg << nt_sock_errlist[ e ];
-	else 
-	    Set( MsgOs::NetUn ) << op << arg << (int)e;
+	// Only remove the base network error if we have a network error.
+
+	if( errnum > WSABASEERR && errnum <= WSA_IPSEC_NAME_POLICY_ERROR )
+	    e -= WSABASEERR;
+
+	// errnum == 0 means we don't have an error, we still report it.
+
+	if( errnum >= 0 && errnum < WSABASEERR )
+	{
+	    Sys( op, arg );
+	}
+	else if( errnum > WSABASEERR && errnum <= WSA_IPSEC_NAME_POLICY_ERROR )
+	{
+	    StrBuf errstr;
+
+	    if( e >= 1001 && e <= 1033 ) 
+	    {
+	        StrError( errstr, errnum );
+	        Set( MsgOs::Net2 ) << op << arg
+	            << nt_sock_errlist2[ e - 1001 ] << errstr;
+	    }
+	    else if( e >= 1 && e <= 112 )
+	    {
+	        StrError( errstr, errnum );
+	        Set( MsgOs::Net2 ) << op << arg
+	            << nt_sock_errlist[ e ] << errstr;
+	    }
+	    else 
+	        Set( MsgOs::NetUn ) << op << arg << (int)e;
+	}
+	else if( errnum > WSA_IPSEC_NAME_POLICY_ERROR )
+	{
+	    Sys( op, arg );
+	}
 }
 
 int
@@ -285,7 +314,7 @@ Error::Net(
 	Sys( op, arg );
 }
 
-# endif
+# endif /* OS_NT */
 
 void
 Error::Net2(

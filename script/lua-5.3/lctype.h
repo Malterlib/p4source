@@ -67,6 +67,9 @@
 #define ltolower(c)	((c) | ('A' ^ 'a'))
 
 
+/* two more entries for 0 and -1 (EOZ) */
+// this is already defined in script/lua-5.3/one.cc, commenting out:
+// LUAI_DDEC const lu_byte luai_ctype_[UCHAR_MAX + 2];
 
 
 #else			/* }{ */

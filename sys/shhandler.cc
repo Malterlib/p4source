@@ -298,11 +298,6 @@ SHHandler::SetTunable(
 	    // Arbitrary pool free low limit of 1K.
 	    if( membytes < 1 )
 		membytes = (MEM_SIZET)1;
-
-	    // Protect from non linear Smart Heap issues.
-	    // Cap at 256 Mbytes, 262144.
-	    if( membytes > (MEM_SIZET)262144 )
-		membytes = (MEM_SIZET)262144;
 	}
 
 	if( (index == P4TUNE_SYS_MEMORY_LIMIT ||

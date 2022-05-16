@@ -4,6 +4,17 @@
  * This file is part of Perforce - the FAST SCM System.
  */
 
+// Note: not all debug type below (P4DebugType) uses 
+// this debuglevel enum.
+enum P4DebugLevel {
+	DL_NONE,		// 0 means no debugging output
+	DL_ERROR,		// 1
+	DL_WARNING,		// 2
+	DL_INFO,		// 3
+	DL_DETAILED,		// 4
+	DL_DEBUG,		// 5
+} ;
+
 class StrPtr;
 class StrBuf;
 class ErrorLog;
@@ -40,8 +51,15 @@ enum P4DebugType {
 	DT_GCONN,	// gconn related
 	DT_FOVR,	// Failover related
 	DT_SCRIPT,	// scripting support
+	DT_STG,         // Tracking storage records.
+	DT_THREAD,	// threading
+	DT_EXTS,	// exts (extension)
+	DT_PROTECT,	// protections stats
+	DT_HEARTBEAT,	// Heartbeat related
 	DT_LAST
 }  ;
+
+extern P4MT int list2[];
 
 class P4Tunable {
 
@@ -50,7 +68,10 @@ class P4Tunable {
 	void		Set( const char *set );
 	void		SetTLocal( const char *set );
 	void		Unset( const char *set );
-	int		Get( int t ) const;
+	int		Get( int t ) const {
+	    return t < DT_LAST && list2[t] != -1 && list2[t] > list[t].value ?
+	        list2[t] : list[t].value;
+	}
 	int		GetLevel( const char *n ) const;
 	int		GetIndex( const char *n ) const;
 	const char	*GetName( int t ) const { return list[t].name; }

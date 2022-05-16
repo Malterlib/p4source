@@ -204,6 +204,21 @@ Client::GetLanguage()
 }
 
 const StrPtr &
+Client::GetLocale()
+{
+	if( locale.Length() )
+	    return locale;
+
+	Error e;
+	enviro->GetLocale( locale, &e );
+
+	if( e.Test() )
+	    locale = "en_US.UTF-8";
+
+	return locale;
+}
+
+const StrPtr &
 Client::GetOs()
 {
 	// os - client's operating system

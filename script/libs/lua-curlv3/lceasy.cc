@@ -1,11 +1,11 @@
 /******************************************************************************
-* Author: Alexey Melnichuk <mimir@newmail.ru>
+* Author: Alexey Melnichuk <alexeymelnichuck@gmail.com>
 *
-* Copyright (C) 2014-2018 Alexey Melnichuk <mimir@newmail.ru>
+* Copyright (C) 2014-2021 Alexey Melnichuk <alexeymelnichuck@gmail.com>
 *
 * Licensed according to the included 'LICENSE' document
 *
-* This file is part of lua-lcurl library.
+* This file is part of Lua-cURL library.
 ******************************************************************************/
 
 #include "lcurl.h"
@@ -16,6 +16,7 @@
 #include "lcshare.h"
 #include "lcmulti.h"
 #include "lcmime.h"
+#include "lcurlapi.h"
 #include <memory.h>
 
 static const char *LCURL_ERROR_TAG = "LCURL_ERROR_TAG";
@@ -93,6 +94,16 @@ int lcurl_easy_create(lua_State *L, int error_mode){
   p->match.cb_ref     = p->match.ud_ref = LUA_NOREF;
   p->chunk_bgn.cb_ref = p->chunk_bgn.ud_ref = LUA_NOREF;
   p->chunk_end.cb_ref = p->chunk_end.ud_ref = LUA_NOREF;
+#if LCURL_CURL_VER_GE(7,19,6)
+  p->ssh_key.cb_ref   = p->ssh_key.ud_ref   = LUA_NOREF;
+#endif
+#if LCURL_CURL_VER_GE(7,64,0)
+  p->trailer.cb_ref   = p->trailer.ud_ref   = LUA_NOREF;
+#endif
+#if LCURL_CURL_VER_GE(7,74,0) && LCURL_USE_HSTS
+  p->hstsread.cb_ref  = p->hstsread.ud_ref  = LUA_NOREF;
+  p->hstswrite.cb_ref = p->hstswrite.ud_ref = LUA_NOREF;
+#endif
   p->rbuffer.ref      = LUA_NOREF;
   for(i = 0; i < LCURL_LIST_COUNT; ++i){
     p->lists[i] = LUA_NOREF;
@@ -119,12 +130,84 @@ static int lcurl_easy_to_s(lua_State *L){
   return 1;
 }
 
-static int lcurl_easy_cleanup(lua_State *L){
-  lcurl_easy_t *p = lcurl_geteasy(L);
+static void lcurl_easy_cleanup_storage(lua_State *L, lcurl_easy_t *p){
   int i;
 
+  if(p->storage != LUA_NOREF){
+    p->storage = lcurl_storage_free(L, p->storage);
+  }
+
+  p->post = NULL;
+#if LCURL_CURL_VER_GE(7,56,0)
+  p->mime = NULL;
+#endif
+
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->wr.cb_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->wr.ud_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->rd.cb_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->rd.ud_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->pr.cb_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->pr.ud_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->seek.cb_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->seek.ud_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->debug.cb_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->debug.ud_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->match.cb_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->match.ud_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->chunk_bgn.cb_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->chunk_bgn.ud_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->chunk_end.cb_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->chunk_end.ud_ref);
+#if LCURL_CURL_VER_GE(7,19,6)
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->ssh_key.cb_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->ssh_key.ud_ref);
+#endif
+#if LCURL_CURL_VER_GE(7,64,0)
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->trailer.cb_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->trailer.ud_ref);
+#endif
+#if LCURL_CURL_VER_GE(7,74,0) && LCURL_USE_HSTS
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->hstsread.cb_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->hstsread.ud_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->hstswrite.cb_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->hstswrite.ud_ref);
+#endif
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->hd.cb_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->hd.ud_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->rbuffer.ref);
+
+  p->wr.cb_ref        = p->wr.ud_ref        = LUA_NOREF;
+  p->rd.cb_ref        = p->rd.ud_ref        = LUA_NOREF;
+  p->hd.cb_ref        = p->hd.ud_ref        = LUA_NOREF;
+  p->pr.cb_ref        = p->pr.ud_ref        = LUA_NOREF;
+  p->seek.cb_ref      = p->seek.ud_ref      = LUA_NOREF;
+  p->debug.cb_ref     = p->debug.ud_ref     = LUA_NOREF;
+  p->match.cb_ref     = p->match.ud_ref     = LUA_NOREF;
+  p->chunk_bgn.cb_ref = p->chunk_bgn.ud_ref = LUA_NOREF;
+  p->chunk_end.cb_ref = p->chunk_end.ud_ref = LUA_NOREF;
+#if LCURL_CURL_VER_GE(7,19,6)
+  p->ssh_key.cb_ref   = p->ssh_key.ud_ref   = LUA_NOREF;
+#endif
+#if LCURL_CURL_VER_GE(7,64,0)
+  p->trailer.cb_ref   = p->trailer.ud_ref   = LUA_NOREF;
+#endif
+#if LCURL_CURL_VER_GE(7,74,0) && LCURL_USE_HSTS
+  p->hstsread.cb_ref  = p->hstsread.ud_ref  = LUA_NOREF;
+  p->hstswrite.cb_ref = p->hstswrite.ud_ref = LUA_NOREF;
+#endif
+  p->rbuffer.ref  = LUA_NOREF;
+
+  for(i = 0; i < LCURL_LIST_COUNT; ++i){
+    p->lists[i] = LUA_NOREF;
+  }
+}
+
+static int lcurl_easy_cleanup(lua_State *L){
+  lcurl_easy_t *p = lcurl_geteasy(L);
+  lua_settop(L, 1);
+
   if(p->multi){
-    CURLMcode code = lcurl__multi_remove_handle(L, p->multi, p);
+    LCURL_UNUSED_VAR CURLMcode code = lcurl__multi_remove_handle(L, p->multi, p);
 
     //! @todo what I can do if I can not remove it???
   }
@@ -146,51 +229,8 @@ static int lcurl_easy_cleanup(lua_State *L){
     p->curl = NULL;
   }
 
-  p->post = NULL;
-#if LCURL_CURL_VER_GE(7,56,0)
-  p->mime = NULL;
-#endif
+  lcurl_easy_cleanup_storage(L, p);
 
-  if(p->storage != LUA_NOREF){
-    p->storage = lcurl_storage_free(L, p->storage);
-  }
-
-  luaL_unref(L, LCURL_LUA_REGISTRY, p->wr.cb_ref);
-  luaL_unref(L, LCURL_LUA_REGISTRY, p->wr.ud_ref);
-  luaL_unref(L, LCURL_LUA_REGISTRY, p->rd.cb_ref);
-  luaL_unref(L, LCURL_LUA_REGISTRY, p->rd.ud_ref);
-  luaL_unref(L, LCURL_LUA_REGISTRY, p->pr.cb_ref);
-  luaL_unref(L, LCURL_LUA_REGISTRY, p->pr.ud_ref);
-  luaL_unref(L, LCURL_LUA_REGISTRY, p->seek.cb_ref);
-  luaL_unref(L, LCURL_LUA_REGISTRY, p->seek.ud_ref);
-  luaL_unref(L, LCURL_LUA_REGISTRY, p->debug.cb_ref);
-  luaL_unref(L, LCURL_LUA_REGISTRY, p->debug.ud_ref);
-  luaL_unref(L, LCURL_LUA_REGISTRY, p->match.cb_ref);
-  luaL_unref(L, LCURL_LUA_REGISTRY, p->match.ud_ref);
-  luaL_unref(L, LCURL_LUA_REGISTRY, p->chunk_bgn.cb_ref);
-  luaL_unref(L, LCURL_LUA_REGISTRY, p->chunk_bgn.ud_ref);
-  luaL_unref(L, LCURL_LUA_REGISTRY, p->chunk_end.cb_ref);
-  luaL_unref(L, LCURL_LUA_REGISTRY, p->chunk_end.ud_ref);
-  luaL_unref(L, LCURL_LUA_REGISTRY, p->hd.cb_ref);
-  luaL_unref(L, LCURL_LUA_REGISTRY, p->hd.ud_ref);
-  luaL_unref(L, LCURL_LUA_REGISTRY, p->rbuffer.ref);
-  
-  p->wr.cb_ref        = p->wr.ud_ref        = LUA_NOREF;
-  p->rd.cb_ref        = p->rd.ud_ref        = LUA_NOREF;
-  p->hd.cb_ref        = p->hd.ud_ref        = LUA_NOREF;
-  p->pr.cb_ref        = p->pr.ud_ref        = LUA_NOREF;
-  p->seek.cb_ref      = p->seek.ud_ref      = LUA_NOREF;
-  p->debug.cb_ref     = p->debug.ud_ref     = LUA_NOREF;
-  p->match.cb_ref     = p->match.ud_ref     = LUA_NOREF;
-  p->chunk_bgn.cb_ref = p->chunk_bgn.ud_ref = LUA_NOREF;
-  p->chunk_end.cb_ref = p->chunk_end.ud_ref = LUA_NOREF;
-  p->rbuffer.ref  = LUA_NOREF;
-
-  for(i = 0; i < LCURL_LIST_COUNT; ++i){
-    p->lists[i] = LUA_NOREF;
-  }
-
-  lua_settop(L, 1);
   lua_pushnil(L);
   lua_rawset(L, LCURL_USERVALUES);
 
@@ -273,11 +313,8 @@ static int lcurl_easy_reset(lua_State *L){
   curl_easy_reset(p->curl);
   lua_settop(L, 1);
 
-  if(p->storage != LUA_NOREF){
-    lcurl_storage_free(L, p->storage);
-    p->storage = lcurl_storage_init(L);
-    lua_settop(L, 1);
-  }
+  lcurl_easy_cleanup_storage(L, p);
+  p->storage = lcurl_storage_init(L);
 
   return 1;
 }
@@ -287,6 +324,20 @@ static int lcurl_easy_reset(lua_State *L){
 static int lcurl_easy_mime(lua_State *L){
   lcurl_easy_t *p = lcurl_geteasy(L);
   return lcurl_mime_create(L, p->err_mode);
+}
+
+#endif
+
+#if LCURL_CURL_VER_GE(7,62,0)
+
+static int lcurl_easy_upkeep(lua_State *L){
+  lcurl_easy_t *p = lcurl_geteasy(L);
+  CURLcode code = curl_easy_upkeep(p->curl);
+  if(code == CURLE_OK){
+    lua_settop(L, 1);
+    return 1;
+  }
+  return lcurl_fail_ex(L, p->err_mode, LCURL_ERROR_EASY, code);
 }
 
 #endif
@@ -302,10 +353,12 @@ static int lcurl_opt_set_long_(lua_State *L, int opt){
   if(lua_isboolean(L, 2)){
     val = lua_toboolean(L, 2);
     if( val
-      && (opt == CURLOPT_SSL_VERIFYHOST)
+      && (
+        (opt == CURLOPT_SSL_VERIFYHOST)
 #if LCURL_CURL_VER_GE(7,52,0)
-      && (opt == CURLOPT_PROXY_SSL_VERIFYHOST)
+        || (opt == CURLOPT_PROXY_SSL_VERIFYHOST)
 #endif
+      )
     ){
       val = 2;
     }
@@ -394,6 +447,33 @@ static int lcurl_opt_set_slist_(lua_State *L, int opt, int list_no){
   return 1;
 }
 
+#if LCURL_CURL_VER_GE(7,73,0)
+
+static int lcurl_opt_set_blob_(lua_State *L, int opt){
+  lcurl_easy_t *p = lcurl_geteasy(L);
+  CURLcode code; const char *value; size_t len;
+  struct curl_blob blob;
+
+  luaL_argcheck(L, lua_type(L, 2) == LUA_TSTRING || lutil_is_null(L, 2), 2, "string expected");
+
+  value = lua_tolstring(L, 2, &len);
+
+  blob.data = (void*)value;
+  blob.len = len;
+  blob.flags = CURL_BLOB_COPY;
+
+  code = curl_easy_setopt(p->curl, (CURLoption)opt, value);
+
+  if(code != CURLE_OK){
+    return lcurl_fail_ex(L, p->err_mode, LCURL_ERROR_EASY, code);
+  }
+
+  lua_settop(L, 1);
+  return 1;
+}
+
+#endif
+
 #define LCURL_STR_OPT(N, S) static int lcurl_easy_set_##N(lua_State *L){\
   return lcurl_opt_set_string_(L, CURLOPT_##N, (S)); \
 }
@@ -408,6 +488,10 @@ static int lcurl_opt_set_slist_(lua_State *L, int opt, int list_no){
 
 #define LCURL_OFF_OPT(N, S) static int lcurl_easy_set_##N(lua_State *L){\
   return lcurl_opt_set_off_(L, CURLOPT_##N);\
+}
+
+#define LCURL_BLB_OPT(N, S) static int lcurl_easy_set_##N(lua_State *L){\
+  return lcurl_opt_set_blob_(L, CURLOPT_##N); \
 }
 
 #define OPT_ENTRY(L, N, T, S, D) LCURL_##T##_OPT(N, S)
@@ -442,6 +526,7 @@ static int lcurl_easy_set_POSTFIELDS(lua_State *L){
 #undef LCURL_LST_OPT
 #undef LCURL_LNG_OPT
 #undef LCURL_OFF_OPT
+#undef LCURL_BLB_OPT
 
 static size_t lcurl_hpost_read_callback(char *buffer, size_t size, size_t nitems, void *arg);
 
@@ -525,6 +610,24 @@ static int lcurl_easy_set_MIMEPOST(lua_State *L){
 
 #endif
 
+#if LCURL_CURL_VER_GE(7,63,0)
+
+static int lcurl_easy_set_CURLU(lua_State *L) {
+  lcurl_easy_t *p = lcurl_geteasy(L);
+  lcurl_url_t *url = lcurl_geturl_at(L, 2);
+  CURLcode code = curl_easy_setopt(p->curl, CURLOPT_CURLU, url->url);
+  if (code != CURLE_OK) {
+    return lcurl_fail_ex(L, p->err_mode, LCURL_ERROR_EASY, code);
+  }
+
+  lcurl_storage_preserve_iv(L, p->storage, CURLOPT_CURLU, 2);
+
+  lua_settop(L, 1);
+  return 1;
+}
+
+#endif
+
 //}
 
 //{ unset
@@ -593,6 +696,23 @@ static int lcurl_opt_unset_slist_(lua_State *L, int opt, int list_no){
   return 1;
 }
 
+#if LCURL_CURL_VER_GE(7,73,0)
+
+static int lcurl_opt_unset_blob_(lua_State *L, int opt){
+  lcurl_easy_t *p = lcurl_geteasy(L);
+  CURLcode code;
+
+  code = curl_easy_setopt(p->curl, (CURLoption)opt, 0);
+  if(code != CURLE_OK){
+    return lcurl_fail_ex(L, p->err_mode, LCURL_ERROR_EASY, code);
+  }
+
+  lua_settop(L, 1);
+  return 1;
+}
+
+#endif
+
 #define LCURL_STR_OPT(N, S, D) static int lcurl_easy_unset_##N(lua_State *L){\
   return lcurl_opt_unset_string_(L, CURLOPT_##N, (D)); \
 }
@@ -609,6 +729,10 @@ static int lcurl_opt_unset_slist_(lua_State *L, int opt, int list_no){
   return lcurl_opt_unset_off_(L, CURLOPT_##N, (D));\
 }
 
+#define LCURL_BLB_OPT(N, S, D) static int lcurl_easy_unset_##N(lua_State *L){\
+  return lcurl_opt_unset_blob_(L, CURLOPT_##N);\
+}
+
 #define OPT_ENTRY(L, N, T, S, D) LCURL_##T##_OPT(N, S, D)
 
 #include "lcopteasy.h"
@@ -619,6 +743,7 @@ static int lcurl_opt_unset_slist_(lua_State *L, int opt, int list_no){
 #undef LCURL_LST_OPT
 #undef LCURL_LNG_OPT
 #undef LCURL_OFF_OPT
+#undef LCURL_BLB_OPT
 
 static int lcurl_easy_unset_HTTPPOST(lua_State *L){
   lcurl_easy_t *p = lcurl_geteasy(L);
@@ -782,6 +907,27 @@ static int lcurl_easy_unset_DEBUGFUNCTION(lua_State *L){
   return 1;
 }
 
+#if LCURL_CURL_VER_GE(7,19,6)
+
+static int lcurl_easy_unset_SSH_KEYFUNCTION(lua_State *L){
+  lcurl_easy_t *p = lcurl_geteasy(L);
+
+  CURLcode code = curl_easy_setopt(p->curl, CURLOPT_SSH_KEYFUNCTION, NULL);
+  if(code != CURLE_OK){
+    return lcurl_fail_ex(L, p->err_mode, LCURL_ERROR_EASY, code);
+  }
+  curl_easy_setopt(p->curl, CURLOPT_SSH_KEYDATA, NULL);
+
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->ssh_key.cb_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->ssh_key.ud_ref);
+  p->ssh_key.cb_ref = p->ssh_key.ud_ref = LUA_NOREF;
+
+  lua_settop(L, 1);
+  return 1;
+}
+
+#endif
+
 #if LCURL_CURL_VER_GE(7,21,0)
 
 static int lcurl_easy_unset_FNMATCH_FUNCTION(lua_State *L){
@@ -820,6 +966,7 @@ static int lcurl_easy_unset_CHUNK_BGN_FUNCTION(lua_State *L){
   lua_settop(L, 1);
   return 1;
 }
+
 static int lcurl_easy_unset_CHUNK_END_FUNCTION(lua_State *L){
   lcurl_easy_t *p = lcurl_geteasy(L);
 
@@ -886,6 +1033,82 @@ static int lcurl_easy_unset_MIMEPOST(lua_State *L){
   lcurl_storage_remove_i(L, p->storage, CURLOPT_MIMEPOST);
 
   p->mime = NULL;
+
+  lua_settop(L, 1);
+  return 1;
+}
+
+#endif
+
+#if LCURL_CURL_VER_GE(7,63,0)
+
+static int lcurl_easy_unset_CURLU(lua_State *L) {
+  lcurl_easy_t *p = lcurl_geteasy(L);
+  CURLcode code = curl_easy_setopt(p->curl, CURLOPT_CURLU, NULL);
+  if (code != CURLE_OK) {
+    return lcurl_fail_ex(L, p->err_mode, LCURL_ERROR_EASY, code);
+  }
+
+  lcurl_storage_remove_i(L, p->storage, CURLOPT_CURLU);
+
+  lua_settop(L, 1);
+  return 1;
+}
+
+#endif
+
+#if LCURL_CURL_VER_GE(7,64,0)
+
+static int lcurl_easy_unset_TRAILERFUNCTION(lua_State *L){
+  lcurl_easy_t *p = lcurl_geteasy(L);
+
+  CURLcode code = curl_easy_setopt(p->curl, CURLOPT_TRAILERFUNCTION, NULL);
+  if(code != CURLE_OK){
+    return lcurl_fail_ex(L, p->err_mode, LCURL_ERROR_EASY, code);
+  }
+  curl_easy_setopt(p->curl, CURLOPT_TRAILERDATA, NULL);
+
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->trailer.cb_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->trailer.ud_ref);
+  p->trailer.cb_ref = p->trailer.ud_ref = LUA_NOREF;
+
+  lua_settop(L, 1);
+  return 1;
+}
+
+#endif
+
+#if LCURL_CURL_VER_GE(7,74,0) && LCURL_USE_HSTS
+
+static int lcurl_easy_unset_HSTSREADFUNCTION (lua_State *L){
+  lcurl_easy_t *p = lcurl_geteasy(L);
+
+  CURLcode code = curl_easy_setopt(p->curl, CURLOPT_HSTSREADFUNCTION, NULL);
+  if(code != CURLE_OK){
+    return lcurl_fail_ex(L, p->err_mode, LCURL_ERROR_EASY, code);
+  }
+  curl_easy_setopt(p->curl, CURLOPT_HSTSREADDATA, NULL);
+
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->hstsread.cb_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->hstsread.ud_ref);
+  p->hstsread.cb_ref = p->hstsread.ud_ref = LUA_NOREF;
+
+  lua_settop(L, 1);
+  return 1;
+}
+
+static int lcurl_easy_unset_HSTSWRITEFUNCTION (lua_State *L){
+  lcurl_easy_t *p = lcurl_geteasy(L);
+
+  CURLcode code = curl_easy_setopt(p->curl, CURLOPT_HSTSWRITEFUNCTION, NULL);
+  if(code != CURLE_OK){
+    return lcurl_fail_ex(L, p->err_mode, LCURL_ERROR_EASY, code);
+  }
+  curl_easy_setopt(p->curl, CURLOPT_HSTSWRITEDATA, NULL);
+
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->hstswrite.cb_ref);
+  luaL_unref(L, LCURL_LUA_REGISTRY, p->hstswrite.ud_ref);
+  p->hstswrite.cb_ref = p->hstswrite.ud_ref = LUA_NOREF;
 
   lua_settop(L, 1);
   return 1;
@@ -1114,7 +1337,7 @@ static int lcurl_easy_set_WRITEFUNCTION(lua_State *L){
   lcurl_easy_t *p = lcurl_geteasy(L);
   return lcurl_easy_set_callback(L, p, &p->wr,
     CURLOPT_WRITEFUNCTION, CURLOPT_WRITEDATA,
-    "write", (void*)lcurl_write_callback
+    "write", (void *)lcurl_write_callback
   );
 }
 
@@ -1181,7 +1404,7 @@ size_t lcurl_read_callback(lua_State *L,
     }
     else{
       if(lua_type(L, top + 1) == LUA_TNUMBER){
-        size_t ret = lua_tonumber(L, top + 1);
+        size_t ret = lua_tointeger(L, top + 1);
         if(ret == (size_t)CURL_READFUNC_PAUSE){
           lua_settop(L, top);
           return CURL_READFUNC_PAUSE;
@@ -1224,7 +1447,7 @@ static int lcurl_easy_set_READFUNCTION(lua_State *L){
   lcurl_easy_t *p = lcurl_geteasy(L);
   return lcurl_easy_set_callback(L, p, &p->rd, 
     CURLOPT_READFUNCTION, CURLOPT_READDATA,
-    "read", (void*)lcurl_easy_read_callback
+    "read", (void *)lcurl_easy_read_callback
   );
 }
 
@@ -1242,7 +1465,7 @@ static int lcurl_easy_set_HEADERFUNCTION(lua_State *L){
   lcurl_easy_t *p = lcurl_geteasy(L);
   return lcurl_easy_set_callback(L, p, &p->hd,
     CURLOPT_HEADERFUNCTION, CURLOPT_HEADERDATA,
-    "header", (void*)lcurl_header_callback
+    "header", (void *)lcurl_header_callback
   );
 }
 
@@ -1282,8 +1505,15 @@ static int lcurl_xferinfo_callback(void *arg, curl_off_t dltotal, curl_off_t dln
     if(lua_isboolean(L, top + 1))
       ret = lua_toboolean(L, top + 1)?0:1;
     else{
-      ret = lua_tointeger(L, top + 1);
-      if(ret == 0) ret = 1; else ret = 0;
+      ret = lua_tonumber(L, top + 1);
+      #if LCURL_CURL_VER_GE(7,68,0)
+        if(ret != (size_t)CURL_PROGRESSFUNC_CONTINUE)
+	{
+      #endif
+        if(ret == 0) ret = 1; else ret = 0;
+      #if LCURL_CURL_VER_GE(7,68,0)
+	}
+      #endif
     }
   }
 
@@ -1306,7 +1536,7 @@ static int lcurl_easy_set_PROGRESSFUNCTION(lua_State *L){
   lcurl_easy_t *p = lcurl_geteasy(L);
   int n = lcurl_easy_set_callback(L, p, &p->pr,
     CURLOPT_PROGRESSFUNCTION, CURLOPT_PROGRESSDATA,
-    "progress", (void*)lcurl_progress_callback
+    "progress", (void *)lcurl_progress_callback
   );
 
 #if LCURL_CURL_VER_GE(7,32,0)
@@ -1364,7 +1594,7 @@ static int lcurl_easy_set_SEEKFUNCTION(lua_State *L){
   lcurl_easy_t *p = lcurl_geteasy(L);
   return lcurl_easy_set_callback(L, p, &p->seek,
     CURLOPT_SEEKFUNCTION, CURLOPT_SEEKDATA,
-    "seek", (void*)lcurl_seek_callback
+    "seek", (void *)lcurl_seek_callback
   );
 }
 
@@ -1443,7 +1673,7 @@ static int lcurl_easy_set_FNMATCH_FUNCTION(lua_State *L){
   lcurl_easy_t *p = lcurl_geteasy(L);
   return lcurl_easy_set_callback(L, p, &p->match,
     CURLOPT_FNMATCH_FUNCTION, CURLOPT_FNMATCH_DATA,
-    "match", (void*)lcurl_match_callback
+    "match", (void *)lcurl_match_callback
   );
 }
 
@@ -1542,7 +1772,7 @@ static int lcurl_easy_set_CHUNK_BGN_FUNCTION(lua_State *L){
   lcurl_easy_t *p = lcurl_geteasy(L);
   return lcurl_easy_set_callback(L, p, &p->chunk_bgn,
     CURLOPT_CHUNK_BGN_FUNCTION, CURLOPT_CHUNK_DATA,
-    "chunk_bgn", (void*)lcurl_chunk_bgn_callback
+    "chunk_bgn", (void *)lcurl_chunk_bgn_callback
   );
 }
 
@@ -1550,13 +1780,336 @@ static int lcurl_easy_set_CHUNK_END_FUNCTION(lua_State *L){
   lcurl_easy_t *p = lcurl_geteasy(L);
   return lcurl_easy_set_callback(L, p, &p->chunk_end,
     CURLOPT_CHUNK_END_FUNCTION, CURLOPT_CHUNK_DATA,
-    "chunk_end", (void*)lcurl_chunk_end_callback
+    "chunk_end", (void *)lcurl_chunk_end_callback
   );
 }
 
 #endif
 
 //}
+
+//{ Trailer
+
+#if LCURL_CURL_VER_GE(7,64,0)
+
+static int lcurl_trailer_callback(struct curl_slist **list, void *arg) {
+  lcurl_easy_t *p = (lcurl_easy_t*)arg;
+  lua_State *L = p->L;
+  int top = lua_gettop(L);
+  int n = lcurl_util_push_cb(L, &p->trailer);
+
+  if (lua_pcall(L, n - 1, LUA_MULTRET, 0)) {
+    assert(lua_gettop(L) >= top);
+    lua_pushlightuserdata(L, (void*)LCURL_ERROR_TAG);
+    lua_insert(L, top + 1);
+    return CURL_TRAILERFUNC_ABORT;
+  }
+
+  n = lua_gettop(L);
+
+  if (n == top) {
+    return CURL_TRAILERFUNC_OK;
+  }
+
+  /* libcurl will free the list */
+  *list = lcurl_util_to_slist(L, top + 1);
+  if (*list) {
+    lua_settop(L, top);
+    return CURL_TRAILERFUNC_OK;
+  }
+
+  // empty array or NULL
+  if (lua_istable(L, top + 1) || lutil_is_null(L, top + 1)) {
+    lua_settop(L, top);
+    return CURL_TRAILERFUNC_OK;
+  }
+
+  // true
+  if((lua_type(L, top + 1) == LUA_TBOOLEAN) && (lua_toboolean(L, top + 1))){
+    lua_settop(L, top);
+    return CURL_TRAILERFUNC_OK;
+  }
+
+  // single nil
+  if((n == (top + 1)) && lua_isnil(L, top + 1)){
+    lua_settop(L, top);
+    return CURL_TRAILERFUNC_OK;
+  }
+  
+  lua_settop(L, top);
+  return CURL_TRAILERFUNC_ABORT;
+}
+
+static int lcurl_easy_set_TRAILERFUNCTION (lua_State *L){
+  lcurl_easy_t *p = lcurl_geteasy(L);
+  return lcurl_easy_set_callback(L, p, &p->trailer,
+    CURLOPT_TRAILERFUNCTION, CURLOPT_TRAILERDATA,
+    "trailer", (void *)lcurl_trailer_callback
+  );
+}
+
+#endif
+
+//}
+
+//{ HSTS Reader
+
+#if LCURL_CURL_VER_GE(7,74,0) && LCURL_USE_HSTS
+
+#define LCURL_HSTS_EXPIRE_LEN 18
+
+static int lcurl_hstsread_callback(CURL *easy, struct curl_hstsentry *sts, void *arg) {
+  lcurl_easy_t *p = (lcurl_easy_t*)arg;
+  lua_State *L = p->L;
+  int top = lua_gettop(L);
+  int n   = lcurl_util_push_cb(L, &p->hstsread);
+  const char *name; size_t namelen;
+  const char *expire; size_t expirelen;
+  int type;
+
+  assert(NULL != p->L);
+
+  lua_pushinteger(L, sts->namelen);
+  if (lua_pcall(L, n, LUA_MULTRET, 0)) {
+    assert(lua_gettop(L) >= top);
+    lua_pushlightuserdata(L, (void*)LCURL_ERROR_TAG);
+    lua_insert(L, top + 1);
+    return CURLSTS_FAIL;
+  }
+
+  if (lua_gettop(L) == top) {
+    return CURLSTS_DONE;
+  }
+
+  assert(lua_gettop(L) >= top);
+
+  type = lua_type(L, top + 1);
+  if (type == LUA_TNIL) {
+    lua_settop(L, top);
+    return CURLSTS_DONE;
+  }
+
+  if (type != LUA_TSTRING) {
+    lua_settop(L, top);
+    return CURLSTS_FAIL;
+  }
+
+  name = lua_tolstring(L, top + 1, &namelen);
+
+  if(namelen > sts->namelen) {
+    lua_settop(L, top);
+    return CURLSTS_FAIL;
+  }
+
+  memcpy(sts->name, name, namelen + 1);
+
+  type = lua_type(L, top + 2);
+  if (type == LUA_TNONE) {
+    lua_settop(L, top);
+    return CURLSTS_OK;
+  }
+
+  if ((type != LUA_TBOOLEAN) && (type != LUA_TNIL)) {
+    lua_settop(L, top);
+    return CURLSTS_FAIL;
+  }
+
+  if (type == LUA_TBOOLEAN) {
+    sts->includeSubDomains = lua_toboolean(L, top + 2) ? 0 : 1;
+  }
+  else if (type != LUA_TNIL) {
+    lua_settop(L, top);
+    return CURLSTS_FAIL;
+  }
+
+  type = lua_type(L, top + 3);
+  if ((type == LUA_TNONE) || (type == LUA_TNIL)) {
+    lua_settop(L, top);
+    return CURLSTS_OK;
+  }
+
+  if(type != LUA_TSTRING) {
+    lua_settop(L, top);
+    return CURLSTS_FAIL;
+  }
+
+  expire = lua_tolstring(L, top + 3, &expirelen);
+
+  if (expirelen != LCURL_HSTS_EXPIRE_LEN - 1) {
+    lua_settop(L, top);
+    return CURLSTS_FAIL;
+  }
+
+  memcpy(sts->expire, expire, expirelen + 1);
+
+  lua_settop(L, top);
+  return CURLSTS_OK;
+}
+
+static int lcurl_easy_set_HSTSREADFUNCTION(lua_State *L){
+  lcurl_easy_t *p = lcurl_geteasy(L);
+  return lcurl_easy_set_callback(L, p, &p->hstsread,
+    CURLOPT_HSTSREADFUNCTION, CURLOPT_HSTSREADDATA,
+    "hstsread", lcurl_hstsread_callback
+  );
+}
+
+#endif
+
+//}
+
+//{ HSTS Writer
+
+#if LCURL_CURL_VER_GE(7,74,0) && LCURL_USE_HSTS
+
+static int lcurl_hstswrite_callback(CURL *easy, struct curl_hstsentry *sts, struct curl_index *count, void *arg) {
+  lcurl_easy_t *p = (lcurl_easy_t*)arg;
+  lua_State *L = p->L;
+  int top = lua_gettop(L);
+  int n   = lcurl_util_push_cb(L, &p->hstswrite);
+  int type;
+
+  assert(NULL != p->L);
+
+  lua_pushstring(L, sts->name);
+  lua_pushboolean(L, sts->includeSubDomains ? 1 : 0);
+  if (sts->expire[0]) {
+    lua_pushstring(L, sts->expire);
+  } else {
+    lua_pushnil(L);
+  }
+  lua_pushinteger(L, count->index);
+  lua_pushinteger(L, count->total);
+  
+  if (lua_pcall(L, n + 4, LUA_MULTRET, 0)) {
+    assert(lua_gettop(L) >= top);
+    lua_pushlightuserdata(L, (void*)LCURL_ERROR_TAG);
+    lua_insert(L, top + 1);
+    return CURLSTS_FAIL;
+  }
+
+  if (lua_gettop(L) == top) {
+    return CURLSTS_OK;
+  }
+
+  assert(lua_gettop(L) >= top);
+
+  type = lua_type(L, top + 1);
+  if (type == LUA_TNIL) {
+    type = lua_type(L, top + 2);
+    lua_settop(L, top);
+    if(type == LUA_TNONE){
+      return CURLSTS_OK;
+    }
+    return CURLSTS_FAIL;
+  }
+
+  if (type == LUA_TNUMBER) {
+    int ret = lua_tointeger(L, top + 1);
+    lua_settop(L, top);
+    return ret;
+  }
+
+  if (type == LUA_TBOOLEAN) {
+    int ret = lua_toboolean(L, top + 1);
+    lua_settop(L, top);
+    return ret ? CURLSTS_OK : CURLSTS_DONE;
+  }
+
+  lua_settop(L, top);
+  return CURLSTS_FAIL;
+}
+
+static int lcurl_easy_set_HSTSWRITEFUNCTION(lua_State *L){
+  lcurl_easy_t *p = lcurl_geteasy(L);
+  return lcurl_easy_set_callback(L, p, &p->hstswrite,
+    CURLOPT_HSTSWRITEFUNCTION, CURLOPT_HSTSWRITEDATA,
+    "hstswrite", lcurl_hstswrite_callback
+  );
+}
+
+#endif
+
+//}
+
+//{ SSH key
+
+#if LCURL_CURL_VER_GE(7,19,6)
+
+static void lcurl_ssh_key_push(lua_State *L, const struct curl_khkey *key){
+  if (!key) {
+    lua_pushnil(L);
+    return;
+  }
+
+  lua_newtable(L);
+
+  if(key->len){
+    lua_pushliteral(L, "raw");
+    lua_pushlstring(L, key->key, key->len);
+  } else {
+    lua_pushliteral(L, "base64");
+    lua_pushstring(L, key->key);
+  }
+  lua_rawset(L, -3);
+
+  lua_pushliteral(L, "type");
+  lutil_pushuint(L, key->keytype);
+  lua_rawset(L, -3);
+}
+
+static int lcurl_ssh_key_callback(
+  CURL *easy,
+  const struct curl_khkey *knownkey,
+  const struct curl_khkey *foundkey,
+  enum curl_khmatch khmatch,
+  void *arg
+) {
+  lcurl_easy_t *p = (lcurl_easy_t*)arg;
+  lua_State *L = p->L;
+  int top = lua_gettop(L);
+  int n   = lcurl_util_push_cb(L, &p->ssh_key);
+
+  assert(NULL != p->L);
+
+  lcurl_ssh_key_push(L, knownkey);
+  lcurl_ssh_key_push(L, foundkey);
+  lutil_pushuint(L, khmatch);
+
+  if (lua_pcall(L, n + 2, LUA_MULTRET, 0)) {
+    assert(lua_gettop(L) >= top);
+    lua_pushlightuserdata(L, (void*)LCURL_ERROR_TAG);
+    lua_insert(L, top + 1);
+    return CURLKHSTAT_REJECT;
+  }
+
+  if (lua_gettop(L) > top) {
+    int ret = lua_tointeger(L, top + 1);
+    lua_settop(L, top);
+
+    switch (ret) 
+#if LCURL_CURL_VER_GE(7,73,0)
+      case CURLKHSTAT_FINE_REPLACE:
+#endif
+      case CURLKHSTAT_FINE_ADD_TO_FILE:
+      case CURLKHSTAT_FINE:
+      case CURLKHSTAT_REJECT:
+      case CURLKHSTAT_DEFER:
+        return ret;
+  }
+
+  return CURLKHSTAT_REJECT;
+}
+
+static int lcurl_easy_set_SSH_KEYFUNCTION(lua_State *L){
+  lcurl_easy_t *p = lcurl_geteasy(L);
+  return lcurl_easy_set_callback(L, p, &p->ssh_key,
+    CURLOPT_SSH_KEYFUNCTION, CURLOPT_SSH_KEYDATA,
+    "ssh_key", (void *)lcurl_ssh_key_callback
+  );
+}
+
+#endif
 
 //}
 
@@ -1587,8 +2140,11 @@ static int lcurl_easy_setopt(lua_State *L){
     OPT_ENTRY(progressfunction,  PROGRESSFUNCTION, TTT, 0, 0)
     OPT_ENTRY(seekfunction,      SEEKFUNCTION,     TTT, 0, 0)
     OPT_ENTRY(debugfunction,     DEBUGFUNCTION,    TTT, 0, 0)
+#if LCURL_CURL_VER_GE(7,19,6)
+  OPT_ENTRY(ssh_keyfunction,     SSH_KEYFUNCTION,  TTT, 0, 0)
+#endif
 #if LCURL_CURL_VER_GE(7,21,0)
-    OPT_ENTRY(fnmatch_function,  FNMATCH_FUNCTION, TTT, 0, 0)
+    OPT_ENTRY(fnmatch_function,   FNMATCH_FUNCTION,   TTT, 0, 0)
     OPT_ENTRY(chunk_bgn_function, CHUNK_BGN_FUNCTION, TTT, 0, 0)
     OPT_ENTRY(chunk_end_function, CHUNK_END_FUNCTION, TTT, 0, 0)
 #endif
@@ -1598,6 +2154,16 @@ static int lcurl_easy_setopt(lua_State *L){
 #endif
 #if LCURL_CURL_VER_GE(7,56,0)
     OPT_ENTRY(mimepost,          MIMEPOST,         TTT, 0, 0)
+#endif
+#if LCURL_CURL_VER_GE(7,63,0)
+  OPT_ENTRY(curlu,               CURLU,            TTT, 0, 0)
+#endif
+#if LCURL_CURL_VER_GE(7,64,0)
+  OPT_ENTRY(trailerfunction,     TRAILERFUNCTION,  TTT, 0, 0)
+#endif
+#if LCURL_CURL_VER_GE(7,74,0) && LCURL_USE_HSTS
+  OPT_ENTRY(hstsreadfunction,    HSTSREADFUNCTION, TTT, 0, 0)
+  OPT_ENTRY(hstswritefunction,   HSTSWRITEFUNCTION,TTT, 0, 0)
 #endif
   }
 #undef OPT_ENTRY
@@ -1624,8 +2190,11 @@ static int lcurl_easy_unsetopt(lua_State *L){
     OPT_ENTRY(progressfunction,  PROGRESSFUNCTION, TTT, 0, 0)
     OPT_ENTRY(seekfunction,      SEEKFUNCTION,     TTT, 0, 0)
     OPT_ENTRY(debugfunction,     DEBUGFUNCTION,    TTT, 0, 0)
+#if LCURL_CURL_VER_GE(7,19,6)
+  OPT_ENTRY(ssh_keyfunction,     SSH_KEYFUNCTION,  TTT, 0, 0)
+#endif
 #if LCURL_CURL_VER_GE(7,21,0)
-    OPT_ENTRY(fnmatch_function,  FNMATCH_FUNCTION, TTT, 0, 0)
+    OPT_ENTRY(fnmatch_function,   FNMATCH_FUNCTION,   TTT, 0, 0)
     OPT_ENTRY(chunk_bgn_function, CHUNK_BGN_FUNCTION, TTT, 0, 0)
     OPT_ENTRY(chunk_end_function, CHUNK_END_FUNCTION, TTT, 0, 0)
 #endif
@@ -1635,6 +2204,16 @@ static int lcurl_easy_unsetopt(lua_State *L){
 #endif
 #if LCURL_CURL_VER_GE(7,56,0)
     OPT_ENTRY(mimepost,          MIMEPOST,         TTT, 0, 0)
+#endif
+#if LCURL_CURL_VER_GE(7,63,0)
+  OPT_ENTRY(curlu,               CURLU,            TTT, 0, 0)
+#endif
+#if LCURL_CURL_VER_GE(7,64,0)
+  OPT_ENTRY(trailerfunction,     TRAILERFUNCTION,  TTT, 0, 0)
+#endif
+#if LCURL_CURL_VER_GE(7,74,0) && LCURL_USE_HSTS
+  OPT_ENTRY(hstsreadfunction,    HSTSREADFUNCTION, TTT, 0, 0)
+  OPT_ENTRY(hstswritefunction,   HSTSWRITEFUNCTION,TTT, 0, 0)
 #endif
   }
 #undef OPT_ENTRY
@@ -1705,6 +2284,9 @@ static const struct luaL_Reg lcurl_easy_methods[] = {
   OPT_ENTRY(progressfunction,  PROGRESSFUNCTION, TTT, 0, 0)
   OPT_ENTRY(seekfunction,      SEEKFUNCTION,     TTT, 0, 0)
   OPT_ENTRY(debugfunction,     DEBUGFUNCTION,    TTT, 0, 0)
+#if LCURL_CURL_VER_GE(7,19,6)
+  OPT_ENTRY(ssh_keyfunction,   SSH_KEYFUNCTION,  TTT, 0, 0)
+#endif
 #if LCURL_CURL_VER_GE(7,21,0)
   OPT_ENTRY(fnmatch_function,   FNMATCH_FUNCTION,   TTT, 0, 0)
   OPT_ENTRY(chunk_bgn_function, CHUNK_BGN_FUNCTION, TTT, 0, 0)
@@ -1716,6 +2298,16 @@ static const struct luaL_Reg lcurl_easy_methods[] = {
 #endif
 #if LCURL_CURL_VER_GE(7,56,0)
   OPT_ENTRY(mimepost,          MIMEPOST,         TTT, 0, 0)
+#endif
+#if LCURL_CURL_VER_GE(7,63,0)
+  OPT_ENTRY(curlu,             CURLU,            TTT, 0, 0)
+#endif
+#if LCURL_CURL_VER_GE(7,64,0)
+  OPT_ENTRY(trailerfunction,   TRAILERFUNCTION,  TTT, 0, 0)
+#endif
+#if LCURL_CURL_VER_GE(7,74,0) && LCURL_USE_HSTS
+  OPT_ENTRY(hstsreadfunction,  HSTSREADFUNCTION, TTT, 0, 0)
+  OPT_ENTRY(hstswritefunction, HSTSWRITEFUNCTION,TTT, 0, 0)
 #endif
 #undef OPT_ENTRY
 
@@ -1730,6 +2322,9 @@ static const struct luaL_Reg lcurl_easy_methods[] = {
   OPT_ENTRY(progressfunction,  PROGRESSFUNCTION, TTT, 0, 0)
   OPT_ENTRY(seekfunction,      SEEKFUNCTION,     TTT, 0, 0)
   OPT_ENTRY(debugfunction,     DEBUGFUNCTION,    TTT, 0, 0)
+#if LCURL_CURL_VER_GE(7,19,6)
+  OPT_ENTRY(ssh_keyfunction,   SSH_KEYFUNCTION,  TTT, 0, 0)
+#endif
 #if LCURL_CURL_VER_GE(7,21,0)
   OPT_ENTRY(fnmatch_function,   FNMATCH_FUNCTION,   TTT, 0, 0)
   OPT_ENTRY(chunk_bgn_function, CHUNK_BGN_FUNCTION, TTT, 0, 0)
@@ -1741,6 +2336,16 @@ static const struct luaL_Reg lcurl_easy_methods[] = {
 #endif
 #if LCURL_CURL_VER_GE(7,56,0)
   OPT_ENTRY(mimepost,          MIMEPOST,         TTT, 0, 0)
+#endif
+#if LCURL_CURL_VER_GE(7,63,0)
+  OPT_ENTRY(curlu,             CURLU,            TTT, 0, 0)
+#endif
+#if LCURL_CURL_VER_GE(7,64,0)
+  OPT_ENTRY(trailerfunction,   TRAILERFUNCTION,  TTT, 0, 0)
+#endif
+#if LCURL_CURL_VER_GE(7,74,0) && LCURL_USE_HSTS
+  OPT_ENTRY(hstsreadfunction,  HSTSREADFUNCTION, TTT, 0, 0)
+  OPT_ENTRY(hstswritefunction, HSTSWRITEFUNCTION,TTT, 0, 0)
 #endif
 #undef OPT_ENTRY
 
@@ -1760,6 +2365,9 @@ static const struct luaL_Reg lcurl_easy_methods[] = {
   { "escape",     lcurl_easy_escape         },
   { "unescape",   lcurl_easy_unescape       },
   { "perform",    lcurl_easy_perform        },
+#if LCURL_CURL_VER_GE(7,62,0)
+  { "upkeep",     lcurl_easy_upkeep         },
+#endif
   { "close",      lcurl_easy_cleanup        },
   { "__gc",       lcurl_easy_cleanup        },
   { "__tostring", lcurl_easy_to_s           },
@@ -1784,8 +2392,11 @@ static const lcurl_const_t lcurl_easy_opt[] = {
   OPT_ENTRY(progressfunction,  PROGRESSFUNCTION, TTT, 0, 0)
   OPT_ENTRY(seekfunction,      SEEKFUNCTION,     TTT, 0, 0)
   OPT_ENTRY(debugfunction,     DEBUGFUNCTION,    TTT, 0, 0)
+#if LCURL_CURL_VER_GE(7,19,6)
+  OPT_ENTRY(ssh_keyfunction,   SSH_KEYFUNCTION,  TTT, 0, 0)
+#endif
 #if LCURL_CURL_VER_GE(7,21,0)
-  OPT_ENTRY(fnmatch_function,  FNMATCH_FUNCTION, TTT, 0, 0)
+  OPT_ENTRY(fnmatch_function,   FNMATCH_FUNCTION,   TTT, 0, 0)
   OPT_ENTRY(chunk_bgn_function, CHUNK_BGN_FUNCTION, TTT, 0, 0)
   OPT_ENTRY(chunk_end_function, CHUNK_END_FUNCTION, TTT, 0, 0)
 #endif
@@ -1795,6 +2406,16 @@ static const lcurl_const_t lcurl_easy_opt[] = {
 #endif
 #if LCURL_CURL_VER_GE(7,56,0)
   OPT_ENTRY(mimepost,          MIMEPOST,         TTT, 0, 0)
+#endif
+#if LCURL_CURL_VER_GE(7,63,0)
+  OPT_ENTRY(curlu,             CURLU,            TTT, 0, 0)
+#endif
+#if LCURL_CURL_VER_GE(7,64,0)
+  OPT_ENTRY(trailerfunction,   TRAILERFUNCTION,  TTT, 0, 0)
+#endif
+#if LCURL_CURL_VER_GE(7,74,0) && LCURL_USE_HSTS
+  OPT_ENTRY(hstsreadfunction,  HSTSREADFUNCTION, TTT, 0, 0)
+  OPT_ENTRY(hstswritefunction, HSTSWRITEFUNCTION,TTT, 0, 0)
 #endif
 #undef OPT_ENTRY
 #undef FLG_ENTRY
@@ -1848,3 +2469,5 @@ void lcurl_easy_initlib(lua_State *L, int nup){
 
   lcurl_util_set_const(L, lcurl_easy_opt);
 }
+
+//}

@@ -48,6 +48,7 @@ class MsgLbr {
 	static ErrorId FmtLbrStat;
 	static ErrorId FmtLbrStat2;
 	static ErrorId FmtLbrStat3;
+	static ErrorId FmtLbrStat4;
 	static ErrorId LbrOpenFail;
 	static ErrorId AlreadyOpen;
 	static ErrorId BadKeyword;

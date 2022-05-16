@@ -39,7 +39,7 @@ Ident::GetMessage( StrBuf *s, int isServer )
     *s << "Perforce - The Fast Software Configuration Management System.\n";
     *s << "Copyright 1995-" ID_Y " Perforce Software.  All rights reserved.\n";
 
-# if defined( OS_NT ) || defined( OS_LINUX )
+# ifdef HAS_SMARTHEAP
     // Add credit for Smartheap memory manager
     if( isServer == 2 )
 	*s << "Portions copyright 1991-2005 Compuware Corporation.\n";
@@ -69,6 +69,19 @@ Ident::GetMessage( StrBuf *s, int isServer )
 # ifdef HAS_PARALLEL_SYNC_THREADS
     if( !isServer )
         *s << "Parallel sync threading built-in.\n";
+# endif
+
+# ifdef HAS_SMARTHEAP
+    if( isServer == 2 )
+	*s << "Using the 'SmartHeap' memory manager.\n";
+# endif
+# ifdef HAS_MIMALLOC
+    if( isServer == 2 )
+	*s << "Using the 'mimalloc' memory manager.\n";
+# endif
+# ifndef HAS_MALLOC_OVERRIDE
+    if( isServer == 2 )
+	*s << "Using no memory manager.\n";
 # endif
 
     *s << "Rev. " << GetIdent() << " (" << GetDate() << ").\n";

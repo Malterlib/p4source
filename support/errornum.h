@@ -55,4 +55,6 @@ enum ErrorSubsystem {
 	ES_X3SERVER	= 15,	// P4X3 server
 	ES_GRAPH	= 16,	// graph depot messages
 	ES_SCRIPT	= 17,	// scripting
+	ES_SERVER2	= 18,	// server overflow
+	ES_DM2          = 19,   // dm overflow
 } ;

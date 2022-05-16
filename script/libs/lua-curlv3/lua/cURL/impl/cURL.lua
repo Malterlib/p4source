@@ -1,7 +1,7 @@
 --
 --  Author: Alexey Melnichuk <alexeymelnichuck@gmail.com>
 --
---  Copyright (C) 2014-2018 Alexey Melnichuk <alexeymelnichuck@gmail.com>
+--  Copyright (C) 2014-2021 Alexey Melnichuk <alexeymelnichuck@gmail.com>
 --
 --  Licensed according to the included 'LICENSE' document
 --
@@ -10,9 +10,9 @@
 
 local module_info = {
   _NAME      = "Lua-cURL";
-  _VERSION   = "0.3.8";
+  _VERSION   = "0.3.12";
   _LICENSE   = "MIT";
-  _COPYRIGHT = "Copyright (c) 2014-2018 Alexey Melnichuk";
+  _COPYRIGHT = "Copyright (c) 2014-2021 Alexey Melnichuk";
 }
 
 local function hash_id(str)
@@ -381,6 +381,7 @@ Easy.setopt_httpauth  = wrap_setopt_flags("httpauth", {
   ["ONLY"            ] = curl.AUTH_ONLY;
   ["ANY"             ] = curl.AUTH_ANY;
   ["ANYSAFE"         ] = curl.AUTH_ANYSAFE;
+  ["BEARER"          ] = curl.AUTH_BEARER;
 })
 
 Easy.setopt_ssh_auth_types = wrap_setopt_flags("ssh_auth_types", {
@@ -670,8 +671,9 @@ local function wrap_callback(...)
 end
 
 local function wrap_socketfunction(self, cb)
+  local ptr = setmetatable({value = self},{__mode = 'v'})
   return function(h, ...)
-    local e = self._easy[h]
+    local e = ptr.value._easy[h]
     if e then return cb(e, ...) end
     return 0
   end

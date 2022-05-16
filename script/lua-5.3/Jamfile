@@ -1,0 +1,34 @@
+SubDir P4 script lua-5.3 ;
+
+local C++FLAGS = [ C++FLAGS+STD $(C++_VERSION_MAX) ] ;
+
+if $(CLANGVER)
+{
+	# lundump.c:237
+	C++FLAGS += -Wno-string-plus-int ;
+}
+
+local posix ;
+
+if $(UNIX)
+{
+	posix = LUA_USE_POSIX ;
+}
+
+local one_luac_obj = [ FAppendSuffix one_luac : $(SUFOBJ) ] ;
+local one_lua_obj  = [ FAppendSuffix one_lua  : $(SUFOBJ) ] ;
+
+Object [ FGristFiles $(one_lua_obj) ] : [ FGristFiles one.cc ] ;
+ObjectDefines [ FGristFiles $(one_lua_obj) ] : MAKE_LUA $(posix) ;
+
+Object [ FGristFiles $(one_luac_obj) ] : [ FGristFiles one.cc ] ;
+ObjectDefines [ FGristFiles $(one_luac_obj) ] : MAKE_LUAC ;
+
+LinkPthread lua ;
+LinkPthread luac ;
+
+LINKLIBS on lua += $(LINKLIBS) ;
+LINKLIBS on luac += $(LINKLIBS) ;
+
+MainFromObjects lua : $(one_lua_obj) ;
+MainFromObjects luac : $(one_luac_obj) ;

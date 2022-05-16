@@ -10,6 +10,7 @@
 # define NEED_FLOCK
 # define NEED_DBGBREAK
 # define NEED_CRITSEC
+# define NEED_WIN32FIO
 
 # include <stdhdrs.h>
 # include <strbuf.h>
@@ -293,10 +294,11 @@ ErrorLog::LogWrite( const StrPtr &s )
 	    return;
 	}
 
-	// Under a Windows Service, stderr is not valid.  Observation
-	// has shown that fileno(stderr) returns -2.  This is not detected
-	// as an invalid file descriptor by the Posix checks.  I suppose
-	// MS did this intentionally, just not sure why.
+	// Under a Windows Service, stderr is not valid.  The values
+	// returned by GetStdHandle for STD_*_HANDLE are also invalid.
+	// See fdutil.cc for further details of the state of descriptors
+	// and handles when running as a Windows Service.  Also see
+	// stdhdrs.h for the definition of INVALID_HANDLE_VALUE2.
 	//
 	//   Unix logType defaults to type_stderr.
 	//   Windows Services must call UnsetLogType().
@@ -304,10 +306,42 @@ ErrorLog::LogWrite( const StrPtr &s )
 
 	if ( logType == type_stdout || logType == type_stderr )
 	{
+# ifdef OS_NT
+	    HANDLE flog=GetStdHandle(STD_ERROR_HANDLE);
+	    DWORD written;
+
+	    if( logType == type_stdout )
+	        flog = GetStdHandle(STD_OUTPUT_HANDLE);
+
+	    if( flog != INVALID_HANDLE_VALUE2 && flog != 0x0 )
+	    {
+	        // Using the STD_OUTPUT_HANDLE or STD_ERROR_HANDLE
+	        // in the non Windows Service case is essentiall
+	        // output to the ConDrv Console device.  In this
+	        // type of output you can not lock, unlock or flush.
+	        //
+	        ::WriteFile( flog, s.Text(), s.Length(), &written, NULL );
+	    }
+# if defined( HAVE_EVENT_LOG )
+	    else
+	    {
+	        // Write to syslog or the event log the original
+	        // message that was to be written to the log.
+	        SysLog( NULL, 0, NULL, s.Text() );
+
+	        // Write to syslog or the event log the error that was
+	        // encountered when attempting to write to the log.
+	        Error tmpe;
+	        StrBuf buf;
+	        tmpe.Fmt( &buf );
+	        SysLog( &tmpe, 1, NULL, buf.Text() );
+	    }
+# endif
+# else // OS_NT
 	    FILE *flog=stderr;
 
 	    if( logType == type_stdout )
-		flog = stdout;
+	        flog = stdout;
 
 	    // lock the file exclusive for this append,  some platforms
 	    // don't do append correctly (you know who you are!)
@@ -322,6 +356,7 @@ ErrorLog::LogWrite( const StrPtr &s )
 	    fflush( flog );
 
 	    lockFile( fd, LOCKF_UN );
+# endif // OS_NT
 	}
 }
 

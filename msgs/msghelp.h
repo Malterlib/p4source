@@ -76,8 +76,8 @@ class MsgHelp {
 	static ErrorId HelpExport;
 	static ErrorId HelpFetch;
 	static ErrorId HelpExtension;
-	static ErrorId HelpExtensionDev;
-	static ErrorId HelpExtensionIntro;
+	static ErrorId HelpClientExtensionIntro;
+	static ErrorId HelpServerExtensionIntro;
 	static ErrorId HelpFailover;
 	static ErrorId HelpFiles;
 	static ErrorId HelpFilelog;
@@ -90,6 +90,7 @@ class MsgHelp {
 	static ErrorId HelpGroup;
 	static ErrorId HelpGroups;
 	static ErrorId HelpHave;
+	static ErrorId HelpHeartbeat;
 	static ErrorId HelpHelp;
 	static ErrorId HelpIgnores;
 	static ErrorId HelpIndex;
@@ -135,6 +136,7 @@ class MsgHelp {
 	static ErrorId HelpMove;
 	static ErrorId HelpNetworkAddress;
 	static ErrorId HelpObliterate;
+	static ErrorId HelpOpenableStreamSpecs;
 	static ErrorId HelpOpened;
 	static ErrorId HelpPing;
 	static ErrorId HelpPasswd;
@@ -181,10 +183,14 @@ class MsgHelp {
 	static ErrorId HelpSizes;
 	static ErrorId HelpSnap;
 	static ErrorId HelpSpec;
+	static ErrorId HelpStorage;
 	static ErrorId HelpStream;
 	static ErrorId HelpStreamCmds;
 	static ErrorId HelpStreamintro;
+	static ErrorId HelpStreamlog;
 	static ErrorId HelpStreams;
+	static ErrorId HelpStreamSpec;
+	static ErrorId HelpStreamSpecInteg;
 	static ErrorId HelpSubmit;
 	static ErrorId HelpSwitch;
 	static ErrorId HelpSync;
@@ -225,6 +231,9 @@ class MsgHelp {
 	static ErrorId HelpGraphFiles;
 	static ErrorId HelpGraphFstat;
 	static ErrorId HelpGraphHave;
+	static ErrorId HelpGraphLfsLocks;
+	static ErrorId HelpGraphLfsLock;
+	static ErrorId HelpGraphLfsUnLock;
 	static ErrorId HelpGraphLock;
 	static ErrorId HelpGraphLog;
 	static ErrorId HelpGraphMerge;

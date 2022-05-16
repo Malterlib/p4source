@@ -1,11 +1,11 @@
 /******************************************************************************
-* Author: Alexey Melnichuk <mimir@newmail.ru>
+* Author: Alexey Melnichuk <alexeymelnichuck@gmail.com>
 *
-* Copyright (C) 2014 Alexey Melnichuk <mimir@newmail.ru>
+* Copyright (C) 2014-2021 Alexey Melnichuk <alexeymelnichuck@gmail.com>
 *
 * Licensed according to the included 'LICENSE' document
 *
-* This file is part of lua-lcurl library.
+* This file is part of Lua-cURL library.
 ******************************************************************************/
 
 #include "lcurl.h"
@@ -115,8 +115,8 @@ int lcurl_storage_free(lua_State *L, int storage){
       lua_pop(L, 1);
     }
   }
-  lua_pop(L, 1);
   luaL_unref(L, LCURL_LUA_REGISTRY, storage);
+  lua_pop(L, 2);
   return LUA_NOREF;
 }
 
@@ -355,7 +355,7 @@ void lcurl_stack_dump (lua_State *L){
 
 curl_socket_t lcurl_opt_os_socket(lua_State *L, int idx, curl_socket_t def) {
   if (lua_islightuserdata(L, idx))
-    return (long)lua_touserdata(L, idx);
+    return *(curl_socket_t*)lua_touserdata(L, idx);
 
   return (curl_socket_t)lutil_optint64(L, idx, def);
 }

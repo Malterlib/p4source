@@ -95,6 +95,8 @@ class NetBuffer : public NetTransport {
 	    		{ return transport->IsSockIPv6(); }
 	void    	ClientMismatch( Error *e )
 			{ if( transport ) transport->ClientMismatch(e); };
+	void    	SetMaxWait( const int maxWait )
+			{ if( transport ) transport->SetMaxWait( maxWait ); };
 	void		DoHandshake( Error *e )
 			{ if( transport ) transport->DoHandshake(e); };
 

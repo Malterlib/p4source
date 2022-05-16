@@ -109,6 +109,7 @@ class MsgSupp {
 	static ErrorId OptionGlobal;
 	static ErrorId OptionStreamType;
 	static ErrorId OptionVirtualStream;
+	static ErrorId OptionSwitchStreamUnrelated;
 	static ErrorId OptionBrief;
 	static ErrorId OptionInherited;
 	static ErrorId OptionChangeStatus;
@@ -154,6 +155,7 @@ class MsgSupp {
 	static ErrorId OptionReopen;
 	static ErrorId OptionDescription;
 	static ErrorId OptionTamper;
+	static ErrorId OptionBackgroundXfer;
 	static ErrorId OptionCompress;
 	static ErrorId OptionDate;
 	static ErrorId OptionStreamName;
@@ -235,6 +237,7 @@ class MsgSupp {
 	static ErrorId OptionOpenAdd;
 	static ErrorId OptionOpenEdit;
 	static ErrorId OptionOpenDelete;
+	static ErrorId OptionOpenType;
 	static ErrorId OptionUseModTime;
 	static ErrorId OptionLocal;
 	static ErrorId OptionOutputBase;
@@ -320,6 +323,7 @@ class MsgSupp {
 	static ErrorId OptionTrigger;
 	static ErrorId OptionIgnoreHave;
 	static ErrorId OptionGraphOnly;
+	static ErrorId OptionNoGraph;
 	static ErrorId OptionMinSize;
 	static ErrorId OptionMaxSize;
 	static ErrorId OptionNameOnly;
@@ -343,6 +347,7 @@ class MsgSupp {
 	static ErrorId OptionGraph;
 	static ErrorId OptionOneParent;
 	static ErrorId OptionOneline;
+	static ErrorId OptionNoAbbrev;
 	static ErrorId OptionMerges;
 	static ErrorId OptionForceFailover;
 	static ErrorId OptionIgnoreMaster;
@@ -356,6 +361,25 @@ class MsgSupp {
 	static ErrorId OptionUndo;
 	static ErrorId OptionParentNumber;
 	static ErrorId OptionPkgExtension;
+	static ErrorId OptionPath;
+	static ErrorId OptionNoSync;
+	static ErrorId OptionNoScript;
+	static ErrorId OptionScriptLang;
+	static ErrorId OptionScriptLangVersion;
+	static ErrorId OptionChangeStart;
+	static ErrorId OptionIntoOnly;
+	static ErrorId OptionScriptAPIVersion;
+	static ErrorId OptionRunExtensionCmd;
+	static ErrorId OptionShowMemInfo;
+	static ErrorId OptionRepair;
+	static ErrorId OptionDeleteItem;
+	static ErrorId OptionTarget;
+	static ErrorId OptionInterval;
+	static ErrorId OptionWait;
+	static ErrorId OptionMissingInterval;
+	static ErrorId OptionMissingWait;
+	static ErrorId OptionMissingCount;
+	static ErrorId OptionLocalLicense;
 
 	static ErrorId TooManyLockTrys;
 
@@ -368,7 +392,9 @@ class MsgSupp {
 	static ErrorId ManifestKeyNotFound;
 	static ErrorId ManifestValueEmpty;
 	static ErrorId ManifestValueTypeInvalid;
+	static ErrorId ManifestParseError;
 	static ErrorId InvalidIntegerRange;
+	static ErrorId FatalLockError;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

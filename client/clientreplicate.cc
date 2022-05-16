@@ -363,6 +363,8 @@ jtail( int ac, char **av, Options &preopts, Options &opts,
 			"utf32be-bom, utf8unchecked, utf8unchecked-bom,\n"
 			"cp936, cp950, cp1253, or iso8859-7.\n"
 		        "Check P4CHARSET and your '-C' option.\n" );
+		    sig.DeleteOnIntr( (void*)&ui );
+		    sig.Disable();
 		    return 1;
 		}
 		else
@@ -378,6 +380,8 @@ jtail( int ac, char **av, Options &preopts, Options &opts,
 			if( (int)cs == -1 )
 			{
 			    printf( "P4COMMANDCHARSET unknown\n" );
+			    sig.DeleteOnIntr( (void*)&ui );
+			    sig.Disable();
 			    return 1;
 			}
 		    }
@@ -385,6 +389,8 @@ jtail( int ac, char **av, Options &preopts, Options &opts,
 		    {
 			printf( "p4 can not support a wide charset unless\n"
 			    "P4COMMANDCHARSET is set to another charset.\n" );
+			sig.DeleteOnIntr( (void*)&ui );
+			sig.Disable();
 			return 1;
 		    }
 		    client.SetTrans( cs, ws, cs, cs );
@@ -411,6 +417,8 @@ jtail( int ac, char **av, Options &preopts, Options &opts,
 		    ui.savedjournal = NULL;
 		    continue;
 		}
+		sig.DeleteOnIntr( (void*)&ui );
+		sig.Disable();
 		return 1;
 	    }
 
@@ -478,6 +486,8 @@ jtail( int ac, char **av, Options &preopts, Options &opts,
 
 	delete ui.savedjournal;
 	ui.savedjournal = 0;
+	sig.DeleteOnIntr( (void*)&ui );
+	sig.Disable();
 
 	return ret;
 }

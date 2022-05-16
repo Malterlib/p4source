@@ -11,21 +11,28 @@
 
 enum SCR_VERSION
 {
-	P4SCRIPT_LUA_53,
-	P4SCRIPT_LUA_LATEST
+	P4SCRIPT_UNKNOWN,
+	P4SCRIPT_LUA_53
 };
 
 enum SCR_BINDING_LIBNAME
 {
-	P4SCRIPT_CLIENTAPI
+	P4SCRIPT_CLIENTAPI,
+	P4SCRIPT_CLIENTUSER,
+	P4SCRIPT_LUA53
 };
 
-# ifdef HAS_CPP17
+
+# ifdef HAS_EXTENSIONS
+
+enum class SCR_BINDING_LUA_OPTS
+{
+	OS_EXIT
+};
 
 # include <chrono>
 # include <future>
-# include <optional>
-# include <any>
+# include <p4_any.h>
 # include <vector>
 # include <functional>
 
@@ -35,19 +42,22 @@ using scriptTimeInc_t = std::chrono::time_point< scriptClock_t >;
 using scriptMem_t     = uint32_t;
 
 class p4scriptImpl53;
+class ClientApi;
 class ClientApiLua;
+class ClientUserLua;
 
 class p4script
 {
 	public:
 
-	    ~p4script();
-	     p4script( const SCR_VERSION v, Error *e );
+	    virtual ~p4script();
+	     p4script( const SCR_VERSION v, const int apiVersion, Error *e );
 
 	    void SetMaxTime( const uint32_t max );
+	    // Limit memory to N megabytes.
 	    void SetMaxMem ( const scriptMem_t max );
 
-	    void ConfigBinding( const SCR_BINDING_LIBNAME lib, std::any cfg,
+	    void ConfigBinding( const SCR_BINDING_LIBNAME lib, p4_std_any::p4_any cfg,
 	                        Error* e );
 
 	    // Execute the named file.
@@ -55,20 +65,15 @@ class p4script
 	    // Execute the supplied script code. 
 	    bool doStr ( const char *s, Error *e );
 	    // Call a script function.
-	    std::optional< std::any > doScriptFn( const char* name, Error* e );
+	    p4_std_any::p4_any doScriptFn( const char* name, Error* e );
+	    // Check if a function exists.
+	    bool fnExists( const char* name );
 
 	    std::string getElapsedTime() const;
 
+	    int getAPIVersion() const;
 	    const char* getImplName() const;
 	    const char* getImplVersion() const;
-
-	    // These are not intended to be public, but is for the
-	    // sake of expediency.
-	    //
-	    // os_execute() is a non-blocking version of the Lua function.
-	    static int os_execute( void* Lv );
-	    // Callback for use in non-blocking versions of Lua functions.
-	    static bool timeBreakCb( void* Lv );
 
 protected:
 
@@ -78,6 +83,8 @@ protected:
 	    std::unique_ptr< impl > pimpl;
 
 private:
+	    // Which API to expose to scripts.
+	    const int apiVersion;
 
 	    // Script memory allocation count (bytes).
 	    scriptMem_t curMem{};
@@ -112,8 +119,32 @@ private:
 
 	    const SCR_VERSION scriptType;
 
-	    std::vector< std::function< void( ClientApiLua& ) > >
+	    std::vector< std::function< void( ClientApi & ) > >
 	        ClientApiBindCfgs;
+
+	    std::vector< std::function< void( ClientUserLua& ) > >
+	        ClientUserBindCfgs;
+
+	    std::vector< std::function< bool( SCR_BINDING_LUA_OPTS opts ) > >
+	        LuaBindCfgs;
+
+public:
+
+	    // These are not intended to be public, but are so out of
+	    // necessity for the implementation.
+
+	    // os_execute() is a non-blocking version of the Lua function.
+	    static int os_execute( void* Lv );
+	    // Callback for use in non-blocking versions of Lua functions.
+	    static bool timeBreakCb( void* Lv );
+	    // Callback for use with the Lua debug callback.
+	    static void debugCb( void* Lv, void* arv );
+	    // Used for cases like os.exit() where we want to call some script
+	    // code that produces an error, but the real cause is different.
+	    static void SetRealError( void* Lv, const Error* e );
+
+	    p4script::impl* GetImpl();
+
 } ;
 
 class p4script::impl
@@ -125,22 +156,25 @@ class p4script::impl
 
 	    virtual bool doFile( const char *name, Error *e );
 	    virtual bool doStr ( const char *buf , Error *e );
-	    virtual std::optional< std::any > doScriptFn( const char* name,
+	    virtual p4_std_any::p4_any doScriptFn( const char* name,
 	                                                  Error* e ) = 0;
+	    virtual bool fnExists( const char* name ) = 0;
 
 	    virtual const char* getImplName() const;
 	    virtual const char* getImplVersion() const;
 
 	    virtual int os_execute( void* Lv ) = 0;
 	    virtual bool timeBreakCb( void* Lv ) = 0;
+	    virtual void debugCb( void* Lv, void* arv ) = 0;
+	    virtual void SetRealError( const Error* e ) = 0;
+
+	    virtual void* getState() = 0;
 
 	protected:
 
 	    friend class p4script;
 	    friend class Extension;
 	    p4script& parent;
-
-	    virtual void* getState() = 0;
 
 };
 
@@ -152,26 +186,27 @@ class p4script::impl53 : public p4script::impl
 	    ~impl53();
 
 	    bool doStr ( const char *buf , Error *e );
-	    std::optional< std::any > doScriptFn( const char* name, Error* e );
+	    p4_std_any::p4_any doScriptFn( const char* name, Error* e );
+	    bool fnExists( const char* name );
 
 	    const char* getImplName() const;
 	    const char* getImplVersion() const;
 
 	    int os_execute( void* Lv );
 	    bool timeBreakCb( void* Lv );
-
-	protected:
+	    void debugCb( void* Lv, void* arv );
+	    void SetRealError( const Error* e );
 
 	    void* getState();
 
-	private:
+	protected:
 
-	    void doBindings();
+	    virtual void doBindings();
+
+	private:
 
 	    static void*
 	    allocator( void *ud, void *ptr, size_t osize, size_t nsize );
-
-	    static void debugHook( void *Lv, void *arv );
 
 	    // Break script execution every N instructions to give us a
 	    // chance to abort.  This number was pulled out of a bag as
@@ -189,14 +224,12 @@ class p4script::impl53 : public p4script::impl
 	    void *l{};
 
 	    const char* implName    = "Lua";
-	    const char* implVersion = "5.3.4";
+	    const char* implVersion = "5.3.6";
 };
 
-# else // HAS_CPP17
+# else // HAS_EXTENSIONS
 
-# include <inttypes.h>
-
-typedef uint32_t scriptMem_t;
+typedef unsigned int scriptMem_t;
 
 class p4script
 {
@@ -205,12 +238,12 @@ class p4script
 	    ~p4script();
 	     p4script( const SCR_VERSION v, Error *e );
 
-	    void SetMaxTime( const uint32_t max );
+	    void SetMaxTime( const unsigned int max );
 	    void SetMaxMem ( const scriptMem_t max );
 
 	    bool doFile( const char *name, Error *e );
 
 };
 
-# endif // HAS_CPP17
+# endif // HAS_EXTENSIONS
 # endif // P4SCRIPT_H

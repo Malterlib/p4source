@@ -521,8 +521,8 @@ DiffAnalyze::ApplyForwardBias()
 }
 
 DiffAnalyze::DiffAnalyze(
-	Sequence *fromFile,
-	Sequence *toFile,
+	VSequence *fromFile,
+	VSequence *toFile,
 	int fastMaxD )
 {
 	A = fromFile;

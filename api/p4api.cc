@@ -9,13 +9,14 @@
  * Generally, compiling with the C++ compiler and linking with the
  * three provided libraries is sufficient to build this sample program.
  * 
- * See the Perforce C/C++ API User's Guide at
- * www.perforce.com/perforce/technical.html for further information.
+ * See the Perforce C/C++ API User's Guide for further information.
+ * https://www.perforce.com/manuals/p4api/Content/P4API/Home-p4api.html
  *
- * $Id: //guest/perforce_software/p4/2018-2/api/p4api.cc#1 $
+ * $Id: //depot/r20.1/p4/api/p4api.cc#1 $
  */
 
 # include "clientapi.h"
+# include "p4libs.h"
 
 int main( int argc, char **argv );
 int main( int argc, char **argv )
@@ -25,9 +26,21 @@ int main( int argc, char **argv )
 	StrBuf msg;
 	Error e;
 
+	P4Libraries::Initialize( P4LIBRARIES_INIT_ALL, &e );
+
+	if( e.Test() )
+	{
+	    e.Fmt( &msg );
+	    fprintf( stderr, "%s\n", msg.Text() );
+	    return 1;
+	}
+
 	// Any special protocol mods
 
 	// client.SetProtocol( "tag" );
+
+	// Enable client-side Extensions
+	// client.EnableExtensions();
 
 	// Connect to server
 
@@ -40,6 +53,7 @@ int main( int argc, char **argv )
 	    return 1;
 	}
 
+
 	// Run the command "argv[1] argv[2...]"
 
 	client.SetArgv( argc - 2, argv + 2 );
@@ -48,6 +62,15 @@ int main( int argc, char **argv )
 	// Close connection
 
 	client.Final( &e );
+
+	if( e.Test() )
+	{
+	    e.Fmt( &msg );
+	    fprintf( stderr, "%s\n", msg.Text() );
+	    return 1;
+	}
+
+	P4Libraries::Shutdown( P4LIBRARIES_INIT_ALL, &e );
 
 	if( e.Test() )
 	{

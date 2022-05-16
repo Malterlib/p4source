@@ -43,6 +43,7 @@
  *	StrPtr::GetEnd() - return pointer to character past end
  *	StrPtr::Atoi() - convert to integer and return
  *	StrPtr::Atoi64() - convert to P4INT64 and return
+ *	StrPtr::Atoi64( char*, P4INT64* ) - Atoi64() with error checking
  *	StrPtr::Itoa() - format an int given the end of a buffer
  *	StrPtr::Itoa64() - format a P4INT64 given the end of a buffer
  *	StrPtr::SetLength() - set only length
@@ -131,6 +132,11 @@ class StrPtr {
 
 	P4INT64	Atoi64() const
 		{ return Atoi64( buffer ); }
+
+	static bool Atoi64( const char *p, P4INT64 *result );
+
+	bool	Atoi64( P4INT64 *result ) const
+		{ return Atoi64( buffer, result ); }
 
 	void	SetLength() 
 		{ length = (p4size_t)strlen( buffer ); }

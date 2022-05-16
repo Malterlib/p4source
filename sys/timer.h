@@ -36,6 +36,7 @@ class StrMs : public StrPtr {
 class Timer {
 
     public:
+	Timer() { start.sec = start.usec = stop.sec = stop.usec = 0; }
 	void	        Start();
         void	        Message( StrBuf &msg ) 
                         { msg << StrMs( Time() ) << "s"; }

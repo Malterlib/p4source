@@ -4,8 +4,12 @@
 
 # include <stdhdrs.h>
 # include <strbuf.h>
+# include <debug.h>
 # include <vararray.h>
 # include <strarray.h>
+
+# define DEBUG_RECORDS  ( p4debug.GetLevel( DT_RECORDS ) >= 4 )
+# define DEBUG_EXTEND   ( p4debug.GetLevel( DT_RECORDS ) >= 5 )
 
 /*
  * strarray.cc - a 0 based array of StrBufs
@@ -153,6 +157,13 @@ StrArray::Find( const StrBuf *key )
 	return r;
 }
 
+void
+StrArray::Copy( const StrArray *other )
+{
+	for( int i = 0; i < other->Count(); i++ )
+	    Put()->Set( other->Get( i ) );
+}
+
 /*
  * StrPtrArray -- an array of StrPtrs
  */
@@ -172,26 +183,26 @@ StrPtrArray::~StrPtrArray()
 void
 StrPtrArray::Put( const StrPtr &val )
 {
-	// Realloc with spare room
-
 	if( tabLength == tabSize )
 	{
-	    int newSize = tabSize + 10;
-	    StrRef *newtabVal = new StrRef[ newSize ];
+	    // Realloc with spare room
 
-	    // unfortunately, invokes destructors
-	    // fortunately, there are none
+	    // grow geometrically, please
+	    int newSize = (tabSize + 50) * 3 / 2;
+	    StrRef *newtabVal = new StrRef[newSize];
 
 	    if( tabVal )
 	    {
-		for( int i = 0; i < tabSize; i++ )
-		    newtabVal[i] = tabVal[i];
-
-		delete []tabVal;
+	         memcpy((StrRef *)newtabVal, (StrRef *)tabVal,
+	                tabSize * sizeof(StrRef));
+	         delete []tabVal;
 	    }
 
 	    tabVal = newtabVal;
 	    tabSize = newSize;
+
+	    if( DEBUG_EXTEND )
+	        p4debug.printf("StrPtrArray extend %d\n", tabSize);
 	}
 
 	tabVal[ tabLength++ ] = val;

@@ -27,6 +27,9 @@
 # include "netdebug.h"
 # include <msgrpc.h>
 
+extern "C" void* P4_zalloc( void* opaque, unsigned items, unsigned size );
+extern "C" void P4_zfree( void* opaque, void* ptr );
+
 NetBuffer::NetBuffer( NetTransport *t )
 {
 	int size = p4tunable.Get( P4TUNE_NET_BUFSIZE );
@@ -139,8 +142,8 @@ NetBuffer::SendCompression( Error *e )
 	// create z_stream and init
 
 	zout = new z_stream;
-	zout->zalloc = (alloc_func)0;
-	zout->zfree = (free_func)0;
+	zout->zalloc = P4_zalloc;
+	zout->zfree = P4_zfree;
 	zout->opaque = (voidpf)0;
 
 	if( deflateInit2(
@@ -169,8 +172,8 @@ NetBuffer::RecvCompression( Error *e )
 	// create z_stream and init
 
 	zin = new z_stream;
-	zin->zalloc = (alloc_func)0;
-	zin->zfree = (free_func)0;
+	zin->zalloc = P4_zalloc;
+	zin->zfree = P4_zfree;
 	zin->opaque = (voidpf)0;
 
 	if( inflateInit2( zin, -DEF_WBITS ) != Z_OK )

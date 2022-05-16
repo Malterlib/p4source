@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgServer error code is: 6
+ * Current high value for a MsgServer error code is: 21
  */
 
 # include <error.h>
@@ -35,7 +35,30 @@ ErrorId MsgScript::DoNotBlameTheScript = { ErrorOf( ES_SCRIPT, 3, E_FATAL, EV_FA
 
 ErrorId MsgScript::ExtAddChangeDesc    = { ErrorOf( ES_SCRIPT, 4, E_INFO , EV_NONE , 2 ), "Installing extension: %extName%\nVersion: %extVersion%" } ;
 ErrorId MsgScript::ExtEditChangeDesc   = { ErrorOf( ES_SCRIPT, 5, E_INFO , EV_NONE , 3 ), "Updating extension: %extName%\nVersion: %toExtVersion%\nPrevious version: %fromExtVersion%" } ;
+ErrorId MsgScript::ExtOverChangeDesc   = { ErrorOf( ES_SCRIPT, 15, E_INFO , EV_NONE , 2 ), "Overwriting extension: %extName%\nVersion: %toExtVersion%" } ;
+ErrorId MsgScript::ExtDelChangeDesc    = { ErrorOf( ES_SCRIPT, 20, E_INFO , EV_NONE , 2 ), "Deleting extension: %extName%%optVersion%" } ;
+// Note:  extProds is a list, which ought to be separate arguments
+// for proper translation, but we have to hardcode the number of arguments here.
+ErrorId MsgScript::ExtWrongProduct     = { ErrorOf( ES_SCRIPT, 18, E_FATAL , EV_NONE , 2 ), "Extension is incompatible with '%prod%', supports '%extProds%'." };
 
 ErrorId MsgScript::ExtLoadErr          = { ErrorOf( ES_SCRIPT, 6, E_FATAL, EV_FAULT, 2 ), "Could not load extension '%extName%', rev '%extRev%'." } ;
+ErrorId MsgScript::ExtDisabled         = { ErrorOf( ES_SCRIPT, 7, E_FATAL, EV_FAULT, 3 ), "Extension '%name%:%rev%', config '%cfg%' not enabled in its configuration." } ;
+ErrorId MsgScript::ExtCodingErr        = { ErrorOf( ES_SCRIPT, 8, E_FATAL, EV_FAULT, 3 ), "Extension '%name%:%rev%' has a coding error:  %err%" } ;
+ErrorId MsgScript::ExtCodingGenErr     = { ErrorOf( ES_SCRIPT, 18, E_FATAL, EV_FAULT, 1 ), "Extension coding error: %err%" } ;
+ErrorId MsgScript::ExtResourceErr      = { ErrorOf( ES_SCRIPT, 15, E_FATAL, EV_FAULT, 2 ), "Error loading resource '%resource%': %error%" } ;
+
+ErrorId MsgScript::DevErr              = { ErrorOf( ES_SCRIPT, 9, E_FATAL, EV_FAULT, 1 ), "Programming error:  %err%" };
+ErrorId MsgScript::ScriptLangUnknown   = { ErrorOf( ES_SCRIPT, 16, E_FATAL, EV_FAULT, 1 ), "Unknown script language '%lang%'." };
+ErrorId MsgScript::ScriptLangVerUnknown= { ErrorOf( ES_SCRIPT, 17, E_FATAL, EV_FAULT, 1 ), "Unknown script language '%lang%' version '%ver%'." };
+ErrorId MsgScript::OsExitRealError     = { ErrorOf( ES_SCRIPT, 21, E_FATAL, EV_NONE, 0 ), "The Lua os.execute() function was called." };
+
+// Client-side Extensions //////////////////////////////////////////////////////
+
+ErrorId MsgScript::ExtClientMsg        = { ErrorOf( ES_SCRIPT, 10, E_INFO, EV_NONE, 2 ), "Client Extension message (%extName%): %message%" };
+ErrorId MsgScript::ExtClientError      = { ErrorOf( ES_SCRIPT, 11, E_FATAL, EV_NONE, 2 ), "Client Extension message (%extName%): %message%" };
+ErrorId MsgScript::ExtClientPrompt     = { ErrorOf( ES_SCRIPT, 12, E_INFO, EV_NONE, 2 ), "Client Extension prompt (%extName%): %question%" };
+ErrorId MsgScript::ExtClientCmdRejected= { ErrorOf( ES_SCRIPT, 13, E_FATAL, EV_NONE, 1 ), "Command rejected in '%callback%' by client Extension (%extName%)." };
+ErrorId MsgScript::ExtClientRuntimeFail= { ErrorOf( ES_SCRIPT, 14, E_FATAL, EV_NONE, 2 ), "Client Extension (%extName%) failed:  %error%" };
+ErrorId MsgScript::ExtScriptNotInBuild = { ErrorOf( ES_SCRIPT, 19, E_FATAL, EV_FAULT, 0 ), "Script/Extension support not present in this build." };
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 

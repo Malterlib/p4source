@@ -2,7 +2,7 @@ SubDir P4 i18n ;
 
 SubDirHdrs $(P4) sys ;
 
-P4Library $(SUPPORTLIB) :
+P4APILibrary $(SUPPORTLIB) :
 	charcvt.cc
 	charman.cc
 	charset.cc

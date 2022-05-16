@@ -163,7 +163,9 @@ NetSslEndPoint::Accept( KeepAlive *, Error *e )
 	fcntl( t, F_SETFD, 1 );
 # endif
 
-	sslTransport = new NetSslTransport( t, true, *serverCredentials );
+	sslTransport = new NetSslTransport( t, true, *serverCredentials,
+	               customCipherList.Length()   ? &customCipherList   : 0,
+	               customCipherSuites.Length() ? &customCipherSuites : 0 );
 
 	if(sslTransport)
 	{

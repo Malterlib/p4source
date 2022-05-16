@@ -46,6 +46,25 @@
 
 int commandChaining = 0; // can be set by clientmain to support '-x run'
 
+
+/*
+ * ClientUser::ClientUser() - default constructor
+ */
+
+ClientUser::ClientUser( int autoLoginPrompt, int apiVersion )
+{
+	binaryStdout = 0;
+	outputCharset = 0;
+	quiet = 0;
+	autoLogin = autoLoginPrompt;
+	outputTaggedWithErrorLevel = 0;
+	transfer = 0;
+	ssoHandler = 0;
+	apiVer = apiVersion;
+	if( apiVersion == -1 )
+	    apiVer = atoi( P4Tag::l_client );
+}
+
 /*
  * ClientUser::~ClientUser() - virtual destructor holder
  */
@@ -322,6 +341,34 @@ ClientUser::ErrorPause( char *errBuf, Error *e )
 	    delete f;
 	    editFile.Clear();
 	}
+}
+
+void
+ClientUser::HandleUrl( const StrPtr *url )
+{
+	StrBuf result;
+	Error e;
+
+	// Give a textual notification of what we're doing (or what should be
+	// done if no browser could be launched).
+
+	e.Set( MsgClient::GotoUrl ) << url;
+	Message( &e );
+
+	char *env;
+	if( ( env = enviro->Get( "P4USEBROWSER" ) ) &&
+	    ( !StrPtr::CCompare( "false", env ) ||
+	      !StrPtr::CCompare( "no", env ) ) )
+	    return;
+
+	int canLaunch = 1;
+	RunCommand::RunShell( url, canLaunch, &e );
+
+	// Note: if the browser launched, but in the background, it might still
+	// not have been presented to the user and we have no way to detect
+	// this case. One such example is if lynx is resolved as the browser:
+	// the terminal controls it assumes are present are not, so nothing
+	// appears to happen.
 }
 
 void

@@ -10,6 +10,10 @@
 
 # include <stdhdrs.h>
 
+# ifdef HAS_EXTENSIONS
+# include <vector>
+# endif
+
 # include <strbuf.h>
 # include <strdict.h>
 # include <strops.h>
@@ -30,6 +34,9 @@
 # include <ignore.h>
 # include <timer.h>
 # include <progress.h>
+# include <msgscript.h>
+# include <dmextension.h>
+# include <dmextension_c.h>
 
 # include <p4tags.h>
 
@@ -45,6 +52,7 @@
 # include <msgclient.h>
 # include <msgsupp.h>
 # include "clientservice.h"
+# include "clientscript.h"
 # include "client.h"
 # include "clientprog.h"
 
@@ -190,20 +198,22 @@ LookupType( const StrPtr *type )
 CharSetCvt *
 ClientSvc::XCharset( Client *client, XDir d )
 {
-    CharSetCvt::CharSet trans_charset = 
+	CharSetCvt::CharSet trans_charset =
 	    (CharSetCvt::CharSet) client->ContentCharset();
 
-    switch( d )
-    {
-    case FromClient:
-	return CharSetCvt::FindCachedCvt( trans_charset, CharSetCvt::UTF_8 );
-	break;
-    case FromServer:
-	return CharSetCvt::FindCachedCvt( CharSetCvt::UTF_8, trans_charset );
-	break;
-    }
+	switch( d )
+	{
+	case FromClient:
+	    return CharSetCvt::FindCachedCvt( client->gCharSetCvtCache,
+	                                      trans_charset,CharSetCvt::UTF_8 );
+	    break;
+	case FromServer:
+	    return CharSetCvt::FindCachedCvt( client->gCharSetCvtCache,
+	                                     CharSetCvt::UTF_8, trans_charset );
+	    break;
+	}
 
-    return 0;
+	return 0;
 }
 
 FileSys *
@@ -226,18 +236,28 @@ ClientSvc::FileFromPath( Client *client, const char *vName, Error *e )
 	    return 0;
 	}
 
-	if( !clientPath->Compare( client->GetTicketFile() ) ||
-	    !clientPath->Compare( client->GetTrustFile() ) ||
-	    !f->IsUnderPath( client->GetClientPath() ) &&
-	    !f->IsUnderPath( client->GetTempPath() ) )
+	if( !CheckFilePath( client, f, e ) )
 	{
-	    e->Set( MsgClient::NotUnderPath )
-		    << f->Name() << client->GetClientPath();
 	    client->OutputError( e );
 	    delete f;
 	    return 0;
 	}
 	return f;
+}
+
+int
+ClientSvc::CheckFilePath( Client *client, FileSys *f, Error *e )
+{
+	if( !StrRef( f->Name() ).Compare( client->GetTicketFile() ) ||
+	    !StrRef( f->Name() ).Compare( client->GetTrustFile() ) ||
+	    !f->IsUnderPath( client->GetClientPath() ) &&
+	    !f->IsUnderPath( client->GetTempPath() ) )
+	{
+	    e->Set( MsgClient::NotUnderPath )
+	        << f->Name() << client->GetClientPath();
+	    return 0;
+	}
+	return 1;
 }
 
 FileSys *
@@ -290,6 +310,7 @@ Client::OutputError( Error *e )
 	    SetError();
 	    GetUi()->HandleError( e );
 	    e->Clear();
+	    ClearSecretKey();
 	    ClearPBuf();
 	}
 }
@@ -300,7 +321,7 @@ Client::OutputError( Error *e )
 // clientBailoutFile - called if handle is never deleted
 
 // If set, we will not write client side files during a sync.
-static int client_nullsync;
+MT_STATIC int client_nullsync;
 
 FileDigestType
 clientFileDigestType( StrPtr *digestType )
@@ -548,6 +569,8 @@ clientOpenFile( Client *client, Error *e )
 
 	f->file->Open( FOM_WRITE, e );
 
+	f->symTarget.Clear();
+
 	// 2010.2 can verify transfered contents from server to client, for
 	// non-textual filetypes updates are performed by FileIOBinary::Write()
 	// note:  do this after the open (because open does a write on NT).
@@ -611,6 +634,9 @@ clientWriteFile( Client *client, Error *e )
 
 	f->file->Write( data, e );
 
+	if( !e->Test() && f->file->IsSymlink() && data->Length() )
+	    f->symTarget << data;
+
 	// Mark handle with any error
 	// Report non-fatal error and clear it.
 
@@ -637,6 +663,43 @@ clientCloseFile( Client *client, Error *e )
 
 	if( e->Test() )
 	    return;
+
+	// Check for illegal symlinks
+	//
+	// Block symlinks outside the workspace if filesys.restictsymlinks=1
+	// and P4CLIENTROOT or DVCS are in use.
+
+	if( f->file && ( f->file->GetType() & FST_SYMLINK ) &&
+	    p4tunable.Get( P4TUNE_FILESYS_RESTRICTSYMLINKS ) &&
+	    client->GetClientPath().Length() )
+	{
+	    PathSys *path = PathSys::Create();
+	    FileSys *f2 = FileSys::Create( FST_BINARY );
+	    StrBuf basePath;
+	    char *p;
+	    if( p = strchr( f->symTarget.Text(), '\n' ) )
+	    {
+	        f->symTarget.SetEnd( p );
+	        f->symTarget.Terminate();
+	    }
+	    path->SetLocal( client->GetCwd(), StrRef( f->file->Name() ) );
+	    path->ToParent();
+	    basePath = *path;
+	    path->SetLocal( basePath, f->symTarget );
+	    f2->Set( *path );
+	    ClientSvc::CheckFilePath( client, f2, e );
+	    delete f2;
+	    delete path;
+	}
+
+	if( !e->Test() && !f->IsError() && f->file )
+	{
+	    const offL_t fTell = f->file->Tell();
+	    const offL_t fSH = f->file->GetSizeHint();
+
+	    if( fSH && fTell && fSH > fTell )
+	        f->file->Truncate( fTell, e );
+	}
 
 	// Close file, and then diff/rename as appropriate.
 
@@ -994,10 +1057,12 @@ clientConvertFile( Client *client, Error *e )
 	t->SetContentCharSetPriv( cs2 );
 
 	f->Open( FOM_READ, e );
-	f->Translator( CharSetCvt::FindCachedCvt( cs1, CharSetCvt::UTF_8 ) );
+	f->Translator( CharSetCvt::FindCachedCvt( client->gCharSetCvtCache, cs1,
+	                                          CharSetCvt::UTF_8 ) );
 
 	t->Open( FOM_WRITE, e );
-	t->Translator( CharSetCvt::FindCachedCvt( CharSetCvt::UTF_8, cs2 ) );
+	t->Translator( CharSetCvt::FindCachedCvt( client->gCharSetCvtCache,
+	                                          CharSetCvt::UTF_8, cs2 ) );
 
 	if( e->Test() )
 	    goto convertFileFinish;
@@ -1157,6 +1222,9 @@ clientCheckFile( Client *client, Error *e )
 	    return;
 	}
 
+	if( !clientPath && ( checkLinks || ignore || !clientType ) )
+	    return;
+
 	if( digest && digestType )
 	{
 	    clientCheckFileGraph( client, e );
@@ -1250,7 +1318,7 @@ clientCheckFile( Client *client, Error *e )
 
 	    if( *ignore == P4Tag::c_Ack )
 	    {
-	        if( confirm->Length() )
+	        if( confirm && confirm->Length() )
 	            client->Confirm( confirm );
 	        return;
 	    }
@@ -1505,7 +1573,7 @@ clientActionResolve( Client *client, Error *e )
 	if ( !e->Test() && !preview && ( !confirm || !decline ) )
 	    e->Set( MsgSupp::NoParm ) << "confirm/decline";
 
-	if ( e->Test() )
+	if ( e->Test() || !actionType->Length() )
 	{
 	    client->OutputError( e );
 	    return; 
@@ -2272,6 +2340,10 @@ clientInputData( Client *client, Error *e )
 {
 	client->NewHandler();
 	StrPtr *confirm = client->GetVar( P4Tag::v_confirm, e );
+
+	if( e->Test() )
+	    return;
+
 	StrBuf newSpec;
 
 	client->GetUi()->InputData( &newSpec, e );
@@ -2545,6 +2617,34 @@ clientSyncTrigger( Client *client, Error *e )
 	    return;
 	}
 
+# ifdef HAS_EXTENSIONS
+
+	ClientScript* exts = client->GetExtensions();
+
+	ClientScriptAction r = ClientScriptAction::FAIL;
+	int nRun = 0;
+
+	std::tie( r, nRun ) = client->ExtensionsEnabled()
+	    ? exts->Run( "zeroSync", nullptr, client->GetUi(),
+	                 true, e )
+	    : std::tuple< ClientScriptAction, int >
+	      ( ClientScriptAction::PASS, 0 );
+
+	if( e->Test() || r == ClientScriptAction::FAIL )
+	{
+	    if( !e->IsFatal() )
+	        client->OutputError( e );
+	    return;
+	}
+
+	// If there weren't any Extensions that handled this, fallback to
+	// a trigger.
+
+	if( nRun > 0 )
+	    return;
+
+# endif
+
 	const StrPtr *syncTrigger = &client->GetSyncTrigger();
 
 	if( !strcmp( syncTrigger->Text(), "unset" ) )
@@ -2562,6 +2662,7 @@ clientSyncTrigger( Client *client, Error *e )
 	delete rc;
 }
 
+
 void
 clientSingleSignon( Client *client, Error *e )
 {
@@ -2576,6 +2677,10 @@ clientSingleSignon( Client *client, Error *e )
 
 	StrBufDict SSODict;
 	StrRef var, val;
+#ifdef HAS_EXTENSIONS
+	std::unordered_map< std::string, std::string > ssodict;
+#endif
+
 	for( int i = 0; client->GetVar( i, var, val ); i++ )
 	{
 	    if( var == P4Tag::v_func   ||
@@ -2585,6 +2690,9 @@ clientSingleSignon( Client *client, Error *e )
 	        continue;
 
 	    SSODict.SetVar( var, val );
+#ifdef HAS_EXTENSIONS
+	    ssodict[ std::string( var.Text() ) ] = std::string( val.Text() );
+#endif
 	}
 
 	// Allow the trigger to know if it's talking through a broker or
@@ -2645,52 +2753,117 @@ clientSingleSignon( Client *client, Error *e )
 	}
 
 BuiltInSSO:
+
 	const StrPtr *loginSSO = &client->GetLoginSSO();
 
 	if( !strcmp( loginSSO->Text(), "unset" ) )
 	{
 	    client->SetVar( P4Tag::v_status, "unset" );
 	    client->SetVar( P4Tag::v_sso );
+	    client->Confirm( confirm );
+	    return;
 	}
-	else
+
+	// Execute P4LOGINSSO command - first see if it's an Extension,
+	// then fallback to a trigger.
+
+# ifdef HAS_EXTENSIONS
+
+	if( client->ExtensionsEnabled() )
 	{
-	    // execute P4LOGINSSO command
+	    StrBuf cmdBuffer;
+	    char* words[ 50 ];
+	    int nWords = 0;
 
-	    RunCommandIo *rc = new RunCommandIo;
-	    StrBuf result;
-	    RunArgs cmd;
-	    StrBufDict fields;
-	    StrPtr *data;
-	    StrBuf input;
+	    nWords = StrOps::WordsQ( cmdBuffer, loginSSO->Text(), words,
+	        ( sizeof( words ) / sizeof( words[ 0 ] ) ), e );
 
-	    // data may be specified as an placeholder or sent to stdin
-	    StrOps::Expand(cmd.SetBuf(), *loginSSO, fields, &fields);
-	    if( !fields.GetVar( "data" ) &&
-		( data = SSODict.GetVar( "data" ) ) )
+	    if( !nWords )
 	    {
-		input = *data;
-		SSODict.RemoveVar( "data" );
-	    }
-
-	    StrOps::Expand( cmd.SetBuf(), *loginSSO, SSODict );
-
-	    if( rc->Run( cmd, input, result, e ) || e->Test() )
 	        client->SetVar( P4Tag::v_status, "fail" );
-	    else
-	        client->SetVar( P4Tag::v_status, "pass" );
-
-	    // truncate to 128K max length
-
-	    if( result.Length() > SSOMAXLENGTH )
-	    {
-	        result.SetLength( SSOMAXLENGTH );
-	        result.Terminate();
+	        client->SetVar( P4Tag::v_sso, "Bad P4EXTENSION:  no words" );
+	        client->Confirm( confirm );
+	        return;
 	    }
 
-	    client->SetVar( P4Tag::v_sso, result );
-	    delete rc;
+	    int argc = nWords;
+	    std::vector< std::string > argv;
+
+	    for( int i = 1; i < nWords; i++ )
+	        argv.emplace_back( std::string( words[ i ] ) );
+
+	    ClientScript exts( client );
+
+	    exts.SetSearchPattern( words[ 0 ] );
+	    exts.LoadScripts( false, e );
+
+	    if( e->Test() )
+	        return;
+
+	    // We'll have a match if the file pointed to P4LOGINSSO matches
+	    // a known script type.
+
+	    auto& extList = exts.GetExts();
+
+	    if( extList.size() )
+	    {
+	        auto& ext = exts.GetExts()[ 0 ];
+	        StrBuf data = *SSODict.GetVar( "data" ), result;
+
+	        const bool ret = ((ExtensionCallerDataC*)(*ext).GetECD())
+	            ->loginSSO( data, result, argc, std::move( argv ),
+	                    std::move( ssodict ), e );
+
+	        const char* status = ( ret || !e->Test() ) ? "pass" : "fail";
+	        client->SetVar( P4Tag::v_status, status );
+
+	        if( result.Length() > SSOMAXLENGTH )
+	        {
+	            result.SetLength( SSOMAXLENGTH );
+	            result.Terminate();
+	        }
+
+	        client->SetVar( P4Tag::v_sso, result );
+	        client->Confirm( confirm );
+	        return;
+	    }
+	}
+#endif
+
+	// Extensions not supported, enabled or run - use a trigger.
+
+	RunCommandIo rc;
+	StrBuf result;
+	RunArgs cmd;
+	StrBufDict fields;
+	StrPtr *data;
+	StrBuf input;
+
+	// data may be specified as an placeholder or sent to stdin
+	StrOps::Expand(cmd.SetBuf(), *loginSSO, fields, &fields);
+	if( !fields.GetVar( "data" ) &&
+	    ( data = SSODict.GetVar( "data" ) ) )
+	{
+	    input = *data;
+	    SSODict.RemoveVar( "data" );
 	}
 
+	StrOps::Expand( cmd.SetBuf(), *loginSSO, SSODict );
+
+	if( rc.Run( cmd, input, result, e ) || e->Test() )
+	    client->SetVar( P4Tag::v_status, "fail" );
+	else
+	    client->SetVar( P4Tag::v_status, "pass" );
+
+	// truncate to 128K max length
+
+	if( result.Length() > SSOMAXLENGTH )
+	{
+	    result.SetLength( SSOMAXLENGTH );
+	    result.Terminate();
+	}
+
+	client->SetVar( P4Tag::v_sso, result );
 	client->Confirm( confirm );
 }
 
@@ -2731,6 +2904,7 @@ clientHandleError( Client *client, Error *e )
 	    client->SetError();
 
 	client->GetUi()->HandleError( &rcvErr );
+	client->ClearSecretKey();
 	client->ClearPBuf();
 }
 
@@ -2755,6 +2929,12 @@ clientMessage( Client *client, Error *e )
 	    client->SetError();
 
 	client->GetUi()->Message( &rcvErr );
+
+	if( rcvErr.Test() )
+	{
+	    client->ClearSecretKey();
+	    client->ClearPBuf();
+	}
 
 	// MsgDm::DomainSave
 	ErrorId clientUpdate = { ErrorOf( 6, 6370, 1, 0, 2 ), "" };
@@ -2869,17 +3049,21 @@ clientProgress( Client *client, Error *e )
 
 	ProgressHandle *progh = (ProgressHandle *)client->handles.Get( handle );
 	ClientProgress *prog;
+	StrPtr *val;
 
 	if( progh )
 	    prog = progh->progress;
 	else
 	{
-	    prog = client->GetUi()->CreateProgress(
-		client->GetVar( "type" )->Atoi() );
+	    val = client->GetVar( "type", e );
+
+	    if( e->Test() )
+	        return;
+
+	    prog = client->GetUi()->CreateProgress( val->Atoi() );
 	    if( !prog )
 		return;
 	}
-	StrPtr *val;
 
 	val = client->GetVar( "desc" );
 	if( val )
@@ -3369,6 +3553,11 @@ clientProtocol( Client *client, Error *e )
 	client->protocolNocase = client->GetVar( P4Tag::v_nocase ) != 0;
 
 	client->protocolUnicode = client->GetVar( P4Tag::v_unicode ) != 0;
+
+	if( s = client->GetVar( P4Tag::v_extensionsEnabled ) )
+	    client->protocolClientExts = s->Atoi();
+	else
+	    client->protocolClientExts = 1;
 }
 
 //
@@ -3392,6 +3581,31 @@ clientFatalError( Client *client, Error *e )
 	client->ClearSecretKey();
 	client->ClearPBuf();
 	client->GotReleased();
+}
+
+void
+clientOpenUrl( Client *client, Error *e )
+{
+	StrPtr *url = client->GetVar( P4Tag::v_url, e );
+
+	// This code path is only valid if we're really targeting a URL
+
+	StrRef http( "http://" );
+	StrRef https( "https://" );
+
+	if( !e->Test() &&
+	    ( http.SCompareN( *url ) &&
+	      https.SCompareN( *url ) ) )
+	    e->Set( MsgClient::InvalidUrl );
+
+	if( e->Test() )
+	{
+	    if ( !e->IsFatal() )
+	        client->OutputError( e );
+	    return;
+	}
+
+	client->GetUi()->HandleUrl( url );
 }
 
 void clientReceiveFiles( Client *client, Error *e );
@@ -3446,6 +3660,7 @@ const RpcDispatch clientDispatch[] = {
 	P4Tag::c_OutputBinary,	RpcCallback(clientOutputBinary),
 	P4Tag::c_FstatInfo,	RpcCallback(clientFstatInfo),
 	P4Tag::c_FstatPartial,	RpcCallback(clientFstatPartial),
+	P4Tag::c_OpenUrl,	RpcCallback(clientOpenUrl),
 
 	P4Tag::c_Ack,		RpcCallback(clientAck),
 	P4Tag::c_Ping,		RpcCallback(clientPing),

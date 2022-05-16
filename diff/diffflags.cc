@@ -20,6 +20,7 @@ DiffFlags::Init( const StrPtr *flags )
 	Init( flags ? flags->Text() : 0 );
 }
 
+NO_SANITIZE_UNDEFINED
 void 
 DiffFlags::Init( const char *flags )
 {

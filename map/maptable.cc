@@ -423,6 +423,16 @@ sortcmpstreamslhs( const void *a1, const void *a2 )
 	    return( c1 - c2 );
         }
 
+	// Does str2 = str1 + extra at the end?  
+	// If so, give str1 priority
+	if ( i == strlen( str1 ) )
+	    return( -1 );
+
+	// Does str1 = str2 + extra at the end?  
+	// If so, give str2 priority
+	if ( j == strlen( str2 ) )
+	    return( 1 );
+
 	return (*e1)->Slot() - (*e2)->Slot();	
 }
 
@@ -453,6 +463,11 @@ sortcmpstreamsrhs( const void *a1, const void *a2 )
 	    while( ( c2 = str2[ j ] ) != '/' )
 	        j++;
 	}
+
+	// Ignoring the type information at the beginning of each string,
+	// If the two strings are the same, return based on the order in the map
+	if( 0 == strcmp( &str1[ i ], &str2[ j ] ) )
+	    return (*e1)->Slot() - (*e2)->Slot();	
 
 	for(; ( c1 = str1[ i ] ) && ( c2 = str2[ j ] ); i++, j++ )
 	{
@@ -492,6 +507,16 @@ sortcmpstreamsrhs( const void *a1, const void *a2 )
 
 	    return( c1 - c2 );
         }
+
+	// Does str2 = str1 + extra at the end?  
+	// If so, give str1 priority
+	if ( i == strlen( str1 ) )
+	    return( -1 );
+
+	// Does str1 = str2 + extra at the end?  
+	// If so, give str2 priority
+	if ( j == strlen( str2 ) )
+	    return( 1 );
 
 	return (*e1)->Slot() - (*e2)->Slot();	
 }

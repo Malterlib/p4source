@@ -18,27 +18,6 @@
 #include "charman.h"
 #include "debug.h"
 
-class CharSetCvtCache
-{
-public:
-        CharSetCvtCache()
-        {
-            fromUtf8To = NULL;
-            toUtf8From = NULL;
-        }
-
-        ~CharSetCvtCache();
-
-        CharSetCvt * FindCvt(CharSetCvt::CharSet from, CharSetCvt::CharSet to);
-        void         InsertCvt(CharSetCvt::CharSet from, CharSetCvt::CharSet to, CharSetCvt * cvt);
-private:
-        CharSetCvt ** fromUtf8To;
-        CharSetCvt ** toUtf8From;
-};
-
-static CharSetCvtCache gCharSetCvtCache;
-
-
 CharSetCvtCache::~CharSetCvtCache()
 {
         const int charSetCount = CharSetApi::CharSetCount();
@@ -58,8 +37,8 @@ CharSetCvtCache::~CharSetCvtCache()
             delete [] toUtf8From;
             toUtf8From = NULL;
         }
-}
 
+}
 
 CharSetCvt *
 CharSetCvtCache::FindCvt(CharSetCvt::CharSet from, CharSetCvt::CharSet to)
@@ -346,14 +325,15 @@ CharSetCvt::FindCvt(CharSetCvt::CharSet from, CharSetCvt::CharSet to)
 }
 
 CharSetCvt *
-CharSetCvt::FindCachedCvt(CharSetCvt::CharSet from, CharSetCvt::CharSet to)
+CharSetCvt::FindCachedCvt( CharSetCvtCache *gCharSetCvtCache,
+	                   CharSetCvt::CharSet from, CharSetCvt::CharSet to)
 {
-        CharSetCvt * cvt = gCharSetCvtCache.FindCvt(from, to);
+        CharSetCvt * cvt = gCharSetCvtCache->FindCvt(from, to);
         if (cvt)
             return cvt;
         cvt = FindCvt(from, to);
         if (cvt)
-            gCharSetCvtCache.InsertCvt(from, to, cvt);
+            gCharSetCvtCache->InsertCvt(from, to, cvt);
         return cvt;
 }
 

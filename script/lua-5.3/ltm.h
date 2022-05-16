@@ -52,6 +52,7 @@ typedef enum {
 
 #define ttypename(x)	luaT_typenames_[(x) + 1]
 
+// bringing these definitions here (commented out in ltm.c)
 static const char udatatypename[] = "userdata";
 
 LUAI_DDEF const char *const luaT_typenames_[LUA_TOTALTAGS] = {

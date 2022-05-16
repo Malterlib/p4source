@@ -99,7 +99,7 @@ FileIOSymlink::Read( char *buf, int len, Error *e )
 void
 FileIOSymlink::Close( Error *e )
 {
-	if( mode == FOM_WRITE && value.Length() )
+	if( mode == FOM_WRITE && value.Length() && !e->Test() )
 	{
 	    // Strip newline added by Open().
 

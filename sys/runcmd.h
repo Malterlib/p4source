@@ -39,6 +39,12 @@
  *			Not implemented for VMS.
  *			Check e->Test() for errors.
  *
+ *	RunCommand::RunShell() - run the 'command' using the system's shell
+ *			On Windows, this uses the shellapi, which is able open URLs
+ *			using the default browser, etc. On Linux and Mac, this uses
+ *			RunChild() to invoke and abandon 'xdg-open' and 'open'.
+ *			There's no reliable means to test if this was successful.
+ *
  *	RunCommand::RunChild() - launch a subprocess whose stdin/stdout
  *			are the given fds.  Not implemented for VMS.
  *			Check e->Test() for subprocess setup errors.
@@ -155,6 +161,8 @@ class RunArgv {
 class RunCommand {
 
     public:
+	static int RunShell( const StrPtr *cmd, int &canLaunch, Error *e );
+
 		RunCommand();
 		~RunCommand();
 

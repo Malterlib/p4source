@@ -107,10 +107,10 @@
 
 /* lua */
 #ifdef MAKE_LUA
-#include "lua.c"
+#include "lua.cc"
 #endif
 
 /* luac */
 #ifdef MAKE_LUAC
-#include "luac.c"
+#include "luac.cc"
 #endif

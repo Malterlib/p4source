@@ -17,6 +17,8 @@
 #include "i18napi.h"
 #include "enviro.h"
 
+#include <ctype.h>
+
 static const char *charsetname[] = {
     "none",
     "utf8",
@@ -238,4 +240,42 @@ CharSetApi::Granularity(CharSetApi::CharSet c)
 	if( (unsigned int)c < charsetcount )
 	    return 1;
 	return 0;
+}
+
+void
+CharSetApi::NormalizeLanguage( StrBuf& lang )
+{
+	StrBuf l = lang;
+
+	// Examples:  C.UTF-8, POSIX, en-US, en_US.UTF-8
+
+	// Convert legacy P4LANGUAGE values into $LANG.
+
+	if( l == "jp" )
+	    l = "ja-JP";
+
+	// Now strip off the encoding.
+
+	const char* upos = l.Contains( StrRef( "_" ) );
+
+	if( upos != NULL )
+	    l.Text()[ upos - l.Text() ] = '-'; // en_US.UTF-8 -> en-US.UTF-8
+
+	const char* ppos = l.Contains( StrRef( "." ) );
+
+	if( ppos != NULL )
+	{
+	    l.Text()[ ppos - l.Text() ] = '\0'; // en-US.UTF-8 -> en-US
+	    l.SetLength();
+	}
+
+	// Ensure the region is upper-cased.
+
+	if( l.Length() > 4 )
+	{
+	    l.Text()[ 3 ] = toupper( l.Text()[ 3 ] );
+	    l.Text()[ 4 ] = toupper( l.Text()[ 4 ] );
+	}
+
+	lang = l;
 }

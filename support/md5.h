@@ -1,6 +1,14 @@
 /*
+ * Copyright 1995, 2019 Perforce Software.  All rights reserved.
+ *
+ * This file is part of Perforce - the FAST SCM System.
+ */
+
+/*
  * md5.h -- MD5 (message digest algorithm) interface
  */
+
+# ifndef USE_SSL
 
 #if defined(__GNUC__)
 #	if defined(__x86_64__) || defined(__i686__) || defined(__sparc__) || \
@@ -130,3 +138,23 @@ class MD5 {
 };
 
 # undef	ALIGN
+
+# else
+
+class MD5 {
+
+    public:
+			MD5();
+			~MD5();
+			MD5& operator=( const MD5& rhs );
+
+	void		Update( const StrPtr &buf );
+	void		Final( StrBuf &output );
+	void 		Final( unsigned char digest[ 16 ] );
+
+    private:
+
+	void* ctx;
+};
+
+# endif
