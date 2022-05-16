@@ -114,7 +114,7 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionXargs },
 	{ "exclusive",          Options::Exclusive,    'x', 0,
 	                      &MsgSupp::OptionExclusive },
-	{ "progress",           Options::Progress,     'I', 0,
+	{ "progress",           Options::Progress,     'I', '?',
 	                      &MsgSupp::OptionProgress },
 	{ "compress",           Options::Compress,     'z', 0,
 	                      &MsgSupp::OptionCompress },
@@ -700,8 +700,17 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionSSParentView },
 	{ "allow-unrelated",    Options::SwitchStreamUnrelated, 0, 0,
 	                      &MsgSupp::OptionSwitchStreamUnrelated },
+	{ "only",               Options::Only, 0, ':',
+	                      &MsgSupp::OptionOnly },
+	{ "show-realtime",      Options::ShowRealtime, 0, 0,
+	                      &MsgSupp::OptionShowRealtime },
+	{ "purged-only",        Options::CleanPurge, 0, 0,
+	                      &MsgSupp::OptionCleanPurge },
 
-
+#ifdef _DEBUG
+	{ "debugbreak",         Options::DebugBreak,  0, 0,
+	                      &MsgSupp::OptionSSParentView },
+#endif
 
 	{ 0, 0, 0, 0, 0 }
 } ;

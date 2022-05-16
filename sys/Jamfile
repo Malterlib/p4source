@@ -29,6 +29,8 @@ P4APILibrary $(SUPPORTLIB) :
 	filetmp.cc
 	hostenv.cc
 	fdutil.cc
+	memfile.cc
+	monitem.cc
 	pathmac.cc
 	pathnt.cc
 	pathunix.cc

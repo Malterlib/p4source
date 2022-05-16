@@ -424,6 +424,14 @@ ErrorId MsgSupp::OptionSSNoInherit        = { ErrorOf( ES_SUPP, 386, E_INFO, EV_
 ErrorId MsgSupp::OptionSSSourceComments   = { ErrorOf( ES_SUPP, 387, E_INFO, EV_NONE, 0 ), "%'--source-comments'%: add inline source comments when converting a stream spec from an inherit parentview to a noinherit parentview.  Each comment will specify the source stream spec and change number for each path which was copied or merged." } ;
 ErrorId MsgSupp::OptionSSParentView       = { ErrorOf( ES_SUPP, 388, E_INFO, EV_NONE, 0 ), "%'--parentview%: a create a stream with a given ParentView value. Allowed values are 'inherit' or 'noinherit'." } ;
 ErrorId MsgSupp::OptionSwitchStreamUnrelated  = { ErrorOf( ES_SUPP, 389, E_INFO, EV_NONE, 0 ), "%'--allow-unrelated'%: required when switching to stream in a different stream hierarchy." } ;
+ErrorId MsgSupp::OptionOnly               = { ErrorOf( ES_SUPP, 390, E_INFO, EV_NONE, 0 ), "%'--only'%: argument restricts operation." } ;
+ErrorId MsgSupp::OptionShowRealtime       = { ErrorOf( ES_SUPP, 391, E_INFO, EV_NONE, 0 ), "%'--show-realtime'%: report realtime performance counters and exit." } ;
+ErrorId MsgSupp::RenameTempFailed         = { ErrorOf( ES_SUPP, 392, E_FAILED, EV_NONE, 1 ), "Rename of %file% to temporary name failed." } ;
+ErrorId MsgSupp::RenameMkdirFailed        = { ErrorOf( ES_SUPP, 393, E_FAILED, EV_NONE, 1 ), "Rename directory creation for %file% failed." } ;
+ErrorId MsgSupp::RenameRmdirFailed        = { ErrorOf( ES_SUPP, 394, E_FAILED, EV_NONE, 1 ), "Rename directory removal for %file% failed." } ;
+ErrorId MsgSupp::RenameDirSearchFailed    = { ErrorOf( ES_SUPP, 395, E_FAILED, EV_NONE, 1 ), "Rename directory search for %dir% failed." } ;
+ErrorId MsgSupp::RenameDirNotEmpty        = { ErrorOf( ES_SUPP, 396, E_FAILED, EV_NONE, 1 ), "Rename failed, directory %dir% not empty." } ;
+ErrorId MsgSupp::OptionCleanPurge         = { ErrorOf( ES_SUPP, 397, E_INFO, EV_NONE, 0 ), "%'--purged-only'%: restricts operation to purge records." } ;
 ErrorId MsgSupp::OptionLocalLicense       = { ErrorOf( ES_SUPP, 398, E_INFO, EV_NONE, 0 ), "%'--local (-l)'%: this server only." } ;
 
 // ErrorId graveyard'%: retired/deprecated ErrorIds.

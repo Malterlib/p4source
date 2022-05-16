@@ -521,7 +521,7 @@ ErrorId MsgServer::UseMain             = { ErrorOf( ES_SERVER, 262, E_FAILED, EV
 ErrorId MsgServer::UseMerge            = { ErrorOf( ES_SERVER, 523, E_FAILED, EV_USAGE, 0 ), "Usage: %'merge [ -c changelist# -F -m max -n -Ob -q -r -s from ] [ -b branch to... | [-As | -Af] -S stream [ -P parent | --from parent ] [ file... ] | from to ]'%" } ;
 ErrorId MsgServer::UseMergeb           = { ErrorOf( ES_SERVER, 524, E_FAILED, EV_USAGE, 0 ), "Usage: %'merge [ -c changelist# -F -m max -n -Ob -q -r -s from ] -b branch [ to... ]'%" } ;
 ErrorId MsgServer::UseMergeS           = { ErrorOf( ES_SERVER, 525, E_FAILED, EV_USAGE, 0 ), "Usage: %'merge [ -c changelist# -F -m max -n -Ob -q -r -s from ] [-As | -Af] [ -S stream ] [ -P parent | --from parent ] [ file... ]'%" } ;
-ErrorId MsgServer::UseMonitor          = { ErrorOf( ES_SERVER, 297, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor { show | terminate | clear | pause | resume }'%" } ;
+ErrorId MsgServer::UseMonitor          = { ErrorOf( ES_SERVER, 297, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor { show | terminate | clear | pause | resume | realtime }'%" } ;
 ErrorId MsgServer::UseMonitorc         = { ErrorOf( ES_SERVER, 298, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor terminate [arg]'%" } ;
 ErrorId MsgServer::UseMonitorf         = { ErrorOf( ES_SERVER, 299, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor clear [arg]'%" } ;
 ErrorId MsgServer::UseMonitors         = { ErrorOf( ES_SERVER, 300, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor show [ -a -l -e -L ] [ -s R|T|P|B|F|I ]'%" } ;
@@ -541,8 +541,8 @@ ErrorId MsgServer::UseProtect          = { ErrorOf( ES_SERVER, 266, E_FAILED, EV
 ErrorId MsgServer::UseProtects         = { ErrorOf( ES_SERVER, 339, E_FAILED, EV_USAGE, 0 ), "Usage: %'protects [-s spec] [ -a | -g group | -u user ] [ -h host | -H ] [-S  | -A] [ -m ] [ file ... ]'%" } ;
 ErrorId MsgServer::UseProtectsM        = { ErrorOf( ES_SERVER, 477, E_FAILED, EV_USAGE, 0 ), "Usage: %'protects -M [ -g group | -u user ] [ -h host | -H ] [ file ... ]'%" } ;
 ErrorId MsgServer::UsePrune            = { ErrorOf( ES_SERVER, 738, E_FAILED, EV_USAGE, 0 ), "Usage: %'prune -d [ -y ] -S stream'%" } ;
-ErrorId MsgServer::UsePull             = { ErrorOf( ES_SERVER, 441, E_FAILED, EV_USAGE, 0 ), "Usage: %'pull [ -u [ --min-size=n ] [ --max-size=n ] [ --trigger ] [ -t target ] | -l [ -s | -j ] | -d -f file -r rev | -R [ file ] ] [ -J prefix -P filterpattern -T tableexcludelist ] [ -i <N> ] [ -b <N> ] [ --batch=n ] [ -L ]'%" } ;
-ErrorId MsgServer::UsePurge            = { ErrorOf( ES_SERVER, 267, E_FAILED, EV_USAGE, 0 ), "Usage: %'obliterate [-y -A -b -a -h -p] [-r alg] files...'%" } ;
+ErrorId MsgServer::UsePull             = { ErrorOf( ES_SERVER, 441, E_FAILED, EV_USAGE, 0 ), "Usage: %'pull [ -u [ --min-size=n ] [ --max-size=n ] [ --trigger ] [ -t target ] | -l [ -s | -j [ -v ] ] | -d -f file -r rev | -R [ file ] ] [ -J prefix -P filterpattern -T tableexcludelist ] [ -i <N> ] [ -b <N> ] [ --batch=n ] [ -L ]'%" } ;
+ErrorId MsgServer::UsePurge            = { ErrorOf( ES_SERVER, 267, E_FAILED, EV_USAGE, 0 ), "Usage: %'obliterate [-y -A -b -a -h -T] [-r alg] [-p | --purged-only] [ -q ] files...'%" } ;
 ErrorId MsgServer::UsePush             = { ErrorOf( ES_SERVER, 745, E_FAILED, EV_USAGE, 0 ), "Usage: %'push [ -n -r remotespec -v -O flags ] [ -S stream | files | -s shelf ]'%" } ;
 ErrorId MsgServer::UseRelease          = { ErrorOf( ES_SERVER, 268, E_FAILED, EV_USAGE, 0 ), "Usage: %'revert [ -a -n -k -w -c changelist# -C client ] [ -Si | -So ] [--remote=rmt] files...'%" } ;
 ErrorId MsgServer::UseRelease2         = { ErrorOf( ES_SERVER, 1018, E_FAILED, EV_USAGE, 0 ), "Usage: %'revert [-c changelist#] -So'%" } ;
@@ -621,7 +621,7 @@ ErrorId MsgServer::UseUserd            = { ErrorOf( ES_SERVER, 283, E_FAILED, EV
 ErrorId MsgServer::UseUseri            = { ErrorOf( ES_SERVER, 284, E_FAILED, EV_USAGE, 0 ), "Usage: %'user -i [ -f ]'%" } ;
 ErrorId MsgServer::UseUsers            = { ErrorOf( ES_SERVER, 285, E_FAILED, EV_USAGE, 0 ), "Usage: %'users [ -l -a -r -c ] [ -m max ] [ user ... ]'%" } ;
 ErrorId MsgServer::UseUserD            = { ErrorOf( ES_SERVER, 944, E_FAILED, EV_USAGE, 0 ), "Usage: %'user -D [ -f -y ] [ user ... ]'%" } ;
-ErrorId MsgServer::UseVerify           = { ErrorOf( ES_SERVER, 286, E_FAILED, EV_USAGE, 0 ), "Usage: %'verify [ -m maxRevs ] [ [ -q -s ] | [ -q -Z ] ] [ -t | -u | -v | -z ] [ -X ] [ -U | -S | -A ] [ -b batch ] files...'%" } ;
+ErrorId MsgServer::UseVerify           = { ErrorOf( ES_SERVER, 286, E_FAILED, EV_USAGE, 0 ), "Usage: %'verify [ -m maxRevs ] [ -q -s ] [ [ -q -Z ] | [ -t --only BAD|MISSING -r -z ] | [ -u | -v | -z | --only BAD|MISSING ] ] | [ -R ] [ -X ] [ -U | -S | -A ] [ -b batch ] files...'%" } ;
 ErrorId MsgServer::UseWhere            = { ErrorOf( ES_SERVER, 287, E_FAILED, EV_USAGE, 0 ), "Usage: %'where [files...]'%" } ;
 ErrorId MsgServer::UseZip              = { ErrorOf( ES_SERVER, 742, E_FAILED, EV_USAGE, 0 ), "Usage: %'zip [ -A -I -r remote ] -o zipfile [ files | -c change | -s shelf ]'%" } ;
 ErrorId MsgServer::UseProxyInfo        = { ErrorOf( ES_SERVER, 541, E_FAILED, EV_USAGE, 0 ), "Usage: %'proxy'%" } ;

@@ -93,7 +93,8 @@ Client::Client( Enviro *e ) : Rpc( &service )
 	 * from the .p4 file in the directory path.
 	 */
 
-	enviro->Config( GetCwd() );
+	if( ownEnviro )
+	    enviro->Config( GetCwd() );
 
 	// Our standard implementation.
 	// See msgs/p4tagl.cc for l_client setting.

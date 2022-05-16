@@ -151,6 +151,7 @@ class MsgHelp {
 	static ErrorId HelpPubKeys;
 	static ErrorId HelpPull;
 	static ErrorId HelpPush;
+	static ErrorId HelpRealtime;
 	static ErrorId HelpReload;
 	static ErrorId HelpRemote;
 	static ErrorId HelpRemotes;

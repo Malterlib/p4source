@@ -20,6 +20,7 @@ enum P4TunableName {
 	P4TUNE_DB_REORG_DISABLE,
 	P4TUNE_DB_REORG_MISORDER,
 	P4TUNE_DB_REORG_OCCUP,
+	P4TUNE_DB_RT_IO,			// see dbopen.cc
 	P4TUNE_DB_TRYLOCK,			// see dbschema.cc
 	P4TUNE_DBARRAY_PUTCHECK,		// see dbarray.cc
 	P4TUNE_DBARRAY_RESERVE,			// see dbarray.cc
@@ -78,6 +79,7 @@ enum P4TunableName {
 	P4TUNE_DM_REPO_NOAUTOCREATE,		// see dmgraph.cc
 	P4TUNE_DM_REPO_UNPACK,			// see dmgraph.cc
 	P4TUNE_DM_RESOLVE_ATTRIB,
+	P4TUNE_DM_RESOLVE_IGNOREDELETED,
 	P4TUNE_DM_REVCX_THRESH1,
 	P4TUNE_DM_REVCX_THRESH2,
 	P4TUNE_DM_ROTATELOGWITHJNL,
@@ -135,6 +137,7 @@ enum P4TunableName {
 	P4TUNE_MAP_JOINMAX1,
 	P4TUNE_MAP_JOINMAX2,
 	P4TUNE_MAP_MAXWILD,
+	P4TUNE_MERGE_DL_ENDEOL,
 	P4TUNE_NET_AUTOTUNE,
 	P4TUNE_NET_BUFSIZE,			// see netbuffer.h
 	P4TUNE_NET_KEEPALIVE_DISABLE,		// see nettcptransport.cc
@@ -198,7 +201,10 @@ enum P4TunableName {
 	P4TUNE_RPL_JOURNALCOPY_LOCATION,	// See server / rpl.cc
 	P4TUNE_RPL_LABELS_GLOBAL,		// See userlabel/userlabsync
 	P4TUNE_RPL_REPLAY_USERRP,		// See server / rpl.cc
+	P4TUNE_RPL_TRACK_BEHIND,		// See server / rpl.cc
+	P4TUNE_RPL_TRACK_BEHIND_INTERVAL,	// See server / rmtservice.cc
 	P4TUNE_RPL_VERIFY_CACHE,		// See rhservice.cc
+	P4TUNE_RPL_VERIFY_SHARED,		// See userpull.cc
 	P4TUNE_RPL_PULL_ARCHIVEDEPOTS,		// See userpull.cc
 	P4TUNE_RUN_CLIENTEXTS_ALLOW,		// see rhservice.cc
 	P4TUNE_RUN_MOVE_ALLOW,			// see usermove.cc
@@ -262,6 +268,8 @@ enum P4TunableName {
 	P4TUNE_RPL_PULL_RELOAD,			// see userpull.cc
 	P4TUNE_SSL_SECONDARY_SUITE,             // see netssltransport.cc
 	P4TUNE_SSL_CLIENT_TIMEOUT,		// see netssltransport.cc
+	P4TUNE_SSL_CLIENT_TLS_VERSION_MIN,	// see netssltransport.cc
+	P4TUNE_SSL_CLIENT_TLS_VERSION_MAX,	// see netssltransport.cc
 	P4TUNE_SSL_TLS_VERSION_MIN,		// see netssltransport.cc
 	P4TUNE_SSL_TLS_VERSION_MAX,		// see netssltransport.cc
 	P4TUNE_SSL_ENABLE_ETM,			// see netssltransport.cc

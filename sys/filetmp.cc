@@ -16,15 +16,10 @@
 # endif
 
 # if defined(OS_OS2) || defined(OS_NT)
-# ifdef HAS_CPP11
-const char *lclTemp = "t%dt%st%d.tmp";
+const char *lclTemp = "t%dt%dt%d.tmp";
 const char *gblTemp = ".";
-# else
-const char *lclTemp = "t%dt%d.tmp";
-const char *gblTemp = ".";
-# endif
 # define HAVE_TEMP
-# endif
+# endif // OS_OS2 || OS_NT
 
 # ifdef OS_VMS
 # ifdef VI_WORKS_WITH_DIR
@@ -78,6 +73,10 @@ FileSys::TempName( char *buf )
 
 	count = ( count + Random::Integer( 1, 100 ) ) % maxTemp;
 
+# if defined(OS_OS2) || defined(OS_NT)
+	sprintf( buf, lclTemp, Pid().GetProcID(), Pid().GetID(), count );
+# else // OS_OS2 || OS_NT
+
 # ifdef HAS_CPP11
 	std::stringstream ss;
 	ss << std::this_thread::get_id();
@@ -85,6 +84,8 @@ FileSys::TempName( char *buf )
 # else
 	sprintf( buf, lclTemp, Pid().GetID(), count );
 # endif
+
+# endif // OS_OS2 || OS_NT
 }
 
 /*

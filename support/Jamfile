@@ -47,6 +47,7 @@ P4APILibrary $(SUPPORTLIB) :
 	random.cc
 	regmatch.cc
 	regexp.cc
+	serverid.cc
 	sha1.cc
 	sha256.cc
 	spec.cc

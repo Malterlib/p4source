@@ -39,6 +39,7 @@ class MsgServer2 {
 	static ErrorId FailoverCfgCommit;
 	static ErrorId FailoverUnCfgCommit;
 	static ErrorId FailoverDetails;
+	static ErrorId FailoverNeedYOK;
 	static ErrorId ServerIDReused;
 	static ErrorId StorageRestoreDigest;
 	static ErrorId xuUpstream;
@@ -157,7 +158,14 @@ class MsgServer2 {
 	static ErrorId ExtCfgMissing;
 	static ErrorId NoUnshelveVirtIntoNoInh;
 	static ErrorId NoUnshelveNoInhIntoVirt;
+	static ErrorId ReplicaSharedConfig;
+	static ErrorId RtMonitorDisabled;
+	static ErrorId UseMonitorRT;
 	static ErrorId SwitchStreamUnrelated;
+	static ErrorId PurgeReportArchive;
+	static ErrorId ReplicaLag;
+	static ErrorId InfoProxyServerID;
+	static ErrorId MoveReaddIntegConflictResolveWarn;
 	static ErrorId ShelveArchiveInUse;
 	static ErrorId ShelveDupDiff;
 	static ErrorId ShelveNotPromoted;
@@ -166,4 +174,6 @@ class MsgServer2 {
 	static ErrorId VerifyRepairConflict;
 	static ErrorId VerifyRepairSnapped;
 	static ErrorId VerifyRepairCopied;
+	static ErrorId UseVerifyR;
+	static ErrorId UnknownContext;
 };

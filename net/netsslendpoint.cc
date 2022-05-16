@@ -60,6 +60,7 @@ extern "C"
 # include <error.h>
 # include <errorlog.h>
 # include <debug.h>
+# include <vararray.h>
 # include <bitarray.h>
 # include <tunable.h>
 # include <enviro.h>

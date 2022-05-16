@@ -9,7 +9,7 @@ SubDirHdrs $(P4) net ;
 SubDirHdrs $(P4) rpc ;
 SubDirHdrs $(P4) script ;
 
-Ident clientmain.cc client.cc clientinit.cc serverhelper.cc ;
+Ident clientmain.cc client.cc clientinit.cc serverhelper.cc clientlegal.cc ;
 
 if $(OS) = NT
 {

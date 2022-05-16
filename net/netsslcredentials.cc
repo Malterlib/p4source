@@ -24,6 +24,7 @@
 
 # include <stdhdrs.h>
 # include <strbuf.h>
+# include <vararray.h>
 # include <error.h>
 # include <errorlog.h>
 # include <enviro.h>
@@ -117,6 +118,7 @@ NetSslCredentials::NetSslCredentials(bool isTest)
 	certEX = SSL_X509_NOTAFTER;
 	certSV = SSL_X509_NOTBEFORE;
 	certUNITS = SSL_X509_DAY;
+	chain = new VarArray;
 
 	if ( !isTest )
 	{
@@ -159,6 +161,9 @@ NetSslCredentials::NetSslCredentials( NetSslCredentials &rhs)
     ownCert(false),
     sslDir(rhs.sslDir)
 {
+	chain = new VarArray;
+	for( int i = 0; i < rhs.chain->Count(); i++ )
+	    chain->Put( rhs.chain->Get( i ) );
 }
 
 NetSslCredentials::~NetSslCredentials()
@@ -168,13 +173,34 @@ NetSslCredentials::~NetSslCredentials()
 
 	if ( certificate && ownCert )
 	    X509_free( certificate );
+
+	if ( ownCert )
+	    for( int i = 0; i < chain->Count(); i++ )
+	        X509_free( (X509 *)chain->Get( i ) );
+
+	delete chain;
 }
 
 NetSslCredentials &
 NetSslCredentials::operator =( NetSslCredentials &rhs )
 {
+	
+	if ( privateKey && ownKey )
+	    EVP_PKEY_free( privateKey );
+
+	if ( certificate && ownCert )
+	    X509_free( certificate );
+
+	if ( ownCert )
+	    for( int i = 0; i < chain->Count(); i++ )
+	        X509_free( (X509 *)chain->Get( i ) );
+	
 	privateKey = rhs.privateKey;
 	certificate = rhs.certificate;
+	chain->Clear();
+	for( int i = 0; i < rhs.chain->Count(); i++ )
+	    chain->Put( rhs.chain->Get( i ) );
+	
 	fingerprint = rhs.fingerprint;
 	certC = rhs.certC;
 	certCN = rhs.certCN;
@@ -199,6 +225,7 @@ void
 NetSslCredentials::ReadCredentials(  Error *e )
 {
 	FILE *fp = NULL;
+	X509 *chainCert = 0;
 	PathSys *keyFile = PathSys::Create();
 	PathSys *certFile = PathSys::Create();
 
@@ -239,8 +266,21 @@ NetSslCredentials::ReadCredentials(  Error *e )
 	certificate = PEM_read_X509(fp, NULL, 0, NULL );
 	SSLNULLHANDLER( certificate, e, "NetSslCredentials::ReadCredentials PEM_read_X509", failSetError );
 
-	ValidateCertDateRange( e );
+	ValidateCertDateRange( certificate, e );
 	P4CHECKERROR( e, "NetSslCredentials::ReadCredentials ValidateCertDateRange", fail );
+
+	while( (chainCert = PEM_read_X509(fp, NULL, 0, NULL ) ) )
+	{
+	    ValidateCertDateRange( chainCert, e );
+	    P4CHECKERROR( e, "NetSslCredentials::ReadCredentials ValidateCertDateRange (chain)", fail );
+
+	    chain->Put( chainCert );
+	}
+
+	// handle junk after valid certs
+	SSLNULLHANDLER( chainCert, e, "NetSslCredentials::ReadCredentials PEM_read_X509 (chain)", failChainRead );
+failChainRead:
+	e->Clear();
 
 	ownCert = true;
 	ownKey = true;
@@ -387,17 +427,17 @@ fail:
 }
 
 void
-NetSslCredentials::ValidateCertDateRange( Error *e )
+NetSslCredentials::ValidateCertDateRange( X509 *cert, Error *e )
 {
 	time_t *ptime = NULL;
 	int i;
 
-	i=X509_cmp_time(X509_get_notBefore(certificate), ptime);
-	if (i >= 0)
+	i = X509_cmp_time( X509_get_notBefore( cert ), ptime );
+	if( i >= 0 )
 	    goto fail;
 
-	i=X509_cmp_time(X509_get_notAfter(certificate), ptime);
-	if (i <= 0)
+	i = X509_cmp_time( X509_get_notAfter( cert ), ptime );
+	if( i <= 0 )
 	    goto fail;
 
 	return;
@@ -886,6 +926,12 @@ NetSslCredentials::GetCertificate() const
 	return certificate;
 }
 
+X509 *
+NetSslCredentials::GetChain( int i ) const
+{
+	return (X509 *)chain->Get( i );
+}
+
 const StrPtr *
 NetSslCredentials::GetFingerprint() const
 {
@@ -908,7 +954,7 @@ NetSslCredentials::SetCertificate( X509 *cert, Error *e )
 	}
 	this->certificate = cert;
 	this->ownCert = false;
-	ValidateCertDateRange( e );
+	ValidateCertDateRange( cert, e );
 	if( e->Test() )
 	{
 	    this->certificate = NULL;

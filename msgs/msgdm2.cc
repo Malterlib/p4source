@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgDm2 error code is: 45
+ * Current high value for a MsgDm2 error code is: 58
  *                                               Max code is 1023!!!
  */
 
@@ -64,7 +64,16 @@ ErrorId MsgDm2::EndUpgradeStep          = { ErrorOf( ES_DM2, 31, E_INFO, EV_NONE
 ErrorId MsgDm2::StreamNoCmtClientBadSave= { ErrorOf( ES_DM2, 32, E_FAILED, EV_UPGRADE, 1 ), "The stream specification for %stream% contains comments.\nThis client program is too old to update this stream spec.\nThe client program must be fully compatible with the 2020.2 server release in order to update a stream specification with comments." } ;
 ErrorId MsgDm2::ConnNeedsFwdCrypto      = { ErrorOf( ES_DM2, 33, E_FAILED, EV_UNKNOWN, 0 ), "Connection to upstream is already established without required authentication parameters!" } ;
 ErrorId MsgDm2::NoStreamTypeChangePV    = { ErrorOf( ES_DM2, 34, E_FAILED, EV_NOTYET, 2 ), "Failed to change stream %stream% to type %streamType% because it has a noinherit ParentView.  Change the ParentView to inherit with the command 'p4 stream parentview --inherit' first, then change the stream type.\nSee 'p4 help stream' for details." } ;
+ErrorId MsgDm2::PurgeTaskStream         = { ErrorOf( ES_DM2, 35, E_FAILED, EV_ILLEGAL, 1 ), "Use the '-T' option to include task stream paths - '%depotFile%'" } ;
+ErrorId MsgDm2::PurgeCheckWldDelIgn     = { ErrorOf( ES_DM2, 36, E_INFO, EV_NONE, 7 ), "Would delete [%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ]ignoring [%onRevArchive% archived-revision ][and add %synInteg% integration ]record(s)." } ;
+ErrorId MsgDm2::PurgeCheckWldDel        = { ErrorOf( ES_DM2, 37, E_INFO, EV_NONE, 7 ), "Would delete [%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ][%onRevArchive% archived-revision ][and add %synInteg% integration ]record(s)." } ;
+ErrorId MsgDm2::PurgeCheckIgn           = { ErrorOf( ES_DM2, 38, E_INFO, EV_NONE, 7 ), "[%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ]Ignoring [%onRevArchive% archived-revision ][and add %synInteg% integration ]record(s)." } ;
+ErrorId MsgDm2::PurgePurgeCheckWldDelIgn = { ErrorOf( ES_DM2, 39, E_INFO, EV_NONE, 7 ), "Would purge [%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ]ignoring [%onRevArchive% archived-revision ][and add %synInteg% integration ]record(s)." } ;
+ErrorId MsgDm2::PurgePurgeCheckWldDel   = { ErrorOf( ES_DM2, 40, E_INFO, EV_NONE, 7 ), "Would purge [%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ][%onRevArchive% archived-revision ][and add %synInteg% integration ]record(s)." } ;
+ErrorId MsgDm2::PurgePurgeCheckIgn      = { ErrorOf( ES_DM2, 41, E_INFO, EV_NONE, 7 ), "[%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ]Ignoring [%onRevArchive% archived-revision ][and add %synInteg% integration ]record(s)." } ;
 ErrorId MsgDm2::StreamAtChangeDeleted   = { ErrorOf( ES_DM2, 42, E_FAILED, EV_CONTEXT, 2 ), "Stream '%stream%' was deleted after change %change%" } ;
 ErrorId MsgDm2::StreamNotOpenInChange   = { ErrorOf( ES_DM2, 43, E_FAILED, EV_CONTEXT, 2 ), "Stream '%stream%' not open in change %change%" } ;
 ErrorId MsgDm2::IdHasWhitespace         = { ErrorOf( ES_DM2, 44, E_FAILED, EV_USAGE, 1 ), "Whitespace characters not allowed in '%id%'." } ;
 ErrorId MsgDm2::IdHasEquals             = { ErrorOf( ES_DM2, 45, E_FAILED, EV_USAGE, 1 ), "Equals character not allowed in '%id%'." } ;
+ErrorId MsgDm2::LockNameNull            = { ErrorOf( ES_DM2, 57, E_FAILED, EV_ADMIN, 1 ), "ServerLock name is null. Lock type is %locktype%." } ;
+ErrorId MsgDm2::WorkRecNotFound         = { ErrorOf( ES_DM2, 58, E_FAILED, EV_ADMIN, 1 ), "The working record for %clientfile% not found." } ;

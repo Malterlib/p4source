@@ -40,8 +40,13 @@
 
 int
 ClientAliases::ProcessAliases(
+	int oargc,
+	char **oargv,
 	int argc,
 	char **argv,
+	Options &opts,
+	Enviro &env,
+	ClientApi &client,
 	int &result,
 	Error *e )
 {
@@ -56,12 +61,12 @@ ClientAliases::ProcessAliases(
 	//
 	//     ProcessExpandedCommand
 
-	Enviro env;
 	HostEnv hostEnv;
 
-	ClientAliases clientAliases( argc, argv, &env, &hostEnv, e );
-	if( e->Test() || clientAliases.HasCharsetError() )
+	ClientAliases clientAliases( argc, argv, &opts, &env, &hostEnv, &client, e );
+	if( e->Test() )
 	    return result = 1;
+
 	if( clientAliases.HasAliasesDisabled() )
 	    return 0;
 
@@ -75,13 +80,13 @@ ClientAliases::ProcessAliases(
 	    return 1;
 
 	if( !clientAliases.HasAliases() )
-	    return result = clientAliases.CheckDryRun( argc, argv, e );
+	    return result = clientAliases.CheckDryRun( oargc, oargv, e );
 
-	clientAliases.ExpandAliases( argc, argv, e );
+	clientAliases.ExpandAliases( oargc, oargv, e );
 	if( e->Test() )
 	    return result = 1;
 	if( !clientAliases.WasExpanded() )
-	    return result = clientAliases.CheckDryRun( argc, argv, e );
+	    return result = clientAliases.CheckDryRun( oargc, oargv, e );
 
 	result = clientAliases.RunCommands( e );
 
@@ -93,36 +98,30 @@ ClientAliases::ProcessAliases(
 ClientAliases::ClientAliases(
 	int argc,
 	char **argv,
+	Options *opts,
 	Enviro *env,
 	HostEnv *hostEnv,
+	ClientApi *client,
 	Error *e )
 {
 	aliases = new VarArray;
 	commands = new VarArray;
 	hasAliases = 0;
 	hasAliasesDisabled = 0;
-	hasCharsetError = 0;
 	wasExpanded = 0;
 
 	this->env = env;
 	this->hostEnv = hostEnv;
+	this->client = client;
 
 	aliasesFile = 0;
 	ioDict = 0;
 
-	ClientApi client;
-	Options opts;
 	parsedArgc = argc;
 	parsedArgv = argv;
-	clientParseOptions( opts, parsedArgc, parsedArgv, e );
-	if( e->Test() )
-	    return;
-	if( clientPrepareEnv( client, opts, *(this->env) ) )
-	{
-	    hasCharsetError = 1;
-	    return;
-	}
-	const StrPtr *aliasHandling = opts[ Options::Aliases ];
+
+	const StrPtr *aliasHandling = (*opts)[ Options::Aliases ];
+
 	if( aliasHandling && !strncmp( aliasHandling->Text(), "no", 2 ) )
 	    hasAliasesDisabled = 1;
 }
@@ -192,12 +191,6 @@ int
 ClientAliases::HasAliasesDisabled()
 {
 	return hasAliasesDisabled;
-}
-
-int
-ClientAliases::HasCharsetError()
-{
-	return hasCharsetError;
 }
 
 void
@@ -1172,7 +1165,8 @@ ClientCommand::RunCommand( StrDict *dict, Error *e )
 	    c_args[ac - w_argf] = w_args[ac].Text();
 
 	if( !HandleSpecialOperators( w_argc, argv, *w_opts, e ) )
-	    clientRunCommand( w_argc, argv, *w_opts, ui, uidebug, e );
+	    clientRunCommand( w_argc, argv, *w_opts, ui, *(client.GetEnviro()),
+	                      client, uidebug, e );
 
 	HandleOutput( dict, e );
 
@@ -1625,7 +1619,7 @@ ClientUserStrBuf::GetSeverity()
 int
 ClientUserStrBuf::CommandFailed()
 {
-	return GetSeverity() > E_INFO; // Should this be E_WARN?
+	return GetSeverity() > E_WARN;
 }
 
 void

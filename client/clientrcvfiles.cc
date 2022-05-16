@@ -65,6 +65,9 @@ class ThreadedTransfer : public ClientTransfer, public ClientUser
 
 	    void	OutputStat( StrDict *varList );
 	    int		OutputStatPartial( StrDict * );
+	    
+	    ClientProgress * CreateProgress( int, P4INT64 );
+	    ClientProgress * CreateProgress( int );
 
 	private:
 
@@ -268,6 +271,22 @@ ThreadedTransfer::OutputStatPartial( StrDict *varList )
 	std::lock_guard< std::mutex > lock( mutex );
 
 	return master->OutputStatPartial( varList );
+}
+
+ClientProgress *
+ThreadedTransfer::CreateProgress( int type )
+{
+	if( master->CanParallelProgress() )
+	    return master->CreateProgress( type );
+	return 0;
+}
+
+ClientProgress *
+ThreadedTransfer::CreateProgress( int type, P4INT64 size )
+{
+	if( master->CanParallelProgress() )
+	    return master->CreateProgress( type, size );
+	return 0;
 }
 
 # endif // HAS_CPP11

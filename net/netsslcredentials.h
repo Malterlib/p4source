@@ -32,9 +32,13 @@
  */
 # ifdef USE_SSL
 
+class VarArray;
+
 class NetSslCredentials
 {
 public:
+		static void ValidateCertDateRange( X509 *cert, Error *e );
+	
 		NetSslCredentials( bool isTest = false );
 		NetSslCredentials( NetSslCredentials &rhs);
 		~NetSslCredentials();
@@ -42,13 +46,13 @@ public:
 		void GenerateCredentials( Error *e );
 		void ValidateSslDir( Error * e);
 		void ValidateCredentialFiles( Error *e );
-		void ValidateCertDateRange( Error *e );
 		void GetExpiration( StrBuf &buf );
 		void HaveCredentials( Error *e );
 		NetSslCredentials &operator =( NetSslCredentials &rhs );
 
 		// Getters and Setters
 		X509 *GetCertificate() const;
+		X509 *GetChain( int i ) const;
 		const StrPtr *GetFingerprint() const;
 		EVP_PKEY *GetPrivateKey() const;
 		void SetCertificate(X509 *certificate, Error *e);
@@ -74,6 +78,7 @@ private:
 
 		EVP_PKEY *privateKey;
 		X509 *certificate;
+		VarArray *chain;
 		StrBuf fingerprint;
 		StrBuf certC;
 		StrBuf certCN;

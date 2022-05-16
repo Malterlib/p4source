@@ -101,11 +101,14 @@ struct P4Tag {
 	static const char v_autoLogin[];
 	static const char v_autoTune[];
 	static const char v_baseName[];
+	static const char v_behindBytes[];
+	static const char v_behindJnls[];
 	static const char v_bits[];
 	static const char v_blob[];
 	static const char v_blockCount[];
 	static const char v_branch[];
 	static const char v_broker[];
+	static const char v_bytesBehind[];
 	static const char v_archiveFile[];
 	static const char v_caddr[];
 	static const char v_caseHandling[];
@@ -142,6 +145,7 @@ struct P4Tag {
 	static const char v_confirm[];
 	static const char v_conflict[];
 	static const char v_copied[];
+	static const char v_cumulative[];
 	static const char v_counter[];
 	static const char v_current[];
 	static const char v_cwd[];
@@ -220,6 +224,7 @@ struct P4Tag {
 	static const char v_key[];
 	static const char v_language[];
 	static const char v_lbrFile[];		// also remote depot
+	static const char v_lbrChange[];	
 	static const char v_lbrPath[];
 	static const char v_lbrRev[];		// also remote depot
 	static const char v_lbrType[];		// also remote depot
@@ -244,6 +249,7 @@ struct P4Tag {
 	static const char v_maxOpenFiles[];
 	static const char v_maxResults[];
 	static const char v_maxScanRows[];
+	static const char v_maxValue[];
 	static const char v_mergeAuto[];
 	static const char v_mergeConfirm[];
 	static const char v_mergeDecline[];
@@ -314,6 +320,8 @@ struct P4Tag {
 	static const char v_rUserHelp[];
 	static const char v_rUserPrompt[];
 	static const char v_rUserResult[];
+	static const char v_rMoveReaddIntegConflictIgnored[];
+	static const char v_rMoveReaddIntegConflictSkip[];
 	static const char v_rcvbuf[];
 	static const char v_reason[];
 	static const char v_ref[];
@@ -330,6 +338,9 @@ struct P4Tag {
 	static const char v_resolveType[];
 	static const char v_rev[];
 	static const char v_rev2[];
+	static const char v_revertmovecheck[];
+	static const char v_revertmovedirnotempty[];
+	static const char v_revertmovermdir[];
 	static const char v_rmdir[];
 	static const char v_rseq[];
 	static const char v_scanSize[];
@@ -472,6 +483,7 @@ struct P4Tag {
 	static const char v_peer[];
 	static const char v_peerAddress[];
 	static const char v_propigate[];	// proxy chaining test
+	static const char v_remoteFetch[];	// no on-demand fetch bg submit
 	static const char v_reopen[];  		// submit
 	static const char v_replace[];		// shelve
 	static const char v_revertUnchanged[];  // submit

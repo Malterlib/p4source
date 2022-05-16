@@ -315,13 +315,13 @@ MapTable::DumpTree( MapTableT dir, const char *trace )
 int
 MapTable::IsSingle() const
 {
-	// There may be more than one valid mapping: we only look at the
-	// highest precendence one, and it must have no widcards.
+	// Returns 1 if there is exactly one mapping and it contains no
+	// wildcards.
 	// In theory, the check of the rhs is redundant: views are supposed
 	// to have matching wildcards.  In theory, there is no difference
 	// between theory and practice.  But in practice there is.
 
-	return count >= 1 && !entry->Lhs()->IsWild() && !entry->Rhs()->IsWild();
+	return count == 1 && !entry->Lhs()->IsWild() && !entry->Rhs()->IsWild();
 }
 
 //

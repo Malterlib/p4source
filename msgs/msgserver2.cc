@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgServer2 error code is: 162
+ * Current high value for a MsgServer error code is: 172
  *                                                   Max code is 1023!!!
  *
  * The MsgServer2 class contains overflow messages from MsgServer.
@@ -90,9 +90,10 @@ ErrorId MsgServer2::StorageCleanupWarn     = { ErrorOf( ES_SERVER2, 46, E_FATAL,
 ErrorId MsgServer2::VerifyDataProblem      = { ErrorOf( ES_SERVER2, 47, E_FAILED, EV_NONE, 6 ), "%depotFile% %depotRev% - %rcount% (%type%) %digest% %status%" } ; // NOTRANS
 ErrorId MsgServer2::VerifyData             = { ErrorOf( ES_SERVER2, 48, E_INFO, EV_NONE, 6 ), "%depotFile% %depotRev% - %rcount% (%type%) %digest%[ %status%]" } ; // NOTRANS
 ErrorId MsgServer2::FailoverServerIDBad    = { ErrorOf( ES_SERVER2, 50, E_FAILED, EV_ADMIN, 0 ), "Failover has occurred from this server, and the server ID must be changed. Use '%'p4d -xD'%' to change the server ID." } ;
-ErrorId MsgServer2::FailoverMasterTooOld = { ErrorOf( ES_SERVER2, 83, E_FAILED, EV_USAGE, 0 ), "Server from which failover is to occur must be at version 2018.2 or above to participate in failover." } ;
-ErrorId MsgServer2::FailoverCfgCommit   = { ErrorOf( ES_SERVER2, 115, E_INFO, EV_NONE, 0 ), "Propagating configuration of the failed-over server ..." } ;
-ErrorId MsgServer2::FailoverUnCfgCommit = { ErrorOf( ES_SERVER2, 116, E_INFO, EV_NONE, 0 ), "Undoing propagation of configuration for the failed-over server ..." } ;
+ErrorId MsgServer2::FailoverMasterTooOld   = { ErrorOf( ES_SERVER2, 83, E_FAILED, EV_USAGE, 0 ), "Server from which failover is to occur must be at version 2018.2 or above to participate in failover." } ;
+ErrorId MsgServer2::FailoverCfgCommit      = { ErrorOf( ES_SERVER2, 115, E_INFO, EV_NONE, 0 ), "Propagating configuration of the failed-over server ..." } ;
+ErrorId MsgServer2::FailoverUnCfgCommit    = { ErrorOf( ES_SERVER2, 116, E_INFO, EV_NONE, 0 ), "Undoing propagation of configuration for the failed-over server ..." } ;
+ErrorId MsgServer2::FailoverNeedYOK        = { ErrorOf( ES_SERVER2, 156, E_INFO, EV_NONE, 0 ), "No errors reported; use %'--yes or -y'% to execute the failover." } ;
 ErrorId MsgServer2::ServerIDReused         = { ErrorOf( ES_SERVER2, 51, E_FAILED, EV_ADMIN, 1 ), "Cannot reuse server ID '%serverID%' after failover." } ;
 ErrorId MsgServer2::ExtensionPostInstallMsg ={ ErrorOf( ES_SERVER2, 52, E_INFO, EV_NONE, 4 ), "Perform the following steps to turn on the Extension:\n\n# Create a global configuration if one doesn't already exist.\np4 extension --configure %extension%\n\n# Create an instance configuration to enable the Extension.\np4 extension --configure %extension% --name %extension%-instanceName\n\nFor more information, visit:\nhttps://www.perforce.com/manuals/v%serverversion%/extensions/Content/Extensions/Home-extensions.html\n" } ;
 ErrorId MsgServer2::StreamShelfReadOnly    = { ErrorOf( ES_SERVER2, 53, E_FAILED, EV_NOTYET, 4 ), "Stream spec %stream% is shelved in change %change% and is not open.\nThe stream field in this change spec is read only and cannot be\nchanged until the stream is removed from the shelf.\nSwitch your client to %stream%, then use 'p4 shelve -d -As %change%'\nto remove the stream from shelf." } ;
@@ -177,12 +178,21 @@ ErrorId MsgServer2::SSIntegNotCurStream    = { ErrorOf( ES_SERVER2, 142, E_FAILE
 ErrorId MsgServer2::ExtCfgMissing          = { ErrorOf( ES_SERVER2, 143, E_FAILED, EV_UNKNOWN, 2 ), "Missing Extension config for %name%, %uuid%." } ;
 ErrorId MsgServer2::NoUnshelveVirtIntoNoInh= { ErrorOf( ES_SERVER2, 144, E_FAILED, EV_ILLEGAL, 0 ), "Can't unshelve a virtual stream spec into a stream spec with a noinherit ParentView." } ;
 ErrorId MsgServer2::NoUnshelveNoInhIntoVirt= { ErrorOf( ES_SERVER2, 145, E_FAILED, EV_ILLEGAL, 0 ), "Can't unshelve a stream spec with a noinherit ParentView into a virtual stream spec." } ;
+ErrorId MsgServer2::ReplicaSharedConfig    = { ErrorOf( ES_SERVER2, 146, E_FATAL, EV_ADMIN, 0 ), "Replica cannot run! This replica server does not appear to share archive storage with its master server. However, the replica was configured with lbr.replication=shared. Setting lbr.replication=shared without sharing archive storage can result in transfer errors between servers. Please reconfigure this replica or contact Perforce Technical Support for assistance." } ;
+ErrorId MsgServer2::RtMonitorDisabled      = { ErrorOf( ES_SERVER2, 147, E_FAILED, EV_ADMIN, 0 ), "Realtime monitoring not currently enabled." } ;
 ErrorId MsgServer2::SwitchStreamUnrelated  = { ErrorOf( ES_SERVER2, 148, E_FAILED, EV_ILLEGAL, 0 ), "Use the '--allow-unrelated' option to switch to a different stream hierarchy." } ;
+ErrorId MsgServer2::PurgeReportArchive     = { ErrorOf( ES_SERVER2, 149, E_WARN, EV_NONE, 0 ), "This was report mode.  Use %'-y'% to remove files. Add %'-A'% to include archived revisions." } ;
+ErrorId MsgServer2::ReplicaLag             = { ErrorOf( ES_SERVER2, 150, E_INFO, EV_NONE, 2 ), "Replica is %byteLag% bytes of journal behind the upstream server (%journals% journal rotations)" } ;
+ErrorId MsgServer2::InfoProxyServerID      = { ErrorOf( ES_SERVER2, 151, E_INFO, EV_NONE, 1 ), "Proxy serverID: %svrId%" } ;
+ErrorId MsgServer2::MoveReaddIntegConflictResolveWarn= { ErrorOf( ES_SERVER2, 152, E_WARN, EV_NONE, 6 ), "Warning: %fromFile%%endFromRev% was added after a move of the previous version.\nThe move resolve of %clientFile% was ignored.\nAccepting branch resolve (at) from %fromFile%%endFromRev% will overwrite workspace file %clientFile%." } ;
 ErrorId MsgServer2::ShelveArchiveInUse     = { ErrorOf( ES_SERVER2, 153, E_FAILED, EV_UNKNOWN, 2 ), "Archive for shelved file %depotFile%@%change% is already in use and differs!" } ;
 ErrorId MsgServer2::ShelveDupDiff          = { ErrorOf( ES_SERVER2, 154, E_FAILED, EV_UNKNOWN, 10 ), "Shelved archive file %lbrFile1%/%lbrRev1%/%lbrType1% (%size1% %hash1%) differs from %lbrFile2%/%lbrRev2%/%lbrType2% (%size2% %hash2%). Skipping any further cleanup." } ; 
 ErrorId MsgServer2::ShelveNotPromoted      = { ErrorOf( ES_SERVER2, 155, E_FAILED, EV_UNKNOWN, 1 ), "%change% does not contain promoted shelved files." } ;
+ErrorId MsgServer2::UseMonitorRT           = { ErrorOf( ES_SERVER2, 157, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor realtime [ -F filter -T fields ]'%" } ;
 ErrorId MsgServer2::VerifyRepairKtext      = { ErrorOf( ES_SERVER2, 158, E_WARN, EV_UNKNOWN, 0 ), "Cannot find shelved archives for ktext files by digest. Skipping." } ;
 ErrorId MsgServer2::VerifyRepairNone       = { ErrorOf( ES_SERVER2, 159, E_WARN, EV_UNKNOWN, 0 ), "No suitable shelved archive found." } ;
 ErrorId MsgServer2::VerifyRepairConflict   = { ErrorOf( ES_SERVER2, 160, E_WARN, EV_UNKNOWN, 2 ), "Cannot copy shelved archive %foundLbr%. Target file %targetLbr% already exists." } ;
 ErrorId MsgServer2::VerifyRepairSnapped    = { ErrorOf( ES_SERVER2, 161, E_INFO, EV_NONE, 2 ), "Snapping revision from using archive %oldLbr% to use archive %targetLbr%." } ;
 ErrorId MsgServer2::VerifyRepairCopied     = { ErrorOf( ES_SERVER2, 162, E_INFO, EV_NONE, 2 ), "Copying shelved archive %foundLbr% to %targetLbr%." } ;
+ErrorId MsgServer2::UseVerifyR             = { ErrorOf( ES_SERVER2, 163, E_FAILED, EV_USAGE, 0 ), "Usage: %'verify -R [ -m maxRevs ] [ -q -s ] [ -v | --only BAD|MISSING ] ] [ -X ] [ -b batch ] files...'%" } ;
+ErrorId MsgServer2::UnknownContext         = { ErrorOf( ES_SERVER2, 172, E_FATAL, EV_ILLEGAL, 0 ), "No context was found for this operation." } ;

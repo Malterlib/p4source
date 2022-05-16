@@ -167,6 +167,8 @@ class ClientApi : public StrDict {
 	// caller's main interface
 	
 			ClientApi();
+			ClientApi( Enviro *env );
+
 	virtual		~ClientApi();
 
 	void		SetTrans( int output, int content = -2,

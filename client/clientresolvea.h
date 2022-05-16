@@ -55,6 +55,14 @@ class ClientResolveA
 	const Error &GetTypePrompt() const { return typeP; }
 	const Error &GetUsageError() const { return error; }
 	const Error &GetHelp() const { return help; }
+	const Error &GetMoveReaddIntegConflictIgnored() const 
+	{ 
+	    return moveReaddIntegConflictIgnored; 
+	}
+	const Error &GetMoveReaddIntegConflictSkip() const 
+	{ 
+	    return moveReaddIntegConflictSkip; 
+	}
 
 	// Called by clientservice while talking to the server
 
@@ -82,6 +90,16 @@ class ClientResolveA
 	void SetHelp( const Error &msg ) { help = msg; }
 	void SetUsageError( const Error &msg ) { error = msg; }
 
+	void SetMoveReaddIntegConflictIgnored ( const Error &msg )
+	{
+	     moveReaddIntegConflictIgnored = msg; 
+	}
+
+	void SetMoveReaddIntegConflictSkip( const Error &msg )
+	{
+	     moveReaddIntegConflictSkip = msg; 
+	}
+
 	void SetAuto( MergeStatus s ) { suggest = s; }
 
     private:
@@ -108,6 +126,8 @@ class ClientResolveA
 	Error help;
 	Error prompt;
 	Error error;
+	Error moveReaddIntegConflictIgnored;
+	Error moveReaddIntegConflictSkip;
 
 	MergeStatus suggest;
 };

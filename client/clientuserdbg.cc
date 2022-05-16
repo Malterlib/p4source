@@ -19,6 +19,7 @@
 # include <filesys.h>
 
 # include "clientuser.h"
+# include "clientprog.h"
 # include "clientuserdbg.h"
 
 /*
@@ -282,3 +283,91 @@ ClientUserMunge::Munge( StrDict *dict, StrPtrArray *fields, ClientUser *ui )
 
 	ui->OutputText( result.Text(), result.Length() );
 }
+
+/*
+ * ClientUserDebugProgress -- progress debug
+ *
+ * When built with a C++11 capable toolchain supports handles
+ * progress from parallel sync/submit/etc.
+ */
+
+class ClientProgressDebug : public ClientProgress
+{
+    public:
+	ClientProgressDebug( int type, ClientUser *ui )
+	    : pos( 0 ), total( -1 ), type( type ), units( 0 ), ui( ui ) {}
+
+	void Description( const StrPtr *description, int units )
+	{
+	    desc.Set( description );
+	    this->units = units;
+	}
+
+	void Total( long t )
+	{
+	    total = t;
+	    Error out;
+	    out.Set( E_INFO,
+	             "progress (total): %desc% (type %type% units %units%) "
+	             "- %pos% of %total%" )
+	        << desc.Text() << type << units
+	        << StrNum( pos ) << StrNum( total );
+	    ui->HandleError( &out );
+	}
+
+	int Update( long p )
+	{
+	    pos = p;
+	    Error out;
+	    out.Set( E_INFO,
+	             "progress (update): %desc% (type %type% units %units%) "
+	             "- %pos% of %total%" )
+	        << desc.Text() << type << units
+	        << StrNum( pos ) << StrNum( total );
+	    ui->HandleError( &out );
+	    return 0;
+	}
+
+	void Done( int fail )
+	{
+	    Error out;
+	    out.Set( E_INFO,
+	             "progress (%fail%): %desc% (type %type% units %units%) "
+	             "- %pos% of %total%" )
+	        << (fail == 3 ? "failed" : "done")
+	        << desc.Text() << type << units
+	        << StrNum( pos ) << StrNum( total );
+	    ui->HandleError( &out );
+	}
+
+    private:
+	long		pos;
+	long		total;
+	int		type;
+	int		units;
+	StrBuf		desc;
+	ClientUser 	*ui;
+
+} ;
+
+ClientProgress *
+ClientUserDebugProgress::CreateProgress( int type, P4INT64 size )
+{
+	// Track all per-file transfers
+	return CreateProgress( type );
+}
+
+ClientProgress *
+ClientUserDebugProgress::CreateProgress( int type )
+{
+	return new ClientProgressDebug( type, this );
+}
+
+# ifdef HAS_CPP11
+void
+ClientUserDebugProgress::HandleError( Error *err )
+{
+	std::lock_guard<std::mutex> guard( output_mutex );
+	ClientUserProgress::HandleError( err );
+}
+# endif

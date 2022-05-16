@@ -18,6 +18,7 @@
 # include <error.h>
 # include <errornum.h>
 # include <strbuf.h>
+# include <strarray.h>
 # include <debug.h>
 # include <tunable.h>
 # include <md5.h>
@@ -1687,6 +1688,13 @@ nt_makelink( StrBuf &target, StrPtr *name, int dounicode, int lfn )
 	return result;
 }
 
+int
+FileIO::OsRename( StrPtr *source, StrPtr *target, FileSys *origTarget )
+{
+	return nt_rename( source, target, DOUNICODE, 
+	                  LFN | origTarget->GetLFN() );
+}
+
 void
 FileIO::Rename( FileSys *target, Error *e )
 {
@@ -1726,27 +1734,57 @@ FileIO::Rename( FileSys *target, Error *e )
 	if( nt_rename( Path(), target->Path(), DOUNICODE,
 	               LFN|target->GetLFN() ) )
 	{
-	    // nasty hack coming up.
-	    // one customer is suffering from a rename() problem
-	    // that requires more diagnostics,  so we will retry 
-	    // the rename() 10 times with 1 second interval and
-	    // log any failure.
-
-	    int ret = 0;
+	    int ret = 1;
 	    int renameMax  = p4tunable.Get( P4TUNE_SYS_RENAME_MAX );
 	    int renameWait = p4tunable.Get( P4TUNE_SYS_RENAME_WAIT );
 
-	    for( int i=0; i < renameMax; ++i )
+	    StrBuf currentName;
+	    currentName = Name();
+
+	    if( currentName.Contains( *targetPath ) || 
+	        targetPath->Contains( currentName ) )
 	    {
-	        msleep( renameWait );
+	        // Either target is a substring (directory) of source,
+	        // or source is a substring of target (target has a
+	        // directory subpath which is the as source) 
+	        // or source or target has a component which is not a directory.
 
-	        target->Unlink( 0 );
+	        // Try moving the current name to a temporary name, and then trying again.
 
-	        ret = nt_rename( Path(), target->Path(), DOUNICODE,
-	                         LFN|target->GetLFN() );
+	        RenameSourceSubstrInTargetSubdir( currentName, target, e );
 
-	        if( !ret )
-	            break;
+	        if( e->Test() )
+	            return;
+
+	        RenameTargetSubStrSubdirInSource( currentName, target, e );
+
+	        if( e->Test() )
+	            return;
+
+	        ret = nt_rename( &currentName, target->Path(), DOUNICODE,
+	               LFN|target->GetLFN() );
+	    }
+
+	    if( ret )
+	    {
+	        // nasty hack coming up.
+	        // one customer is suffering from a rename() problem
+	        // that requires more diagnostics,  so we will retry 
+	        // the rename() 10 times with 1 second interval and
+	        // log any failure.
+
+	        for( int i=0; i < renameMax; ++i )
+	        {
+	            msleep( renameWait );
+
+	            target->Unlink( 0 );
+
+	            ret = nt_rename( &currentName, target->Path(), DOUNICODE,
+	                             LFN|target->GetLFN() );
+
+	            if( !ret )
+	                break;
+	        }
 	    }
 
 	    if( ret )
@@ -2539,6 +2577,29 @@ FileIOAppend::GetSize()
 	return s;
 }
 
+offL_t
+FileIOAppend::GetCurrentSize()
+{
+	// The intent of this function is to get the size of the current file
+	// (by path), not of a recently rename()'d file that still happens to
+	// be open on this->fd. But since Copy() and Truncate() are used to
+	// "rename" a FileIOAppend file on Windows, the current file should
+	// be the file open on this->fd. Therefore, this function merely
+	// wraps around GetSize().
+	//
+	// But if a FileIOAppend file on Windows is ever instead renamed
+	// using rename() semantics, this function might need changed so
+	// that it returns the correct size of the current file by path.
+	// Or alternatively, if FileIOBinary::GetSize() on Windows can
+	// be fixed so that it doesn't return a stale size of a file
+	// (by path) under high concurrency, this implementation of
+	// FileIOAppend::GetCurrentSize() can be eliminated in favor of
+	// making generic the FileIOAppend::GetCurrentSize() implementation
+	// in fileio.cc.
+
+	return GetSize();
+}
+
 void
 FileIOAppend::Write( const char *buf, int len, Error *e )
 {
@@ -2566,6 +2627,12 @@ FileIOAppend::Rename( FileSys *target, Error *e )
 {
 	// File may be open, so to rename we copy 
 	// and truncate FileIOAppend files on NT.
+	//
+	// But if a FileIOAppend file on Windows is ever instead renamed
+	// using rename() semantics, the FileIOAppend::GetCurrentSize()
+	// function on Windows might need changed so that it returns
+	// the correct size of a current file by path, not of a recently
+	// rename()'d file that still happens to be open on this->fd.
 
 	Copy( target, FPM_RO, e );
 

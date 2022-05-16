@@ -83,3 +83,32 @@ class ClientUserMunge : public ClientUser {
 	StrPtrArray fields;
 	int done;
 };
+
+/*
+ * ClientUserDebugProgress -- progress debug
+ *
+ * When built with a C++11 capable toolchain supports handles
+ * progress from parallel sync/submit/etc.
+ */
+
+# ifdef HAS_CPP11
+# include <mutex>
+# endif
+
+class ClientUserDebugProgress : public ClientUserProgress {
+
+    public:
+
+	ClientUserDebugProgress( int autoLoginPrompt, int apiVersion )
+	    : ClientUserProgress( autoLoginPrompt, apiVersion ) {}
+
+	virtual ClientProgress *CreateProgress( int, P4INT64 );
+	virtual ClientProgress *CreateProgress( int );
+
+# ifdef HAS_CPP11
+	virtual void	HandleError( Error *err );
+	virtual int	CanParallelProgress() { return 1; }
+
+	std::mutex output_mutex;
+# endif
+} ;

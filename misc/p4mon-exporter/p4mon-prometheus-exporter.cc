@@ -1,34 +1,295 @@
 /*
- * Copyright 1995, 2018 Perforce Software.  All rights reserved.
+ * Copyright 2021 Perforce Software.  All rights reserved.
  *
  * This file is part of Perforce - the FAST SCM System.
  */
 
 /*
- * Perforce client legal compliance statements
- *
+ * This is a server utility program for exposing realtime
+ * monitoring items to prometheus.
  */
+
+# define NEED_SLEEP
+# define NEED_SIGNAL
 
 # include <stdhdrs.h>
 
+// NT header defines conflict with P4API methods
+# ifdef GetMessage
+# undef GetMessage
+# endif
+
 # include <strbuf.h>
-# include <strdict.h>
-# include <strtable.h>
+# include <strops.h>
 # include <error.h>
-# include <rpc.h>
+# include <errorlog.h>
+# include <options.h>
+# include <debug.h>
 
-# include <filesys.h>
-# include <handler.h>
+# include <ident.h>
 
-# include "client.h"
-# include "clientuser.h"
+# include <memfile.h>
+# include <monitem.h>
 
-static ErrorId LegalHelp = { ErrorOf( 0, 0, E_INFO, 0, 0 ),
+# include <prometheus/counter.h>
+# include <prometheus/exposer.h>
+# include <prometheus/registry.h>
+
+// Version string helper
+Ident ident = { 
+	IdentMagic "P4Mon Prometheus Exporter" "/"
+	ID_OS "/" ID_REL "/" ID_PATCH,
+	ID_Y "/" ID_M "/" ID_D 
+};
+
+static const char long_usage[] =
+"Usage:\n"
+"\n"
+"    p4mon-prometheus-exporter [ -h [ -l ] ] [ -V ] [ -L port ] [ monfile.mem ]\n"
+"\n"
+"    Options:\n"
+"	-h		print this message\n"
+"	-h -l		print this message and legal information\n"
+"	-V		print version\n"
+"	-L port		port on which to start the HTTP server\n"
+"\n"
+"    The single argument provided to p4mon-prometheus-exporter is\n"
+"    the path to P4D's rt.monitorfile shared memory file (defaults\n"
+"    to monfile.mem in the current working directory).\n"
+"\n";
+
+// Wrap the messages in a class so they're easy to define after the code
+// Legal is long.
+class MsgMon {
+    public:
+	static ErrorId Usage;
+	static ErrorId Legal;
+};
+
+class MemItemsCollectable : public prometheus::Collectable, MemItems
+{
+    public:
+	MemItemsCollectable() : MemItems() {}
+	
+	void
+	Load( const char *p, Error *e )
+	{
+	    MemItems::Load( p, e );
+	}
+
+	std::vector<prometheus::MetricFamily>
+	Collect() const override
+	{
+	    std::vector<prometheus::MetricFamily> vec
+	        = std::vector<prometheus::MetricFamily>();
+	    for(MonItem *i = First(); i; i = Next(i))
+	    {
+	        if( i->ItemId() == MIT_NONE || i->Flags() & MI_HIDDEN )
+	            continue;
+
+	        // Prometheus doesn't like .'s in names
+	        StrBuf name, tmp;
+	        StrOps::Replace( tmp, i->Name(),
+	                         StrRef( "." ), StrRef( "_" ) );
+
+	        // Make it clear this is a Perforce Server metric
+	        name = "p4d_";
+	        name << tmp;
+
+	        switch( i->ItemId() )
+	        {
+	        case MIT_INTMAX:
+	            {
+	                prometheus::MetricFamily mf;
+	                prometheus::ClientMetric cm;
+	                cm.counter.value = static_cast<double>(
+	                                     ((MonIntMax *)i)->MaxValue());
+	                StrBuf mName = name.Text();
+	                mName << "_max";
+	                mf.name = mName.Text();
+	                mf.type = prometheus::MetricType::Counter;
+	                mf.metric.push_back( cm );
+	                vec.push_back( mf );
+	            }
+	        case MIT_INT:
+	            {
+	                prometheus::MetricFamily mf;
+	                prometheus::ClientMetric cm;
+	                mf.name = name.Text();
+	                if( i->Flags() & MI_CUMULATIVE )
+	                {
+	                    cm.counter.value = static_cast<double>(
+	                                     ((MonInteger *)i)->Value());
+	                    mf.type = prometheus::MetricType::Counter;
+	                }
+	                else
+	                {
+	                    cm.gauge.value = static_cast<double>(
+	                                     ((MonInteger *)i)->Value());
+	                    mf.type = prometheus::MetricType::Gauge;
+	                }
+	                mf.metric.push_back( cm );
+	                vec.push_back( mf );
+	                break;
+	            }
+	        }
+	    }
+	    return vec;
+	}
+};
+
+int
+main(int cargc, char **cargv)
+{
+	AssertLog.SetTag( "Perforce Realtime Monitoring Prometheus Exporter" );
+	AssertLog.EnableCritSec();
+	AssertError.Set( E_INFO, "P4Mon Prometheus Exporter" );
+	AssertError.Clear();
+
+	Error e;
+
+	int argc = cargc;
+	StrRef *oargv = new StrRef[ argc ];
+	StrPtr *argv = oargv;
+
+	for( int ac = 0; ac < argc; ac++ )
+	    argv[ac] = StrRef( cargv[ac] );
+
+	argc--, argv++;
+	Options opts;
+	opts.Parse( argc, argv, "L:hlV", OPT_OPT, MsgMon::Usage, &e );
+
+	AssertLog.Abort( &e );
+
+	if( opts[ 'h' ] )
+	{
+	    printf( long_usage );
+
+	    if( opts['l'] )
+	    {
+	        e.Set( MsgMon::Legal );
+	        StrBuf tmp;
+	        e.Fmt( &tmp );
+	        printf( "\n\n%s", tmp.Text() );
+	    }
+
+	    return 0;
+	}
+	
+	if( opts['l'] )
+	{
+	    e.Set( MsgMon::Usage );
+	    AssertLog.Abort( &e );
+	}
+	
+	if( opts[ 'V' ] )
+	{
+	    StrBuf s;
+	    ident.GetMessage( &s );
+	    printf( "%s", s.Text() );
+	    return 0;
+	}
+	
+	// create a http server running on port 8080
+	StrBuf port = "0.0.0.0:8080";
+	if( opts['L'] )
+	    port = *opts['L'];
+
+	std::shared_ptr<MemItemsCollectable> mi = std::make_shared<MemItemsCollectable>();
+	
+	mi->Load( argc ? argv->Text() : "monfile.mem", &e );
+	if( e.Test() )
+	    AssertLog.Abort( &e );
+
+	try
+	{
+	    prometheus::Exposer exposer( port.Text() );
+	    exposer.RegisterCollectable( mi );
+
+	    while( true )
+	        sleep( 1000 );
+	}
+	catch (std::exception& ex)
+	{
+	    e.Set( E_FAILED, ex.what() );
+	    e.Set( E_FAILED, "Exception thrown by Prometheus Exposer:" );
+	    AssertLog.Abort( &e );
+	}
+	
+	return 0;
+}
+
+
+ErrorId MsgMon::Usage = { ErrorOf( 0, 0, E_FATAL, 0, 0 ),
+	"p4mon-prometheus-exporter [ -h [ -l ] ] [ -V ] [ -L port ] [ monfile.mem ]" };
+
+ErrorId MsgMon::Legal = { ErrorOf( 0, 0, E_INFO, 0, 0 ),
 "\n"
 "    The following are the license statements for code used in\n"
 "    this program.\n"
 "\n"
 "    See 'p4 help legal' for additional information.\n"
+"\n"
+"\n"
+"    prometheus-cpp License:\n"
+"    -----------------------\n"
+"\n"
+"    MIT License\n"
+"\n"
+"    Copyright (c) 2016-2019 Jupp Mueller\n"
+"    Copyright (c) 2017-2019 Gregor Jasny\n"
+"\n"
+"    And many contributors, see\n"
+"    https://github.com/jupp0r/prometheus-cpp/graphs/contributors\n"
+"\n"
+"    Permission is hereby granted, free of charge, to any person obtaining a\n"
+"    copy of this software and associated documentation files (the \"Software\"),\n"
+"    to deal in the Software without restriction, including without limitation\n"
+"    the rights to use, copy, modify, merge, publish, distribute, sublicense,\n"
+"    and/or sell copies of the Software, and to permit persons to whom the\n"
+"    Software is furnished to do so, subject to the following conditions:\n"
+"\n"
+"    The above copyright notice and this permission notice shall be included in\n"
+"    all copies or substantial portions of the Software.\n"
+"\n"
+"    THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS\n"
+"    OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n"
+"    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n"
+"    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n"
+"    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING\n"
+"    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER\n"
+"    DEALINGS IN THE SOFTWARE.\n"
+"\n"
+"\n"
+"    Civetweb License:\n"
+"    -----------------------\n"
+"\n"
+"    Copyright (c) 2013-2021 The CivetWeb developers (CREDITS.md)\n"
+"\n"
+"    Copyright (c) 2004-2013 Sergey Lyubka\n"
+"\n"
+"    Copyright (c) 2013 No Face Press, LLC (Thomas Davis)\n"
+"\n"
+"    Copyright (c) 2013 F-Secure Corporation\n"
+"\n"
+"    Permission is hereby granted, free of charge, to any person obtaining a\n"
+"    copy of this software and associated documentation files (the \"Software\"),\n"
+"    to deal in the Software without restriction, including without limitation\n"
+"    the rights to use, copy, modify, merge, publish, distribute, sublicense,\n"
+"    and/or sell copies of the Software, and to permit persons to whom the\n"
+"    Software is furnished to do so, subject to the following conditions:\n"
+"\n"
+"    The above copyright notice and this permission notice shall be included in\n"
+"    all copies or substantial portions of the Software.\n"
+"\n"
+"    THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n"
+"    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n"
+"    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n"
+"    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n"
+"    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING\n"
+"    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER\n"
+"    DEALINGS IN THE SOFTWARE.\n"
+"\n"
 "\n"
 "    P4/P4API License\n"
 "    -----------------------\n"
@@ -483,13 +744,3 @@ static ErrorId LegalHelp = { ErrorOf( 0, 0, E_INFO, 0, 0 ),
 "    DEALINGS IN THE SOFTWARE.\n"
 "\n"
 };
-
-int
-clientLegalHelp( Error *e )
-{
-	ClientUser cuser;
-	e->Set( LegalHelp );
-	cuser.Message( e );
-	e->Clear();
-	return 0;
-}

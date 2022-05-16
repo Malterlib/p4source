@@ -114,6 +114,27 @@ struct EnviroItem {
 	Enviro::ItemType type;
 	StrBuf	origin;
 	int	checked;
+
+	EnviroItem()
+	{
+	    type = Enviro::NEW;
+	    var.Clear();
+	    value.Clear();
+	    origin.Clear();
+	    checked = 0;
+	}
+
+	EnviroItem( const EnviroItem &rhs )
+	{
+	    if( this == &rhs )
+	        return;
+
+	    var = rhs.var;
+	    value = rhs.value;
+	    type = rhs.type;
+	    origin = rhs.origin;
+	    checked = rhs.checked;
+	}
 } ;
 
 /*
@@ -124,6 +145,16 @@ class EnviroTable : public VarArray {
 
     public:
 			~EnviroTable();
+			EnviroTable() {}
+			EnviroTable( const EnviroTable &rhs )
+			{
+			    if( this == &rhs )
+			        return;
+
+			    for( int i = 0; i < rhs.Count(); i++ )
+			        VarArray::Put( new EnviroItem( *(EnviroItem*)
+			            rhs.Get( i ) ) );
+			}
 
 	EnviroItem	*GetItem( const StrRef &var );
 	EnviroItem	*PutItem( const StrRef &var );
@@ -159,16 +190,25 @@ struct KeyPair {
 	void ReplaceKey( const char* k )
 	{
 	    free( key );
-	    key = strdup( k );
+	    strcpy( ( key = (char *)malloc( strlen( k ) + 1 ) ), k );
 	};
 
 	KeyPair( const HKEY hk, const char* k )
 	{
 	    hkey = hk;
-	    key = strdup( k );
+	    strcpy( ( key = (char *)malloc( strlen( k ) + 1 ) ), k );
 	}
 
 	~KeyPair() { free( key ); }
+
+	KeyPair( const KeyPair &rhs )
+	{
+	    if( this == &rhs )
+	        return;
+
+	    hkey = rhs.hkey;
+	    key = strdup( rhs.key );
+	}
 } ;
 
 
@@ -803,11 +843,7 @@ EnviroTable::PutItem( const StrRef &var )
 	if( !a )
 	{
 	    a = new EnviroItem;
-	    a->type = Enviro::NEW;
-	    a->var.Set( var );
-	    a->value.Clear();
-	    a->origin.Clear();
-	    a->checked = 0;
+	    a->var = var;
 	    VarArray::Put( a );
 	}
 
@@ -829,6 +865,29 @@ EnviroTable::RemoveType( Enviro::ItemType ty )
 	    delete a;
 	    VarArray::Remove( i );
 	}
+}
+
+Enviro::Enviro( const Enviro &rhs )
+{
+	if( this == &rhs )
+	    return;
+
+	symbolTab = 0;
+
+	if( rhs.symbolTab )
+	    symbolTab = new EnviroTable( *(rhs.symbolTab) );
+
+	configFiles = new StrArray;
+	rhs.configFiles->Copy( configFiles );
+
+# ifdef OS_NT
+	setKey = new KeyPair( *(rhs.setKey) );
+	serviceKey = new KeyPair( *(rhs.serviceKey) );
+	userKey = new KeyPair( *(rhs.userKey) );
+	serverKey = new KeyPair( *(rhs.serverKey) );
+	serviceKeyName = rhs.serviceKeyName;
+	charset = rhs.charset;
+# endif // OS_NT
 }
 
 void

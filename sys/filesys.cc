@@ -299,6 +299,7 @@ FileSys::LowerCasePath()
 /*
  * FileSys::GetFd()
  * FileSys::GetSize()
+ * FileSys::GetCurrentSize()
  * FileSys::Seek()
  *
  * Non-functional stubs.
@@ -330,6 +331,12 @@ FileSys::HasOnlyPerm( FilePerm perms )
 
 offL_t
 FileSys::GetSize()
+{
+	return 0;
+}
+
+offL_t
+FileSys::GetCurrentSize()
 {
 	return 0;
 }

@@ -818,6 +818,14 @@ ClientUser::ProgressIndicator()
 }
 
 ClientProgress *
+ClientUser::CreateProgress( int t, P4INT64 s )
+{
+	if( s >= 1024 )
+	    return CreateProgress( t );
+	return 0;
+}
+
+ClientProgress *
 ClientUser::CreateProgress( int )
 {
 	return NULL;

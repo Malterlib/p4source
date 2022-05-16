@@ -44,6 +44,19 @@ class FileIO : public FileSys {
 	virtual void	ChmodTimeHP( const DateTimeHighPrecision &modTime, Error *e );
 	virtual void	Unlink( Error *e );
 	virtual void	Rename( FileSys *target, Error *e );
+	virtual void	RenameSourceSubstrInTargetSubdir(
+	                    StrBuf &currentName,
+	                    FileSys *target,
+	                    Error *e );
+
+	virtual void	RenameTargetSubStrSubdirInSource(
+	                    StrBuf &currentName,
+	                    FileSys *target,
+	                    Error *e );
+
+	virtual int	OsRename( StrPtr *source, StrPtr *target,
+	                          FileSys *origTarget );
+
 	virtual void    DepotSize( offL_t &len, Error *e );
 
 # ifdef OS_NT
@@ -223,6 +236,9 @@ class FileIOAppend : public FileIOBuffer {
 
 	// for atomic filesize
 	virtual offL_t	GetSize();
+
+	// size of current (not rename()'d) file
+	virtual offL_t	GetCurrentSize();
 
 	// Copies on Windows.
 	// Locks, renames, and removes write on UNIX.

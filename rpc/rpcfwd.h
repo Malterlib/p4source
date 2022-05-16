@@ -46,7 +46,7 @@ class RpcCrypto {
 	void		S2C( Rpc * );
 	void		C2S( Rpc *, Rpc * );
 
-	void		Set( StrPtr *svr, StrPtr *ticketfile );
+	void		Set( StrPtr *svr, StrPtr *ticketfile, StrDict *svrInfo=0 );
 
 	int		Attacks() const { return attackCount; }
 
@@ -58,6 +58,7 @@ class RpcCrypto {
 	StrBuf		ticketFile;
 
 	int		attackCount;
+	StrDict		*svrInfoBuf;
 };
 
 class RpcForward {
@@ -77,7 +78,7 @@ class RpcForward {
 	void		ForwardC2S() { Forward( client, server ); }
 	void		ForwardS2C() { Forward( server, client ); }
 
-	void		SetCrypto( StrPtr *svr, StrPtr *ticketfile );
+	void		SetCrypto( StrPtr *svr, StrPtr *ticketfile, StrDict *dict = 0 );
 
 	// himark reduction percentage (50% is normal and default)
 	void		SetHiMarkAdjustment( int a ) { himarkadjustment = a; }

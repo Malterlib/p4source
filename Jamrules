@@ -3380,7 +3380,6 @@
 		if $(OSPLAT) = X64 { _x64 = _x64 ; }
 
 		OnTargetVarAppend $(<) : LINKLIBS :
-			$(P4GT)/htmlhelp/htmlhelp$(_x64:E).lib
 			   gdi32.lib  comctl32.lib   shlwapi.lib    user32.lib
 			 version.lib   shell32.lib  advapi32.lib  oldnames.lib
 			kernel32.lib    ws2_32.lib     winmm.lib    odbc32.lib

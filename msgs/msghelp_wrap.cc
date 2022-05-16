@@ -135,6 +135,7 @@ ErrorId MsgHelp::HelpProxy = { ErrorOf( ES_HELP, 145, E_INFO, EV_NONE, 0  ), "Ms
 ErrorId MsgHelp::HelpPrune = { ErrorOf( ES_HELP, 174, E_INFO, EV_NONE, 0 ), "MsgHelp::HelpPrune placeholder." };
 ErrorId MsgHelp::HelpPubKey = { ErrorOf( ES_HELP, 201, E_INFO, EV_NONE, 0 ), "MsgHelp::HelpPubKey placeholder." };
 ErrorId MsgHelp::HelpPubKeys = { ErrorOf( ES_HELP, 202, E_INFO, EV_NONE, 0 ), "MsgHelp::HelpPubKeys placeholder." };
+ErrorId MsgHelp::HelpRealtime = { ErrorOf( ES_HELP, 268, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpRealtime placeholder." };
 ErrorId MsgHelp::HelpRename = { ErrorOf( ES_HELP, 69, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpRename placeholder." };
 ErrorId MsgHelp::HelpReopen = { ErrorOf( ES_HELP, 70, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpReopen placeholder." };
 ErrorId MsgHelp::HelpReconcile = { ErrorOf( ES_HELP, 146, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpReconcile placeholder." };

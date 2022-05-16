@@ -46,6 +46,15 @@ class MsgDm2 {
 	static ErrorId StreamNoCmtClientBadSave;
 	static ErrorId ConnNeedsFwdCrypto;
 	static ErrorId NoStreamTypeChangePV;
+	static ErrorId PurgeTaskStream;
+	static ErrorId PurgeCheckWldDelIgn;
+	static ErrorId PurgeCheckWldDel;
+	static ErrorId PurgeCheckIgn;
+	static ErrorId PurgePurgeCheckWldDelIgn;
+	static ErrorId PurgePurgeCheckWldDel;
+	static ErrorId PurgePurgeCheckIgn;
 	static ErrorId IdHasWhitespace;
 	static ErrorId IdHasEquals;
+	static ErrorId LockNameNull;
+	static ErrorId WorkRecNotFound;
 } ;

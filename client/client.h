@@ -199,6 +199,8 @@ class Client : public Rpc {
 	void		SetVersion( const char *c );
 	void		SetExecutable( const char *c ) { exeName.Set( c ); }
 
+	// NB:  This SetPassword() is intentionally different than the other one.
+	//      Public callers should use the StrPtr variant.
 	void		SetPassword( const char *c ) 
 	    { password.Set( c ); ticketKey.Clear(); authenticated = 0; }
 

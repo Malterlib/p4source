@@ -284,9 +284,9 @@ RpcForward::Flush2( Error *e )
 }
 
 void
-RpcForward::SetCrypto( StrPtr *svr, StrPtr *tfile )
+RpcForward::SetCrypto( StrPtr *svr, StrPtr *tfile, StrDict *dict )
 {
-	crypto.Set( svr, tfile );
+	crypto.Set( svr, tfile, dict );
 }
 
 void
@@ -312,20 +312,25 @@ RpcForward::CryptoS2C( Error * )
 RpcCrypto::RpcCrypto()
     : attackCount( 0 )
 {
+	svrInfoBuf = new StrBufDict;
 }
 
 RpcCrypto::~RpcCrypto()
 {
+	delete svrInfoBuf;
 }
 
 void
-RpcCrypto::Set( StrPtr *svr, StrPtr *tfile )
+RpcCrypto::Set( StrPtr *svr, StrPtr *tfile, StrDict *svrInfo )
 {
 	if( svr )
 	    svrname = *svr;
 
 	if( tfile )
 	    ticketFile = *tfile;
+
+	if( svrInfo )
+	    svrInfoBuf->CopyVars( *svrInfo );
 }
 
 void
@@ -438,5 +443,22 @@ RpcCrypto::C2S( Rpc *client, Rpc *server )
 	    server->SetVar( daddrref, clevel, *addr );
 	    md5.Final( phash );
 	    server->SetVar( P4Tag::v_dhash, clevel, phash );
+	    
+	    StrRef var, val;
+	    StrBuf svrnameBuf( P4Tag::v_svrname ); //svrname - service username
+	    StrBuf dhashBuf( P4Tag::v_dhash ); 
+	    StrBuf attackBuf( P4Tag::v_attack ); 
+	    StrBuf ipaddrBuf( P4Tag::v_ipaddr ); 
+	    for( int i = 0; svrInfoBuf->GetVar( i, var, val ); ++i )
+	    {
+	        if( !caddrref.XCompareN( var )
+	            || !daddrref.XCompareN( var )
+	            || !svrnameBuf.XCompareN( var )
+	            || !dhashBuf.XCompareN( var )
+	            || !attackBuf.XCompareN( var ) 
+	            || !ipaddrBuf.XCompareN( var ) )
+	            continue;
+	        server->SetVar( var, clevel, val );
+	    }
 	}
 }

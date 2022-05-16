@@ -30,6 +30,7 @@
 # include <tunable.h>
 # include <msgsupp.h>
 # include <strbuf.h>
+# include <strarray.h>
 # include <datetime.h>
 # include <i18napi.h>
 # include <charcvt.h>
@@ -40,6 +41,7 @@
 # include <msgos.h>
 
 # include "filesys.h"
+# include <pathsys.h>
 # include "fileio.h"
 
 // We need to know the user's umask so that Chmod() doesn't give
@@ -51,32 +53,36 @@ int global_umask = -1;
 # define O_BINARY 0
 # endif
 
+# ifndef O_CLOEXEC
+# define O_CLOEXEC 0
+# endif
+
 const FileIOBinary::OpenMode FileIOBinary::openModes[4] = {
 	{
 	"open for read",
-		O_RDONLY|O_BINARY,  // bflags
-		O_RDONLY|O_BINARY,  // aflags
-		0,                  // stdio descriptor
+		O_RDONLY|O_BINARY|O_CLOEXEC,  // bflags
+		O_RDONLY|O_BINARY|O_CLOEXEC,  // aflags
+		0,                            // stdio descriptor
 	},
 
 	{
 	"open for write",
-		O_WRONLY|O_CREAT|O_TRUNC|O_BINARY,
-		O_WRONLY|O_CREAT|O_APPEND,
+		O_WRONLY|O_CREAT|O_TRUNC|O_BINARY|O_CLOEXEC,
+		O_WRONLY|O_CREAT|O_APPEND|O_CLOEXEC,
 		1
 	},
 
 	{
 	"open for read/write",
-		O_RDWR|O_CREAT|O_BINARY,
-		O_RDWR|O_CREAT|O_APPEND,
+		O_RDWR|O_CREAT|O_BINARY|O_CLOEXEC,
+		O_RDWR|O_CREAT|O_APPEND|O_CLOEXEC,
 		1
 	},
 
 	{
 	"open for untranslated write",
-		O_WRONLY|O_CREAT|O_TRUNC|O_BINARY,
-		O_WRONLY|O_CREAT|O_APPEND|O_BINARY,
+		O_WRONLY|O_CREAT|O_TRUNC|O_BINARY|O_CLOEXEC,
+		O_WRONLY|O_CREAT|O_APPEND|O_BINARY|O_CLOEXEC,
 		1
 	}
 } ;
@@ -97,7 +103,151 @@ FileIO::DepotSize( offL_t &len, Error *e )
 {
 }
 
+int
+directoryHasMultipleObjects( StrBuf dir, StrArray *dirContents, Error *e )
+{
+	if( dirContents == 0 || dirContents->Count() == 0 )
+	    return 0;
+
+	if( dirContents->Count() > 1)
+	    return 1;
+
+	
+	int ret = 0;
+
+	PathSys *path = PathSys::Create();
+	path->SetLocal( dir, *( dirContents->Get( 0 ) ) );
+
+	FileSys *f = FileSys::Create( FST_TEXT );
+	f->Set( *path );
+
+	if( f->Stat() & FSF_DIRECTORY )
+	{
+	    //Check this sub directory contents
+	    StrArray *ua = f->ScanDir( e );
+
+	    // Recurse
+	    ret = directoryHasMultipleObjects( *path, ua, e );
+
+	    delete ua;
+
+	    if( e->Test() )
+	        return 1;
+	}
+
+	return ret;
+}
+
+void
+FileIO::RenameSourceSubstrInTargetSubdir( StrBuf &currentName,
+	                                  FileSys *target,
+	                                  Error *e )
+{
+	// Only source should be a directory substring of target
+# if defined( OS_NT )
+	if( path.Length() > target->Path()->Length() ||
+	    *( target->Name() + path.Length() ) != '\\' )
+	    return;
+# else
+	if( path.Length() > target->Path()->Length() ||
+	    *( target->Name() + path.Length() ) != '/' )
+	    return;
+#endif
+
+	// Target should start with source sub string
+
+	if( strstr( target->Name(), Name() ) != target->Name() )
+	    return;
+
+	// This a workaround to handle a rename function deficiency,
+	// which cannot work with an old name which is a directory substring
+	// of the new name.
+
+	// Name() is a substring of target->Name(), starts target->Name()
+	// and so Name() must be a directory for the target.
+
+	// Create a temporary name, rename path to temp name
+	char buf[50];
+	TempName( buf );
+	currentName.Append( buf );
+
+	if( OsRename( Path(), &currentName, target ) != 0 )
+	{
+	    e->Set( MsgSupp::RenameTempFailed ) << currentName.Text();
+	    return;
+	}
+
+	// If the old name directory doesn't exist, make it now.
+	MkDir( *(target->Path()), e );
+	if( e->Test() )
+	{
+	    e->Set( MsgSupp::RenameMkdirFailed ) << Name();
+	    return;
+	}
+}
+
+void
+FileIO::RenameTargetSubStrSubdirInSource( StrBuf &currentName, 
+	                                  FileSys *target, 
+	                                  Error *e )
+{
+	if( !( target->Stat() & FSF_DIRECTORY ) ||
+	         !path.Contains( *( target->Path() ) ) )
+	    return;
+
+	// In this case, the target is directory subpath 
+	// of the source.  Rename the source file if 
+	// the target directory only has one entry.
+
+	StrArray *ua = target->ScanDir( e );
+
+	int dirHasMoreThanOne = 
+	    directoryHasMultipleObjects( target->Name(), ua, e );
+
+	delete ua;
+
+	if( e->Test() )
+	{
+	    e->Set( MsgSupp::RenameDirSearchFailed ) << target->Name();
+	    return;
+	}
+
+	if( dirHasMoreThanOne )
+	{
+	    e->Set( MsgSupp::RenameDirNotEmpty ) << target->Name();
+	    return;
+	}
+
+	//reset the currentname to a temporary name in the directory
+	char buf[50];
+	TempName( buf );
+	currentName = target->Name();
+	currentName.Append( buf );
+
+	//Move the source name to the temporary name
+	if( OsRename( Path(), &currentName, target ) != 0 )
+	{
+	    e->Set( MsgSupp::RenameTempFailed ) << currentName.Text();
+	    return;
+	}
+
+	//Remove the target name directory
+	RmDir( *( Path() ), e );
+	if( e->Test() )
+	{
+	    e->Set( MsgSupp::RenameRmdirFailed ) << Name();
+	    return;
+	}
+}
+
 # if !defined( OS_VMS ) && !defined( OS_NT )
+
+int
+FileIO::OsRename( StrPtr *source, StrPtr *target, FileSys *origTarget )
+{
+	// Parameter origTarget used by windows version.
+	return rename( source->Text(), target->Text() );
+}
 
 void
 FileIO::Rename( FileSys *target, Error *e )
@@ -122,8 +272,43 @@ FileIO::Rename( FileSys *target, Error *e )
 
 	if( rename( Name(), target->Name() ) < 0 )
 	{
-	    e->Sys( "rename", target->Name() );
-	    return;
+	    if( Path()->Contains( *( target->Path() ) ) || 
+	        target->Path()->Contains( *( Path( ) ) ) )
+	    {
+	        // Either target is a substring (directory) of source,
+	        // or source is a substring of target (target has a
+	        // directory subpath which is the as source) 
+	        // or source or target has a component which is not a directory.
+
+	        // Try moving the current name to a temporary name, and then trying again.
+	        StrBuf currentName;
+	        currentName = Name();
+
+	        if( path.Length() < target->Path()->Length() )
+	        {
+	            // source is a substring of the target
+	            RenameSourceSubstrInTargetSubdir( currentName, target, e );
+	        }
+	        else
+	        {
+	            // target is a substring of the source
+	            RenameTargetSubStrSubdirInSource( currentName, target, e );
+	        }
+
+	        if( e->Test() )
+	            return;
+
+	        if( rename( currentName.Text(), target->Name() ) < 0 )
+	        {
+	            e->Sys( "rename", target->Name() );
+	            return;
+	        }
+	    }
+	    else
+	    {
+	        e->Sys( "rename", target->Name() );
+	        return;
+	    }
 	}
 
 	// source file has been deleted,  clear the flag
@@ -817,7 +1002,9 @@ FileIOAppend::Open( FileOpenMode mode, Error *e )
             checkStdio( fd );
 	    isStd = 1;
 	}
-	else if( ( fd = checkFd( openL( Name(), openModes[ mode ].aflags, PERM_0666 ) ) ) < 0 )
+	else if( ( fd = checkFd( openL( Name(),
+			 openModes[ mode ].aflags,
+			 PERM_0666 ) ) ) < 0 )
 	{
 	    e->Sys( openModes[ mode ].modeName, Name() );
 	    ClearDeleteOnClose();
@@ -841,6 +1028,29 @@ FileIOAppend::GetSize()
 	}
 	else
 	    s = FileIOBinary::GetSize();
+
+	return s;
+}
+
+offL_t
+FileIOAppend::GetCurrentSize()
+{
+	offL_t s;
+
+	// Get the size of the current file (by path), not of a recently
+	// rename()'d file that still happens to be open on this->fd.
+
+	FileSys *f = FileSys::Create( FST_BINARY );
+	if( f )
+	{
+	    f->Set( path );
+	    s = f->GetSize();
+	    delete f;
+	}
+	else
+	{
+	    s = -1;
+	}
 
 	return s;
 }
@@ -934,6 +1144,12 @@ FileIOAppend::Rename( FileSys *target, Error *e )
 
 	    mode = FOM_READ;
 
+	    if( lockFile( fd, LOCKF_UN ) < 0 )
+	    {
+		e->Sys( "Rename() UNLOCK for copying", Name() );
+		// try to keep going
+	    }
+
 	    Close( e );
 	    Copy( target, FPM_RO, e );
 
@@ -945,6 +1161,12 @@ FileIOAppend::Rename( FileSys *target, Error *e )
 	}
 
 	target->Chmod( FPM_RO, e );
+
+	if( lockFile( fd, LOCKF_UN ) < 0 )
+	{
+	    e->Sys( "Rename() UNLOCK", Name() );
+	    // let this fall info the next e->Test
+	}
 
 	// Need to set mode to read so it doesn't try to chmod the
 	// file in the destructor

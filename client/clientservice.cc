@@ -314,9 +314,36 @@ Client::OutputError( Error *e )
 	    SetError();
 	    GetUi()->HandleError( e );
 	    e->Clear();
+	    ClearSecretKey();
 	    ClearPBuf();
 	}
 }
+
+// Find the number of entries in given directory
+int clientDirectoryEntryCount( StrPtr *dir, Error *e )
+{
+	PathSys *path = PathSys::Create();
+	path->Set( dir );
+	FileSys *d = FileSys::Create( FST_TEXT );
+	d->Set( *path);
+
+	int uaCount = 0;
+
+	if( d->Stat() & FSF_DIRECTORY )
+	{
+	    StrArray *ua = d->ScanDir( e );
+
+	    if( ua )
+	        uaCount = ua->Count();
+
+	    delete ua;
+	}
+
+	delete d;
+
+	return uaCount;
+}
+
 
 // Client Service -- bottom half
 // File support
@@ -573,9 +600,10 @@ clientOpenFile( Client *client, Error *e )
 	    // If we got a size hint, we can use that too
 
 	    ClientProgress *indicator;
-		
-	    if( svrSize && svrSize->Atoi64() > 1024 &&
-	        ( indicator = client->GetUi()->CreateProgress( CPT_RECVFILE ) ) )
+
+	    if( svrSize && ( indicator =
+                  client->GetUi()->CreateProgress( CPT_RECVFILE,
+                                                   svrSize->Atoi64() ) ) )
 	    {
 	        f->progress = new ClientProgressReport( indicator );
 	        f->progress->Description( *clientPath );
@@ -849,12 +877,39 @@ clientMoveFile( Client *client, Error *e )
 	if( e->Test() || !t )
 	    return;
 
+	int targetIsSubdir = 0;
+	if( ( t->Stat() & ( FSF_DIRECTORY ) ) &&
+	    ( clientPath->Contains( *targetPath ) ||
+	      targetPath->Contains( *clientPath ) ) )
+	{
+	    // Either clientPath = A and targetPath = A/A
+	    // or clientPath = A/A and targetPath = A
+
+	    //targetPath is a directory subpath of clientPath
+	    StrArray *ua = t->ScanDir( e );
+
+	    int uaCount = 0;
+
+	    if( ua )
+	        uaCount = ua->Count();
+
+	    delete ua;
+
+	    if( uaCount == 1)
+	        //client file is the only object in target dir
+	        targetIsSubdir = 1;
+	    else if( uaCount > 1 )
+	        e->Set( MsgClient::DirectoryNotEmpty ) << targetPath;
+
+	}
+
 	// Target file exists,  could be a case change,  allow this only if
 	// the server is case sensitive.
 
-	if( ( t->Stat() & ( FSF_SYMLINK|FSF_EXISTS ) ) && !doForce &&
-	    ( client->protocolNocase || clientPath->Compare( *targetPath ) ) )
-	        e->Set( MsgClient::FileExists ) << targetPath;
+	if( !e->Test() && ( t->Stat() & ( FSF_SYMLINK|FSF_EXISTS ) ) &&
+	    ( client->protocolNocase || clientPath->Compare( *targetPath ) ) &&
+	    !doForce && !targetIsSubdir )
+	    e->Set( MsgClient::FileExists ) << targetPath;
 
 	if( !e->Test() )
 	    t->MkDir( e );
@@ -883,6 +938,7 @@ clientDeleteFile( Client *client, Error *e )
 	StrPtr *noclobber = client->GetVar( P4Tag::v_noclobber );
 	StrPtr *clientHandle = client->GetVar( P4Tag::v_handle );
 	StrPtr *rmdir = client->GetVar( P4Tag::v_rmdir );
+	StrPtr *revertmovermdir = client->GetVar( P4Tag::v_revertmovermdir );
 	StrPtr *digest = client->GetVar( P4Tag::v_digest );
 	StrPtr *digestType = client->GetVar( P4Tag::v_digestType );
 
@@ -956,6 +1012,37 @@ clientDeleteFile( Client *client, Error *e )
 	    return;
 	}
 
+	// In the case of reverting a file that was moved to a directory of the
+	// the same name, check first that the directory only contains the file.
+	// If not, return an error that the directory is not empty. A more
+	// descriptive error will be given in clientCheckFile.
+	if( revertmovermdir )
+	{
+	    int uaCount = clientDirectoryEntryCount( revertmovermdir, e );
+	    if( e->Test() )
+	    {
+	        client->OutputError( e );
+	        delete f;
+	        return;
+	    }
+
+	    if( uaCount > 1 )
+	    {
+	        if( clientHandle )
+	        {
+	            LastChance l;
+	            client->handles.Install( clientHandle, &l, e );
+	            l.SetError();
+	        }
+
+	        e->Set( MsgClient::DirectoryNotEmpty ) << revertmovermdir;
+	        client->OutputError( e );
+	        delete f;
+	        return;
+	    }
+
+	}
+
 	f->Unlink( e );
 
 	// If unlink returned an error and the file existed before
@@ -990,9 +1077,9 @@ clientDeleteFile( Client *client, Error *e )
 
 	// ok, now zonk the directory, ignoring errors
 
-	if( rmdir )
+	if( rmdir || revertmovermdir )
 	{
-	    if( *rmdir == "preserveCWD" )
+	    if( rmdir && *rmdir == "preserveCWD" )
 	        f->PreserveCWD();
 	    f->RmDir();
 	}
@@ -1244,6 +1331,49 @@ clientCheckFile( Client *client, Error *e )
 	StrPtr *checkLinks = client->GetVar( P4Tag::v_checkLinks );
 	StrPtr *checkLinksNs = client->GetVar( P4Tag::v_checkLinksN );
 	const int checkLinksN = checkLinksNs ? checkLinksNs->Atoi() : 0;
+
+	StrPtr *revertmovecheck = client->GetVar( P4Tag::v_revertmovecheck );
+	if( revertmovecheck )
+	{
+	    // Reverting a moved file, the original name is now a directory.
+	    // Check that the directory is empty.
+	    int uaCount = clientDirectoryEntryCount( clientPath, e );
+	    if( e->Test() )
+	    {
+	        client->OutputError( e );
+	        return;
+	    }
+
+	    if( uaCount > 0 )
+	    {
+	        // The directory is not empty.  This probably occurs because
+	        // another file besides the moved file was put in the directory.
+	        Error msg;
+	        StrPtr *revertmovedirnotempty = 
+	            client->GetVar( P4Tag::v_revertmovedirnotempty );
+	        if( revertmovedirnotempty ) 
+	        {
+	            // The operation was a preview of a revert, 
+	            // so clientDeleteFile was never called.
+	            // Spit out the directory not empty message so that
+	            // the preview has the same messaging.
+	            msg.Set( MsgClient::DirectoryNotEmpty ) << 
+	                revertmovedirnotempty->Text();
+	            client->GetUi()->Message( &msg );
+	            client->SetError();
+	            msg.Clear();
+	        }
+
+	        msg.Set( MsgClient::CantRevertDirectoryNotEmpty) <<
+	                 revertmovecheck->Text() <<
+	                 clientPath->Text() <<
+	                 clientPath->Text();
+	        client->GetUi()->Message( &msg );
+	        client->SetError();
+
+	        return;
+	    }
+	}
 
 	if( e->Test() && !e->IsFatal() )
 	{
@@ -1599,6 +1729,11 @@ clientActionResolve( Client *client, Error *e )
 	StrPtr *userHelp	= client->GetVar( P4Tag::v_rUserHelp );
 	StrPtr *userPrompt	= client->GetVar( P4Tag::v_rUserPrompt );
 
+	StrPtr *moveReaddIntegConflictIgnored =
+	    client->GetVar( P4Tag::v_rMoveReaddIntegConflictIgnored );
+	StrPtr *moveReaddIntegConflictSkip =
+	    client->GetVar( P4Tag::v_rMoveReaddIntegConflictSkip );
+
 	if ( !e->Test() && !preview && ( !confirm || !decline ) )
 	    e->Set( MsgSupp::NoParm ) << "confirm/decline";
 
@@ -1611,7 +1746,8 @@ clientActionResolve( Client *client, Error *e )
 	Error   mActionType, mActionMerge, mActionTheirs, mActionYours,
 		mOptAuto, mOptHelp, mOptMerge, mOptSkip, mOptTheirs,
 		mOptYours, mPromptMerge, mPromptTheirs,	mPromptYours, 
-		mPromptType, mUserError, mUserHelp, mUserPrompt;
+		mPromptType, mUserError, mUserHelp, mUserPrompt,
+		mMoveReaddIntegConflictIgnored, mMoveReaddIntegConflictSkip;
 
 				mActionType.	UnMarshall2( *actionType );
 	if ( actionMerge )	mActionMerge.	UnMarshall2( *actionMerge );
@@ -1630,6 +1766,14 @@ clientActionResolve( Client *client, Error *e )
 	if ( userError )	mUserError.	UnMarshall2( *userError );
 	if ( userHelp )		mUserHelp.	UnMarshall2( *userHelp );
 	if ( userPrompt )	mUserPrompt.	UnMarshall2( *userPrompt );
+
+	if ( moveReaddIntegConflictIgnored )
+	    mMoveReaddIntegConflictIgnored.UnMarshall2( 
+	        *moveReaddIntegConflictIgnored );
+
+	if ( moveReaddIntegConflictSkip )
+	    mMoveReaddIntegConflictSkip.UnMarshall2( 
+	        *moveReaddIntegConflictSkip );
 
 	// set up ClientResolveA object
 
@@ -1665,6 +1809,14 @@ clientActionResolve( Client *client, Error *e )
 	resolve.SetUsageError (	mUserError );
 	resolve.SetHelp       (	mUserHelp );
 	resolve.SetPrompt     (	mUserPrompt );
+
+	if ( moveReaddIntegConflictIgnored )
+	    resolve.SetMoveReaddIntegConflictIgnored (
+	        mMoveReaddIntegConflictIgnored );
+
+	if ( moveReaddIntegConflictSkip )
+	    resolve.SetMoveReaddIntegConflictSkip(
+	        mMoveReaddIntegConflictSkip );
 
 	// ask ClientUser to do the resolve
 
@@ -2200,7 +2352,8 @@ clientSendFile( Client *client, Error *e )
 
 	ClientProgress *indicator;
 
-	if( ( indicator = client->GetUi()->CreateProgress( CPT_SENDFILE ) ) )
+	if( ( indicator = client->GetUi()->CreateProgress( CPT_SENDFILE,
+	                                                   filesize ) ) )
 	{
 	    progress = new ClientProgressReport( indicator );
 	    progress->Description( *clientPath );
@@ -2931,6 +3084,7 @@ clientHandleError( Client *client, Error *e )
 	    client->SetError();
 
 	client->GetUi()->HandleError( &rcvErr );
+	client->ClearSecretKey();
 	client->ClearPBuf();
 }
 
@@ -2955,6 +3109,12 @@ clientMessage( Client *client, Error *e )
 	    client->SetError();
 
 	client->GetUi()->Message( &rcvErr );
+
+	if( rcvErr.Test() )
+	{
+	    client->ClearSecretKey();
+	    client->ClearPBuf();
+	}
 
 	// MsgDm::DomainSave
 	ErrorId clientUpdate = { ErrorOf( 6, 6370, 1, 0, 2 ), "" };

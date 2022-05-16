@@ -37,6 +37,7 @@ class Enviro {
     public:
 			Enviro();
 			~Enviro();
+			Enviro( const Enviro &rhs );
 
 	// Enties at the top (lower numbers) take precedence over those below
 	enum ItemType { 

@@ -67,6 +67,27 @@ ClientResolveA::Resolve( int preview, Error *e )
 	// there is no CMS_EDIT for an action resolve
 	}
 
+	if ( moveReaddIntegConflictIgnored.GetId( 0 ) )
+	{
+	    err.Clear();
+	    buf.Clear();
+	    err = prompt;
+	    moveReaddIntegConflictIgnored.Fmt( buf, EF_PLAIN );
+	    err << buf;
+	    ui->Message( &err );
+	}
+
+	if ( moveReaddIntegConflictSkip.GetId( 0 ) )
+	{
+	    err.Clear();
+	    buf.Clear();
+	    err = prompt;
+	    moveReaddIntegConflictSkip.Fmt( buf, EF_PLAIN );
+	    err << buf;
+	    ui->Message( &err );
+	    return CMS_SKIP;
+	}
+
 	for ( ;; )
 	{
 	    // tell them what sort of resolve it is

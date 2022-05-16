@@ -658,10 +658,10 @@ ErrorId MsgDm::ProtectsOwnerTooWide    = { ErrorOf( ES_DM, 954, E_FAILED, EV_ADM
 ErrorId MsgDm::ProtectsOwnerUnmap      = { ErrorOf( ES_DM, 955, E_FAILED, EV_ADMIN, 0 ), "Can't add exclusionary 'owner' entries." } ;
 
 ErrorId MsgDm::PurgeSnapData           = { ErrorOf( ES_DM, 308, E_INFO, EV_NONE, 4 ), "%depotFile%%depotRev% - copy from %lbrFile% %lbrRev%" } ;
-ErrorId MsgDm::PurgeDeleted            = { ErrorOf( ES_DM, 309, E_INFO, EV_NONE, 6 ), "Deleted [%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ][and added %synInteg% integration ]record(s)." } ;
-ErrorId MsgDm::PurgeCheck              = { ErrorOf( ES_DM, 310, E_INFO, EV_NONE, 6 ), "Would delete [%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ][and add %synInteg% integration ]record(s)." } ;
-ErrorId MsgDm::PurgePurged             = { ErrorOf( ES_DM, 1019, E_INFO, EV_NONE, 6 ), "Purged [%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ][and added %synInteg% integration ]record(s)." } ;
-ErrorId MsgDm::PurgePurgeCheck         = { ErrorOf( ES_DM, 1020, E_INFO, EV_NONE, 6 ), "Would purge [%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ][and add %synInteg% integration ]record(s)." } ;
+ErrorId MsgDm::PurgeDeleted            = { ErrorOf( ES_DM, 309, E_INFO, EV_NONE, 7 ), "Deleted [%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ][%onRevArchive% archived-revision ][and added %synInteg% integration ]record(s)." } ;
+ErrorId MsgDm::PurgeCheck              = { ErrorOf( ES_DM, 310, E_INFO, EV_NONE, 7 ), "Would delete [%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ][%onRevArchive% archived-revision ][and add %synInteg% integration ]record(s)." } ;
+ErrorId MsgDm::PurgePurged             = { ErrorOf( ES_DM, 1019, E_INFO, EV_NONE, 7 ), "Purged [%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ][%onRevArchive% archived-revision ][and added %synInteg% integration ]record(s)." } ;
+ErrorId MsgDm::PurgePurgeCheck         = { ErrorOf( ES_DM, 1020, E_INFO, EV_NONE, 7 ), "Would purge [%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ][%onRevArchive% archived-revision ][and add %synInteg% integration ]record(s)." } ;
 ErrorId MsgDm::PurgeNoRecords          = { ErrorOf( ES_DM, 311, E_INFO, EV_NONE, 0 ), "No records to delete." } ;
 ErrorId MsgDm::PurgeData               = { ErrorOf( ES_DM, 312, E_INFO, EV_NONE, 2 ), "%depotFile%%depotRev% - purged" } ;
 ErrorId MsgDm::PurgeActiveTask         = { ErrorOf( ES_DM, 737, E_FAILED, EV_ILLEGAL, 2 ), "Can't %action% active task stream files - '%depotFile%'" } ;

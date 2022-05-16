@@ -8,6 +8,7 @@
 
 # include <debug.h>
 # include <strbuf.h>
+# include <vararray.h>
 # include <error.h>
 # include <pathsys.h>
 

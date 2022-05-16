@@ -24,6 +24,19 @@
 # include "debug.h"
 # include "netdebug.h"
 
+// Required to scan over interfaces looking for MAC addresses
+# ifdef OS_NT
+#   include <iphlpapi.h>
+# else
+#   include <net/if.h>
+#   include <ifaddrs.h>
+#   ifdef AF_PACKET
+#     include <linux/if_packet.h>
+#   else
+#     include <net/if_dl.h>
+#   endif
+# endif
+
 typedef unsigned int p4_uint32_t;    // don't conflict with any other definitions of uint32_t
 
 // this *should* be defined everywhere that supports IPv6, but just in case ...
@@ -637,6 +650,47 @@ NetUtils::IsIpV6Address( const char *str, bool /* allowPrefix */ )
 }
 
 /*
+ * Simple function to check whether an address is a MAC
+ *
+ * MAC addresses are exactly 6 octets
+ *
+ * If it is, we'll need to sweep over the available interfaces
+ * to find the matching IP (4 or 6) address.
+ */
+bool
+NetUtils::IsMACAddress( const char *str, bool &brackets )
+{
+	int numColons = 0;
+	brackets = (*str == '[');
+
+	if( brackets )
+	    str++;
+
+	for( const char *cp = str; *cp; cp++ )
+	{
+	    switch( *cp )
+	    {
+	    case ':':
+	        numColons++;
+	        break;
+	    case ']':
+	        // allow a right bracket only at the end
+	        // and only if str began with a left bracket
+	        if( !brackets || cp[1] )
+	            return false;
+	        break;
+	    default:
+	        if( !isxdigit( *cp ) )
+	            return false;
+	        break;
+	    }
+	}
+
+	return (numColons == 5);
+}
+
+
+/*
  * Simple function to check whether an IP is loopback, as defined by
  * the IANA as:
  *    IPv4 = 127.0.0.1/8
@@ -767,6 +821,222 @@ NetUtils::GetAddress(
 	    printableAddress.Append(&numbuf);
 	}
 }
+
+
+#ifdef OS_NT
+
+// We can dynamically load iphlpapi.dll to avoid requiring the P4API to be
+// linked with the new dependency on NT platforms.
+
+typedef ULONG (__stdcall *pfunc_GetAdapterAddresses_t)(
+    ULONG Family,
+    ULONG Flags,
+    PVOID Reserved,
+    PIP_ADAPTER_ADDRESSES AdapterAddresses,
+    PULONG SizePointer
+    );
+
+static const TCHAR *IPHLPAPI_DLL = TEXT("iphlpapi.dll");
+
+bool
+NetUtils::FindIPByMAC( const char *mac, StrBuf &ipv4, StrBuf &ipv6 )
+{
+	ipv4.Clear();
+	ipv6.Clear();
+
+	HMODULE dll = LoadLibrary( IPHLPAPI_DLL );
+	pfunc_GetAdapterAddresses_t pGetAdaptersAddresses =
+	    (pfunc_GetAdapterAddresses_t)GetProcAddress( dll, "GetAdaptersAddresses");
+
+	if( !pGetAdaptersAddresses )
+	{
+	    FreeLibrary( dll );
+	    return false;
+	}
+
+	// Set the flags to pass to GetAdaptersAddresses
+	ULONG flags = GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST |
+	              GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_FRIENDLY_NAME;
+
+	// default to unspecified address family (both)
+	ULONG family = AF_UNSPEC;
+
+	PIP_ADAPTER_ADDRESSES adapters = 0;
+	DWORD dwRetVal = 0;
+	ULONG outBufLen = 0;
+	ULONG attemps = 0;
+
+	do {
+	    if( outBufLen )
+	    {
+	        adapters = (IP_ADAPTER_ADDRESSES *)malloc( outBufLen );
+	        if( !adapters )
+	        {
+	            FreeLibrary( dll );
+	            return false; // Failed allocation
+	        }
+	    }
+
+	    dwRetVal = (*pGetAdaptersAddresses)( family, flags, 0, adapters,
+	                                         &outBufLen );
+	    if( dwRetVal == ERROR_BUFFER_OVERFLOW )
+	    {
+	        free( adapters );
+	        adapters = 0;
+	    }
+	    else
+	        break;
+
+	    attemps++;
+
+	} while ((dwRetVal == ERROR_BUFFER_OVERFLOW) && (attemps < 3));
+
+	FreeLibrary( dll );
+
+	if( dwRetVal != NO_ERROR )
+	{
+	    free( adapters );
+	    return false;
+	}
+
+	IP_ADAPTER_ADDRESSES *adapter = adapters;
+	for( ; adapter; adapter = adapter->Next )
+	{
+	    if( adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK )
+	        continue;
+	    if( adapter->PhysicalAddressLength != 6 )
+	        continue;
+
+	    char m[32];
+	    sprintf_s( m, 32, "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
+	            adapter->PhysicalAddress[0],
+	            adapter->PhysicalAddress[1],
+	            adapter->PhysicalAddress[2],
+	            adapter->PhysicalAddress[3],
+	            adapter->PhysicalAddress[4],
+	            adapter->PhysicalAddress[5] );
+
+	    if( strcmp( mac, m ) != 0 )
+	        continue; // not a match
+
+	    PIP_ADAPTER_UNICAST_ADDRESS_LH address =
+	       adapter->FirstUnicastAddress;
+	    for( ; address; address = address->Next )
+	    {
+	        SOCKADDR *pSockAddr = address->Address.lpSockaddr;
+	        switch (pSockAddr->sa_family)
+	        {
+	        case AF_INET:
+	            char str[INET_ADDRSTRLEN];
+	            ::inet_ntop( AF_INET,
+	                         &((sockaddr_in*) pSockAddr)->sin_addr,
+	                         str, INET_ADDRSTRLEN );
+	            ipv4 = str;
+	            break;
+
+	        case AF_INET6:
+	            char str6[INET6_ADDRSTRLEN];
+	            ::inet_ntop( AF_INET6,
+	                         &((sockaddr_in6*) pSockAddr)->sin6_addr,
+	                         str6, INET6_ADDRSTRLEN);
+	            ipv6 = str6;
+	            break;
+	        }
+	    }
+	
+	    free( adapters );
+	    return true;
+	}
+	
+	free( adapters );
+	return false;
+}
+
+# else
+
+bool
+NetUtils::FindIPByMAC( const char *mac, StrBuf &ipv4, StrBuf &ipv6 )
+{
+	struct ifaddrs *ifap, *ifaptr;
+	char *ifname = 0;
+
+	if( getifaddrs(&ifap) != 0 )
+	{
+	    freeifaddrs(ifap);
+	    return false;
+	}
+
+	for( ifaptr = ifap; ifaptr; ifaptr = ifaptr->ifa_next )
+	{
+	    if( ifaptr->ifa_flags & IFF_LOOPBACK )
+	        continue; // skip loopbacks
+
+# ifdef AF_PACKET
+	    if( !( ifaptr->ifa_addr->sa_family == AF_PACKET &&
+	           ((struct sockaddr_ll *)ifaptr->ifa_addr)->sll_halen == 6 ) )
+	        continue; // Not a MAC
+
+	    char m[32];
+	    unsigned char *ptr =
+	        ((struct sockaddr_ll *)ifaptr->ifa_addr)->sll_addr;
+# else
+	    if( !( ifaptr->ifa_addr->sa_family == AF_LINK &&
+	           ((struct sockaddr_dl *)ifaptr->ifa_addr)->sdl_alen == 6 ) )
+	        continue; // Not a MAC
+
+	    char m[32];
+	    unsigned char *ptr = (unsigned char *)
+	        LLADDR((struct sockaddr_dl *)ifaptr->ifa_addr);
+# endif // !AF_PACKET
+
+	    sprintf( m, "%02x:%02x:%02x:%02x:%02x:%02x",
+	             *ptr, *(ptr+1), *(ptr+2), *(ptr+3), *(ptr+4), *(ptr+5));
+
+	    if( strcmp( mac, m ) != 0 )
+	        continue; // not a match
+
+	    ifname = ifaptr->ifa_name;
+	    break;
+	}
+
+	if( !ifname )
+	{
+	    freeifaddrs(ifap);
+	    return false;
+	}
+
+	// start over in case we've already missed the IPs for the interface
+	for( ifaptr = ifap; ifaptr; ifaptr = ifaptr->ifa_next )
+	{
+	    if( strcmp( ifname, ifaptr->ifa_name ) != 0 )
+	        continue; // not a match
+
+	    if( ifaptr->ifa_addr->sa_family == AF_INET )
+	    {
+	        char str[INET_ADDRSTRLEN];
+	        ::inet_ntop( AF_INET,
+	                     &((sockaddr_in *)ifaptr->ifa_addr)->sin_addr,
+	                     str, INET_ADDRSTRLEN);
+	        ipv4 = str;
+	    }
+	    else if( ifaptr->ifa_addr->sa_family == AF_INET6 )
+	    {
+	        char str6[INET6_ADDRSTRLEN];
+	        ::inet_ntop( AF_INET6,
+	                     &((sockaddr_in6 *)ifaptr->ifa_addr)->sin6_addr,
+	                     str6, INET6_ADDRSTRLEN);
+	        ipv6 = str6;
+	    }
+
+	    if( ipv4.Length() && ipv6.Length() )
+	        break;
+	}
+
+	freeifaddrs(ifap);
+	return true;
+}
+
+# endif // !OS_NT
 
 # ifdef OS_NT
 // initialize windows networking

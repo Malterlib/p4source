@@ -75,6 +75,9 @@ public:
     IsIpV6Address(const char *addr, bool allowPrefix = true);
 
     static bool
+    IsMACAddress(const char *addr, bool &brackets);
+
+    static bool
     IsLocalAddress(const char *addr);
 
     // return a printable address
@@ -84,6 +87,9 @@ public:
 	    const sockaddr *addr,
 	    int raf_flags,
 	    StrBuf &printableAddress);
+
+    static bool
+    FindIPByMAC( const char *mac, StrBuf &ipv4, StrBuf &ipv6 );
 
     // currently no-op except on Windows
     static int

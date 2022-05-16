@@ -18,7 +18,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgHelp error code is: 267
+ * Current high value for a MsgHelp error code is: 268
  */
 
 ErrorId MsgHelp::NoHelp = { ErrorOf( ES_HELP, 1, E_FAILED, EV_USAGE, 1 ),
@@ -814,14 +814,6 @@ R"(
 	from regular checkpoints does, and such restores take longer to
 	complete.
 
-    p4d -n
-       Starts the server in maintenance mode. Maintenance mode does not
-       police the user and file count restrictions listed in the license
-       file. When in maintenance mode a server is only able to perform
-       those commands that do not require a client. In addition, if the
-       server is in maintenance mode and it is a member of a DCS cluster
-       it will not launch a p4zk process.
-
     p4d -xf bugno
 	Updates the server data to fix problems due to the
 	specified bug number.  Valid values of bugno are as follows:
@@ -976,6 +968,8 @@ R"(
 	                           4: Retain credit for copied-over edits
 	                           8: Force convergent merge of all edits
 	                          16: Legacy (pre-2011.1) resolve behavior
+	                          32: Readded files not integrated with moved
+	                              files
 	dm.integ.undo            0 Enable re-integration of undone changes
 	dm.isalive             50K Rows scanned before client connection check
 	dm.maxkey               1K Longest identifier (client, label, etc)
@@ -1111,6 +1105,8 @@ R"(
     P4NAME          Unique server name               P4 Command Reference
     P4PORT          Port on which server listens     p4d -h
     P4ROOT          Server root directory            p4d -h
+    P4PROOT         Proxy Server metadata directory  p4p -h
+    P4PCACHE        Proxy Server archives directory  p4p -h
     P4SSLDIR        Server SSL credentials directory P4 Command Reference
     P4TARGET        Target server for proxy/replica  P4 Command Reference
     P4TICKETS       Location of tickets file         P4 Command Reference
@@ -1442,6 +1438,7 @@ R"(
 	p4 clients              domains *       see (6)
 	p4 changes              changes         -m maxChanges
 	p4 changes files        revisions       see (2)
+	p4 copy                 files **        see (1)
 	p4 delete               files * **      see (1)
 	p4 describe             files *         see (3)
 	p4 diff                 files *         see (1)
@@ -1465,13 +1462,12 @@ R"(
 	p4 labelsync            files           see (4)
 	p4 list                 files           see (1)
 	p4 lock                 files *         see (1)
-	p4 obliterate           revisions *     see (2)
+	p4 merge                files **        see (1)
 	p4 opened               files *         see (1)
 	p4 print                files           see (1)
 	p4 push                 revisions       see (2)
 	p4 reconcile            files **        see (1)
 	p4 reload               files *         see (5)
-	p4 revert               files *         see (1)
 	p4 reopen               files *         see (1)
 	p4 resolve              files *         see (1)
 	p4 resolved             revisions *     see (2)
@@ -5381,7 +5377,7 @@ R"(
 
 	The format is:  depot-file#revision - client-file
 
-	For mixed environments that have both classic and graph depots, the
+	For hybrid workspaces that have both classic and graph depots, the
 	--graph-only flag limits the report to graph depots only. Without
 	it 'p4 have' will report on both graph and classic depots.
 
@@ -6535,14 +6531,43 @@ R"more(
     For Perforce legal and license information see:
 	http://www.perforce.com/purchase/license-agreements
 
+    P4/P4API License
+    -----------------------
+    Copyright (c) 1995-)more" ID_Y R"more(, Perforce Software, Inc.
+    All rights reserved.
+ 
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are met:
+
+        Redistributions of source code must retain the above copyright notice,
+        this list of conditions and the following disclaimer.
+
+        Redistributions in binary form must reproduce the above copyright
+        notice, this list of conditions and the following disclaimer in the
+        documentation and/or other materials provided with the distribution.
+ 
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+    AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+    ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+    LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+    CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+    SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+    INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+    CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+    ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+
+
     OpenSSL:
+    -----------------------
 	This product includes cryptographic software written by Eric Young
 	(eay@cryptsoft.com).
 	This product includes software written by Tim Hudson
 	(tjh@cryptsoft.com).
 
     OpenSSL License
-    ---------------
+    -----------------------
 
      * ====================================================================
      * Copyright (c) 1998-2011 The OpenSSL Project.  All rights reserved.
@@ -6657,7 +6682,8 @@ R"more(
      * or derivative of this code cannot be changed.  i.e. this code cannot
      * simply be copied and put under another distribution licence
      * [including the GNU Public Licence.]
-     *
+     *)more"
+R"more(
 
     OpenLDAP:
     -----------------------
@@ -7598,6 +7624,7 @@ R"(
     p4 monitor clear [id | all]
     p4 monitor pause [id]
     p4 monitor resume [id]
+    p4 monitor realtime [ -F -T ]
 
 	Monitor displays running p4 processes. Monitor tracks the Perforce
 	processes using a dedicated table. This table is constantly updated,
@@ -7676,6 +7703,23 @@ R"(
 	'p4 monitor resume [id]' marks the specified command for
 	resuming. This command requires that the user be an operator or have
 	'super' access.
+
+	'p4 monitor realtime [ -F -T ]' outputs realtime performance counters
+	when enabled by setting the 'rt.monitorfile' configurable. This command
+	requires that the user be an operator or have 'super' access.
+	See 'p4 help realtime' for realtime performance counter details.
+
+	    The -F flag lists only performance counters satisfying the filter
+	    expression. This filter syntax is similar to the one used for
+	    'jobs -e jobview' and is used to evaluate the contents of the
+	    fields in the preceding list. Filtering is case-sensitive.
+
+	        Example: -F "name=rtv.svr.sessions*"
+
+	    The -T fields flag returns only the specified fields. The field
+	    names can be specified using a comma- or space-delimited list.
+
+	        Example: -T "name,value"
 )"
 };
 
@@ -7740,7 +7784,8 @@ ErrorId MsgHelp::HelpObliterate = { ErrorOf( ES_HELP, 64, E_INFO, EV_NONE, 0 ),
 R"(
     obliterate -- Remove files and their history from the depot
 
-    p4 obliterate [-y -A -b -a -h -p] [-r alg] file[revRange] ...
+    p4 obliterate [-y -A -b -a -h -T] [-r alg]
+	    [-p | --purged-only] [ -q ] file[revRange] ...
 
 	Obliterate permanently removes files and their history from the server.
 	(See 'p4 delete' for the non-destructive way to delete a file.)
@@ -7769,11 +7814,8 @@ R"(
 	This flag is useful for removing old branches while keeping files
 	of interest (files that were modified).
 
-	The '-a' flag skips the archive search and removal phase.  This
-	phase of obliterate can take a very long time for sites with big
-	archive maps (db.archmap).  However, file content is not removed;
-	if the file was a branch, then it's most likely that the archival
-	search is not necessary.  This option is safe to use with the '-b'
+	The '-a' flag skips the archive search and removal phase. File
+	content is not removed. This option is safe to use with the '-b'
 	option.
 
 	The '-h' flag instructs obliterate not to search db.have for all
@@ -7800,6 +7842,17 @@ R"(
 	forces the use of a particular algorithm. When 'alg' is set to 0,
 	then the original algorithm will be used. When alg is set to 1, then
 	the new algorithm will be used.
+
+	The '-T' flag is required for reporting and obliterating task stream
+	paths.
+
+	The '--purged-only' flag only searches for and removes previously
+	purged records created by an earlier call to 'p4 obliterate -p -y'.
+	It ignores the '-b', '-h' flags and enables '-a'. It removes all
+	the associated meta-data (integration, client and  work records).
+
+	The '-q' flag supresses the output messages concerning purged or
+	deleted revision records or deleted archives.
 
 	When a revision has been archived, its action is changed to archive.
 	By default, obliterate will not process a revision which has been
@@ -8441,6 +8494,59 @@ R"(
 
 	The -t flag is required with the -k flag to specify the ssh key type.
 
+)"
+};
+
+ErrorId MsgHelp::HelpRealtime = { ErrorOf( ES_HELP, 268, E_INFO, EV_NONE, 0 ),
+R"(
+	Perforce server realtime performance counters
+
+	Various server-wide performance counters are maintained in file-backed
+	shared memory. This is enabled when the 'rt.monitorfile' configurable
+	is set, specifying the file that backs the shared memory (for example,
+	rt.monitorfile=monfile.mem). The server must be restarted before
+	changes will take effect.
+
+	The performance counters can be read:
+	  - by external tools using the P4API's MonItems class
+	  - with 'p4d -r P4ROOT --show-realtime'
+	  - with 'p4 monitor realtime'.
+	
+	The current realtime performance counters are:
+	
+	    rtv.db.ckp.active       - Indicates if a checkpoint is in progress.
+	
+	    rtv.db.ckp.records      - Records read into current checkpoint.
+	
+	    rtv.db.io.records       - Running count of database IO operations:
+	                              reads, writes and deletes. This counter
+	                              may affect performance. To enable, set
+	                              the 'db.rt.io' configurable to 1.
+	
+	    rtv.db.lockwait         - Commands waiting for locks. Includes
+	                              high mark of most commands waiting for
+	                              locks at any one time.
+	
+	    rtv.rpl.behind.bytes    - Replication lag represented as bytes of
+	                              journal that the upstream server has yet
+	                              to send. This counter is enabled when the
+	                              'rpl.track.behind' configurable is set to
+	                              1 or greater.
+	                              The 'rpl.track.behind.interval'
+	                              configurable can be used to tune the
+	                              frequency of updates during 'p4 pull'.
+	
+	    rtv.rpl.behind.journals - Replication lag represented as rotated
+	                              journals that the upstream server has yet
+	                              to send.
+	                              See 'rtv.rpl.behind.bytes' for related
+	                              configurables.
+	
+	    rtv.svr.sessions.active - Current connections from clients.
+	                              Includes a high mark of most concurrent
+	                              connections at any one time.
+	
+	    rtv.svr.sessions.total  - Running count of client connections.
 )"
 };
 
@@ -9358,7 +9464,7 @@ R"(
 
 ErrorId MsgHelp::HelpSubmit = { ErrorOf( ES_HELP, 77, E_INFO, EV_NONE, 0 ),
 R"(
-    submit -- Submit open files to the depot
+    submit -- Submit open files and/or open stream spec to the depot
 
     p4 submit [-r -s -f option [-b | --noretransfer 0|1]]
     p4 submit [-r -s -f option -b] file
@@ -9369,8 +9475,8 @@ R"(
     p4 submit -i [-r -s -f option -b]
               --parallel=threads=N[,batch=N][,min=N]
 
-	'p4 submit' commits a pending changelist and its files (or an open
-	stream spec) to the depot.
+	'p4 submit' commits a pending changelist and the files it contains to
+	the depot, and/or submit an open stream spec.
 
 	By default, 'p4 submit' attempts to submit all files in the 'default'
 	changelist.  Submit displays a dialog where you enter a description
@@ -10649,12 +10755,16 @@ ErrorId MsgHelp::HelpVerify = { ErrorOf( ES_HELP, 85, E_INFO, EV_NONE, 0 ),
 R"(
     verify -- Verify that the server archives are intact
 
-    p4 verify [-u | -v | -z] [-m max -q -s -X -b N] file[revRange] ...
-    p4 verify -t [-U | -A] [-z -m max -q -s -X -b N] file[revRange] ...
-    p4 verify -S [-v | -t] [-m max -q -X -b N] file ...
-    p4 verify -U [-u | -v | -z] [-m max -q -s -X -b N] file ...
-    p4 verify -A [-u | -v | -z] [-m max -q -s -X -b N] file[revRange] ...
-    p4 verify -Z [ -q ] file ...
+    p4 verify [-u | -v ] [-m max -q -s -z -X -b N] file[revRange]
+    p4 verify [-t [ -r ] ] [ --only BAD|MISSING ] [-U | -A]
+                [-z -m max -q -s -X -b N] file[revRange]
+    p4 verify -S [-v | -t [ -r ] [ --only BAD|MISSING ] ]
+                [-m max -q -X -b N] file
+    p4 verify -U [-u | -v | -z] [-m max -q -s -X -b N] file
+    p4 verify -A [-u | -v | -z] [-m max -q -s -X -b N] file[revRange]
+    p4 verify -Z [ -q ] file
+    p4 verify -R [-m max -q -s -X -b N] [ -v | --only BAD|MISSING ]
+                file[revRange]
 
 	For each revision of the specified files, 'p4 verify' reports
 	revision-specific information and an MD5 digest of the revision's
@@ -10671,8 +10781,21 @@ R"(
 	for a limited number of revisions in each 'p4 verify' invocation.
 
 	The -t flag, for use only with a replica server, causes 'p4 verify'
-	to schedule transfer of the content of any damaged revision. The '-t'
-	option cannot be used with the '-v' or '-u' options.
+	to schedule transfer of the content of any damaged or missing
+	revision. The '-t' option cannot be used with the '-v', '-Z'  or '-u'
+	options.
+
+	The -r flag is only used with the '-t' option. When the '-r'
+	option is specified, then revisions of the text type (contained
+	within an RCS file) are not transferred.
+
+	The --only filter flag, where filter can be either 'BAD' or 'MISSING'
+	selects which type of error is of interest. By selecting
+	the 'MISSING' filter, only missing revisions will be reported
+	and checksum calculations will be avoided. The '--only' flag can
+	be combined with the '-t' flag to restrict the revisions
+	to be transferred. The '--only' option cannot be used
+	with the '-v', '-Z' or '-u' options.
 
 	The -u flag computes and saves the digest only for revisions that
 	have no saved digest.
@@ -10734,6 +10857,10 @@ R"(
 
 	The -A flag verifies files in the archive depot (see
 	'p4 help archive').
+	
+	The -R flag provides a repair mode to help with disaster recovery.
+	If an archive file is missing, this mode will check if an identical
+	file is shelved, the matching archive is then copied.
 
 	NOTE: Task stream files require special handling when using the
 	verify command. You must pay attention to whether you are running
@@ -10749,6 +10876,9 @@ R"(
 
 	'p4 verify' requires that the user be an operator or have 'admin'
 	 access, which is granted by 'p4 protect'.
+
+	See 'p4 help-graph verify' for information on using this command with
+	graph depots.
 )"
 };
 
@@ -11446,6 +11576,7 @@ R"(
 	                           3: extra lockless operation
 	db.peeking.usemaxlock    0 When peeking, obey maxlocktime setting.
 	db.replication        none Replica metadata access mode
+	db.rt.io                 0 Database IO tracked by rt.monitorfile
 	dbjournal.bufsize      16K Journal/checkpoint read/write size
 	dbopen.nofsync           0 Disable fsync of db files
 	defaultChangeType     none Default for new change: public/restricted
@@ -11498,9 +11629,11 @@ R"(
 	lbr.stat.interval        0 Proxy file status interval (see 'p4p -h')
 	lbr.storage.delay    3600s Required age for storage record deletes
 	lbr.storage.allowsymlink 0 Allows symlinks in orphan storage scanner
-	lbr.storage.skipkeyed    0 Ignores keyword revisions during upgrade
+	lbr.storage.skipkeyed    2 Ignores keyword revisions during upgrade
+	                           If set to 0 then a digest is created for
+	                           all keyword revisions
 	                           If set to 1 then no digest is created for
-	                           keyword revisions and a warnng message is
+	                           keyword revisions and a warning message is
 	                           logged
 	                           If set to 2 then no digest is created for
 	                           keyword revisions and no message is logged
@@ -11578,10 +11711,17 @@ R"(
 	rpl.labels.global        0 Label default for distributed installations
 	rpl.pull.position        0 Interval in ms for pull position reports
 	rpl.replay.userrp        0 Include db.user.rp data from P4TARGET
-	rpl.submit.nocopy	 0 Disable default submit archive file copy
+	rpl.submit.nocopy        0 Disable default submit archive file copy
+	rpl.track.behind         0 Report journals/total bytes not replicated
+	                           0: No reporting
+	                           1: pull logs at rpl=1 and via rt.monitorfile
+	                           2: pull -l -j logs at rpl=1
+	rpl.track.behind.interval 10000 Max interval in ms for pull lag reports
 	rpl.verify.cache         0 Verify contents in the replica cache
 	rpl.pull.archivedepots   0 Replicate file content for archive depots
-	run.clientexts.allow     1 Allow client-side Extensions to run
+	rt.monitorfile        none Realtime performance counter file
+)"
+R"(	run.clientexts.allow     1 Allow client-side Extensions to run
 	run.unzip.user.allow     0 Should 'p4 unzip' allow '-u'
 	run.users.authorize      0 Should 'p4 users' require authentication
 	security                 0 User/password security level
@@ -12032,8 +12172,9 @@ R"(
 	the digest and size fields and updates the record. This is
 	intended to be used after a storage upgrade has been performed
 	with lbr.storage.skipkeyed set to avoid the delay incurred by
-	calculating the digest during the upgrade. The -q option suppresses
-	the progress messages. This option requires 'super' access.
+	calculating the digest during the upgrade. The -q flag can be
+	supplied with the -U flag and this suppresses the progress
+	messages produced. The -U flag requires 'super' access.
 
 	The -l flag controls a background process that scans the server root
 	looking for orphaned files that are no longer referenced by the server,
@@ -12259,6 +12400,9 @@ R"(
     independent decentralized servers.
 
     See 'p4 help 2fa' for more information about multi factor authentication.
+
+    See 'p4 help realtime' for more information about realtime performance
+    counters.
 )"
 };
 
@@ -13819,6 +13963,7 @@ R"(
 	graph lfs-lock Create a git lfs-lock
 	graph lfs-unlock Remove a git lfs-lock
 	graph lfs-locks List git lfs-locks in repo
+	graph verify   Verify repo integrity
 	have           Display the most recently synced commit
 	lock           Lock an opened file to prevent it from being submitted
 	merge          Merge another branch into current/target branch
@@ -14215,7 +14360,7 @@ R"(
 	Lists the current branch, and the currently-synced commit, for the
 	selected repos in this client workspace.
 
-	For mixed environments that have both classic and graph depots, the
+	For hybrid workspaces that have both classic and graph depots, the
 	--graph-only flag limits the report to graph depots only. Without
 	it 'p4 have' will report on both graph and classic depots.
 )"
@@ -15110,6 +15255,8 @@ R"(
 	    -N minParents   : display commits having at least this many parents
 	    -X maxParents   : display commits having at most this many parents
 	    -p              : display commits following first parent only
+	    -P path         : filters out commits that do not affect any file
+	                      under this path
 	    --oneline       : display one line per commit
 	                    : --oneline=tree : display commit and tree sha1
 	                    : --oneline --no-abbrev : display 40 char sha1

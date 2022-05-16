@@ -156,8 +156,10 @@ class ClientUser {
 	virtual void	Help( const char *const *help );
 
 	virtual FileSys	*File( FileSysType type );
+	virtual ClientProgress *CreateProgress( int, P4INT64 );
 	virtual ClientProgress *CreateProgress( int );
 	virtual int	ProgressIndicator();
+	virtual int	CanParallelProgress() { return 0; }
 
 	virtual void	Finished() {}
 

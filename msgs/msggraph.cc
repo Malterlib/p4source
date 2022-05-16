@@ -30,7 +30,7 @@
 # include <msggraph.h>
 
 ErrorId MsgGraph::CommitDataShort     = { ErrorOf( ES_GRAPH, 1, E_INFO, EV_NONE, 3 ), "commit %sha%\ntree %tree%\n%description%\n" } ;
-ErrorId MsgGraph::UseGraph            = { ErrorOf( ES_GRAPH, 61, E_FAILED, EV_USAGE, 0 ), "Usage: see %'p4 help graph'%" } ;
+ErrorId MsgGraph::UseGraph            = { ErrorOf( ES_GRAPH, 61, E_FAILED, EV_USAGE, 0 ), "Usage: see %'p4 help-graph'%" } ;
 ErrorId MsgGraph::UseCatFile          = { ErrorOf( ES_GRAPH, 2, E_FAILED, EV_USAGE, 0 ), "Usage: %'cat-file [ commit | [ -o localFile ] -n repo blob | -t ] object-sha'%" } ;
 ErrorId MsgGraph::UseChanges          = { ErrorOf( ES_GRAPH, 226, E_FAILED, EV_USAGE, 0 ), "Usage: %'changes [-m max] -n repo commit...'%" } ;
 ErrorId MsgGraph::UseLsTree           = { ErrorOf( ES_GRAPH, 3, E_FAILED, EV_USAGE, 0 ), "Usage: %'ls-tree [ -r [--name-only] ]  treeish-sha'%\n%'       ls-tree [ -r [--name-only] ] -n //repo/name [commit|reference]'%" } ;
@@ -44,7 +44,7 @@ ErrorId MsgGraph::FollowDeletedWildcard = { ErrorOf( ES_GRAPH, 317, E_FAILED, EV
 ErrorId MsgGraph::UseFiles            = { ErrorOf( ES_GRAPH, 224, E_FAILED, EV_USAGE, 0 ), "Usage: %'files [-m max] filespec'%" } ;
 ErrorId MsgGraph::UseFstat            = { ErrorOf( ES_GRAPH, 262, E_FAILED, EV_USAGE, 0 ), "Usage: %'fstat [ -m max ] file...'%" } ;
 ErrorId MsgGraph::UseLock             = { ErrorOf( ES_GRAPH, 246, E_FAILED, EV_USAGE, 0 ), "Usage: %'lock [-c change] file...'%" } ;
-ErrorId MsgGraph::UseLog              = { ErrorOf( ES_GRAPH, 6, E_FAILED, EV_USAGE, 0 ), "Usage: %'log -n repo [ -u user ] [ -A date ] [ -B date ] [ -p ] [ -N N ] [ -X N ] [ --oneline[=tree] [--no-abbrev] ] [ -a | -m N ] [ commit... ]'%" } ;
+ErrorId MsgGraph::UseLog              = { ErrorOf( ES_GRAPH, 6, E_FAILED, EV_USAGE, 0 ), "Usage: %'log -n repo [ -u user ] [ -A date ] [ -B date ] [ -p ] [ -P path ] [ -N N ] [ -X N ] [ --oneline[=tree] [--no-abbrev] ] [ -a | -m N ] [ commit... ]'%" } ;
 ErrorId MsgGraph::UseShowRef          = { ErrorOf( ES_GRAPH, 58, E_FAILED, EV_USAGE, 0 ), "Usage: %'show-ref [ -a -n repo -u user -t type -m N -e|-E filter]'%" } ;
 ErrorId MsgGraph::UseMerge            = { ErrorOf( ES_GRAPH, 7, E_FAILED, EV_USAGE, 0 ), "Usage: %'merge [ -n ] [ --ff-only ] [ --no-ff | --squash ] [ -d description ]  other-branch'%" } ;
 ErrorId MsgGraph::UseMerge2           = { ErrorOf( ES_GRAPH, 330, E_FAILED, EV_USAGE, 0 ), "Usage: %'merge [ -n ] [ --ff-only ] [ --no-ff | --squash ] [ -d description ] --repo repo --target target-branch other-branch'%" } ;

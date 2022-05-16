@@ -408,6 +408,14 @@ class MsgSupp {
 	static ErrorId InvalidFormatSigFile;
 	static ErrorId ExtSignatureFailure;
 	static ErrorId ExtensionPackingSuccess;
+	static ErrorId OptionOnly;
+	static ErrorId OptionShowRealtime;
+	static ErrorId RenameTempFailed;
+	static ErrorId RenameMkdirFailed;
+	static ErrorId RenameRmdirFailed;
+	static ErrorId RenameDirSearchFailed;
+	static ErrorId RenameDirNotEmpty;
+	static ErrorId OptionCleanPurge;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

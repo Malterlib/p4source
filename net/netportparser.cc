@@ -730,6 +730,41 @@ NetPortParser::Parse()
 	    mHostPort.Set( str );
 	}
 
+	bool brackets = 0;
+	if( NetUtils::IsMACAddress(mHost.Text(), brackets ) )
+	{
+	    const char	*bp = mHost.Text();
+	    const p4size_t l = mHost.Length();
+	    StrBuf mac;
+	    mac.Set( bp + (brackets ? 1 : 0), l - (brackets ? 2 : 0) );
+
+	    // This is MAC address, so lets see if we can match it to an interface
+	    StrBuf ipv4, ipv6;
+	    if( NetUtils::FindIPByMAC( mac.Text(), ipv4, ipv6 ) )
+	    {
+	        // We found the adapter associated with the MAC
+	        // Do we have both IPs? Use IPv4 unless hinted by prefix
+	        if( ipv4.Length() && ipv6.Length() )
+	        {
+	            switch( pfx->mType )
+	            {
+	            case PT_SSL6:
+	            case PT_SSL64:
+	            case PT_TCP6:
+	            case PT_TCP64:
+	                mHost = ipv6;
+	                break;
+	            default:
+	                mHost = ipv4;
+	            }
+	        }
+	        else if( ipv6.Length() )
+	            mHost = ipv6;
+	        else if( ipv4.Length() )
+	            mHost = ipv4;
+	    }
+	}
+
 	if( NetUtils::IsIpV6Address(mHost.Text()) )
 	{
 	    const char	*bp = mHost.Text();

@@ -119,6 +119,9 @@ class MsgClient {
 	static ErrorId GotoUrl;
 	static ErrorId PrivatekeyNotSecure;
 
+	static ErrorId DirectoryNotEmpty;
+	static ErrorId CantRevertDirectoryNotEmpty;
+
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 
 	// still sending these.

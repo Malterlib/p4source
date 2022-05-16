@@ -54,6 +54,7 @@
 # include "netaddrinfo.h"
 # include <errorlog.h>
 # include <debug.h>
+# include <vararray.h>
 # include <bitarray.h>
 # include <tunable.h>
 # include <error.h>
@@ -113,6 +114,13 @@ static void
 DynDestroyFunction(struct CRYPTO_dynlock_value *l, const char *file, int line);
 
 }
+
+// OPENSSL_free was exposed in OpenSSL 1.1.0 for public use.
+// In earlier versions it's marked as library internal.
+# ifdef OPENSSL_free
+# undef OPENSSL_free
+# endif
+# define OPENSSL_free free
 
 # endif // !OpenSSL 1.1
 
@@ -349,6 +357,22 @@ NetSslTransport::CreateAndInitializeSslContext( const char *conntypename )
     int	tlsmin = p4tunable.Get( P4TUNE_SSL_TLS_VERSION_MIN );
     int	tlsmax = p4tunable.Get( P4TUNE_SSL_TLS_VERSION_MAX );
 
+    if( !strcmp( conntypename, "Client" ) )
+    {
+	/*
+	 * Clients have a second min/max
+	 * Setting ssl.tls.version.min/max overrides the client
+	 * default, unless that is also set
+	 */
+	if( p4tunable.IsSet( P4TUNE_SSL_CLIENT_TLS_VERSION_MIN ) ||
+	    !p4tunable.IsSet( P4TUNE_SSL_TLS_VERSION_MIN ) )
+	    tlsmin = p4tunable.Get( P4TUNE_SSL_CLIENT_TLS_VERSION_MIN );
+
+	if( p4tunable.IsSet( P4TUNE_SSL_CLIENT_TLS_VERSION_MAX ) ||
+	    !p4tunable.IsSet( P4TUNE_SSL_TLS_VERSION_MAX ) )
+	    tlsmax = p4tunable.Get( P4TUNE_SSL_CLIENT_TLS_VERSION_MAX );
+    }
+
     struct TlsVersion {
 	int		value;		// tunable value
 	int		proto;		// OpenSSL protocol version value
@@ -556,6 +580,9 @@ NetSslTransport::SslServerInit(StrPtr *hostname, Error *e)
 	if( sServerCtx )
 	    return;
 
+	X509 *chainCert = 0;
+	int i = 0;
+
 # ifdef OS_NT
 	/*
 	 * Windows multi-threaded so must synchronize
@@ -649,6 +676,16 @@ NetSslTransport::SslServerInit(StrPtr *hostname, Error *e)
 	    SSLLOGFUNCTION(
 		"NetSslTransport::SslServerInit SSL_CTX_use_certificate" );
 	    credentials.SetOwnCert(false);
+
+	    /*
+	     * If we have a chain, add those certs to the context
+	     */
+	    while( ( chainCert = credentials.GetChain( i++ ) ) )
+	    {
+	        SSL_CTX_add_extra_chain_cert( sServerCtx, chainCert );
+	        SSLLOGFUNCTION(
+	           "NetSslTransport::SslServerInit SSL_CTX_add_extra_chain_cert" );
+	    }
 
 	    /*
 	     * Set context to not verify certificate authentication with CA.
@@ -800,12 +837,12 @@ NetSslTransport::DoHandshake( Error *e )
 				     0 );
 		SSLNULLHANDLER( str, e, "connect X509_get_subject_name", fail );
 		p4debug.printf( "\t subject: %s\n", str );
-		free( str );
+		OPENSSL_free( str );
 		str = X509_NAME_oneline( X509_get_issuer_name( serverCert ), 0,
 				     0 );
 		SSLNULLHANDLER( str, e, "connect X509_get_issuer_name", fail );
 		p4debug.printf( "\t issuer: %s\n", str );
-		free( str );
+		OPENSSL_free( str );
 
 	    }
 	    X509_free( serverCert );
@@ -866,8 +903,7 @@ NetSslTransport::SslHandshake( Error *e )
 	    = p4tunable.Get( P4TUNE_SSL_CLIENT_TIMEOUT ) * 1000;
 	DateTimeHighPrecision dtBeforeSelect, dtAfterSelect;
 	int maxwait = GetMaxWait();
-	if( maxwait && 
-	    ( sslClientTimeoutMs == 0 || maxwait < sslClientTimeoutMs ) )
+	if( maxwait && maxwait > sslClientTimeoutMs )
 	    sslClientTimeoutMs = maxwait;
 
 	/* select timeout */
@@ -938,7 +974,9 @@ NetSslTransport::SslHandshake( Error *e )
 			{
 			    // Timeout code for new client using SSL going against old server.
 			    if(!isAccepted && (counter > sslClientTimeoutMs)) {
-				TRANSPORT_PRINTF( SSLDEBUG_ERROR,"NetSslTransport::SslHandshake failed on client side: %d", errorRet);
+				TRANSPORT_PRINTF( SSLDEBUG_ERROR,
+				    "NetSslTransport::SslHandshake failed on client side: %d (timeout after %dms)",
+				    errorRet, counter);
 				e->Set( MsgRpc::SslConnect) << GetPortParser().String();
 				Close();
 				return false;

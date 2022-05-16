@@ -10,6 +10,10 @@
  * See below for usage.
  */
 
+# ifdef _DEBUG
+# define NEED_SIGNAL
+# endif
+
 # include <stdhdrs.h>
 
 # if defined(OS_NT) && (_MSC_VER >= 1900)
@@ -259,22 +263,23 @@ static int clientLongOpts[] = { Options::Client,
 	                   Options::ScriptMaxMem, Options::ScriptMaxTime,
 	                   Options::NoScript, Options::ScriptLang,
 	                   Options::ScriptLangVersion, Options::ScriptAPIVersion,
+#ifdef _DEBUG
+	                   Options::DebugBreak,
+#endif
 	                   0 };
 
 static const char *clientOptFlags =
-	"?b:c:C:d:eE:F:GRhH:M:p:P:l:L:qQ:r#sIu:v:Vx:z:Z:"; 
+	"?b:c:C:d:eE:F:GRhH:M:p:P:l:L:qQ:r#sI?u:v:Vx:z:Z:"; 
 
 int
 clientMain( int argc, char **argv, int &uidebug, Error *e )
 {
-	int result;
-
-	if( ClientAliases::ProcessAliases( argc, argv, result, e ) )
-	    return result;
-
 	/* Arg processing */
 
 	// Parse up options
+
+	int argcAlias = argc;
+	char **argvAlias = argv;
 
 	Options opts;
 	clientParseOptions( opts, argc, argv, e );
@@ -282,7 +287,22 @@ clientMain( int argc, char **argv, int &uidebug, Error *e )
 	if( e->Test() )
 	    return 1;
 
-	return clientRunCommand( argc, argv, opts, 0, uidebug, e );
+	for( int i = 0; StrPtr *s = opts.GetValue( 'v', i ); i++ )
+	    p4debug.SetLevel( s->Text() );
+
+	int result;
+	Enviro enviro;
+	ClientApi client( &enviro );
+
+	if( clientPrepareEnv( client, opts, enviro ) )
+	    return 1;
+
+	if( ClientAliases::ProcessAliases( argcAlias, argvAlias, argc, argv,
+	                                   opts, enviro, client, result, e ) )
+	    return result;
+
+	return clientRunCommand( argc, argv, opts, 0, enviro, client,
+	                         uidebug, e );
 }
 
 void
@@ -297,6 +317,18 @@ clientParseOptions( Options &opts, int &argc, char **&argv, Error *e )
 {
 	opts.ParseLong( argc, argv, clientOptFlags, clientLongOpts,
 		OPT_ANY, usage, e );
+
+	
+#ifdef _DEBUG
+	if( opts[Options::DebugBreak] )
+	{
+# ifdef OS_NT
+	    __debugbreak();
+# else
+	    raise( SIGTRAP );
+# endif
+	}
+#endif
 }
 
 void
@@ -334,7 +366,9 @@ clientPrepareEnv( ClientApi &client, Options &opts, Enviro &enviro )
 	// Locale setting
 
 	// Early setting of cwd to find right P4CONFIG file...
-	if( ( s = opts[ 'd' ] ) ) client.SetCwd( s );
+	if( ( s = opts[ 'd' ] ) )
+	    client.SetCwd( s );
+
 	for ( int i = 0 ; envList.GetVar( i, var, val ) ; i++ )
 	    client.GetEnviro()->Update( var.Text(), val.Text() );
 
@@ -342,6 +376,7 @@ clientPrepareEnv( ClientApi &client, Options &opts, Enviro &enviro )
 	    enviro.Update( var.Text(), val.Text() );
 
 	enviro.Config( client.GetCwd() );
+
 	for ( int i = 0 ; envList.GetVar( i, var, val ) ; i++ )
 	    enviro.Update( var.Text(), val.Text() );
 
@@ -394,6 +429,7 @@ clientPrepareEnv( ClientApi &client, Options &opts, Enviro &enviro )
 			return 1;
 		    }
 		}
+
 		client.SetTrans( cs, ws, cs, cs );
 
 		for ( int i = 0 ; envList.GetVar( i, var, val ) ; i++ )
@@ -409,6 +445,8 @@ clientRunCommand(
 	char **argv,
 	Options &opts,
 	ClientUser *callerUI,
+	Enviro &enviro,
+	ClientApi &client,
 	int &uidebug,
 	Error *e )
 {
@@ -435,9 +473,6 @@ clientRunCommand(
 	}
 
 	// Debugging 
-
-	for( int i = 0; ( s = opts.GetValue( 'v', i ) ); i++ )
-	    p4debug.SetLevel( s->Text() );
 
 	if( opts[ 's' ] || opts[ 'e' ] )
 	    ++uidebug;
@@ -511,11 +546,6 @@ clientRunCommand(
 	        return clientSignPackage( argc -1, argv + 1, opts, e );
 	}
 # endif // HAS_CPP11
-
-	ClientApi client;
-	Enviro enviro;
-	if( clientPrepareEnv( client, opts, enviro ) )
-	    return 1;
 
 	// Get command line overrides of user, client, cwd, port
 	
@@ -712,6 +742,8 @@ clientRunCommand(
 	    ui = new ClientUserRuby( client.GetAPI() );
 	else if( ( s = opts[ 'M' ] ) && ( *s == "p" ) )
 	    ui = new ClientUserPhp( client.GetAPI() );
+	else if( ( s = opts[ 'I' ] ) && *s == "debug" )
+	    ui = new ClientUserDebugProgress( 1, client.GetAPI() );
 	else if( opts[ 'I' ] )
 	    ui = new ClientUserProgress( 1, client.GetAPI() );
 	else if( enviro.Get( "P4COLORS" ) && strlen(enviro.Get( "P4COLORS" )) )

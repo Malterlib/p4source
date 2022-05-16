@@ -17,3 +17,5 @@ ObjectDefines sqlite3.c : SQLITE_ENABLE_JSON1 ;
 
 # -Os: https://www.sqlite.org/footprint.html
 ObjectCcFlags sqlite3.c : -Os ;
+
+P4Main sqlite3 : shell.c sqlite3.c ;

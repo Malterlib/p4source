@@ -18,7 +18,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgClient error code is: 92
+ * Current high value for a MsgClient error code is: 94
  */
 
 # include <error.h>
@@ -121,6 +121,9 @@ ErrorId MsgClient::DevErr              = { ErrorOf( ES_CLIENT, 89, E_FATAL, EV_C
 ErrorId MsgClient::InvalidUrl          = { ErrorOf( ES_CLIENT, 90, E_FAILED, EV_CLIENT, 0 ), "Can't navigate to URL: protocol must either be http or https!" };
 ErrorId MsgClient::GotoUrl             = { ErrorOf( ES_CLIENT, 91, E_INFO, EV_CLIENT, 1 ), "Navigate to URL: %url%" };
 ErrorId MsgClient::PrivatekeyNotSecure = { ErrorOf( ES_CLIENT, 92, E_FAILED, EV_CLIENT, 1 ), "Directory with private key and certificate '%keydir%' is not secure." };
+
+ErrorId MsgClient::DirectoryNotEmpty   = { ErrorOf( ES_CLIENT, 93, E_FAILED, EV_CLIENT, 1 ), "Directory %directory% is not empty." };
+ErrorId MsgClient::CantRevertDirectoryNotEmpty = { ErrorOf( ES_CLIENT, 94, E_FAILED, EV_CLIENT, 3 ), "Can't revert moved file %file%\nsince the original file %directory%\nis now a directory which contains more than just the moved file.\nRemove all files from %directory% and try again." };
 
 // ErrorId graveyard: retired/deprecated ErrorIds.
 

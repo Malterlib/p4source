@@ -53,15 +53,19 @@ class ErrorLog {
 	                    REPORT_NO_FLAGS = 0,
 	                    REPORT_TAGGED   = 1,
 	                    REPORT_HOOKED   = 2,
-
-	                    REPORT_ALL      = 0x3
+	                    REPORT_STDIO    = 4,
+			    
+	                    REPORT_ALL      = 0x3,
+	                    REPORT_ABORT    = 0x7
 	                } ;
 
 	void		Report( const Error *e ){ Report( e, REPORT_ALL ); }
+	void		ReportAbort( const Error *e ){ Report( e, REPORT_ABORT ); }
 	void		ReportNoTag( const Error *e ){ Report( e, REPORT_HOOKED ); }
 	void		ReportNoHook( const Error *e ){ Report( e, REPORT_TAGGED ); }
 	void		Report( const Error *e, int flags );
-	void		LogWrite( const StrPtr & );
+	void		LogWrite( const StrPtr &, int stdio = 0 );
+	void		StdioWrite( const StrPtr &, int err = 1 );
 
 	// Utility methods
 

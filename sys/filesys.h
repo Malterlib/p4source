@@ -52,6 +52,7 @@
  *
  *	FileSys::GetFd() - return underlying FD_TYPE fd, FST_BINARY only
  *	FileSys::GetSize() - return file size, FST_BINARY,TEXT,ATEXT only
+ *	FileSys::GetCurrentSize() - size of current (not rename()'d) ATEXT file
  *	FileSys::GetOwner() - return the UID of the file owner
  *	FileSys::GetDiskSpace() - fill in data about filesystem space usage.
  *	FileSys::Seek() - seek to offset, FST_BINARY,TEXT,ATEXT only
@@ -382,6 +383,7 @@ class FileSys {
 	virtual FD_PTR	GetFd();
 	virtual int     GetOwner();
 	virtual offL_t	GetSize();
+	virtual offL_t	GetCurrentSize();
 	virtual void	Seek( offL_t offset, Error * );
 	virtual offL_t	Tell();
 	virtual void    DepotSize( offL_t &len, Error * );

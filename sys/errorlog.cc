@@ -11,6 +11,7 @@
 # define NEED_DBGBREAK
 # define NEED_CRITSEC
 # define NEED_WIN32FIO
+# define NEED_FILE
 
 # include <stdhdrs.h>
 # include <strbuf.h>
@@ -182,6 +183,7 @@ ErrorLog::Report( const Error *e, int reportFlags )
 
 	int tagged = reportFlags & REPORT_TAGGED;
 	int hooked = reportFlags & REPORT_HOOKED;
+	int stdio  = reportFlags & REPORT_STDIO;
 
 	if( !errorTag )
 	    init();
@@ -194,6 +196,8 @@ ErrorLog::Report( const Error *e, int reportFlags )
 	if ( logType == type_syslog )
 	{
 	    SysLog( e, tagged, NULL, buf.Text() );
+	    if( stdio )
+	        StdioWrite( buf );
 	    return;
 	}
 # endif
@@ -207,18 +211,19 @@ ErrorLog::Report( const Error *e, int reportFlags )
 	    out.Extend( ':' );
 	    out.Extend( '\n' );
 	    out.Append( &buf );
-	    LogWrite( out );
+	    LogWrite( out, stdio );
 	}
 	else
-	    LogWrite( buf );
+	    LogWrite( buf, stdio );
 
 	if( hook && hooked )
 	    (*hook)( context, e );
 }
 
 void
-ErrorLog::LogWrite( const StrPtr &s )
+ErrorLog::LogWrite( const StrPtr &s, int stdio )
 {
+	int skipFile = 0;
 # if defined( HAVE_SYSLOG ) || defined( HAVE_EVENT_LOG )
 	if ( logType == type_syslog )
 	{
@@ -226,11 +231,13 @@ ErrorLog::LogWrite( const StrPtr &s )
 	    // see SysLog for details.
 
 	    SysLog( NULL, 0, NULL, s.Text() );
-	    return;
+	    skipFile = 1;
+	    if( !stdio )
+	        return;
 	}
 # endif
 
-	if( errorFsys )
+	if( errorFsys && !skipFile )
 	{
 	    Error tmpe;
 
@@ -290,10 +297,25 @@ ErrorLog::LogWrite( const StrPtr &s )
 		LeaveCriticalSection( critsec );
 	    }
 # endif
-
-	    return;
+	    
+	    if( !stdio )
+	        return;
 	}
 
+	// Output to stderr if logType is stderr or if we're aborting
+	// But not if logType is stdout, just do stdout for now
+	if( logType == type_stdout || logType == type_stderr || stdio )
+	    StdioWrite( s, logType != type_stdout );
+
+	// If stdout is being captured, output to stderr too
+	if( logType == type_stdout && stdio &&
+	    ( !isatty( fileno( stdout ) ) || !isatty( fileno( stderr ) ) ) )
+	    StdioWrite( s, 1 );
+}
+
+void
+ErrorLog::StdioWrite( const StrPtr &s, int err )
+{
 	// Under a Windows Service, stderr is not valid.  The values
 	// returned by GetStdHandle for STD_*_HANDLE are also invalid.
 	// See fdutil.cc for further details of the state of descriptors
@@ -304,60 +326,57 @@ ErrorLog::LogWrite( const StrPtr &s )
 	//   Windows Services must call UnsetLogType().
 	//
 
-	if ( logType == type_stdout || logType == type_stderr )
-	{
 # ifdef OS_NT
-	    HANDLE flog=GetStdHandle(STD_ERROR_HANDLE);
-	    DWORD written;
+	HANDLE flog=GetStdHandle(STD_ERROR_HANDLE);
+	DWORD written;
 
-	    if( logType == type_stdout )
-	        flog = GetStdHandle(STD_OUTPUT_HANDLE);
+	if( !err )
+	    flog = GetStdHandle(STD_OUTPUT_HANDLE);
 
-	    if( flog != INVALID_HANDLE_VALUE2 && flog != 0x0 )
-	    {
-	        // Using the STD_OUTPUT_HANDLE or STD_ERROR_HANDLE
-	        // in the non Windows Service case is essentiall
-	        // output to the ConDrv Console device.  In this
-	        // type of output you can not lock, unlock or flush.
-	        //
-	        ::WriteFile( flog, s.Text(), s.Length(), &written, NULL );
-	    }
+	if( flog != INVALID_HANDLE_VALUE2 && flog != 0x0 )
+	{
+	    // Using the STD_OUTPUT_HANDLE or STD_ERROR_HANDLE
+	    // in the non Windows Service case is essentiall
+	    // output to the ConDrv Console device.  In this
+	    // type of output you can not lock, unlock or flush.
+	    //
+	    ::WriteFile( flog, s.Text(), s.Length(), &written, NULL );
+	}
 # if defined( HAVE_EVENT_LOG )
-	    else
-	    {
-	        // Write to syslog or the event log the original
-	        // message that was to be written to the log.
-	        SysLog( NULL, 0, NULL, s.Text() );
+	else
+	{
+	    // Write to syslog or the event log the original
+	    // message that was to be written to the log.
+	    SysLog( NULL, 0, NULL, s.Text() );
 
-	        // Write to syslog or the event log the error that was
-	        // encountered when attempting to write to the log.
-	        Error tmpe;
-	        StrBuf buf;
-	        tmpe.Fmt( &buf );
-	        SysLog( &tmpe, 1, NULL, buf.Text() );
-	    }
+	    // Write to syslog or the event log the error that was
+	    // encountered when attempting to write to the log.
+	    Error tmpe;
+	    StrBuf buf;
+	    tmpe.Fmt( &buf );
+	    SysLog( &tmpe, 1, NULL, buf.Text() );
+	}
 # endif
 # else // OS_NT
-	    FILE *flog=stderr;
+	FILE *flog=stderr;
 
-	    if( logType == type_stdout )
-	        flog = stdout;
+	if( !err )
+	    flog = stdout;
 
-	    // lock the file exclusive for this append,  some platforms
-	    // don't do append correctly (you know who you are!)
+	// lock the file exclusive for this append,  some platforms
+	// don't do append correctly (you know who you are!)
 
-	    int fd = fileno( flog );
-	    lockFile( fd, LOCKF_EX );
+	int fd = fileno( flog );
+	lockFile( fd, LOCKF_EX );
 
-	    fputs( s.Text(), flog );
+	fputs( s.Text(), flog );
 
-	    /* Flush even if stderr, for NT's buffered stderr. */
+	/* Flush even if stderr, for NT's buffered stderr. */
 
-	    fflush( flog );
+	fflush( flog );
 
-	    lockFile( fd, LOCKF_UN );
-# endif // OS_NT
-	}
+	lockFile( fd, LOCKF_UN );
+# endif // ! OS_NT
 }
 
 /*
@@ -370,7 +389,7 @@ ErrorLog::Abort( const Error *e )
 	if( !e->Test() )
 	    return;
 
-	Report( e );
+	ReportAbort( e );
 
 # ifdef HAVE_DBGBREAK
 	if( IsDebuggerPresent() )

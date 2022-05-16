@@ -32,6 +32,8 @@ int clientRunCommand(
 	char **argv,
 	Options &opts,
 	ClientUser *ui,
+	Enviro &enviro,
+	ClientApi &client,
 	int &uidebug,
 	Error *e );
 
@@ -308,20 +310,26 @@ class ClientAliases
 			ClientAliases(
 	                    int argc,
 	                    char **argv,
+	                    Options *opts,
 	                    Enviro *env,
 	                    HostEnv *hostEnv,
+	                    ClientApi *client,
 	                    Error *e );
 			~ClientAliases();
 
 	static int	ProcessAliases(
+	                    int oargc,
+	                    char **oargv,
 	                    int argc,
 	                    char **argv,
+	                    Options &opts,
+	                    Enviro &env,
+	                    ClientApi &client,
 	                    int &result,
 	                    Error *e );
 
 	void		LoadAliases( Error *e );
 
-	int		HasCharsetError();
 	int		HasAliases();
 	int		HasAliasesDisabled();
 
@@ -354,12 +362,12 @@ class ClientAliases
 	int		wasExpanded;
 	Enviro		*env;
 	HostEnv		*hostEnv;
+	ClientApi	*client;
 	StrBuf		aliasesFilePath;
 	FileSys		*aliasesFile;
 	VarArray	*aliases;
 	VarArray	*commands;
 	StrBufDict	*ioDict;
-	int		hasCharsetError;
 	int		hasAliasesDisabled;
 	int		parsedArgc;
 	char		**parsedArgv;

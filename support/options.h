@@ -399,6 +399,12 @@ class Options
 			SSSourceComments, // --source-comments
 			SSParentView,    // --parentview
 			SwitchStreamUnrelated  , // switch --allow-unrelated
+			Only,            // --only BAD | MISSING
+			ShowRealtime    , // --show-realtime
+			CleanPurge,      // --purged-only
+#ifdef _DEBUG
+			DebugBreak,    // --debugbreak
+#endif
 
 	                UnusedLastOption
 	} ;
