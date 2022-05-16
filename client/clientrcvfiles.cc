@@ -30,7 +30,7 @@
 
 class ThreadedKeepAlive : public KeepAlive {
     public:
-	int		IsAlive() { return !signaler.IsIntr(); }
+	int		IsAlive() { return !(*signaler).IsIntr(); }
 } ;
 
 class ThreadedTransfer : public ClientTransfer, public ClientUser
@@ -206,13 +206,13 @@ ThreadedTransfer::Transfer( ClientApi *client,
 	// over masking, this does mean consistency can not be managed
 	// if signals are disabled.
 
-	const bool sigState = signaler.GetState();
+	const bool sigState = (*signaler).GetState();
 
 	// In change 1695837, signals were disabled here.  For Control-C
 	// consistency handling we need to mask Control-C's but leave
 	// them enabled.
 
-	signaler.Mask();
+	(*signaler).Mask();
 
 	const bool extState = client->ExtensionsEnabled();
 	client->DisableExtensions();
@@ -229,17 +229,17 @@ ThreadedTransfer::Transfer( ClientApi *client,
 	    }
 	    // Throw away the error since it only shows up on ctrl-c:
 	    // "device or resource busy: device or resource busy"
-	    catch( const std::exception& e )
+	    catch( const std::exception &)
 	    {}
 
 	// Return to unmasked signal state.
 
-	signaler.Unmask();
+	(*signaler).Unmask();
 
 	// Restore previous enable/disable signal state.
 
 	if( !sigState )
-	    signaler.Enable();
+	    (*signaler).Enable();
 
 	if( extState )
 	    client->EnableExtensions( e );
