@@ -134,4 +134,7 @@ int SHA256_Init(SHA256_CTX *c);
 int SHA256_Update(SHA256_CTX *c, const void *data, size_t len);
 int SHA256_Final(unsigned char *md, SHA256_CTX *c);
 unsigned char *SHA256(const unsigned char *d, size_t n, unsigned char *md);
+unsigned char * HMAC(const EVP_MD *evp_md, const void *key, int key_len,
+                    const unsigned char *d, size_t n, unsigned char *md,
+                    unsigned int *md_len);
 #endif // HEADER_SSL_H 

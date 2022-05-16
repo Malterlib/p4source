@@ -97,9 +97,12 @@ struct P4Tag {
 	static const char v_attr[];
 	static const char v_authServer[];
 	static const char v_autoLogin[];
+	static const char v_autoTune[];
 	static const char v_baseName[];
 	static const char v_bits[];
+	static const char v_blob[];
 	static const char v_blockCount[];
+	static const char v_branch[];
 	static const char v_broker[];
 	static const char v_archiveFile[];
 	static const char v_caddr[];
@@ -112,6 +115,7 @@ struct P4Tag {
 	static const char v_charset[];
 	static const char v_checkpoint[];
 	static const char v_checkLinks[];
+	static const char v_checkLinksN[];
 	static const char v_clientAddress[];
 	static const char v_clientCase[];
 	static const char v_clientCwd[];
@@ -124,6 +128,12 @@ struct P4Tag {
 	static const char v_cmpfile[];
 	static const char v_code[];
 	static const char v_commit[];
+	static const char v_commitAuthor[];
+	static const char v_commitAuthorEmail[];
+	static const char v_commits[];
+	static const char v_committer[];
+	static const char v_committerEmail[];
+	static const char v_committerDate[];
 	static const char v_compare[];
 	static const char v_confirm[];
 	static const char v_counter[];
@@ -131,6 +141,7 @@ struct P4Tag {
 	static const char v_daddr[];
 	static const char v_data[];
 	static const char v_data2[];		// p4 passwd
+	static const char v_date[];
 	static const char v_dbstat[];
 	static const char v_decline[];
 	static const char v_depotTime[];
@@ -139,6 +150,11 @@ struct P4Tag {
 	static const char v_dhash[];
 	static const char v_diffFlags[];
 	static const char v_digest[];
+	static const char v_digestType[];
+	static const char v_digestTypeMD5[];
+	static const char v_digestTypeGitText[];
+	static const char v_digestTypeGitBinary[];
+	static const char v_digestTypeSHA256[];
 	static const char v_dir[];
 	static const char v_enableStreams[];
 	static const char v_enableGraph[];
@@ -211,15 +227,18 @@ struct P4Tag {
 	static const char v_mergeHow[];
 	static const char v_mergePerms[];
 	static const char v_minClient[];
+	static const char v_mode[];
 	static const char v_monitor[];
+	static const char v_name[];
 	static const char v_newServerId[];
 	static const char v_noBase[];
 	static const char v_nocase[];
 	static const char v_noclobber[];
 	static const char v_noecho[];
 	static const char v_noprompt[];
-	static const char v_op[];
 	static const char v_offset[];
+	static const char v_oid[];
+	static const char v_op[];
 	static const char v_open[];
 	static const char v_os[];
 	static const char v_otherAction[];
@@ -227,6 +246,8 @@ struct P4Tag {
 	static const char v_otherLock[];
 	static const char v_otherOpen[];
 	static const char v_ourLock[];
+	static const char v_packName[];
+	static const char v_parent[];
 	static const char v_password[];
 	static const char v_path[];
 	static const char v_path2[];
@@ -244,6 +265,7 @@ struct P4Tag {
 	static const char v_proxyCertExpires[];
 	static const char v_proxyRoot[];
 	static const char v_proxyVersion[];
+	static const char v_pusher[];
 	static const char v_rActionType[];
 	static const char v_rActionMerge[];
 	static const char v_rActionTheirs[];
@@ -271,6 +293,7 @@ struct P4Tag {
 	static const char v_remoteMap[];
 	static const char v_remoteRange[];
 	static const char v_repo[];
+	static const char v_repoName[];
 	static const char v_reresolvable[];
 	static const char v_resolved[];
 	static const char v_resolveFlag[];
@@ -301,7 +324,9 @@ struct P4Tag {
 	static const char v_serverLicense[];
 	static const char v_serverLicenseIp[];
 	static const char v_serverVersion[];
+	static const char v_sha[];
 	static const char v_showAll[];
+	static const char v_size[];
 	static const char v_specdef[];
 	static const char v_specstring[];
 	static const char v_specFormatted[];
@@ -312,6 +337,7 @@ struct P4Tag {
 	static const char v_stat[];
 	static const char v_status[];
 	static const char v_svrname[];
+	static const char v_symref[];
 	static const char v_tableexcludelist[];
 	static const char v_tag[];
 	static const char v_tagJnl[];
@@ -321,10 +347,12 @@ struct P4Tag {
 	static const char v_toFile[];
 	static const char v_token[];
 	static const char v_token2[];
+	static const char v_total[];
 	static const char v_totalFileCount[];
 	static const char v_totalFileSize[];
 	static const char v_track[];
 	static const char v_trans[];
+	static const char v_tree[];
 	static const char v_truncate[];
 	static const char v_type[];
 	static const char v_type2[];

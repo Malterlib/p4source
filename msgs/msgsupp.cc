@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSupp error code is: 288
+ * Current high value for a MsgSupp error code is: 298
  */
 
 # include <error.h>
@@ -319,8 +319,18 @@ ErrorId MsgSupp::OptionColor              = { ErrorOf( ES_SUPP, 281, E_INFO, EV_
 ErrorId MsgSupp::OptionChangeFiles        = { ErrorOf( ES_SUPP, 282, E_INFO, EV_NONE, 0 ), "%'--show-files'%: specifies to display the individual files." } ;
 ErrorId MsgSupp::OptionDiscardArchives    = { ErrorOf( ES_SUPP, 283, E_INFO, EV_NONE, 0 ), "%'--discard-archives=N'%: specifies to discard any packfiles received more than N days ago. Specifying N=0 discards all packfiles except the one(s) just received by this command." } ;
 ErrorId MsgSupp::OptionLicenseInfo        = { ErrorOf( ES_SUPP, 284, E_INFO, EV_NONE, 0 ), "%'--license-info'%: report license status information." } ;
+ErrorId MsgSupp::OptionRename        = { ErrorOf( ES_SUPP, 290, E_INFO, EV_NONE, 0 ), "%'--rename (-r)'%: rename existing files without changing content." } ;
 
 ErrorId MsgSupp::TooManyLockTrys	  = { ErrorOf( ES_SUPP, 268, E_FATAL, EV_FAULT, 1 ), "Too many trys to get lock %file%." } ;
+ErrorId MsgSupp::OptionRemoteUser         = { ErrorOf( ES_SUPP, 289, E_INFO, EV_NONE, 0 ), "%'--remote-user=name'%: specifies the name of the remote user to connect as. This option, if specificed, overrides the RemoteUser: field, if present, in the remote spec." } ;
+ErrorId MsgSupp::OptionIgnoreCMap         = { ErrorOf( ES_SUPP, 291, E_INFO, EV_NONE, 0 ), "%'--ignore-changeview'%: Ignore the limits imposed by the changview." } ;
+ErrorId MsgSupp::OptionMirror             = { ErrorOf( ES_SUPP, 292, E_INFO, EV_NONE, 0 ), "%'--mirror'%: specifies that this update is for a mirrored repo." } ;
+ErrorId MsgSupp::OptionDaemonSafe         = { ErrorOf( ES_SUPP, 293, E_INFO, EV_NONE, 0 ), "%'--daemonsafe'%: Start server as daemon with stdio closed." } ;
+ErrorId MsgSupp::OptionTrigger            = { ErrorOf( ES_SUPP, 294, E_INFO, EV_NONE, 0 ), "%'--trigger'%: Pull archive content using an external trigger." } ;
+ErrorId MsgSupp::OptionIgnoreHave         = { ErrorOf( ES_SUPP, 295, E_INFO, EV_NONE, 0 ), "%'--ignore-have'%: specifies that the publish option (-p) ignore any have records." } ;
+ErrorId MsgSupp::OptionGraphOnly          = { ErrorOf( ES_SUPP, 296, E_INFO, EV_NONE, 0 ), "%'--graph-only'%: skip any non-graph results." } ;
+ErrorId MsgSupp::OptionMinSize            = { ErrorOf( ES_SUPP, 297, E_INFO, EV_NONE, 0 ), "%'--min-size'%: Pull archive trigger min file size." } ;
+ErrorId MsgSupp::OptionMaxSize            = { ErrorOf( ES_SUPP, 298, E_INFO, EV_NONE, 0 ), "%'--max-size'%: Pull archive trigger max file size." } ;
 
 // ErrorId graveyard'%: retired/deprecated ErrorIds.
 

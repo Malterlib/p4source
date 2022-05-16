@@ -47,9 +47,3 @@ ZFileStream::GetLine( StrBuf *buf, Error *e )
 {
 	return inflater->GetLine( buf, eof, e );
 }
-
-P4INT64
-ZFileStream::GetBytesRead()
-{
-	return inflater->GetBytesRead();
-}

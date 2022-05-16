@@ -160,17 +160,6 @@ nt_wname( StrPtr *fname, int lfn, int *newlen )
 	    }
 	    else
 	    {
-		// Convert user input of / or \ to a drive spec.
-		if( ( fname->Text()[0] == '\\' || fname->Text()[0] == '/' ) &&
-		    ( fname->Text()[1] != '\\' && fname->Text()[1] != '/' ) )
-		{
-		    char curdir[MAX_PATH+1];
-
-		    GetCurrentDirectory( MAX_PATH, curdir );
-		    curdir[2] = '\0';
-		    lfname.Append( curdir );
-		}
-
 		// In the UNC case, fname will have two leading back slashes.
 		// Use an offset to remove one leading slash.
 		// \\?\UNC\\host\share\path -> \\?\UNC\host\share\path

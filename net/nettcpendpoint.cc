@@ -122,6 +122,9 @@ NetTcpEndPoint::SetupSocket( int fd, int ai_family, AddrType type, Error *e )
 	TYPE_SOCKLEN rsz = sizeof( sz );
 	const int MinBufSz = p4tunable.Get( P4TUNE_NET_TCPSIZE );
 
+# ifndef OS_NT
+	if( !p4tunable.Get( P4TUNE_NET_AUTOTUNE ) ) {
+# endif
 # ifdef SO_SNDBUF
 	// never reduce the buffer size, so don't set it if we can't get the old value
 	if( !getsockopt( fd, SOL_SOCKET, SO_SNDBUF, reinterpret_cast<SOCKOPT_T *>(&sz), &rsz ) )
@@ -134,6 +137,9 @@ NetTcpEndPoint::SetupSocket( int fd, int ai_family, AddrType type, Error *e )
 	}
 # endif
 
+# ifdef OS_NT
+	if( !p4tunable.Get( P4TUNE_NET_AUTOTUNE ) ) {
+# endif
 # ifdef SO_RCVBUF
 	// never reduce the buffer size, so don't set it if we can't get the old value
 	if( !getsockopt( fd, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<SOCKOPT_T *>(&sz), &rsz ) )
@@ -144,6 +150,12 @@ NetTcpEndPoint::SetupSocket( int fd, int ai_family, AddrType type, Error *e )
 	        do_setsockopt( "NetTcpEndPoint", fd, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<SOCKOPT_T *>(&sz), rsz );
 	    }
 	}
+# endif
+	// this is strange, but it balances the braces
+# ifdef OS_NT
+	} // !autotune
+# else
+	} // !autotune
 # endif
 
 # if defined( SO_REUSEADDR ) && !defined( OS_NT )
@@ -971,7 +983,7 @@ NetTcpEndPoint::Accept( KeepAlive *keep, Error *e )
 			}
 			rd = 1;
 			int sr;
-			if( ( sr = selector->Select( rd, wr, 500000 ) ) == 0 )
+			if( ( sr = selector->Select( rd, wr, 500 ) ) == 0 )
 				continue;
 			if( sr == -1 )
 			{

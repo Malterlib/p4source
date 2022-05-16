@@ -16,7 +16,6 @@
 # include <runcmd.h>
 # include <handler.h>
 # include <rpc.h>
-# include <md5.h>
 # include <mangle.h>
 # include <i18napi.h>
 # include <charcvt.h>

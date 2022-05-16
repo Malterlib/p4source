@@ -381,6 +381,9 @@ NetTcpTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 
 	int dataReady;
 	int maxwait = p4tunable.Get( P4TUNE_NET_MAXWAIT );
+	int autotune = p4tunable.Get( P4TUNE_NET_AUTOTUNE );
+	int doGoAround = 0;
+	int retCode = 0;
 	Timer waitTime;
 	if( t < 0 )
 	{
@@ -402,16 +405,26 @@ NetTcpTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	if( !doRead && !doWrite )
 	    return 0;
 
-	for( ;; )
+	do
 	{
 	    readable = doRead;
 	    writable = doWrite;
 
-	    // 500000 is .5 seconds.
+	    // 500 is .5 seconds.
 
 	    int tv = -1;
 	    if( ( readable && breakCallback ) || maxwait )
-	        tv = 500000;
+		{
+	        tv = 500;
+			if( breakCallback )
+			{
+				tv = breakCallback->PollMs();
+				if( tv < 1 )
+					tv = 500;
+			}
+			if( tv < 1 )	// in case of overflow, be sane
+				tv = 500;
+		}
 
 	    if( ( dataReady = selector->Select( readable, writable, tv ) ) < 0 )
 	    {
@@ -422,9 +435,9 @@ NetTcpTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	    if( !dataReady && maxwait && waitTime.Time() >= maxwait )
 	    {
 	        lastRead = 0;
-		re->Set( MsgRpc::MaxWait ) <<
-	                ( doRead ? "receive" : "send" ) << ( maxwait / 1000 );
-		return 0;
+			re->Set( MsgRpc::MaxWait ) <<
+				( doRead ? "receive" : "send" ) << ( maxwait / 1000 );
+			return 0;
 	    }
 
 	    // Before checking for data do the callback isalive test.
@@ -441,10 +454,17 @@ NetTcpTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	    if( !writable && !readable )
 	        continue;
 
+		if( autotune && readable && writable )
+		{
+			doGoAround = 1;
+			writable = 0;
+		}
+
 	    // Write what we can; read what we can
 
 	    if( writable )
 	    {
+		goAround:
 	        int l = write( t, io.sendPtr, io.sendEnd - io.sendPtr );
 
 	        if( l > 0 )
@@ -454,7 +474,9 @@ NetTcpTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	        {
 	            lastRead = 0;
 	            io.sendPtr += l;
-	            return 1;
+				if( autotune && !readable )
+					return 1;
+				retCode = 1;
 	        }
 
 	        if( l < 0 )
@@ -490,11 +512,25 @@ NetTcpTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 		     */
 	            lastRead = (wasReadError ? selector->Peek() : 1);
 	            io.recvPtr += l;
-	            return 1;
+				if( doGoAround )
+				{
+					writable = 1;
+					readable = 0;
+					doGoAround = 0;
+					goto goAround;
+				}
+				retCode = 1;
 	        }
 
 	        if( l < 0 )
 	        {
+				if( doGoAround )
+				{
+					writable = 1;
+					readable = 0;
+					doGoAround = 0;
+					goto goAround;
+				}
 # ifdef OS_NT
 		    int	errornum = WSAGetLastError();
 		    // don't use switch, because some of these values might be the same
@@ -511,8 +547,16 @@ NetTcpTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	        }
 	    }
 
-	    return 0;
-	}
+	    return retCode;
+	} while( !retCode );
+
+	return retCode;
+}
+
+int
+NetTcpTransport::DuplexReady()
+{
+		return !p4tunable.Get( P4TUNE_NET_AUTOTUNE );
 }
 
 int

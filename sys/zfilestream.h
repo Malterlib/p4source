@@ -25,8 +25,6 @@ class ZFileStream : public ObjStream
 	virtual unsigned char	Next( Error *e );
 	virtual void		GetLine( StrBuf *buf, Error *e );
 
-	P4INT64			GetBytesRead();
-
     private:
 
 	FileSys			*f;

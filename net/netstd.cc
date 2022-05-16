@@ -272,8 +272,11 @@ NetStdioTransport::Receive( char *buffer, int length, Error *e )
 
 	    int count = 0; // 500 * 0.001 seconds = .5 seconds
 	    bool res = true;
+	    int pollcount = breakCallback->PollMs();
+	    if( pollcount < 1 )
+		pollcount = 500;
 
-	    while( count++ < 500 && res && !readable )
+	    while( count++ < pollcount && res && !readable )
 	    {
 	        res = PeekNamedPipe( (HANDLE) _get_osfhandle( r ),
 	                             NULL, 0, NULL, &readable, NULL );
@@ -299,9 +302,11 @@ NetStdioTransport::Receive( char *buffer, int length, Error *e )
 	    int readable = 1;
 	    int writable = 0;
 
-	    // 500000 is .5 seconds.
+	    int tv = breakCallback->PollMs();
+	    if( tv < 1 )
+		tv = 500;
 
-	    const int tv = 500000;
+	    // 500 is .5 seconds.
 
 	    if( selector->Select( readable, writable, tv ) < 0 )
 	    {

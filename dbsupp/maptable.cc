@@ -185,6 +185,41 @@ MapTable::InsertNoDups(
 }
 
 void
+MapTable::Remove( int slotNum )
+{
+	int slot = count - slotNum - 1;
+
+	// Validate first
+	if( slot < 0 || slot > entry->slot )
+	    return;
+
+	MapItem *target, *prev = 0;
+	target = entry;
+
+	// Reduce the slot number until we hit our target
+	while( target->slot > slot )
+	{
+	    target->slot--;
+	    prev = target;
+	    target = target->chain;
+	}
+
+	// Rewire the chain (if no previous we're replacing the root)
+	if( prev )
+	    prev->chain = target->chain;
+	else
+	    entry = target->chain;
+
+	// Free the memory
+	delete target;
+	count--;
+
+	// Clean the cache
+	trees[ LHS ].Clear();
+	trees[ RHS ].Clear();
+}
+
+void
 MapTable::Validate( const StrPtr &lhs, const StrPtr &rhs, Error *e )
 {
 	MapHalf l, r;

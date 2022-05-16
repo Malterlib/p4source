@@ -42,6 +42,7 @@ class NetTcpTransport : public NetTransport {
 			}
 	void		ClientMismatch( Error *e );
 	int		SendOrReceive( NetIoPtrs &io, Error *se, Error *re );
+	int		DuplexReady();
 
 	bool		HasAddress() { return true; }
 	StrPtr	*	GetAddress( int raf_flags )

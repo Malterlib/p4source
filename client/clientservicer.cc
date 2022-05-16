@@ -19,7 +19,6 @@
 # include <mapapi.h>
 # include <handler.h>
 # include <rpc.h>
-# include <md5.h>
 # include <i18napi.h>
 # include <charcvt.h>
 # include <transdict.h>

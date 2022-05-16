@@ -302,6 +302,16 @@ class MsgSupp {
 	static ErrorId OptionChangeFiles;
 	static ErrorId OptionDiscardArchives;
 	static ErrorId OptionLicenseInfo;
+	static ErrorId OptionRemoteUser;
+	static ErrorId OptionRename;
+	static ErrorId OptionIgnoreCMap;
+	static ErrorId OptionMirror;
+	static ErrorId OptionDaemonSafe;
+	static ErrorId OptionTrigger;
+	static ErrorId OptionIgnoreHave;
+	static ErrorId OptionGraphOnly;
+	static ErrorId OptionMinSize;
+	static ErrorId OptionMaxSize;
 
 	static ErrorId TooManyLockTrys;
 

@@ -80,7 +80,6 @@ class MsgHelp {
 	static ErrorId HelpForwardingreplica;
 	static ErrorId HelpFstat;
 	static ErrorId HelpGrantPermission;
-	static ErrorId HelpGraph;
 	static ErrorId HelpGrep;
 	static ErrorId HelpGroup;
 	static ErrorId HelpGroups;
@@ -201,6 +200,33 @@ class MsgHelp {
 	static ErrorId HelpReplicate;
 
 	static ErrorId ResolveUserHelp;
+
+	static ErrorId HelpGraph;
+	static ErrorId HelpGraphCommands;
+	static ErrorId HelpGraphAdministration;
+	static ErrorId HelpGraphAdd;
+	static ErrorId HelpGraphClient;
+	static ErrorId HelpGraphDelete;
+	static ErrorId HelpGraphDescribe;
+	static ErrorId HelpGraphDiff;
+	static ErrorId HelpGraphEdit;
+	static ErrorId HelpGraphFilelog;
+	static ErrorId HelpGraphFiles;
+	static ErrorId HelpGraphFstat;
+	static ErrorId HelpGraphHave;
+	static ErrorId HelpGraphLock;
+	static ErrorId HelpGraphLog;
+	static ErrorId HelpGraphMerge;
+	static ErrorId HelpGraphReconcile;
+	static ErrorId HelpGraphSubmit;
+	static ErrorId HelpGraphSwitch;
+	static ErrorId HelpGraphSync;
+	static ErrorId HelpGraphTag;
+	static ErrorId HelpGraphReceivePack;
+	static ErrorId HelpGraphShowRef;
+	static ErrorId HelpGraphRefHist;
+	static ErrorId HelpGraphPackObjects;
+	static ErrorId HelpGraphSubmodule;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

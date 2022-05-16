@@ -249,7 +249,7 @@ NetSslTransport::~NetSslTransport()
 // MS Visual Studio didn't implement snprintf until VS 2015.  Sigh.
 # ifdef _MSC_VER
   #define SNPRINTF1(buf, len, msg, arg1)	sprintf(buf, msg, arg1)
-  #define SNPRINTF2(buf, len, msg, arg1, arg2)	sprintf(buf, msg, arg1)
+  #define SNPRINTF2(buf, len, msg, arg1, arg2)	sprintf(buf, msg, arg1, arg2)
 # else
   #define SNPRINTF1(buf, len, msg, arg1)	snprintf(buf, len, msg, arg1)
   #define SNPRINTF2(buf, len, msg, arg1, arg2)	snprintf(buf, len, msg, arg1, arg2)
@@ -1060,7 +1060,15 @@ NetSslTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	    if (readable && sslPending)
 		tv = 0;
 	    else if( (readable && breakCallback) || maxwait )
+	    {
 		tv = HALF_SECOND;
+		if( breakCallback )
+		{
+		    int p = breakCallback->PollMs();
+		    if( p >= 1 )
+			tv = p;
+		}
+	    }
 	    else
 		tv = -1;
 

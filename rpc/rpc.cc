@@ -268,6 +268,8 @@ Rpc::Rpc( RpcService *s )
 
 	dispatchDepth = 0;
 	endDispatch = 0;
+	suspendDispatch = 0;
+	priorityDispatch = 0;
 
 	protocolSent = 0;
 	protocolServer = 0;
@@ -764,6 +766,8 @@ Rpc::InvokeOne( const char *opName )
 
 	    buf.SetVar( StrRef( P4Tag::v_sndbuf ), StrNum( sz ) );
 	    buf.SetVar( StrRef( P4Tag::v_rcvbuf ), StrNum( rz ) );
+	    if( p4tunable.Get( P4TUNE_NET_AUTOTUNE ) )
+		buf.SetVar( P4Tag::v_autoTune, StrRef( "1" ) );
 	    buf.SetVar( StrRef( P4Tag::v_func ), StrRef( P4Tag::p_protocol ) );
 
 	    RPC_DBG_PRINT( DEBUG_FUNCTION,
@@ -936,7 +940,7 @@ Rpc::Dispatch( DispatchFlag flag, RpcDispatcher *dispatcher )
 	    // If error sending, go until receive error.
 
 	    else if( flag == DfComplete ||
-		     flag == DfDuplex && duplexFrecv > hiMark ||  
+		     flag == DfDuplex && DuplexDispatchReady( hiMark ) ||
 		     flag == DfFlush && duplexFrecv ||
 		     flag == DfContain && !le.Test() ||
 		     se.Test() )
@@ -1077,12 +1081,48 @@ Rpc::DispatchOne( RpcDispatcher *dispatcher, bool passError )
 	AssertLog.Report( &ue );
 }
 
+int
+Rpc::DuplexDispatchReady( int hiMark )
+{
+	return ( duplexFrecv > hiMark &&
+			( priorityDispatch || transport->DuplexReady() ) );
+}
+
 void
 Rpc::Loopback( Error *e )
 {
 	recvBuffer->CopyBuffer( sendBuffer->GetBuffer() );
 	recvBuffer->Parse( e );
 	sendBuffer->Clear();
+}
+
+int
+Rpc::Active()
+{
+	return !endDispatch &&
+	    ( !ReadErrors() || ( transport && transport->RecvReady() ) );
+}
+
+int
+Rpc::DispatchReady()
+{
+	return !endDispatch && transport && transport->DuplexReady();
+}
+
+int
+Rpc::SuspendDispatch( int v )
+{
+	int r = suspendDispatch;
+	suspendDispatch = v;
+	return r;
+}
+
+int
+Rpc::PriorityDispatch( int v )
+{
+	int r = priorityDispatch;
+	priorityDispatch = v;
+	return r;
 }
 
 /*

@@ -48,6 +48,10 @@
  *
  *	Rpc::Dropped() - connection is no longer serviceable
  *	Rpc::IoError() - pointer to error struct describing dropped connection
+ *	Rpc::DispatchReady() - connection is servicable and has a message
+ *			immediately avilable for Dispatching.
+ *	Rpc::SuspendDispatch() - Block or unblock dispatch of this Rpc
+ *		by the RpcMulti class
  *
  *	Rpc::StartCompression() -- initiate full link compression
  *
@@ -265,10 +269,16 @@ class Rpc : public StrDict {
 	int		Dropped() { 
 			    return re.Test() || !duplexFrecv && se.Test(); 
 			}
-
+	int		DuplexDispatchReady( int hiMark );
+	
 	Error *		IoError() { return se.Test() ? &se : &re; }
 	bool		ReadErrors() { return re.Test(); }
 	int		SendErrors() { return se.Test(); }
+
+	int		Active();
+	int		DispatchReady();
+	int		SuspendDispatch( int );
+	int		PriorityDispatch( int );
 
 	void		StartCompression( Error *e );
 
@@ -327,6 +337,7 @@ class Rpc : public StrDict {
     private:
 
 	friend class RpcForward;
+	friend class RpcMulti;
 
 	RpcService	*service;
 	RpcTransport	*transport;		// send/receive transport
@@ -343,6 +354,8 @@ class Rpc : public StrDict {
 
 	int		dispatchDepth;		// count nested calls
 	int		endDispatch;		// cause Dispatch() to return
+	int		suspendDispatch;
+	int		priorityDispatch;	// for file transfers to server
 
 	int		protocolSent;		// protoSendBuffer sent
 

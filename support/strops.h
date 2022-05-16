@@ -94,6 +94,10 @@ class StrOps {
 	static void	OtoXlower( const unsigned char *, p4size_t len, StrBuf &x );
 	static char	OtoXlower( unsigned char o );
 
+	static void	OtoBase64( const unsigned char *octet, p4size_t len, StrBuf &base );
+	static void	Base64toO( const char *base, unsigned char *octet, int octLen );
+	static int	Base64Len( p4size_t len );
+
 	static int	IsDigest( const StrPtr &hex );
 	static int	IsSha1( const StrPtr &hex );
 

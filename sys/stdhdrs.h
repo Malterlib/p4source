@@ -65,6 +65,7 @@
  * NEED_STATFS - statfs()
  * NEED_STATVFS - statvfs()
  * NEED_SOCKETPAIR - pipe(), socketpair()
+ * NEED_SOCKET_IO - various socket stuff
  * NEED_SYSLOG - syslog()
  * NEED_TIME - time(), etc
  * NEED_TIME_HP - High Precision time, such as gettimeofday, clock_gettime, etc.
@@ -84,6 +85,7 @@
 	defined( NEED_GETUID ) || \
 	defined( NEED_BRK ) || \
 	defined( NEED_READLINK ) || \
+	defined( NEED_SOCKET_IO ) || \
 	defined( NEED_SLEEP )
 
 # ifndef OS_NT

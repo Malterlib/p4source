@@ -19,6 +19,8 @@
 
 # include "filesys.h"
 # include "md5.h"
+# include <sha1.h>
+# include <sha256.h>
 
 void
 FileSys::Digest( StrBuf *digest, Error *e )
@@ -267,3 +269,105 @@ FileSys::Chmod2( FilePerm perms, Error *e )
 	if( !ec.Test() ) e->Clear();
 }
 
+void
+FileSys::ComputeDigest( FileDigestType digType, StrBuf *digest, Error *e )
+{
+	if( digType == FS_DIGEST_MD5 )
+	{
+	    Digest( digest, e );
+	    return;
+	}
+	else if( digType == FS_DIGEST_GIT_TEXT_SHA1 )
+	{
+	    Sha1         sha1;
+	    Sha1Digester sha1Digester;
+	    int          l;
+	    StrFixed     buf( 4096 );
+	    P4INT64      fileSize = 0;
+
+	    Open( FOM_READ, e );
+	    while( !e->Test() &&
+	           ( l = Read( buf.Text(), buf.Length(), e ) ) > 0 )
+	        fileSize += l;
+	    Close( e );
+	    if( e->Test() )
+	        return;
+	    StrNum fSizeFmt( fileSize );
+	    sha1Digester.Update( StrRef( "blob " ) );
+	    sha1Digester.Update( fSizeFmt );
+	    sha1Digester.Update( StrRef( "\0", 1 ) );
+
+	    Open( FOM_READ, e );
+	    while( !e->Test() )
+	    {
+	        int l = Read( buf.Text(), buf.Length(), e );
+
+	        if( !l || e->Test() )
+		    break;
+
+	        sha1Digester.Update( StrRef( buf.Text(), l ) );
+	    }
+	    Close( e );
+
+	    sha1Digester.Final( sha1 );
+
+	    sha1.Fmt( *digest );
+	}
+	else if( digType == FS_DIGEST_GIT_BINARY_SHA1 )
+	{
+	    Sha1         sha1;
+	    Sha1Digester sha1Digester;
+	    int          l;
+	    StrFixed     buf( 4096 );
+	    StrNum fSizeFmt( GetSize() );
+
+	    sha1Digester.Update( StrRef( "blob " ) );
+	    sha1Digester.Update( fSizeFmt );
+	    sha1Digester.Update( StrRef( "\0", 1 ) );
+
+	    Open( FOM_READ, e );
+	    while( !e->Test() )
+	    {
+	        int l = Read( buf.Text(), buf.Length(), e );
+
+	        if( !l || e->Test() )
+		    break;
+
+	        sha1Digester.Update( StrRef( buf.Text(), l ) );
+	    }
+	    Close( e );
+
+	    sha1Digester.Final( sha1 );
+
+	    sha1.Fmt( *digest );
+	}
+	else if( digType == FS_DIGEST_SHA256 )
+	{
+	    Sha256         sha256;
+	    Sha256Digester sha256Digester;
+
+	    int l;
+	    StrFixed buf( 4096 );
+
+	    Open( FOM_READ, e );
+	    if( e->Test() )
+	        return;
+
+	    while( !e->Test() )
+	    {
+	        int l = Read( buf.Text(), buf.Length(), e );
+
+	        if( !l || e->Test() )
+		    break;
+
+	        sha256Digester.Update( StrRef( buf.Text(), l ) );
+	    }
+	    Close( e );
+	    if( e->Test() )
+	        return;
+
+	    sha256Digester.Final( sha256.data );
+
+	    sha256.Fmt( *digest );
+	}
+}

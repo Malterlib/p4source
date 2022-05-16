@@ -552,11 +552,11 @@ StrOps::XtoO( char *hex, unsigned char *octet, int octetLen )
 	}
 }
 
-static const char *valid = "0123456789abcdefABCDEF";
+static const char valid[] = "0123456789abcdefABCDEF";
 static int
 IsX( char p )
 {
-	for( int i = 0; i < 22; i++ )
+	for( int i = 0; i < sizeof valid; i++ )
 	    if( valid[i] == p )
 	        return 1;
 	return 0;
@@ -588,6 +588,107 @@ StrOps::IsSha1( const StrPtr &hex )
 	return 1;
 }
 
+static const char base64map[] =
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+int
+StrOps::Base64Len( p4size_t len )
+{
+	int v = ( ( len + 2 ) / 3 ) * 4;
+
+	switch( len % 3 )
+	{
+	case 1:
+	    --v;
+	case 2:
+	    --v;
+	}
+	return v;
+}
+
+void
+StrOps::OtoBase64( const unsigned char *octet, p4size_t len, StrBuf &base )
+{
+	char *p = base.Alloc( Base64Len( len ) );
+
+	while( len >= 3 )
+	{
+	    unsigned int v = *octet++;
+	    v <<= 8;
+	    v |= *octet++;
+	    v <<= 8;
+	    v |= *octet++;
+
+	    *p++ = base64map[ v >> 18 ];
+	    v &= 0x3ffff;
+	    *p++ = base64map[ v >> 12 ];
+	    v &= 0xfff;
+	    *p++ = base64map[ v >> 6 ];
+	    *p++ = base64map[ v & 0x3f ];
+
+	    len -= 3;
+	}
+	if( len == 2 )
+	{
+	    unsigned int v = *octet++;
+	    *p++ = base64map[ v >> 2 ];
+	    v &= 3;
+	    v <<= 8;
+	    v |= *octet;
+	    *p++ = base64map[ v >> 4 ];
+	    *p = base64map[ ( v & 0xf ) << 2 ];
+	}
+	else if( len == 1 )
+	{
+	    unsigned char v = *octet;
+	    *p++ = base64map[ v >> 2 ];
+	    *p = base64map[ ( v & 3 ) << 4 ];
+	}
+
+	base.Terminate();
+}
+
+inline static int BtoO( char b )
+{
+	const char *p = strchr( base64map, b );
+	if( p )
+	    return p - base64map;
+	return -1;
+}
+
+void
+StrOps::Base64toO( const char *base, unsigned char *octet, int octLen )
+{
+	while( octLen >= 3 )
+	{
+	    // full block loop
+	    unsigned int v;
+	    v = BtoO( *base++ ) << 18;
+	    v |= BtoO( *base++ ) << 12;
+	    v |= BtoO( *base++ ) << 6;
+	    v |= BtoO( *base++ );
+	    *octet++ = v >> 16;
+	    *octet++ = ( v >> 8 ) & 0xff;
+	    *octet++ = v & 0xff;
+	    octLen -= 3;
+	}
+	if( octLen == 2 )
+	{
+	    unsigned int v;
+	    v = BtoO( *base++ ) << 10;
+	    v |= BtoO( *base++ ) << 4;
+	    v |= BtoO( *base ) >> 2;
+	    *octet++ = v >> 8;
+	    *octet = v & 0xff;
+	}
+	else if( octLen == 1 )
+	{
+	    unsigned char v;
+	    v = BtoO( *base++ ) << 2;
+	    v |= BtoO( *base ) >> 4;
+	    *octet = v;
+	}
+}
 
 /*
  * StrOps::WildToStr() - turn wildcards into %x escaped string
@@ -1142,7 +1243,7 @@ StrOps::ScrunchArgs( StrBuf &out, int argc, StrPtr *argv, int targetLength,
 
 		if( mySpace + CharCnt(out) > endPost )
 		{
-		    out << "(" << argc - 1 << ")" << dStr;
+		    out << "(" << argc << ")" << dStr;
 		    argv += argc - 1;
 		    argc = 1;
 		    continue;

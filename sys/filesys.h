@@ -182,6 +182,15 @@ enum LFNModeFlags {
 	LFN_UTF8	= 0x04,
 } ;
 
+enum FileDigestType
+{
+	FS_DIGEST_UNKNOWN	= 0,
+	FS_DIGEST_MD5,
+	FS_DIGEST_GIT_TEXT_SHA1,
+	FS_DIGEST_GIT_BINARY_SHA1,
+	FS_DIGEST_SHA256,
+} ;
+
 class StrArray;
 class CharSetCvt;
 class MD5;
@@ -401,6 +410,11 @@ class FileSys {
 			{ Chmod2( Perm( p ), e ); }
 
 	void		Cleanup();
+
+	virtual void	ComputeDigest(
+	                    FileDigestType digType,
+	                    StrBuf *digest,
+	                    Error *e );
 
 	// Character Set operations
 

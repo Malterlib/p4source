@@ -1062,6 +1062,8 @@ const struct ctTable {
 	FST_TEXT,	0, OK, OK,	0, 0, 0
 } ;
 
+static void clientCheckFileGraph( Client *client, Error *e );
+
 void
 clientCheckFile( Client *client, Error *e )
 {
@@ -1071,15 +1073,24 @@ clientCheckFile( Client *client, Error *e )
 	StrPtr *wildType = client->GetVar( P4Tag::v_type2 );
 	StrPtr *forceType = client->GetVar( P4Tag::v_forceType );
 	StrPtr *digest = client->GetVar( P4Tag::v_digest );
+	StrPtr *digestType = client->GetVar( P4Tag::v_digestType );
 	StrPtr *confirm = client->GetVar( P4Tag::v_confirm, e );
 	StrPtr *fileSize = client->GetVar( P4Tag::v_fileSize );
 	StrPtr *scanSize = client->GetVar( P4Tag::v_scanSize );
 	StrPtr *ignore = client->GetVar( P4Tag::v_ignore );
 	StrPtr *checkLinks = client->GetVar( P4Tag::v_checkLinks );
+	StrPtr *checkLinksNs = client->GetVar( P4Tag::v_checkLinksN );
+	const int checkLinksN = checkLinksNs ? checkLinksNs->Atoi() : 0;
 
 	if( e->Test() && !e->IsFatal() )
 	{
 	    client->OutputError( e );
+	    return;
+	}
+
+	if( digest && digestType )
+	{
+	    clientCheckFileGraph( client, e );
 	    return;
 	}
 
@@ -1100,10 +1111,11 @@ clientCheckFile( Client *client, Error *e )
 	    ps->Set( clientPath );
 
 	    // Don't allow opening a file for add if it is a symlink to
-	    // a directory.
+	    // a directory.  job092324 said this was too restrictive, so
+	    // only do it if filesys.checklinks < 3.
 
 	    fs->Set( *ps );
-	    if( fs->Stat() & FSF_SYMLINK )
+	    if( ( fs->Stat() & FSF_SYMLINK ) && checkLinksN < 3 )
 	    {
 		FileSys *fl = new FileIOSymlink;
 		fl->Set( fs->Name() );
@@ -1319,6 +1331,68 @@ clientCheckFile( Client *client, Error *e )
 	client->Confirm( confirm );
 
 	// Report non-fatal error and clear it.
+
+	client->OutputError( e );
+}
+
+void
+clientCheckFileGraph( Client *client, Error *e )
+{
+	StrPtr *clientPath = client->transfname->GetVar( P4Tag::v_path, e );
+	StrPtr *clientType = client->GetVar( P4Tag::v_type, e );
+	StrPtr *digest = client->GetVar( P4Tag::v_digest, e );
+	StrPtr *digestType = client->GetVar( P4Tag::v_digestType, e );
+	StrPtr *confirm = client->GetVar( P4Tag::v_confirm, e );
+
+	if( e->Test() && !e->IsFatal() )
+	{
+	    client->OutputError( e );
+	    return;
+	}
+
+	FileDigestType digType;
+	if( !digestType->Compare(
+	                 StrRef( P4Tag::v_digestTypeMD5 ) ) )
+	    digType = FS_DIGEST_MD5;
+	else if( !digestType->Compare(
+	                 StrRef( P4Tag::v_digestTypeGitText ) ) )
+	    digType = FS_DIGEST_GIT_TEXT_SHA1;
+	else if( !digestType->Compare(
+	                 StrRef( P4Tag::v_digestTypeGitBinary ) ) )
+	    digType = FS_DIGEST_GIT_BINARY_SHA1;
+	else if( !digestType->Compare(
+	                 StrRef( P4Tag::v_digestTypeSHA256 ) ) )
+	    digType = FS_DIGEST_SHA256;
+
+	const char *status = "exists";
+
+	FileSys *f = ClientSvc::File( client, e );
+
+	if( e->Test() || !f )
+	    return;
+	int statVal = f->Stat();
+
+	if( !( statVal & FSF_EXISTS ) )
+	{
+	    status = "missing";
+	} 
+	else
+	{
+	    StrBuf localDigest;
+
+	    f->ComputeDigest( digType, &localDigest, e );
+
+	    if( !e->Test() && !localDigest.XCompare( *digest ) )
+	        status = "same";
+
+	    e->Clear();
+	}
+
+	delete f;
+
+	client->SetVar( P4Tag::v_type, clientType->Text() );
+	client->SetVar( P4Tag::v_status, status );
+	client->Confirm( confirm );
 
 	client->OutputError( e );
 }

@@ -1,5 +1,6 @@
 SubDir P4 api ;
 
+SubDirHdrs $(P4) ;			# just for Jamrules
 SubDirHdrs $(P4) client ;
 SubDirHdrs $(P4) diff ;
 SubDirHdrs $(P4) rpc ;
@@ -7,7 +8,7 @@ SubDirHdrs $(P4) i18n ;
 SubDirHdrs $(P4) sys ;
 SubDirHdrs $(P4) net ;		# just for API
 SubDirHdrs $(P4) tests ;	# just for API
-SubDirHdrs $(P4) web ;	    
+SubDirHdrs $(P4) web ;
 
 # API: libs and src
 
@@ -21,7 +22,6 @@ P4Api p4api :
 	$(CLIENTLIB) 
 	$(RPCLIB) 
 	$(SUPPORTLIB)
-	$(P4SSLLIB)  
 
 	base64.h
 	charcvt.h
@@ -72,6 +72,7 @@ P4Api p4api :
 	runcmd.h
 	serverhelperapi.h
 	sha1.h
+	sha256.h
 	signaler.h
 	spec.h
 	stdhdrs.h

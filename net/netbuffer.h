@@ -32,6 +32,7 @@
  *	NetBuffer::RecvCompression() - zlib the recv pipe
  *	NetBuffer::Send() - send block data
  *	NetBuffer::Receive() - receive block data
+ *	NetBuffer::Fill() - receive data to buffers
  *	NetBuffer::Flush() - flush buffered send data
  *	NetBuffer::Close() - close tranport; does not imply Flush()!
  *	NetBuffer::IsAlive() - check for disconnection, clear receive buffer
@@ -131,6 +132,7 @@ class NetBuffer : public NetTransport {
 	int		Receive( char *buf, int len, Error *re, Error *se );
 	void		Send( const char *buf, int len, Error *re, Error *se );
 	void		Flush( Error *re, Error *se );
+	int		Fill( Error *re, Error *se );
 
 	void		SetBufferSizes( int recvSize, int sendSize );
 
@@ -138,7 +140,9 @@ class NetBuffer : public NetTransport {
 	void		RecvCompression( Error *e );
 
 	int RecvReady()	{ return ioPtrs.recvPtr - recvPtr; }
-
+	int DuplexReady() { return RecvReady() || transport->DuplexReady(); }
+	int GetFd() { return transport ? transport->GetFd() : -1; }
+	
 	int		GetInfo( StrBuf *b )
 			{ return transport->GetInfo( b ); }
 

@@ -174,11 +174,13 @@ class MsgDm {
 	static ErrorId CantChangeUnloadedOpt;
 	static ErrorId NoUnloadedAutoLabel;
 	static ErrorId StreamIsUnloaded;
+	static ErrorId StreamNotGraph;
 	static ErrorId NoStorageDir;
 	static ErrorId NotAsService;
 	static ErrorId LockedClient;
 	static ErrorId LockedHost;
 	static ErrorId ClientBoundToServer;
+	static ErrorId CantChangeTypeOpened;
 	static ErrorId NotBoundToServer;
 	static ErrorId BindingNotAllowed;
 	static ErrorId BoundToOtherServer;
@@ -240,6 +242,7 @@ class MsgDm {
 
 	static ErrorId LicensedClients;
 	static ErrorId LicensedUsers;
+	static ErrorId LicensedRepos;
 	static ErrorId TryDelClient;
 	static ErrorId TryDelUser;
 	static ErrorId TooManyRoots;
@@ -514,9 +517,11 @@ class MsgDm {
 	static ErrorId MoveNoMatch;
 	static ErrorId MoveNoInteg;
 	static ErrorId MoveReadOnly;
+	static ErrorId MoveReadOnlySrc;
 	static ErrorId MoveNotSynced;
 	static ErrorId MoveNotResolved;
 	static ErrorId MoveNeedForce;
+	static ErrorId MoveCantForce;
 
 	static ErrorId OpenAlready;
 	static ErrorId OpenReadOnly;
@@ -604,6 +609,7 @@ class MsgDm {
 	static ErrorId PurgeNoRecords;
 	static ErrorId PurgeData;
 	static ErrorId PurgeActiveTask;
+	static ErrorId PurgeUnloadedTask;
 
 	static ErrorId ReleaseHasPending;
 	static ErrorId ReleaseAbandon;

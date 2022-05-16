@@ -95,6 +95,10 @@ class MsgServer {
 	static ErrorId PasswordTooSimple;
 	static ErrorId NoProxyAuth;
 	static ErrorId MimAttack;
+	static ErrorId NoMatchingServerSpec;
+	static ErrorId NoSvcUserinSrvSpec;
+	static ErrorId WrongSvcUserinSrvSpec;
+	static ErrorId SvcUserNeedsAuth;
 	static ErrorId NoSuppASflag;
 	static ErrorId NoSuppVflag;
 	static ErrorId SubmitFailed;
@@ -539,6 +543,7 @@ class MsgServer {
 	static ErrorId UseProxyInfo;
 	static ErrorId UsePing;
 	static ErrorId UseMove;
+	static ErrorId UseMover;
 
 	static ErrorId ServerTooOld;
 	static ErrorId ProxyChain;
@@ -622,6 +627,7 @@ class MsgServer {
 	static ErrorId NoSuchField;
 	static ErrorId EmptyTypeList;
 	static ErrorId NotGraphReady;
+	static ErrorId GraphDisabled;
 	static ErrorId NotStreamReady;
 	static ErrorId NotStreamOwner;
 	static ErrorId VersionedStream;
@@ -752,6 +758,8 @@ class MsgServer {
 	static ErrorId CannotResubmitChange;
 	static ErrorId ResolveUnsubmitted;
 	static ErrorId SubmitUnsubmitted;
+	static ErrorId AddCollision;
+	static ErrorId AddCollision2;
 	static ErrorId RemoteMappingInvalid;
 	static ErrorId RemoteNoTarget;
 	static ErrorId UnsubmittedChanges;
@@ -788,6 +796,8 @@ class MsgServer {
 	static ErrorId PartnerServerTooOld;
 	static ErrorId OpenNotDVCSLocal;
 	static ErrorId ServerIDIdentity;
+	static ErrorId NoTriggerDir;
+	static ErrorId NoPullTrigger;
 
 	//nimble
 	static ErrorId BackupOff;		// added in nimble

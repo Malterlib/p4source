@@ -22,8 +22,8 @@ const int N_OPTS = 256;
 enum OptFlag {
 	// Bitwise selectors
 
-	OPT_ONE = 0x01,		// exactly one
-	OPT_TWO = 0x02,		// exactly two
+	OPT_ONE = 0x01,	        // exactly one
+	OPT_TWO = 0x02,	        // exactly two
 	OPT_THREE = 0x04,	// exactly three
 	OPT_MORE = 0x08,	// more than two
 	OPT_NONE = 0x10,	// require none
@@ -31,10 +31,10 @@ enum OptFlag {
 
 	// combos of the above
 
-	OPT_OPT = 0x11,		// NONE, or ONE
-	OPT_ANY = 0x1F,		// ONE, TWO, THREE, MORE, or NONE
+	OPT_OPT = 0x11,	        // NONE, or ONE
+	OPT_ANY = 0x1F,	        // ONE, TWO, THREE, MORE, or NONE
 	OPT_DEFAULT = 0x2F,	// ONE, TWO, THREE, MORE, or MAKEONE
-	OPT_SOME = 0x0F		// ONE, TWO, THREE, or MORE
+	OPT_SOME = 0x0F	        // ONE, TWO, THREE, or MORE
 } ;
 
 struct ErrorId;
@@ -42,14 +42,14 @@ struct ErrorId;
 class Options
 {
     public:
-			Options() { optc = 0; }
+	                Options() { optc = 0; }
 
 	enum Opt {
 
-		// options which are used commonly, across many commands:
+	        // options which are used commonly, across many commands:
 
 	                All            = 'a',
-			Archive        = 'A',
+	                Archive        = 'A',
 	                Change         = 'c',
 	                Delete         = 'd',
 	                Depot          = 'D',
@@ -57,64 +57,64 @@ class Options
 	                NoCaseExpr     = 'E',
 	                Force          = 'f',
 	                Filter         = 'F',
-			Input          = 'i',
-			JournalPrefix  = 'J',
+	                Input          = 'i',
+	                JournalPrefix  = 'J',
 	                Long           = 'l',
 	                Max            = 'm',
 	                Preview        = 'n',
-			Output         = 'o',
-			OutputFlags    = 'O',
-			Port           = 'p',
-			Parent         = 'P',
+	                Output         = 'o',
+	                OutputFlags    = 'O',
+	                Port           = 'p',
+	                Parent         = 'P',
 	                Quiet          = 'q',
 	                Reverse        = 'r',
-			Short          = 's',
-			Stream         = 'S',
-			Filetype       = 't',
-			Tags           = 'T',
-			User           = 'u',
+	                Short          = 's',
+	                Stream         = 'S',
+	                Filetype       = 't',
+	                Tags           = 'T',
+	                User           = 'u',
 	                Variable       = 'v',
 	                Wipe           = 'w',
 	                Compress       = 'z',
 
-		// options which are relatively uncommon, but have existing
-		// short-form versions:
+	        // options which are relatively uncommon, but have existing
+	        // short-form versions:
 
-			InfrequentShortFormOptions = 1000,
+	                InfrequentShortFormOptions = 1000,
 
-			Version        , // -V
-			Client         , // -c client
-			Shelf          , // -s shelf
-			DiffFlags      , // -d<diff-flags>
-			Inherited      , // -i on changes, filelog, etc.
-			ClientName     , // -C client
-			Charset        , // p4 -C charset
-			CmdCharset     , // p4 -Q charset
-			Help           , // -h for main programs
+	                Version        , // -V
+	                Client         , // -c client
+	                Shelf          , // -s shelf
+	                DiffFlags      , // -d<diff-flags>
+	                Inherited      , // -i on changes, filelog, etc.
+	                ClientName     , // -C client
+	                Charset        , // p4 -C charset
+	                CmdCharset     , // p4 -Q charset
+	                Help           , // -h for main programs
 	                Batchsize      , // -b N
 	                MessageType    , // 'p4 -s'
 	                Xargs          , // 'p4 -x file'
-			Exclusive      , // opened -x
-			Directory      , // p4 -d dir
-			Host           , // p4 -H host
-			Password       , // -P password
-			Retries        , // p4 -r retries
-			Progress       , // p4 -I
-			NoIgnore       , // add -I
-			Downgrade      , // add -d
-			Unload         , // -U for unloaded objects
-			UnloadLimit    , // backup -u #
-			CentralUsers   , // users -c
-			ReplicaUsers   , // users -r
-			Branch         , // unshelve -b
-			FullBranch     , // branch -F
-			SpecFixStatus  , // change -s, submit -s
-			ChangeType     , // change -t
-			ChangeUpdate   , // change -u
-			Original       , // change -O, describe -O
-			ChangeUser     , // change -U
-			Template       , // client -t, label -t
-			Switch         , // client -s
+	                Exclusive      , // opened -x
+	                Directory      , // p4 -d dir
+	                Host           , // p4 -H host
+	                Password       , // -P password
+	                Retries        , // p4 -r retries
+	                Progress       , // p4 -I
+	                NoIgnore       , // add -I
+	                Downgrade      , // add -d
+	                Unload         , // -U for unloaded objects
+	                UnloadLimit    , // backup -u #
+	                CentralUsers   , // users -c
+	                ReplicaUsers   , // users -r
+	                Branch         , // unshelve -b
+	                FullBranch     , // branch -F
+	                SpecFixStatus  , // change -s, submit -s
+	                ChangeType     , // change -t
+	                ChangeUpdate   , // change -u
+	                Original       , // change -O, describe -O
+	                ChangeUser     , // change -U
+	                Template       , // client -t, label -t
+	                Switch         , // client -s
 	                Temporary      , // client -x
 	                Owner          , // group -a
 	                Administrator  , // group -A
@@ -127,7 +127,7 @@ class Options
 	                ChangeStatus   , // changes -s
 	                Exists         , // files -e
 	                Blocksize      , // sizes -b
-			Shelved        , // sizes -S, describe -S
+	                Shelved        , // sizes -S, describe -S
 	                Summary        , // sizes -s
 	                OmitLazy       , // sizes -z
 	                Human1024      , // sizes -h
@@ -140,65 +140,65 @@ class Options
 	                Content        , // filelog -h
 	                OmitPromoted   , // filelog -p
 	                OmitMoved      , // filelog -1
-			KeepClient     , // edit -k, delete -k, sync -k
-			FileCharset    , // add/edit -Q
-			Virtual        , // delete -v
-			Generate       , // server -g
-			Configure      , // server -c
-			Usage          , // license -u
-			Job            , // fixes -j
-			Increment      , // counter -i
-			FixStatus      , // fix -s
-			Replace        , // shelve -r
-			ShelveOpts     , // shelve -a
-			SubmitShelf    , // submit -e
-			SubmitOpts     , // submit -f
-			Reopen         , // submit -r
-			Description    , // submit -d
-			Tamper         , // submit -t
-			Date           , // unload -d
-			StreamName     , // unload -s, reload -s
-			Unchanged      , // revert -a
-			KeepHead       , // archive -h
-			Purge          , // archive -p
-			ForceText      , // archive -t
-			BinaryAsText   , // -t on annotate, diff, diff2,
+	                KeepClient     , // edit -k, delete -k, sync -k
+	                FileCharset    , // add/edit -Q
+	                Virtual        , // delete -v
+	                Generate       , // server -g
+	                Configure      , // server -c
+	                Usage          , // license -u
+	                Job            , // fixes -j
+	                Increment      , // counter -i
+	                FixStatus      , // fix -s
+	                Replace        , // shelve -r
+	                ShelveOpts     , // shelve -a
+	                SubmitShelf    , // submit -e
+	                SubmitOpts     , // submit -f
+	                Reopen         , // submit -r
+	                Description    , // submit -d
+	                Tamper         , // submit -t
+	                Date           , // unload -d
+	                StreamName     , // unload -s, reload -s
+	                Unchanged      , // revert -a
+	                KeepHead       , // archive -h
+	                Purge          , // archive -p
+	                ForceText      , // archive -t
+	                BinaryAsText   , // -t on annotate, diff, diff2,
 	                                 // grep, resolve, merge3, ...
-			BypassFlow     , // -F on copy, interchanges, merge
-			ShowChange     , // annotate -c
-			FollowBranch   , // annotate -i
-			FollowInteg    , // annotate -I
-			SourceFile     , // -s on copy, integrate, merge,
-			                 // interchanges, populate
-			ResolveFlags   , // resolve -A<flags>
-			AcceptFlags    , // resolve -a<flags>
-			IntegFlags     , // integrate -R<flags>
-			DeleteFlags    , // integrate -D<flags>
-			RestrictFlags  , // fstat -R<flags>
-			SortFlags      , // fstat -S<flags>
-			ForceFlag      , // client -d -f -F<flags>
-			UseList        , // sync -L, fstat -L
-			Safe           , // sync -s
-			Publish        , // sync -p
-			ForceDelete    , // group -F/user -F
-			IsGroup        , // groups -g
-			IsUser         , // groups -u
-			IsOwner        , // groups -o
-			Verbose        , // groups -v
+	                BypassFlow     , // -F on copy, interchanges, merge
+	                ShowChange     , // annotate -c
+	                FollowBranch   , // annotate -i
+	                FollowInteg    , // annotate -I
+	                SourceFile     , // -s on copy, integrate, merge,
+	                                 // interchanges, populate
+	                ResolveFlags   , // resolve -A<flags>
+	                AcceptFlags    , // resolve -a<flags>
+	                IntegFlags     , // integrate -R<flags>
+	                DeleteFlags    , // integrate -D<flags>
+	                RestrictFlags  , // fstat -R<flags>
+	                SortFlags      , // fstat -S<flags>
+	                ForceFlag      , // client -d -f -F<flags>
+	                UseList        , // sync -L, fstat -L
+	                Safe           , // sync -s
+	                Publish        , // sync -p
+	                ForceDelete    , // group -F/user -F
+	                IsGroup        , // groups -g
+	                IsUser         , // groups -u
+	                IsOwner        , // groups -o
+	                Verbose        , // groups -v
 	                LineNumber     , // grep -n
-			InvertMatch    , // grep -v
+	                InvertMatch    , // grep -v
 	                FilesWithMatches,// grep -l
 	                FilesWithoutMatch,// grep -L
-			NoMessages     , // grep -s
+	                NoMessages     , // grep -s
 	                FixedStrings   , // grep -F
-			BasicRegexp    , // grep -G
+	                BasicRegexp    , // grep -G
 	                ExtendedRegexp , // grep -E
-			PerlRegexp     , // grep -P
+	                PerlRegexp     , // grep -P
 	                Regexp         , // grep -e
 	                AfterContext   , // grep -A
-			BeforeContext  , // grep -B
+	                BeforeContext  , // grep -B
 	                Context        , // grep -C
-			IgnoreCase     , // grep -i
+	                IgnoreCase     , // grep -i
 	                Repeat         , // pull -i
 	                Backoff        , // pull -b
 	                ArchiveData    , // pull -u
@@ -249,39 +249,40 @@ class Options
 	                Estimates      , // sync -N/flush -N/update -N
 	                Locked         , // unload -L
 	                UnloadAll      , // unload -a
-			KeepHave       , // integrate -h
-			Yes            , // trust -y
-			No             , // trust -n
-			InputValue     , // trust -i
-			Replacement    , // trust -r
-			Rebuild        , // jobs -R
-			Equal          , // fstat -e
-			AttrPattern    , // fstat -A
-			DiffListFlag   , // diff -s
-			Arguments      , // monitor show -a
-			Environment    , // monitor show -e
-			TaskStatus     , // monitor show -s
-			AllUsers       , // property -A
-			Promote        , // shelve -p
-			Test           , // ldap -t, ldaps -t
-			Active         , // ldaps -A
-			GroupMode      , // ldapsync -g
-			UserMode       , // ldapsync -u
-			UserModeCreate, // ldapsync -u -c
-			UserModeUpdate, // ldapsync -u -U
-			UserModeDelete, // ldapsync -u -d
-			Create         , // switch -c
-			List           , // switch -l
-			Mainline       , // switch -m
-			MoveChanges    , // switch -r
-			ReplicationStatus, // servers --replication-status, servers -J
-	                DepotType     , // depot -t
-	                Users         , // annotate -u
-			Tab           , // annotate -T
+	                KeepHave       , // integrate -h
+	                Yes            , // trust -y
+	                No             , // trust -n
+	                InputValue     , // trust -i
+	                Replacement    , // trust -r
+	                Rebuild        , // jobs -R
+	                Equal          , // fstat -e
+	                AttrPattern    , // fstat -A
+	                DiffListFlag   , // diff -s
+	                Arguments      , // monitor show -a
+	                Environment    , // monitor show -e
+	                TaskStatus     , // monitor show -s
+	                AllUsers       , // property -A
+	                Promote        , // shelve -p
+	                Test           , // ldap -t, ldaps -t
+	                Active         , // ldaps -A
+	                GroupMode      , // ldapsync -g
+	                UserMode       , // ldapsync -u
+	                UserModeCreate , // ldapsync -u -c
+	                UserModeUpdate , // ldapsync -u -U
+	                UserModeDelete , // ldapsync -u -d
+	                Create         , // switch -c
+	                List           , // switch -l
+	                Mainline       , // switch -m
+	                MoveChanges    , // switch -r
+	                ReplicationStatus, // servers --replication-status, servers -J
+	                DepotType      , // depot -t
+	                Users          , // annotate -u
+	                Tab            , // annotate -T
+	                Rename         , // move -r
 
-		// options which have only long-form option names go here:
+	        // options which have only long-form option names go here:
 
-			LongFormOnlyOptions = 2000,
+	                LongFormOnlyOptions = 2000,
 
 	                NoRejournal    , // pull --no-rejournal
 	                From           , // renameuser --from
@@ -292,42 +293,52 @@ class Options
 	                PidFile        , // p4d --pid-file
 	                NoRetransfer   , // submit --noretransfer
 	                ForceNoRetransfer, // submit --forcenoretransfer
-			DurableOnly    , // journalcopy --durable-only
-			NonAcknowledging, // journalcopy --non-acknowledging
-			BypassExclusiveLock, // open --bypass-exclusive-lock
-			RetainLbrRevisions, // unzip --retain-lbr-revisions
-			JavaProtocol   , // p4d -i --java
-			PullBatch      , // pull -u --batch=N
-			EnableDVCSTriggers, // unzip --enable-dvcs-triggers
-			ConvertAdminComments, // --convert-p4admin-comments
-			RemoteSpec     , // --remote
-			P4UserUser     , // --me
-			Aliases        , // --aliases
-			Field          , // --field
-			StorageType    , // --type
-			AtomicPush     , // receive-pack --atomic
-			ClientType     , // clients --client-type=graph
+	                DurableOnly    , // journalcopy --durable-only
+	                NonAcknowledging, // journalcopy --non-acknowledging
+	                BypassExclusiveLock, // open --bypass-exclusive-lock
+	                RetainLbrRevisions, // unzip --retain-lbr-revisions
+	                JavaProtocol   , // p4d -i --java
+	                PullBatch      , // pull -u --batch=N
+	                EnableDVCSTriggers, // unzip --enable-dvcs-triggers
+	                ConvertAdminComments, // --convert-p4admin-comments
+	                RemoteSpec     , // --remote
+	                P4UserUser     , // --me
+	                Aliases        , // --aliases
+	                Field          , // --field
+	                StorageType    , // --type
+	                AtomicPush     , // receive-pack --atomic
+	                ClientType     , // clients --client-type=graph
 	                Color          , // --color
 	                ChangeFiles    , // changes --show-files
 	                DiscardArchives, // graph recieve-pack --discard-archives=N
-	                LicenseInfo,
+	                LicenseInfo    , // p4d --license-info
+	                RemoteUser     , // push/fetch/login --remote-user=X
+	                IgnoreCMap     , // files/fstat/diff2 --ignore-changeview
+	                Mirror         , // graph receive-pack --mirror
 
-			UnusedLastOption
+	                DaemonSafe     , // daemon with stdio closed
+	                Trigger        , // pull -u --trigger
+	                IgnoreHave     , // -p --ignore-have
+	                GraphOnly      , // --graph-only
+			MinSize        , // --min-size
+			MaxSize        , // --max-size
+
+	                UnusedLastOption
 	} ;
 
 	void		Parse( int &argc, char **&argv, const char *opts, 
-		    		int flag, const ErrorId &usage, Error *e );
+			       int flag, const ErrorId &usage, Error *e );
 
 	void		ParseLong( int &argc, char **&argv, const char *opts, 
-		    		const int *longOpts,
-		    		int flag, const ErrorId &usage, Error *e );
+			           const int *longOpts,
+			           int flag, const ErrorId &usage, Error *e );
 
 	void		Parse( int &argc, StrPtr *&argv, const char *opts, 
-		    		int flag, const ErrorId &usage, Error *e );
+			       int flag, const ErrorId &usage, Error *e );
 
 	void		ParseLong( int &argc, StrPtr *&argv, const char *opts, 
-		    		const int *longOpts,
-		    		int flag, const ErrorId &usage, Error *e );
+			           const int *longOpts,
+			           int flag, const ErrorId &usage, Error *e );
 
 	StrPtr *	operator [](int opt) 
 			{ return GetValue( opt, 0, 0 ); }
@@ -344,11 +355,11 @@ class Options
 	void		GetOptionValue( int i, StrBuf &sb );
 
     private:
-	int 	optc;
+	int 		optc;
 
-	int	flags[ N_OPTS ];
-	char	flags2[ N_OPTS ];
-	StrRef	vals[ N_OPTS ];
+	int		flags[ N_OPTS ];
+	char		flags2[ N_OPTS ];
+	StrRef		vals[ N_OPTS ];
 
 	static struct OptionInfo {
 	    const char *name;

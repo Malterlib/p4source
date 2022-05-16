@@ -193,3 +193,13 @@ NetTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	return 0;
 }
 
+/*
+ * This is a fall back for old transports which have the above
+ * default SendOrReceive
+ */
+
+int
+NetTransport::DuplexReady()
+{
+	return 1;
+}

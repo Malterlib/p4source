@@ -259,6 +259,16 @@ MapTable::JoinCheck( MapTableT dir, const StrPtr &lhs )
 	return !empty;
 }
 
+int
+MapTable::JoinCheck( MapTableT dir, MapTable *c, MapTableT dir2 )
+{
+	MapTable *j = c->Join( dir2, this, dir );
+	int empty = j->IsEmpty(); 
+	delete j;
+
+	return !empty;
+}
+
 /*
  * MapTable::Disambiguate() - handle un/ambiguous mappings
  *

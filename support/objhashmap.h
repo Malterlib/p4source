@@ -94,7 +94,7 @@ class ObjectHashMap
 	        EXTRA_LARGE = 1048576	// 20 bits
 	} ;
 
-    static const int MAX_OBJECTS = 5 * 1024 * 1024;
+    static const int MAX_OBJECTS = 10 * 1024 * 1024;
 
                 ObjectHashMap( int size = SMALL );
                 ~ObjectHashMap();

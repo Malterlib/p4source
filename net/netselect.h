@@ -118,7 +118,7 @@ class NetTcpSelector
 
 	/* Select() that works with BitArray or fd_set */
 
-	int Select( int &read, int &write, int usec )
+	int Select( int &read, int &write, int msec )
 	{
 	    for( ;; )
 	    {
@@ -127,10 +127,18 @@ class NetTcpSelector
 	        if( read ) SetRead(); else ClearRead();
 	        if( write ) SetWrite(); else ClearWrite();
 
-	        tv.tv_sec = 0;
-	        tv.tv_usec = usec;
+		if( msec < 1000 )
+		{
+		    tv.tv_sec = 0;
+		    tv.tv_usec = msec * 1000;
+		}
+		else
+		{
+		    tv.tv_sec = msec / 1000;
+		    tv.tv_usec = ( msec % 1000 ) * 1000;
+		}
 
-	        switch( select( fd+1, Rfds(), Wfds(), 0, usec >= 0 ? &tv : 0 ) )
+	        switch( select( fd+1, Rfds(), Wfds(), 0, msec >= 0 ? &tv : 0 ) )
 	        {
 	        case -1:	
 	            if( errno == EINTR )

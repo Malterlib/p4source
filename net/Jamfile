@@ -12,6 +12,7 @@ P4Library $(RPCLIB) :
 P4Library $(RPCLIB) :
 	netaddrinfo.cc
 	netipaddr.cc
+	netmulti.cc
 	netportparser.cc
 	netprotectaddr.cc
 	netstd.cc

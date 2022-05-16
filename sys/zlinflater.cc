@@ -57,13 +57,6 @@ ZLibInflater::GetLine( StrBuf *buf, int &eof, Error *e )
 	}
 }
 
-P4INT64
-ZLibInflater::GetBytesRead()
-{
-	z_streamp zls = (z_streamp)zstrm;
-	return zls->total_in;
-}
-
 int
 ZLibInflater::Read( unsigned char *buf, int cnt, int &eof, Error *e )
 {

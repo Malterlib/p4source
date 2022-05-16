@@ -199,9 +199,12 @@ class MapTable {
 	MapTable *	Join2( MapTableT dir1, MapTable *m2, 
 			       MapTableT dir2, const ErrorId *reason = 0 );
 	int		JoinCheck( MapTableT dir, const StrPtr &lhs );
+	int		JoinCheck( MapTableT dir, MapTable *c,
+			           MapTableT dir2 = LHS);
 	static int 	Match( const StrPtr &lhs, const StrPtr &rhs );
 	static int 	Match( MapHalf *l, const StrPtr &rhs );
 	static int	ValidDepotMap( const StrPtr &map );
+	void		Remove( int slot );
 	void		Reverse();
 	MapStrings *	Strings( MapTableT dir );
 	MapTable *	StripMap( MapFlag mapFlag );

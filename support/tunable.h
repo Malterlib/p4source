@@ -44,6 +44,7 @@ enum P4TunableName {
 	P4TUNE_DM_FLUSHFORCE,
 	P4TUNE_DM_FLUSHTRY,
 	P4TUNE_DM_FSTAT_MAXCONTENT,		// see userfstat.cc
+	P4TUNE_DM_GRAPH_ENABLED,		// see rhservice.cc
 	P4TUNE_DM_GREP_MAXLINELENGTH,
 	P4TUNE_DM_GREP_MAXREVS,
 	P4TUNE_DM_GREP_MAXCONTEXT,
@@ -76,6 +77,7 @@ enum P4TunableName {
 	P4TUNE_DM_SHELVE_PROMOTE,
 	P4TUNE_DM_STATUS_MATCHLINES,		// see userreconcile.cc
 	P4TUNE_DM_STATUS_MATCHSIZE,		// see dmreconcile.cc
+	P4TUNE_DM_SUBPROTECTS_GRANT_ADMIN,
 	P4TUNE_DM_USER_ACCESSUPDATE,		// see dmauser.cc
 	P4TUNE_DM_USER_ACCESSFORCE,		// see dmauser.cc
 	P4TUNE_DM_USER_INSECURELOGIN,		// see userlogin.cc
@@ -105,6 +107,7 @@ enum P4TunableName {
 	P4TUNE_LBR_PROXY_CASE,			// see pxclient.cc
 	P4TUNE_LBR_RCS_EXISTCHECK,		// see usersubmit.cc
 	P4TUNE_LBR_RCS_MAXLEN,			// see lbrkeyed.cc
+	P4TUNE_LBR_REPLICA_NOTRANSFER,		// see rhservice.cc
 	P4TUNE_LBR_RETRY_MAX,			// see lbrstatus.cc
 	P4TUNE_LBR_STAT_INTERVAL,		// see pxclient.cc and lbrstatus.cc
 	P4TUNE_LBR_VERIFY_IN,			// see lbrservice.cc
@@ -114,6 +117,7 @@ enum P4TunableName {
 	P4TUNE_MAP_JOINMAX1,
 	P4TUNE_MAP_JOINMAX2,
 	P4TUNE_MAP_MAXWILD,
+	P4TUNE_NET_AUTOTUNE,
 	P4TUNE_NET_BUFSIZE,			// see netbuffer.h
 	P4TUNE_NET_KEEPALIVE_DISABLE,		// see nettcptransport.cc
 	P4TUNE_NET_KEEPALIVE_IDLE,		// see nettcptransport.cc
@@ -185,6 +189,7 @@ enum P4TunableName {
 	P4TUNE_SPEC_CUSTOM,			// see userspec.cc
 	P4TUNE_STREAMVIEW_DOTS_LOW,		// see maptable.cc
 	P4TUNE_STREAMVIEW_SORT_REMAP,		// see viewgen.cc
+	P4TUNE_SUBMIT_COLLISIONCHECK,		// see usersubmit.cc
 	P4TUNE_SUBMIT_FORCENORETRANSFER,	// see usersubmit.cc
 	P4TUNE_SUBMIT_NORETRANSFER,		// see usersubmit.cc
 	P4TUNE_SUBMIT_UNLOCK_LOCKED,		// see usersubmit.cc
@@ -218,6 +223,7 @@ enum P4TunableName {
 	P4TUNE_ISTAT_MIMIC_ICHANGES,		// see dmistat.cc & DIOR_SPLIT
 	P4TUNE_INFO_P4AUTH_USERCHECK,		// see userinfo.cc
 	P4TUNE_AUTH_AUTOLOGIN,			// see rhservice.cc
+	P4TUNE_RPL_SUBMIT_NOCOPY,		// see usersubmit.cc
 
 	P4TUNE_LAST
 

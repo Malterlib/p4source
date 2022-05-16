@@ -10,6 +10,7 @@ P4Library $(RPCLIB) :
 	rpcdebug.cc
 	rpcdispatch.cc
 	rpcfwd.cc
+	rpcmulti.cc
 	rpcservice.cc
 	rpctrans.cc
 	;

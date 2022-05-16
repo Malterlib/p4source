@@ -479,6 +479,8 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionTab,
 	"force-delete",       Options::ForceDelete, 'F', 0,
 	                      &MsgSupp::OptionForceDelete,
+	"rename",             Options::Rename, 'r', 0,
+	                      &MsgSupp::OptionRename,
 
 	// Options below this line have no short-form equivalent:
 
@@ -538,6 +540,24 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionDiscardArchives,
 	"license-info",       Options::LicenseInfo, 0, 0,
 	                      &MsgSupp::OptionLicenseInfo,
+	"remote-user",        Options::RemoteUser, 0, ':',
+	                      &MsgSupp::OptionRemoteUser,
+	"ignore-changeview",  Options::IgnoreCMap, 0, 0,
+	                      &MsgSupp::OptionIgnoreCMap,
+	"mirror",             Options::Mirror, 0, 0,
+	                      &MsgSupp::OptionMirror,
+	"daemonsafe",	      Options::DaemonSafe,  0, 0,
+	                      &MsgSupp::OptionDaemonSafe,
+	"trigger",	      Options::Trigger,  0, 0,
+	                      &MsgSupp::OptionTrigger,
+	"ignore-have",        Options::IgnoreHave,  0, 0,
+	                      &MsgSupp::OptionIgnoreHave,
+	"graph-only",         Options::GraphOnly,  0, 0,
+	                      &MsgSupp::OptionGraphOnly,
+	"min-size",           Options::MinSize, 0, ':',
+	                      &MsgSupp::OptionMinSize,
+	"max-size",           Options::MaxSize, 0, ':',
+	                      &MsgSupp::OptionMaxSize,
 
 	0, 0, 0, 0, 0
 } ;

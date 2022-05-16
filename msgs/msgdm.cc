@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgDm error code is: 955
+ * Current high value for a MsgDm error code is: 959
  */
 
 # include <error.h>
@@ -205,11 +205,13 @@ ErrorId MsgDm::AlreadyUnloaded         = { ErrorOf( ES_DM, 705, E_FAILED, EV_CON
 ErrorId MsgDm::CantChangeUnloadedOpt   = { ErrorOf( ES_DM, 706, E_FAILED, EV_USAGE, 0 ), "The autoreload/noautoreload option may not be modified." } ;
 ErrorId MsgDm::NoUnloadedAutoLabel     = { ErrorOf( ES_DM, 717, E_FAILED, EV_USAGE, 0 ), "An automatic label may not specify the autoreload option." } ;
 ErrorId MsgDm::StreamIsUnloaded        = { ErrorOf( ES_DM, 748, E_FAILED, EV_CONFIG, 2 ), "Client %client% cannot be used with unloaded stream %stream%, switch to another stream or reload it." } ;
+ErrorId MsgDm::StreamNotGraph          = { ErrorOf( ES_DM, 957, E_FAILED, EV_USAGE, 0 ), "Stream client cannot be of type '%'graph'%'." } ;
 ErrorId MsgDm::NoStorageDir            = { ErrorOf( ES_DM, 886, E_FAILED, EV_CONFIG, 1 ), "'%type%' client type has not been configured for this server.\nStorage location '%'client.readonly.dir'%' needs to be set by the administrator." } ;
 ErrorId MsgDm::NotAsService            = { ErrorOf( ES_DM, 571, E_FAILED, EV_CONFIG, 0 ), "Command not allowed for a service user." } ;
 ErrorId MsgDm::LockedClient            = { ErrorOf( ES_DM, 94, E_FAILED, EV_PROTECT, 2 ), "Locked client '%client%' can only be used by owner '%user%'." } ;
 ErrorId MsgDm::LockedHost              = { ErrorOf( ES_DM, 95, E_FAILED, EV_PROTECT, 2 ), "Client '%client%' can only be used from host '%host%'." } ;
 ErrorId MsgDm::ClientBoundToServer     = { ErrorOf( ES_DM, 672, E_FAILED, EV_PROTECT, 2 ), "Client '%client%' is restricted to use on server '%serverID%'." } ;
+ErrorId MsgDm::CantChangeTypeOpened    = { ErrorOf( ES_DM, 958, E_FAILED, EV_USAGE, 0 ), "Can't change client type when files are open!" } ;
 ErrorId MsgDm::NotBoundToServer        = { ErrorOf( ES_DM, 762, E_FAILED, EV_PROTECT, 3 ), "%objectType% '%objectName%' is not restricted to use on server '%serverID%'." } ;
 ErrorId MsgDm::BindingNotAllowed       = { ErrorOf( ES_DM, 773, E_FAILED, EV_USAGE, 3 ), "%objectType% '%objectName%' should not be restricted to use on server '%serverID%'." } ;
 ErrorId MsgDm::BoundToOtherServer      = { ErrorOf( ES_DM, 761, E_FAILED, EV_PROTECT, 4 ), "%objectType% '%objectName%' is restricted to use on server '%domainServerID%', not on server '%serverID%'." } ;
@@ -273,6 +275,7 @@ ErrorId MsgDm::SemiInDefault           = { ErrorOf( ES_DM, 118, E_FAILED, EV_USA
                                
 ErrorId MsgDm::LicensedClients         = { ErrorOf( ES_DM, 119, E_INFO, EV_ADMIN, 2 ), "License count: %count% clients used of %max% licensed.\n" } ;
 ErrorId MsgDm::LicensedUsers           = { ErrorOf( ES_DM, 120, E_INFO, EV_ADMIN, 2 ), "License count: %count% users used of %max% licensed.\n" } ;
+ErrorId MsgDm::LicensedRepos           = { ErrorOf( ES_DM, 956, E_INFO, EV_ADMIN, 2 ), "License count: %count% repos used of %max% licensed.\n" } ;
 ErrorId MsgDm::TryDelClient            = { ErrorOf( ES_DM, 121, E_INFO, EV_ADMIN, 0 ), "Try deleting old clients with '%'client -d'%'." } ;
 ErrorId MsgDm::TryDelUser              = { ErrorOf( ES_DM, 122, E_INFO, EV_ADMIN, 0 ), "Try deleting old users with '%'user -d'%'." } ;
 ErrorId MsgDm::TooManyRoots            = { ErrorOf( ES_DM, 123, E_FAILED, EV_USAGE, 0 ), "Too many client root alternatives -- only 2 allowed." } ;
@@ -350,7 +353,7 @@ ErrorId MsgDm::StreamOverflow            = { ErrorOf( ES_DM, 549, E_FAILED, EV_U
 ErrorId MsgDm::NoStreamAtChange          = { ErrorOf( ES_DM, 550, E_FAILED, EV_CONTEXT, 2 ), "No stream '%stream%' existed at change %change%" } ;
 ErrorId MsgDm::NotStreamReady            = { ErrorOf( ES_DM, 557, E_FAILED, EV_USAGE, 1 ), "Client '%client%' requires an application that can fully support streams." } ;
 ErrorId MsgDm::MissingStream             = { ErrorOf( ES_DM, 575, E_FAILED, EV_UNKNOWN, 2 ), "Missing stream '%name%' in stream hierarchy for '%stream%'." } ;
-ErrorId MsgDm::InvalidStreamFmt          = { ErrorOf( ES_DM, 576, E_FAILED, EV_NONE, 1), "Stream '%stream%' is not the correct format of '//depotname/string' " } ;
+ErrorId MsgDm::InvalidStreamFmt          = { ErrorOf( ES_DM, 576, E_FAILED, EV_NONE, 1), "Stream '%stream%' is not the correct format of '//depotname/string'" } ;
 ErrorId MsgDm::StreamNotRelative	 = { ErrorOf( ES_DM, 872, E_FAILED, EV_NONE, 0), "Must specify a full stream path if not currently using a stream client." } ;
 ErrorId MsgDm::StreamPathRooted          = { ErrorOf( ES_DM, 578, E_FAILED, EV_NONE, 1), "View '%view%' must be relative and not contain leading slashes "  } ;
 ErrorId MsgDm::StreamPathSlash           = { ErrorOf( ES_DM, 579, E_FAILED, EV_NONE, 1), "Imported path '%view%' requires leading slashes in full depot path "  } ;
@@ -543,9 +546,11 @@ ErrorId MsgDm::MoveMisMatch            = { ErrorOf( ES_DM, 490, E_FATAL, EV_FAUL
 ErrorId MsgDm::MoveNoMatch             = { ErrorOf( ES_DM, 491, E_INFO, EV_NONE, 3 ), "%depotFile% - needs %direction%file %movedFile%" } ;
 ErrorId MsgDm::MoveNoInteg             = { ErrorOf( ES_DM, 763, E_FAILED, EV_NONE, 2 ), "%depotFile% - moved from %movedFile% but has no matching resolve record; must 'add -d' or 'move' to correct." } ;
 ErrorId MsgDm::MoveReadOnly            = { ErrorOf( ES_DM, 494, E_INFO, EV_NONE, 1 ), "%depotFile% - can't move to a spec or remote depot" } ;
+ErrorId MsgDm::MoveReadOnlySrc         = { ErrorOf( ES_DM, 952, E_INFO, EV_NONE, 1 ), "%depotFile% - can't move from a spec or remote depot" } ;
 ErrorId MsgDm::MoveNotSynced           = { ErrorOf( ES_DM, 528, E_INFO, EV_NONE, 1 ), "%depotFile% - not synced, can't force move" } ;
 ErrorId MsgDm::MoveNotResolved         = { ErrorOf( ES_DM, 529, E_INFO, EV_NONE, 1 ), "%depotFile% - is unresolved, can't force move" } ;
 ErrorId MsgDm::MoveNeedForce           = { ErrorOf( ES_DM, 530, E_INFO, EV_NONE, 1 ), "%clientFile% - is synced; use -f to force move" } ;
+ErrorId MsgDm::MoveCantForce           = { ErrorOf( ES_DM, 953, E_INFO, EV_NONE, 1 ), "%clientFile% - is synced; can't use -r with existing target" } ;
                                
 ErrorId MsgDm::OpenAlready             = { ErrorOf( ES_DM, 284, E_INFO, EV_NONE, 2 ), "%depotFile% - can't %action% (already opened on this client)" } ;
 ErrorId MsgDm::OpenReadOnly            = { ErrorOf( ES_DM, 285, E_INFO, EV_NONE, 2 ), "%depotFile% - can only %action% file in a local depot" } ;
@@ -612,7 +617,6 @@ ErrorId MsgDm::ProtectsMaxData         = { ErrorOf( ES_DM, 452, E_INFO, EV_NONE,
 ErrorId MsgDm::ProtectsEmpty           = { ErrorOf( ES_DM, 456, E_FAILED, EV_ADMIN, 0 ), "Protections table is empty." } ;
 ErrorId MsgDm::ProtectsNoSuper         = { ErrorOf( ES_DM, 469, E_FAILED, EV_ADMIN, 0 ), "Can't delete last valid 'super' entry from protections table." } ;
 ErrorId MsgDm::ProtectsNotCompatible   = { ErrorOf( ES_DM, 587, E_FAILED, EV_ADMIN, 0 ), "Helix P4Admin tool not compatible with '##' comments in protection table.\nIf you wish to continue using Helix P4Admin to administer the protection table please remove all '##' comments." } ;
-
 ErrorId MsgDm::ProtectsBadPerm         = { ErrorOf( ES_DM, 939, E_FAILED, EV_ADMIN, 0 ), "Can't add '%perm%' entry to sub-protections table." } ;
 ErrorId MsgDm::ProtectsPathOutOfScope  = { ErrorOf( ES_DM, 940, E_FAILED, EV_ADMIN, 0 ), "All paths in sub-protections table must be under path '%path%'." } ;
 ErrorId MsgDm::ProtectsOwnerEnds       = { ErrorOf( ES_DM, 941, E_FAILED, EV_ADMIN, 0 ), "Paths in 'owner' entries must end with '/...'." } ;
@@ -628,6 +632,7 @@ ErrorId MsgDm::PurgeCheck              = { ErrorOf( ES_DM, 310, E_INFO, EV_NONE,
 ErrorId MsgDm::PurgeNoRecords          = { ErrorOf( ES_DM, 311, E_INFO, EV_NONE, 0 ), "No records to delete." } ;
 ErrorId MsgDm::PurgeData               = { ErrorOf( ES_DM, 312, E_INFO, EV_NONE, 2 ), "%depotFile%%depotRev% - purged" } ;
 ErrorId MsgDm::PurgeActiveTask         = { ErrorOf( ES_DM, 737, E_FAILED, EV_ILLEGAL, 2 ), "Can't %action% active task stream files - '%depotFile%'" } ;
+ErrorId MsgDm::PurgeUnloadedTask       = { ErrorOf( ES_DM, 959, E_FAILED, EV_ILLEGAL, 2 ), "Can't %action% unloaded task stream files - '%depotFile%'" } ;
                                
 ErrorId MsgDm::ReleaseHasPending       = { ErrorOf( ES_DM, 313, E_INFO, EV_NONE, 2 ), "%depotFile%%haveRev% - has pending integrations, not reverted" } ;
 ErrorId MsgDm::ReleaseAbandon          = { ErrorOf( ES_DM, 314, E_INFO, EV_NONE, 3 ), "%depotFile%%haveRev% - was %action%, abandoned" } ;
@@ -693,30 +698,30 @@ ErrorId MsgDm::SpecDeleted             = { ErrorOf( ES_DM, 416, E_INFO, EV_NONE,
 ErrorId MsgDm::SpecNotDefined          = { ErrorOf( ES_DM, 417, E_FAILED, EV_UNKNOWN, 1 ), "Spec %type% not defined." } ;
 
 ErrorId MsgDm::ShelveCantUpdate        = { ErrorOf( ES_DM, 512, E_FAILED, EV_USAGE , 1 ), "%depotFile% - already shelved, use %'-f'% to update." } ;
-ErrorId MsgDm::ShelveLocked             = { ErrorOf( ES_DM, 518, E_INFO, EV_NONE, 1 ), "%depotFile% - shelved file locked, try again later." } ;
-ErrorId MsgDm::ShelveUnlocked             = { ErrorOf( ES_DM, 519, E_INFO, EV_NONE, 1 ), "%depotFile% - shelved file unlocked, try again later." } ;
-ErrorId MsgDm::ShelveIncompatible         = { ErrorOf( ES_DM, 522, E_FAILED, EV_USAGE, 1 ), "%depotFile% - can't overwrite a shelved moved file, use %'-r'% to replace." } ;
+ErrorId MsgDm::ShelveLocked            = { ErrorOf( ES_DM, 518, E_INFO, EV_NONE, 1 ), "%depotFile% - shelved file locked, try again later." } ;
+ErrorId MsgDm::ShelveUnlocked          = { ErrorOf( ES_DM, 519, E_INFO, EV_NONE, 1 ), "%depotFile% - shelved file unlocked, try again later." } ;
+ErrorId MsgDm::ShelveIncompatible      = { ErrorOf( ES_DM, 522, E_FAILED, EV_USAGE, 1 ), "%depotFile% - can't overwrite a shelved moved file, use %'-r'% to replace." } ;
 ErrorId MsgDm::ShelveMaxFiles          = { ErrorOf( ES_DM, 523, E_FAILED, EV_USAGE, 1 ), "Shelve file limit exceeded (over %maxFiles%)." } ;
-ErrorId MsgDm::ShelveNoPerm          = { ErrorOf( ES_DM, 541, E_INFO, EV_NONE, 1 ), "%depotFile% - no permission to shelve file" } ;
-ErrorId MsgDm::ShelveNeedsResolve          = { ErrorOf( ES_DM, 620, E_FAILED, EV_NONE, 3 ), "%depotFile% - must %'resolve'% %file%%srev% before shelving" } ;
-ErrorId MsgDm::ShelveOpenResolves          = { ErrorOf( ES_DM, 633, E_FAILED, EV_NONE, 3 ), "%depotFile% - unshelved file for [%user%@]%client% needs %'resolve'%" } ;
-ErrorId MsgDm::FieldCount            = { ErrorOf( ES_DM, 496, E_FAILED, EV_USAGE, 1 ), "'%tag%' unknown or wrong number of fields for path-type." } ;
-ErrorId MsgDm::StreamNotOwner     = { ErrorOf( ES_DM, 497, E_FAILED, EV_NONE, 2), "Stream '%stream%' is owned by '%owner%'." } ;
-ErrorId MsgDm::StreamTargetExists = { ErrorOf( ES_DM, 753, E_FAILED, EV_NONE, 1), "%stream% - can't create stream where files already exist." } ;
-ErrorId MsgDm::StreamsData 	  = { ErrorOf( ES_DM, 498, E_INFO, EV_NONE, 5 ), "Stream %stream% %type% %parent% '%title%'[ %status%]" } ;
-ErrorId MsgDm::StreamRootErr      = { ErrorOf( ES_DM, 499, E_FAILED, EV_NONE, 1), "Stream '%stream%' must begin with '%'//'%'." } ;
-ErrorId MsgDm::StreamNested        = { ErrorOf( ES_DM, 501, E_FAILED, EV_NONE, 2), "Streams cannot be nested. '%stream%' contains existing stream '%nested%'." } ;
-ErrorId MsgDm::StreamDoubleSlash   = { ErrorOf( ES_DM, 502, E_FAILED, EV_NONE, 1), "Stream '%stream%' contains embedded double slashes (%'//'%)." } ;
-ErrorId MsgDm::StreamEqDepot       = { ErrorOf( ES_DM, 503, E_FAILED, EV_NONE, 1), "Stream '%stream%' must be below depot level." } ;
-ErrorId MsgDm::StreamDepthErr      = { ErrorOf( ES_DM, 504, E_FAILED, EV_NONE, 1), "Stream '%stream%' must reside in first folder below depot level." } ;
-ErrorId MsgDm::StreamEndSlash      = { ErrorOf( ES_DM, 505, E_FAILED, EV_NONE, 1), "Trailing slash not allowed in '%id%'." } ;
-ErrorId MsgDm::StreamVsDomains          = { ErrorOf( ES_DM, 506, E_FATAL, EV_FAULT, 0 ), "Stream and domains table out of sync!" } ; // NOTRANS
-ErrorId MsgDm::StreamVsTemplate          = { ErrorOf( ES_DM, 816, E_FATAL, EV_FAULT, 1 ), "Stream and template table out of sync for stream %stream%!" } ; // NOTRANS
-ErrorId MsgDm::LocWild                  = { ErrorOf( ES_DM, 514, E_FAILED, EV_USAGE, 2 ), "%loc% wildcards (*, ...) not allowed in path: '%path%'." } ;
-ErrorId MsgDm::EmbWild                  = { ErrorOf( ES_DM, 543, E_FAILED, EV_USAGE, 1 ), "Embedded wildcards (*, ...) not allowed in '%path%'." } ;
-ErrorId MsgDm::EmbEllipse               = { ErrorOf( ES_DM, 924, E_FAILED, EV_USAGE, 1 ), "Embedded wildcards (...) not allowed in '%path%'." } ;
-ErrorId MsgDm::EmbSpecChar              = { ErrorOf( ES_DM, 700, E_FAILED, EV_USAGE, 1 ), "Embedded special characters (*, %%, #, @) not allowed in '%path%'." } ;
-ErrorId MsgDm::PosWild                  = { ErrorOf( ES_DM, 515, E_FAILED, EV_USAGE, 1 ), "Positional wildcards (%%%%x) not allowed in path: '%path%'." } ;
+ErrorId MsgDm::ShelveNoPerm            = { ErrorOf( ES_DM, 541, E_INFO, EV_NONE, 1 ), "%depotFile% - no permission to shelve file" } ;
+ErrorId MsgDm::ShelveNeedsResolve      = { ErrorOf( ES_DM, 620, E_FAILED, EV_NONE, 3 ), "%depotFile% - must %'resolve'% %file%%srev% before shelving" } ;
+ErrorId MsgDm::ShelveOpenResolves      = { ErrorOf( ES_DM, 633, E_FAILED, EV_NONE, 3 ), "%depotFile% - unshelved file for [%user%@]%client% needs %'resolve'%" } ;
+ErrorId MsgDm::FieldCount              = { ErrorOf( ES_DM, 496, E_FAILED, EV_USAGE, 1 ), "'%tag%' unknown or wrong number of fields for path-type." } ;
+ErrorId MsgDm::StreamNotOwner          = { ErrorOf( ES_DM, 497, E_FAILED, EV_NONE, 2), "Stream '%stream%' is owned by '%owner%'." } ;
+ErrorId MsgDm::StreamTargetExists      = { ErrorOf( ES_DM, 753, E_FAILED, EV_NONE, 1), "%stream% - can't create stream where files already exist." } ;
+ErrorId MsgDm::StreamsData             = { ErrorOf( ES_DM, 498, E_INFO, EV_NONE, 5 ), "Stream %stream% %type% %parent% '%title%'[ %status%]" } ;
+ErrorId MsgDm::StreamRootErr           = { ErrorOf( ES_DM, 499, E_FAILED, EV_NONE, 1), "Stream '%stream%' must begin with '%'//'%'." } ;
+ErrorId MsgDm::StreamNested            = { ErrorOf( ES_DM, 501, E_FAILED, EV_NONE, 2), "Streams cannot be nested. '%stream%' contains existing stream '%nested%'." } ;
+ErrorId MsgDm::StreamDoubleSlash       = { ErrorOf( ES_DM, 502, E_FAILED, EV_NONE, 1), "Stream '%stream%' contains embedded double slashes (%'//'%)." } ;
+ErrorId MsgDm::StreamEqDepot           = { ErrorOf( ES_DM, 503, E_FAILED, EV_NONE, 1), "Stream '%stream%' must be below depot level." } ;
+ErrorId MsgDm::StreamDepthErr          = { ErrorOf( ES_DM, 504, E_FAILED, EV_NONE, 1), "Stream '%stream%' must reside in first folder below depot level." } ;
+ErrorId MsgDm::StreamEndSlash          = { ErrorOf( ES_DM, 505, E_FAILED, EV_NONE, 1), "Trailing slash not allowed in '%id%'." } ;
+ErrorId MsgDm::StreamVsDomains         = { ErrorOf( ES_DM, 506, E_FATAL, EV_FAULT, 0 ), "Stream and domains table out of sync!" } ; // NOTRANS
+ErrorId MsgDm::StreamVsTemplate        = { ErrorOf( ES_DM, 816, E_FATAL, EV_FAULT, 1 ), "Stream and template table out of sync for stream %stream%!" } ; // NOTRANS
+ErrorId MsgDm::LocWild                 = { ErrorOf( ES_DM, 514, E_FAILED, EV_USAGE, 2 ), "%loc% wildcards (*, ...) not allowed in path: '%path%'." } ;
+ErrorId MsgDm::EmbWild                 = { ErrorOf( ES_DM, 543, E_FAILED, EV_USAGE, 1 ), "Embedded wildcards (*, ...) not allowed in '%path%'." } ;
+ErrorId MsgDm::EmbEllipse              = { ErrorOf( ES_DM, 924, E_FAILED, EV_USAGE, 1 ), "Embedded wildcards (...) not allowed in '%path%'." } ;
+ErrorId MsgDm::EmbSpecChar             = { ErrorOf( ES_DM, 700, E_FAILED, EV_USAGE, 1 ), "Embedded special characters (*, %%, #, @) not allowed in '%path%'." } ;
+ErrorId MsgDm::PosWild                 = { ErrorOf( ES_DM, 515, E_FAILED, EV_USAGE, 1 ), "Positional wildcards (%%%%x) not allowed in path: '%path%'." } ;
 
 ErrorId MsgDm::StreamOpened	       = { ErrorOf( ES_DM, 904, E_INFO, EV_NONE, 2 ), "Stream %stream%[@%haveChange%] - opened on this client" } ;
 ErrorId MsgDm::StreamIsOpen            = { ErrorOf( ES_DM, 905, E_WARN, EV_NOTYET, 1 ), "Stream %stream% is already open on this client." } ;
@@ -920,10 +925,10 @@ ErrorId MsgDm::ServersJnlAckData       = { ErrorOf( ES_DM, 801, E_INFO, EV_NONE,
 ErrorId MsgDm::NoSharedRevision        = { ErrorOf( ES_DM, 817, E_FAILED, EV_USAGE, 1 ), "Cannot import %depotFile% because there is no existing revision." } ;
 ErrorId MsgDm::NoSharedHistory         = { ErrorOf( ES_DM, 853, E_FAILED, EV_USAGE, 2 ), "Cannot import %depotFile%%depotRev% because it is not common to both file histories." } ;
 ErrorId MsgDm::ImportNoPermission         = { ErrorOf( ES_DM, 846, E_FAILED, EV_CONTEXT, 1 ), "Cannot import '%depotFile%' - protected namespace - access denied" } ;
-ErrorId MsgDm::ImportNoDepot           = { ErrorOf( ES_DM, 847, E_FAILED, EV_CONTEXT, 1 ), "Cannot import '%depotFile%' because it is in an unknown depot. " } ;
-ErrorId MsgDm::ImportDepotReadOnly     = { ErrorOf( ES_DM, 848, E_FAILED, EV_CONTEXT, 1 ), "Cannot import '%depotFile%' because this is a read-only depot. " } ;
-ErrorId MsgDm::DepotDepthDiffers     = { ErrorOf( ES_DM, 883, E_FAILED, EV_CONTEXT, 1 ), "Cannot change stream depth '%depotDepth%' when streams or depot archives already exist. " } ;
-ErrorId MsgDm::StreamDepthDiffers     = { ErrorOf( ES_DM, 893, E_FAILED, EV_CONTEXT, 2 ), "Stream %stream% name does not reflect depot depth-field '%depotDepth%'. " } ;
+ErrorId MsgDm::ImportNoDepot           = { ErrorOf( ES_DM, 847, E_FAILED, EV_CONTEXT, 1 ), "Cannot import '%depotFile%' because it is in an unknown depot." } ;
+ErrorId MsgDm::ImportDepotReadOnly     = { ErrorOf( ES_DM, 848, E_FAILED, EV_CONTEXT, 1 ), "Cannot import '%depotFile%' because this is a read-only depot." } ;
+ErrorId MsgDm::DepotDepthDiffers     = { ErrorOf( ES_DM, 883, E_FAILED, EV_CONTEXT, 1 ), "Cannot change stream depth '%depotDepth%' when streams or depot archives already exist." } ;
+ErrorId MsgDm::StreamDepthDiffers     = { ErrorOf( ES_DM, 893, E_FAILED, EV_CONTEXT, 2 ), "Stream %stream% name does not reflect depot depth-field '%depotDepth%'." } ;
 ErrorId MsgDm::DepotStreamDepthReq     = { ErrorOf( ES_DM, 896, E_FAILED, EV_CONTEXT, 1 ), "Depot '%depot%' of type stream requires StreamDepth field between 1-10." } ;
 ErrorId MsgDm::ZipIntegMismatch        = { ErrorOf( ES_DM, 834, E_FAILED, EV_FAULT, 0 ), "Integration record mismatch." } ;
 ErrorId MsgDm::ZipBranchDidntMap       = { ErrorOf( ES_DM, 835, E_FAILED, EV_USAGE, 1 ), "Specified branch map is missing an entry for %depotFile%." } ;

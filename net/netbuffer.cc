@@ -354,6 +354,21 @@ NetBuffer::Send( const char *buffer, int length, Error *re, Error *se )
 	}
 }
 
+int
+NetBuffer::Fill( Error *re, Error *se )
+{
+	DEBUGPRINT( DEBUG_BUFFER, "NetBuffer fill" );
+
+	PackRecv();
+	if( !RecvRoom() )
+	    return 0;
+
+	if( !transport->SendOrReceive( ioPtrs, se, re ) )
+	    return 0;
+
+	return 1;
+}
+
 void
 NetBuffer::Flush( Error *re, Error *se )
 {

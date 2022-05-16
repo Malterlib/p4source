@@ -20,7 +20,6 @@ class ZLibInflater
 	virtual int		Read( unsigned char *, int, int &, Error *e );
 	virtual void		Seek( offL_t pos, Error *e ) = 0;
 	virtual unsigned char	*GetBaseAddress() { return 0; }
-	virtual P4INT64		GetBytesRead();
 
     protected:
 

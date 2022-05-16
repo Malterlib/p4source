@@ -152,6 +152,7 @@ class NetTransport : public KeepAlive {
 	// I&O
 
 	virtual int	SendOrReceive( NetIoPtrs &io, Error *se, Error *re );
+	virtual int	DuplexReady();
 
 	// Report transport specfic information
 	virtual int	GetInfo( StrBuf * ) { return 0; }

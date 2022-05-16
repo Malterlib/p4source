@@ -76,7 +76,8 @@ enum ThreadMode {
 	TmbSingle,	// just single threading
 	TmbMulti,	// multi threading (fork, threads)
 	TmbDaemon,	// fork, then forking multi threading (UNIX)
-	TmbThreads	// multi threading (pthreads, threads)
+	TmbThreads,	// multi threading (pthreads, threads)
+	TmbDaemonSafe	// fork, then multi threading closing stdio (UNIX)
 } ;
 
 class Thread {
@@ -122,6 +123,10 @@ class Threader {
 	Process		*process;
 
 	int		threadCount; // not used by all implementations...
+
+    public:
+	static int	IsDaemon( ThreadMode tmb )
+	    { return tmb == TmbDaemon || tmb == TmbDaemonSafe; }
 } ;
 
 class Threading {

@@ -13,6 +13,7 @@
 # define NEED_SLEEP
 # define NEED_ERRNO
 # define NEED_THREADS
+# define NEED_FCNTL
 
 # include <stdhdrs.h>
 # include <pid.h>
@@ -405,8 +406,25 @@ class MultiThreader : public Threader {
 	    // Daemon?  Parent forks and exits, leaving child to
 	    // call the shots.
 
-	    if( tmb == TmbDaemon && fork() > 0 )
-		exit( 0 );
+	    if( IsDaemon( tmb ) )
+	    {
+		if( tmb == TmbDaemonSafe )
+		{
+		    // close stdio file operations
+		    close(0);
+		    close(1);
+		    close(2);
+		    int fd = open( "/dev/null", O_RDWR );
+		    if( fd == 0 )
+		    {
+			// must be fd 1 and 2
+			dup(fd);
+			dup(fd);
+		    }
+		}
+		if( fork() > 0 )
+		    exit( 0 );
+	    }
 
 	    threadCountPtr = &threadCount; // SIGCHLD handler will decrement it
 
@@ -702,6 +720,7 @@ Threading::Threading( ThreadMode tmb, Process *p )
 	    break;
 	case TmbMulti:
 	case TmbDaemon:
+	case TmbDaemonSafe:
 	    threader = new MultiThreader( tmb );
 	    break;
 	case TmbThreads:

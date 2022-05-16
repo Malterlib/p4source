@@ -39,7 +39,7 @@
 //  MACROS                                                                //
 ////////////////////////////////////////////////////////////////////////////
 # define DARWIN_MAX 32*1024
-# define HALF_SECOND 500000
+# define HALF_SECOND 500
 
 #define P4CHECKERROR( err, func, tag ) \
     do { \
