@@ -71,7 +71,7 @@ bool
 VarArray::Reserve()
 {
 	try { New( true ); }
-	catch( const std::bad_alloc& e ) { return false; }
+	catch( const std::bad_alloc &) { return false; }
 	return true;
 }
 

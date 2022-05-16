@@ -29,7 +29,7 @@
 
 class ThreadedKeepAlive : public KeepAlive {
     public:
-	int		IsAlive() { return !signaler.IsIntr(); }
+	int		IsAlive() { return !(*signaler).IsIntr(); }
 } ;
 
 class ThreadedTransfer : public ClientTransfer, public ClientUser
@@ -167,8 +167,8 @@ ThreadedTransfer::Transfer( ClientApi *client,
 	        return r;
 	    };
 
-	const bool sigState = signaler.GetState();
-	signaler.Disable();
+	const bool sigState = (*signaler).GetState();
+	(*signaler).Disable();
 
 	const bool extState = client->ExtensionsEnabled();
 	client->DisableExtensions();
@@ -186,11 +186,11 @@ ThreadedTransfer::Transfer( ClientApi *client,
 	    }
 	    // Throw away the error since it only shows up on ctrl-c:
 	    // "device or resource busy: device or resource busy"
-	    catch( const std::exception& e )
+	    catch( const std::exception &)
 	    {}
 
 	if( !sigState )
-	    signaler.Enable();
+	    (*signaler).Enable();
 
 	if( extState )
 	    client->EnableExtensions( e );
