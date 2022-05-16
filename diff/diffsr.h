@@ -39,14 +39,12 @@ class WClassReader : public LineReader {
 class DifflReader : public Sequencer {
 
     public:
-	DifflReader()	{ testEndEOL = 1; }
 	virtual int	Equal( LineNo lA, Sequence *B, LineNo lB );
 	virtual void	Load( Error *e );
 
 	// any newline character
 
 	int		NewLine( UChar c ) { return c == '\r' || c == '\n'; }
-	int		testEndEOL;
 } ;
 
 class DiffbReader : public DifflReader {

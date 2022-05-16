@@ -13,13 +13,12 @@
 # include <deque>
 # include <map>
 
-# include <p4script.h>
-# include <p4script53.h>
-
 # include <clientapi.h>
 # include <i18napi.h>
 # include <strtable.h>
 # include <spec.h>
+# include <p4script.h>
+# include <p4script53.h>
 
 # include "p4error.h"
 # include "p4result.h"

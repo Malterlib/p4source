@@ -55,7 +55,7 @@ void Base64::Encode(StrPtr &in, StrBuf &out )
 
         BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); //Ignore newlines - write everything in one line
         BIO_write(bio, in.Text(), in.Length());
-        BIO_flush(bio);
+        (void)BIO_flush(bio);
         bio = BIO_pop(b64);
         length = BIO_ctrl_pending(bio);
         out.Alloc( length + 1 );

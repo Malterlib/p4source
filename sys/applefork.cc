@@ -78,8 +78,8 @@ AppleForkSplit::Write( const char *buf, int length, Error *e )
 	    // Humanity -- we need some sanity
 
 	    if( version != MagicVersion || 
-		magic != MagicAppleSingle && 
-		magic != MagicAppleDouble ||
+		( magic != MagicAppleSingle && 
+		magic != MagicAppleDouble ) ||
 		numEntries < 0 || numEntries > 1000 )
 	    {
 		e->Set( E_FAILED, "Bad AppleSingle/Double header." );

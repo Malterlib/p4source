@@ -149,11 +149,6 @@ static ErrorId initCaseFlagMixup = { ErrorOf( 0, 0, E_FAILED, 0, 0),
 	"Specify either -C0 or -C1."
 };
 
-static ErrorId initServerFail = { ErrorOf( 0, 0, E_FAILED, 0, 0),
-	"\np4d server failed to initialize.  A 2015.1 or later p4d server\n"
-	"must be in your path and runable."
-};
-
 static ErrorId pasiveDiscoverFail  = { ErrorOf( 0, 0, E_FAILED, 0, 0 ),
 	"No available server to discover configuration, needs flags to\n"
 	"specify case sensitivity and Unicode settings:\n"
@@ -452,7 +447,7 @@ clientInitClone( int ac, char **av, Options &preops, Error *e )
 	    depth = sp->Atoi();
 
 	// icmanage (-Zapp=icmanage)
-	for( int i = 0; sp = preops.GetValue( 'Z', i ); i++ )
+	for( int i = 0; ( sp = preops.GetValue( 'Z', i ) ); i++ )
 	{
 	    if( !strncmp( sp->Text(), "app=", 4 ) )
 	        ruser.SetApplication( sp );

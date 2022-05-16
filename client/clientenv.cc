@@ -85,7 +85,7 @@ Client::GetClient()
 
 	// Strip .anything from client
 
-	if( c = strchr( client.Text(), '.' ) )
+	if( ( c = strchr( client.Text(), '.' ) ) )
 	{
 	    client.SetLength( c - client.Text() );
 	    client.Terminate();
@@ -114,7 +114,7 @@ Client::GetClientPath()
 
 	if( clientPath.Length() )
 	    return clientPath;
-	else if( c = enviro->Get( "P4CLIENTPATH" ) )
+	else if( ( c = enviro->Get( "P4CLIENTPATH" ) ) )
 	    clientPath = c;
 	else if( ServerDVCS() )
 	    return GetInitRoot();
@@ -128,9 +128,9 @@ Client::GetTempPath()
 
 	if( tempPath.Length() )
 	    return tempPath;
-	else if( c = enviro->Get( "TEMP" ) )
+	else if( ( c = enviro->Get( "TEMP" ) ) )
 	    tempPath = c;
-	else if( c = enviro->Get( "TMP" ) )
+	else if( ( c = enviro->Get( "TMP" ) ) )
 	    tempPath = c;
 	else {
 	    // Unix centric I know.  Windows will have TEMP set.
@@ -166,7 +166,7 @@ Client::GetHost()
 	{
 	    return host;
 	}
-	else if( c = enviro->Get( "P4HOST" ) )
+	else if( ( c = enviro->Get( "P4HOST" ) ) )
 	{
 	    host.Set( c );
 	}
@@ -174,7 +174,7 @@ Client::GetHost()
 	{
 	    // OK
 	}
-	else if( s = GetAddress( RAF_NAME ) )
+	else if( ( s = GetAddress( RAF_NAME ) ) )
 	{
 	    host.Set( s );
 	}
@@ -195,7 +195,7 @@ Client::GetLanguage()
 	{
 	    return language;
 	}
-	else if( c = enviro->Get( "P4LANGUAGE" ) )
+	else if( ( c = enviro->Get( "P4LANGUAGE" ) ) )
 	{
 	    language = c;
 	}
@@ -340,7 +340,7 @@ Client::GetPort()
 	{
 	    return port;
 	}
-	else if( c = enviro->Get( "P4PORT" ) )
+	else if( ( c = enviro->Get( "P4PORT" ) ) )
 	{
 	    port.Set( c );
 	}
@@ -375,7 +375,7 @@ Client::GetUser()
 	{
 	    // OK.
 	}
-	else if( c = enviro->Get( "P4USER" ) )
+	else if( ( c = enviro->Get( "P4USER" ) ) )
 	{
 	    user.Set( c );
 	}
@@ -390,7 +390,7 @@ Client::GetUser()
 	
 	// Translate spaces in user name to blanks.
 	
-	while( c = strchr( user.Text(), ' ' ) )
+	while( ( c = strchr( user.Text(), ' ' ) ) )
 		*c = '_';
 
 	return user;
@@ -408,7 +408,7 @@ Client::GetTicketFile()
 	{
 	    // OK.
 	}
-	else if( c = enviro->Get( "P4TICKETS" ) )
+	else if( ( c = enviro->Get( "P4TICKETS" ) ) )
 	{
 	    ticketfile.Set( c );
 	}
@@ -432,7 +432,7 @@ Client::GetTrustFile()
 	{
 	    // OK.
 	}
-	else if( c = enviro->Get( "P4TRUST" ) )
+	else if( ( c = enviro->Get( "P4TRUST" ) ) )
 	{
 	    trustfile.Set( c );
 	}
@@ -453,7 +453,7 @@ Client::GetLoginSSO()
 	{
 	    // OK.
 	}
-	else if ( c = enviro->Get( "P4LOGINSSO" ) )
+	else if ( ( c = enviro->Get( "P4LOGINSSO" ) ) )
 	{
 	    loginSSO.Set( c );
 	}
@@ -474,7 +474,7 @@ Client::GetSyncTrigger()
 	{
 	    // OK.
 	}
-	else if ( c = enviro->Get( "P4ZEROSYNC" ) )
+	else if ( ( c = enviro->Get( "P4ZEROSYNC" ) ) )
 	{
 	    syncTrigger.Set( c );
 	}
@@ -495,7 +495,7 @@ Client::GetIgnoreFile()
 	{
 	    // OK.
 	}
-	else if ( c = enviro->Get( "P4IGNORE" ) )
+	else if ( ( c = enviro->Get( "P4IGNORE" ) ) )
 	{
 	    ignorefile.Set( c );
 	}

@@ -94,6 +94,27 @@ extern "C"
 # include "netssltransport.h"
 # include "netsslmacros.h"
 
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
+extern "C" {
+
+static int
+InitLockCallbacks( Error *e );
+static int
+ShutdownLockCallbacks(void);
+static void
+LockingFunction(int mode, int n, const char *file, int line);
+static unsigned long
+IdFunction(void);
+static struct CRYPTO_dynlock_value *
+DynCreateFunction(const char *file, int line);
+static void
+DynLockFunction(int mode, struct CRYPTO_dynlock_value *l, const char *file, int line);
+static void
+DynDestroyFunction(struct CRYPTO_dynlock_value *l, const char *file, int line);
+
+}
+
+# endif // !OpenSSL 1.1
 
 ////////////////////////////////////////////////////////////////////////////
 //  Defines and Globals                                                   //
@@ -437,6 +458,12 @@ NetSslTransport::SslClientInit(Error *e)
 
 	if( !sClientCtx )
 	{
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
+	    // Silence -Wunused;
+	    (void)&InitLockCallbacks;
+	    (void)&ShutdownLockCallbacks;
+# endif
+
 # ifdef OS_NT
 # if OPENSSL_VERSION_NUMBER < 0x10100000L
 	    InitLockCallbacks( e );
@@ -839,7 +866,8 @@ NetSslTransport::SslHandshake( Error *e )
 	    = p4tunable.Get( P4TUNE_SSL_CLIENT_TIMEOUT ) * 1000;
 	DateTimeHighPrecision dtBeforeSelect, dtAfterSelect;
 	int maxwait = GetMaxWait();
-	if( maxwait && maxwait > sslClientTimeoutMs )
+	if( maxwait && 
+	    ( sslClientTimeoutMs == 0 || maxwait < sslClientTimeoutMs ) )
 	    sslClientTimeoutMs = maxwait;
 
 	/* select timeout */
@@ -910,9 +938,7 @@ NetSslTransport::SslHandshake( Error *e )
 			{
 			    // Timeout code for new client using SSL going against old server.
 			    if(!isAccepted && (counter > sslClientTimeoutMs)) {
-				TRANSPORT_PRINTF( SSLDEBUG_ERROR,
-				    "NetSslTransport::SslHandshake failed on client side: %d (timeout after %dms)",
-				    errorRet, counter);
+				TRANSPORT_PRINTF( SSLDEBUG_ERROR,"NetSslTransport::SslHandshake failed on client side: %d", errorRet);
 				e->Set( MsgRpc::SslConnect) << GetPortParser().String();
 				Close();
 				return false;
@@ -1472,7 +1498,7 @@ NetSslTransport::Close( void )
 	    char buf[1];
 
 	    if( selector->Select( r, w, max ) >= 0 && r )
-		int discard = read( t, buf, 1 );
+		(void)(read( t, buf, 1 )+1);
 	}
 
 	if (ssl)
@@ -1508,7 +1534,7 @@ NetSslTransport::Close( void )
 	    char buf[1];
 
 	    if( selector->Select( r, w, max ) >= 0 && r )
-		int discard = read( t, buf, 1 );
+		(void)(read( t, buf, 1 )+1);
 	}
 
 	NET_CLOSE_SOCKET(t);

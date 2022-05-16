@@ -152,6 +152,7 @@ void
 SpecData::SetComment( SpecElem *sd, int x, const StrPtr *val, int nl, Error *e )
 {
 	tVal.wv[0] = val->Text();
+	tVal.wv[1] = 0;
 	Comment( sd, x, tVal.wv, nl, e );
 }
 

@@ -89,23 +89,23 @@ static const struct transition {
 	SpecParseActions	act;
 } trans[12][7] = {
 
-/*		cSPACE	cNL	cCOLON	cPOUND	cQUOTE	cMISC	cEOS */
+/*                cSPACE      cNL         cCOLON      cPOUND     cQUOTE       cMISC       cEOS */
 /*------------------------------------------------------------------ */
-/* S START */ {	sS,aA,  sS,aA,  sS,aE,  sS,aC,  sT,aS,  sT,aS,  sS,a0 },  
-/* T TAG */   {	sS,aE,  sS,aE,  stU,aT, sS,aE,  sT,aA,  sT,aA,  sS,aE },  
+/* S START */ {	{ sS,aA },  { sS,aA },  { sS,aE },  { sS,aC },  { sT,aS },  { sT,aS },  { sS,a0 } },  
+/* T TAG */   {	{ sS,aE },  { sS,aE },  { stU,aT }, { sS,aE },  { sT,aA },  { sT,aA },  { sS,aE } },  
 
-/* tU TAGV */ {	stU,aA, stX,aA, stV,aS, stU,aC, sQ,aS,  stV,aS, sS,aE },  
-/* tV VAL */  {	stV,aB, stX,aV, stV,aA, stX,aV, sQ,aA,  stV,aA, stX,aV },
-/* tX LOOK */ {	stY,aR, stX,aN, sS,aE,  stX,aC, sS,aD,  sS,aD,  sS,aD },  
-/* tY IND */  {	stY,aR, stX,aN, stV,aA, stX,aC, sQ,aA,  stV,aA, sS,aE },  
+/* tU TAGV */ {	{ stU,aA }, { stX,aA }, { stV,aS }, { stU,aC }, { sQ,aS },  { stV,aS }, { sS,aE } },  
+/* tV VAL */  {	{ stV,aB }, { stX,aV }, { stV,aA }, { stX,aV }, { sQ,aA },  { stV,aA }, { stX,aV } },
+/* tX LOOK */ {	{ stY,aR }, { stX,aN }, { sS,aE },  { stX,aC }, { sS,aD },  { sS,aD },  { sS,aD } },  
+/* tY IND */  {	{ stY,aR }, { stX,aN }, { stV,aA }, { stX,aC }, { sQ,aA },  { stV,aA }, { sS,aE } },  
 
-/* Q QUOTE */ {	sQ,aA,  sR,aQ,  sQ,aA,  sQ,aA,  stV,aA, sQ,aA,  sR,aQ },
-/* R QUOTE2*/ {	sR,aA,  sR,aA,  sR,aA,  sR,aA,  stV,aA, sR,aA,  sQ,aG },
+/* Q QUOTE */ {	{ sQ,aA },  { sR,aQ },  { sQ,aA },  { sQ,aA },  { stV,aA }, { sQ,aA },  { sR,aQ } },
+/* R QUOTE2*/ {	{ sR,aA },  { sR,aA },  { sR,aA },  { sR,aA },  { stV,aA }, { sR,aA },  { sQ,aG } },
 
-/* bU TAGV */ {	sbU,aA, sbX,aA, sbV,aS, sbV,aS, sbV,aS, sbV,aS, sS,aE },  
-/* bV VAL */  {	sbV,aA, sbX,aW, sbV,aA, sbV,aA, sbV,aA, sbV,aA, sbX,aX },
-/* bX LOOK */ {	sbY,aR, sbX,aN, sS,aE,  sbX,aC, sS,aD,  sS,aD,  sS,aD },  
-/* bY IND */  {	sbY,aA, sbX,aN, sbV,aA, sbV,aA, sbV,aA, sbV,aA, sS,aE },  
+/* bU TAGV */ {	{ sbU,aA }, { sbX,aA }, { sbV,aS }, { sbV,aS }, { sbV,aS }, { sbV,aS }, { sS,aE } },  
+/* bV VAL */  {	{ sbV,aA }, { sbX,aW }, { sbV,aA }, { sbV,aA }, { sbV,aA }, { sbV,aA }, { sbX,aX } },
+/* bX LOOK */ {	{ sbY,aR }, { sbX,aN }, { sS,aE },  { sbX,aC }, { sS,aD },  { sS,aD },  { sS,aD } },  
+/* bY IND */  {	{ sbY,aA }, { sbX,aN }, { sbV,aA }, { sbV,aA }, { sbV,aA }, { sbV,aA }, { sS,aE } },  
 
 };
 

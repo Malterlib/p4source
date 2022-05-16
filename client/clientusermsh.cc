@@ -659,7 +659,7 @@ RubyDict::UnpackInt( StrRef &str )
 	len = value;
 	value = 0;
 
-	if( isneg = ( len < 0 ) )
+	if( ( isneg = ( len < 0 ) ) )
 	{
 	    len = -len;
 	    value = -1;

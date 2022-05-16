@@ -287,7 +287,7 @@ clientTrust( Client *client, Error *e )
 	    client->GetUi()->Prompt( StrRef( "Are you sure you want to establish trust (yes/no)? " ),
 			    res, 0, e );
 
-	    if( e->Test() || res != "y" && res != "yes" )
+	    if( e->Test() || ( res != "y" && res != "yes" ) )
 	    {
 		client->SetError();
 		return;

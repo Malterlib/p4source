@@ -69,7 +69,8 @@ P4APILibrary $(SUPPORTLIB) :
 #	uuidstrong.cc
 	vararray.cc
 	varlist.cc
-	varqsort.cc ;
+	varqsort.cc
+	trienode.cc ;
 
 Ident ident.cc ;
 

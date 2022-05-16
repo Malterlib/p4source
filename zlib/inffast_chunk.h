@@ -24,3 +24,4 @@
 #endif
 
 void ZLIB_INTERNAL inflate_fast_chunk_ OF((z_streamp strm, unsigned start));
+void ZLIB_INTERNAL inflate_fast_chunk_nossse3 OF((z_streamp strm, unsigned start));

@@ -66,6 +66,7 @@ ProgressReport::Increment( long p, int flag )
 	    position += p;
 	    fieldChanged |= CP_POS;
 	}
+	
 	ConsiderReport( flag );
 }
 
@@ -76,7 +77,7 @@ ProgressReport::ConsiderReport( int flag )
 	{
 	    int tim = tm.Time();
 	    if( tim < 500 )
-		return;
+	        return;
 	    tm.Restart();
 	}
 	DoReport( flag );

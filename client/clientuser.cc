@@ -353,7 +353,7 @@ ClientUser::HandleUrl( const StrPtr *url )
 	// done if no browser could be launched).
 
 	e.Set( MsgClient::GotoUrl ) << url;
-	Message( &e );
+	HandleError( &e );
 
 	char *env;
 	if( ( env = enviro->Get( "P4USEBROWSER" ) ) &&
@@ -832,7 +832,9 @@ ClientUserProgress::ProgressIndicator()
 ClientProgress *
 ClientUserProgress::CreateProgress( int t )
 {
-	return new ClientProgressText( t );
+	if( !ClientProgressText::InUse )
+	    return new ClientProgressText( t );
+	return 0;
 }
 
 int

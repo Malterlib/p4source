@@ -143,9 +143,9 @@ enum VVarSetAct {
 /*		on this     	on that    	on both */
 /*              for this,that   for that,that   for this,that */
 /*              --------------------------------------------- */
-/* Diff */  	PutOut, Stay,  	Stay, PutOut,  	Free, Free,
-/* Int */   	Free, Stay,     Stay, PutOut, 	PutOut, Free,
-/* Merge */ 	Put3rd, Stay,   Stay, Put3rd, 	Free, Put3rd,
+{/* Diff */  	{ PutOut, Stay }, { Stay, PutOut }, { Free, Free } },
+{/* Int */   	{ Free, Stay },   { Stay, PutOut }, { PutOut, Free } },
+{/* Merge */ 	{ Put3rd, Stay }, { Stay, Put3rd }, { Free, Put3rd } },
 
 } ;
 

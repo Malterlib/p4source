@@ -148,6 +148,7 @@ static int clientTickets( int argc, char **argv, Options &, Error *e );
 static int clientIgnores( int argc, char **argv, Options &, Error *e );
 int clientReplicate( int argc, char **argv, Options & );
 int clientInit( int argc, char **argv, Options &, int, Error *e );
+int clientSignPackage( int argc, char **argv, Options &, Error *e );
 int clientInitHelp( int, Error *e );
 int clientLegalHelp( Error *e );
 int clientTrustHelp( Error *e );
@@ -220,7 +221,7 @@ setVarsAndArgs( ClientApi &client, int argc, char **argv, Options &opts)
 	// Set any special -z var=value's, for debug
 	// Use -zfunc=something to override default func
 
-	for( int i = 0; s = opts.GetValue( 'z', i ); i++ )
+	for( int i = 0; ( s = opts.GetValue( 'z', i ) ); i++ )
 	{
 	    if( strstr( s->Text(), "prog=" ) == s->Text() )
 	        client.SetProg( s->Text() + 5 );
@@ -302,12 +303,12 @@ void
 clientSetVariables( ClientApi &client, Options &opts )
 {
 	StrPtr *s;
-	if( s = opts[ 'c' ] ) client.SetClient( s );
-	if( s = opts[ 'H' ] ) client.SetHost( s );
-	if( s = opts[ 'L' ] ) client.SetLanguage( s );
-	if( s = opts[ 'd' ] ) client.SetCwd( s );
-	if( s = opts[ 'u' ] ) client.SetUser( s );
-	if( s = opts[ 'p' ] ) client.SetPort( s );
+	if( ( s = opts[ 'c' ] ) ) client.SetClient( s );
+	if( ( s = opts[ 'H' ] ) ) client.SetHost( s );
+	if( ( s = opts[ 'L' ] ) ) client.SetLanguage( s );
+	if( ( s = opts[ 'd' ] ) ) client.SetCwd( s );
+	if( ( s = opts[ 'u' ] ) ) client.SetUser( s );
+	if( ( s = opts[ 'p' ] ) ) client.SetPort( s );
 }
 
 int
@@ -318,7 +319,7 @@ clientPrepareEnv( ClientApi &client, Options &opts, Enviro &enviro )
 	StrPtr *s;
 	StrBufDict envList;
 	StrRef var, val;
-	for ( int i = 0 ; s = opts.GetValue( 'E', i ) ; i++ )
+	for ( int i = 0 ; ( s = opts.GetValue( 'E', i ) ) ; i++ )
 	    envList.SetVarV( s->Text() );
 
 	// Apply these updates before and after each Config().
@@ -333,7 +334,7 @@ clientPrepareEnv( ClientApi &client, Options &opts, Enviro &enviro )
 	// Locale setting
 
 	// Early setting of cwd to find right P4CONFIG file...
-	if( s = opts[ 'd' ] ) client.SetCwd( s );
+	if( ( s = opts[ 'd' ] ) ) client.SetCwd( s );
 	for ( int i = 0 ; envList.GetVar( i, var, val ) ; i++ )
 	    client.GetEnviro()->Update( var.Text(), val.Text() );
 
@@ -435,7 +436,7 @@ clientRunCommand(
 
 	// Debugging 
 
-	for( int i = 0; s = opts.GetValue( 'v', i ); i++ )
+	for( int i = 0; ( s = opts.GetValue( 'v', i ) ); i++ )
 	    p4debug.SetLevel( s->Text() );
 
 	if( opts[ 's' ] || opts[ 'e' ] )
@@ -493,6 +494,23 @@ clientRunCommand(
 	               !strcmp( argv[1], "--local" ) ) )
 	        return clientLegalHelp( e );
 	}
+# ifdef HAS_CPP11
+	else if( argc >= 1 && !strcmp( argv[0], "extension" ) )
+	{
+	    Error eIgnore;
+	    const int longOpts[] = { Options::PkgExtension, 0 };
+	    Options opts;
+	    int eargc = argc-1;
+	    char **eargv = argv;
+	    eargv++;
+
+	    opts.ParseLong( eargc, eargv, "", longOpts, OPT_ANY,
+	                    MsgClient::Fatal, &eIgnore );
+
+	    if( opts[ Options::PkgExtension ] )
+	        return clientSignPackage( argc -1, argv + 1, opts, e );
+	}
+# endif // HAS_CPP11
 
 	ClientApi client;
 	Enviro enviro;
@@ -502,7 +520,7 @@ clientRunCommand(
 	// Get command line overrides of user, client, cwd, port
 	
 	clientSetVariables( client, opts );
-	if( s = opts[ 'P' ] )
+	if( ( s = opts[ 'P' ] ) )
 	{
 	    client.SetPassword( s );
 	    memset( s->Text(), '\0', s->Length() );
@@ -518,7 +536,7 @@ clientRunCommand(
 
 	// Any protocol settings?
 
-	for( int i = 0; s = opts.GetValue( 'Z', i ); i++ )
+	for( int i = 0; ( s = opts.GetValue( 'Z', i ) ); i++ )
 	    client.SetProtocolV( s->Text() );
 
 	// -G or -R implies -Z tag -Z sendspec
@@ -579,7 +597,8 @@ clientRunCommand(
 	    SCR_VERSION dv = ClientScript::scrVerFromFileName( script->Text() );
 	    SCR_VERSION v = dv == P4SCRIPT_UNKNOWN ? P4SCRIPT_LUA_53 : dv;
 
-	    if( ( s = opts[ Options::ScriptLang ] ) )
+	    if( ( ( s = opts[ Options::ScriptLang ] ) ) )
+	    {
 	        if( s->CCompare( StrRef( "lua"  ) ) )
 	        {
 	            e->Set( MsgScript::ScriptLangUnknown ) << s;
@@ -587,6 +606,7 @@ clientRunCommand(
 	        }
 	        else
 	            lang = *s;
+	    }
 
 	    if( ( s = opts[ Options::ScriptLangVersion ] ) )
 	        if( *s != "53" )
@@ -601,9 +621,9 @@ clientRunCommand(
 # endif
 	    if( e->Test() )
 	        return 1;
-	    if( s = opts[ Options::ScriptMaxMem ] )
+	    if( ( s = opts[ Options::ScriptMaxMem ] ) )
 	        scr.SetMaxMem( (scriptMem_t)s->Atoi64() );
-	    if( s = opts[ Options::ScriptMaxTime ] )
+	    if( ( s = opts[ Options::ScriptMaxTime ] ) )
 	        scr.SetMaxTime( s->Atoi64() );
 	    s = opts[ Options::Script ];
 
@@ -630,6 +650,25 @@ clientRunCommand(
 	                       p4_std_any::p4_any
 	        ( static_cast< std::function< void( ClientApi& ) > >( fn ) ), e );
 # endif
+
+	    if( (*script)[ 0 ] == '-' )
+	    {
+	        StrBuf txt;
+# ifdef HAS_EXTENSIONS
+	        auto in = FileSys::CreateUPtr( FST_TEXT );
+	        (*in)->Set( "-" );
+	        (*in)->Open( FOM_READ, e );
+
+	        if( e->Test() )
+	            return 1;
+
+	        (*in)->ReadWhole( &txt, e );
+
+	        if( e->Test() )
+	            return 1;
+# endif
+	        return !scr.doStr( txt.Text(), e ) || e->Test();
+	    }
 
 	    return !scr.doFile( script->Text(), e ) || e->Test();
 	}
@@ -909,7 +948,7 @@ clientMerger( int argc, char **argv, Error *e )
 	int oldbits = 0, bits;
 	int len;
 
-	for( ; bits = m->Read( buf, sizeof( buf ), &len ); oldbits = bits )
+	for( ; ( bits = m->Read( buf, sizeof( buf ), &len ) ); oldbits = bits )
 	{
 	    /* Merge check */
 
@@ -958,8 +997,8 @@ clientMerger( int argc, char **argv, Error *e )
 		printf( ">>>> %s\n", m->BitNames( bits ) );
 	    }
 	    else if( showall || 
-		     bits & SEL_CONF || 
-		     bits == SEL_ALL && oldbits & SEL_CONF )
+		     ( bits & SEL_CONF ) || 
+		     ( bits == SEL_ALL && ( oldbits & SEL_CONF ) ) )
 	    {
 		switch( bits )
 		{
@@ -1108,7 +1147,7 @@ clientTickets( int argc, char **argv, Options &global_opts, Error *e )
 	    }
 	}
 
-	if( c = enviro.Get( "P4TICKETS" ) )
+	if( ( c = enviro.Get( "P4TICKETS" ) ) )
 	    ticketfile.Set( c );
 	else
 	    h.GetTicketFile( ticketfile );
@@ -1183,7 +1222,7 @@ clientSet( int argc, char **argv, Options &global_opts, Error *e )
 	StrPtr *s;
 	enviro.LoadConfig( cwd, argc == 0 );
 
-	if( s = global_opts[ 'p' ] )
+	if( ( s = global_opts[ 'p' ] ) )
 	    lc = s->Text();
 	else if( ! ( lc = enviro.Get( "P4PORT" ) ) )
 	    lc = "perforce:1666";
@@ -1281,7 +1320,7 @@ clientSet( int argc, char **argv, Options &global_opts, Error *e )
 	{
 	    char *equals;
 
-	    if( equals = strchr( *argv, '=' ) )
+	    if( ( equals = strchr( *argv, '=' ) ) )
 	    {
 		var.Set( *argv, equals - *argv );
 		++equals;
@@ -1401,7 +1440,7 @@ clientIgnores( int argc, char **argv, Options &global_opts, Error *e )
 	    enviro.Update( var.Text(), val.Text() );
 
 
-	if( c = enviro.Get( "P4IGNORE" ) )
+	if( ( c = enviro.Get( "P4IGNORE" ) ) )
 	    ignorefile.Set( c );
 
 	// Collect some info about our target file

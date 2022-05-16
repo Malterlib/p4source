@@ -32,8 +32,6 @@
  */
 # ifdef USE_SSL
 
-static void Callback( int code, int arg, void *cb_arg );
-
 class NetSslCredentials
 {
 public:

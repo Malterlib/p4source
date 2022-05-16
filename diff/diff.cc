@@ -219,7 +219,7 @@ Diff::DiffNorm()
 	Snake *s = diff->GetSnake();
 	Snake *t;
 
-	for( ; t = s->next; s = t )
+	for( ; ( t = s->next ); s = t )
 	{
 	    /* Print edit operator */
 
@@ -253,7 +253,7 @@ Diff::DiffRcs()
 	Snake *s = diff->GetSnake();
 	Snake *t;
 
-	for( ; t = s->next; s = t )
+	for( ; ( t = s->next ); s = t )
 	{
 	    if( s->u < t->x )
 	    {
@@ -276,7 +276,7 @@ Diff::DiffHTML()
 	Snake *s = diff->GetSnake();
 	Snake *t;
 
-	for( ; t = s->next; s = t )
+	for( ; ( t = s->next ); s = t )
 	{
 	    // Dump the common stuff
 
@@ -318,7 +318,7 @@ Diff::DiffUnified( int c )
 	Snake *s = diff->GetSnake();
 	Snake *t;
 
-	while( t = s->next )
+	while( ( t = s->next ) )
 	{
 	    // Look for snake > 2 * CONTEXT
 
@@ -379,7 +379,7 @@ Diff::DiffContext( int c )
 	Snake *s = diff->GetSnake();
 	Snake *t;
 
-	for( ; t = s->next; s = t )
+	for( ; ( t = s->next ); s = t )
 	{
 	    // Look for snake > 2 * CONTEXT
 
@@ -464,7 +464,7 @@ Diff::DiffSummary()
 	LineNo c_added = 0;
 	LineNo c_edited = 0;
 
-	for( ; t = s->next; s = t )
+	for( ; ( t = s->next ); s = t )
 	{
 	    /* Print edit operator */
 

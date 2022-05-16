@@ -69,10 +69,12 @@ P4Api p4api :
 	msgclient.h
 	msgdb.h
 	msgdm.h
+	msgdm2.h
 	msggraph.h
 	msgos.h
 	msgrpc.h
 	msgserver.h
+	msgserver2.h
 	msgsupp.h
 	netbuffer.h
 	netconnect.h

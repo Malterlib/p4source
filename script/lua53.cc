@@ -18,6 +18,23 @@
 // potential performance improvements since the compiler can see everything
 // at once.
 
+
+# if defined(__GNUG__) && GCC_VERSION >= 40600
+# pragma GCC diagnostic push
+# pragma GCC diagnostic ignored "-Wunused-function"
+# endif
+# if defined(__clang__)
+# pragma clang diagnostic push
+# pragma clang diagnostic ignored "-Wunused"
+# endif
+
 # include "lua-5.3/one.cc"
+
+# if defined(__GNUG__) && GCC_VERSION >= 40600
+# pragma GCC diagnostic pop
+# endif
+# if defined(__clang__)
+# pragma clang diagnostic pop
+# endif
 
 # endif

@@ -101,6 +101,7 @@ class Sequencer {
 
 class VSequence {
     public:
+	virtual ~VSequence() {};
 	virtual LineNo	Lines() const = 0;
 	virtual int	Equal( LineNo lA, VSequence *B, LineNo lB ) = 0;
 	virtual int	ProbablyEqual( LineNo lA, VSequence *B, LineNo lB ) =0;

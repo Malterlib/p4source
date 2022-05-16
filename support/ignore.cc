@@ -597,8 +597,13 @@ Ignore::RejectCheck( const StrPtr &path, int isDir, StrBuf *line )
 
 	// Dirs have /... tails when checking in reverse
 
-	StrBuf dpath( cpath );
-	dpath << "...";
+	MapTable dmap;
+	if( isDir )
+	{
+	    StrBuf dpath( cpath );
+	    dpath << "...";
+	    dmap.Insert( dpath );
+	}
 
 	for( int i = 0; i < ignoreList->Count(); ++i )
 	{
@@ -622,12 +627,12 @@ Ignore::RejectCheck( const StrPtr &path, int isDir, StrBuf *line )
 	        ++p;
 
 	    // If we're checking against a directory and this is a reverse
-	    // include, it might allow files below this directoryt, even if
+	    // include, it might allow files below this directory, even if
 	    // this directory is ignored. To deal with this, we need to look
 	    // both ways check match in either direction)
 
 	    if( MapTable::Match( StrRef( p ), cpath ) ||
-	        ( isDir && doAdd && MapTable::Match( dpath, StrRef( p ) ) ) )
+	        ( isDir && doAdd && dmap.JoinCheck( LHS, StrRef( p ) ) ) )
 	    {
 	        if( DEBUG_MATCH )
 	            p4debug.printf(
@@ -684,7 +689,7 @@ Ignore::BuildIgnoreFiles( const StrPtr &ignoreNames )
 
 	    char *c;
 	    char *n = iname.Text();
-	    while( c = strchr( n, ';' ) )
+	    while( ( c = strchr( n, ';' ) ) )
 	    {
 	        if( c > n )
 	            ignoreFiles->Put()->Set( StrRef( n, c - n ) );

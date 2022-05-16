@@ -56,6 +56,7 @@ enum P4DebugType {
 	DT_EXTS,	// exts (extension)
 	DT_PROTECT,	// protections stats
 	DT_HEARTBEAT,	// Heartbeat related
+	DT_SHELVE,	// Shelving related
 	DT_LAST
 }  ;
 

@@ -9,13 +9,18 @@
 # include <timer.h>
 # include <progress.h>
 
+bool ClientProgressText::InUse = false;
+
 ClientProgressText::ClientProgressText( int ty )
-    : cnt( 0 ), total( 0 ), typeOfProgress( ty ), backup( 0 )
+    : cnt( 0 ), total( 0 ), typeOfProgress( ty ), backup( 0 ), done( false )
 {
+	InUse = true;
 }
 
 ClientProgressText::~ClientProgressText()
 {
+	if( !done )
+	    InUse = false;
 }
 
 void
@@ -37,6 +42,10 @@ ClientProgressText::Total( long t )
 int
 ClientProgressText::Update( long pos )
 {
+	// Safety to prevent multiple instances competing
+	if( done )
+	    return 0;
+	
 	StrBuf res;
 
 	if( cnt == 40 )
@@ -77,4 +86,14 @@ ClientProgressText::Done( int fail )
 	if( backup )
 	    putchar( '\b' );
 	printf( fail == CPP_FAILDONE ? "failed!\n" : "finishing\n");
+
+	// Let another instance take over
+	done = true;
+	InUse = false;
+}
+
+int
+ClientProgressText::GetProgressType() const
+{
+	return typeOfProgress;
 }

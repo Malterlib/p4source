@@ -51,27 +51,34 @@ int global_umask = -1;
 # define O_BINARY 0
 # endif
 
-# ifndef O_CLOEXEC
-# define O_CLOEXEC 0
-# endif
-
 const FileIOBinary::OpenMode FileIOBinary::openModes[4] = {
+	{
 	"open for read",
-		O_RDONLY|O_BINARY|O_CLOEXEC,  // bflags
-		O_RDONLY|O_BINARY|O_CLOEXEC,  // aflags
-		0,                            // stdio descriptor
+		O_RDONLY|O_BINARY,  // bflags
+		O_RDONLY|O_BINARY,  // aflags
+		0,                  // stdio descriptor
+	},
+
+	{
 	"open for write",
-		O_WRONLY|O_CREAT|O_TRUNC|O_BINARY|O_CLOEXEC,
-		O_WRONLY|O_CREAT|O_APPEND|O_CLOEXEC,
-		1,
-	"open for read/write",
-		O_RDWR|O_CREAT|O_BINARY|O_CLOEXEC,
-		O_RDWR|O_CREAT|O_APPEND|O_CLOEXEC,
-		1,
-	"open for untranslated write",
-		O_WRONLY|O_CREAT|O_TRUNC|O_BINARY|O_CLOEXEC,
-		O_WRONLY|O_CREAT|O_APPEND|O_BINARY|O_CLOEXEC,
+		O_WRONLY|O_CREAT|O_TRUNC|O_BINARY,
+		O_WRONLY|O_CREAT|O_APPEND,
 		1
+	},
+
+	{
+	"open for read/write",
+		O_RDWR|O_CREAT|O_BINARY,
+		O_RDWR|O_CREAT|O_APPEND,
+		1
+	},
+
+	{
+	"open for untranslated write",
+		O_WRONLY|O_CREAT|O_TRUNC|O_BINARY,
+		O_WRONLY|O_CREAT|O_APPEND|O_BINARY,
+		1
+	}
 } ;
 
 FileIO::FileIO()
@@ -810,9 +817,7 @@ FileIOAppend::Open( FileOpenMode mode, Error *e )
             checkStdio( fd );
 	    isStd = 1;
 	}
-	else if( ( fd = checkFd( openL( Name(),
-			 openModes[ mode ].aflags,
-			 PERM_0666 ) ) ) < 0 )
+	else if( ( fd = checkFd( openL( Name(), openModes[ mode ].aflags, PERM_0666 ) ) ) < 0 )
 	{
 	    e->Sys( openModes[ mode ].modeName, Name() );
 	    ClearDeleteOnClose();
@@ -836,29 +841,6 @@ FileIOAppend::GetSize()
 	}
 	else
 	    s = FileIOBinary::GetSize();
-
-	return s;
-}
-
-offL_t
-FileIOAppend::GetCurrentSize()
-{
-	offL_t s;
-
-	// Get the size of the current file (by path), not of a recently
-	// rename()'d file that still happens to be open on this->fd.
-
-	FileSys *f = FileSys::Create( FST_BINARY );
-	if( f )
-	{
-	    f->Set( path );
-	    s = f->GetSize();
-	    delete f;
-	}
-	else
-	{
-	    s = -1;
-	}
 
 	return s;
 }
@@ -952,12 +934,6 @@ FileIOAppend::Rename( FileSys *target, Error *e )
 
 	    mode = FOM_READ;
 
-	    if( lockFile( fd, LOCKF_UN ) < 0 )
-	    {
-		e->Sys( "Rename() UNLOCK for copying", Name() );
-		// try to keep going
-	    }
-
 	    Close( e );
 	    Copy( target, FPM_RO, e );
 
@@ -969,12 +945,6 @@ FileIOAppend::Rename( FileSys *target, Error *e )
 	}
 
 	target->Chmod( FPM_RO, e );
-
-	if( lockFile( fd, LOCKF_UN ) < 0 )
-	{
-	    e->Sys( "Rename() UNLOCK", Name() );
-	    // let this fall info the next e->Test
-	}
 
 	// Need to set mode to read so it doesn't try to chmod the
 	// file in the destructor

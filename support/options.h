@@ -390,6 +390,14 @@ class Options
 			ShowMemInfo    , // --show-mem-info
 			Repair         , // --repair
 			DeleteItem     , // --delete <item>
+			Sign           , // --sign <dir> (extension)
+			Cert           , // --cert (ext certificate)
+			Comment        , // --comment comment
+			AllowUnsigned  , // --allow-unsigned
+			SSInherit      , // --inherit
+			SSNoInherit    , // --noinherit
+			SSSourceComments, // --source-comments
+			SSParentView,    // --parentview
 			SwitchStreamUnrelated  , // switch --allow-unrelated
 
 	                UnusedLastOption

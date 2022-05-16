@@ -38,6 +38,7 @@ enum P4TunableName {
 	P4TUNE_DIFF_STHRESH,
 	P4TUNE_DM_ANNOTATE_MAXSIZE,
 	P4TUNE_DM_BATCH_DOMAINS,		// see dmdomains.cc
+	P4TUNE_DM_BATCH_NET,			// see dmrprobe.cc
 	P4TUNE_DM_CHANGE_RESTRICT_PENDING,
 	P4TUNE_DM_CHANGES_THRESH1,		// set dmchanges.cc
 	P4TUNE_DM_CHANGES_THRESH2,		// set dmchanges.cc
@@ -75,6 +76,7 @@ enum P4TunableName {
 	P4TUNE_DM_QUICK_REV,
 	P4TUNE_DM_QUICK_WORKING,
 	P4TUNE_DM_REPO_NOAUTOCREATE,		// see dmgraph.cc
+	P4TUNE_DM_REPO_UNPACK,			// see dmgraph.cc
 	P4TUNE_DM_RESOLVE_ATTRIB,
 	P4TUNE_DM_REVCX_THRESH1,
 	P4TUNE_DM_REVCX_THRESH2,
@@ -85,6 +87,7 @@ enum P4TunableName {
 	P4TUNE_DM_SHELVE_PROMOTE,
 	P4TUNE_DM_STATUS_MATCHLINES,		// see userreconcile.cc
 	P4TUNE_DM_STATUS_MATCHSIZE,		// see dmreconcile.cc
+	P4TUNE_DM_STREAM_PARENTVIEW,
 	P4TUNE_DM_SUBPROTECTS_GRANT_ADMIN,
 	P4TUNE_DM_USER_ACCESSUPDATE,		// see dmauser.cc
 	P4TUNE_DM_USER_ACCESSFORCE,		// see dmauser.cc
@@ -127,11 +130,11 @@ enum P4TunableName {
 	P4TUNE_LBR_STORAGE_DELAY,               // see userstorage.cc
 	P4TUNE_LBR_STORAGE_ALLOWSYMLINK,        // see userstorage.cc
 	P4TUNE_LBR_STORAGE_SKIPKEYED,           // see dmstorageupgrade.cc
+	P4TUNE_LBR_RCS_LOCKING,                 // see dmgrcslock.cc
 	P4TUNE_LOG_ORIGINHOST,			// see rhloggable.cc
 	P4TUNE_MAP_JOINMAX1,
 	P4TUNE_MAP_JOINMAX2,
 	P4TUNE_MAP_MAXWILD,
-	P4TUNE_MERGE_DL_ENDEOL,
 	P4TUNE_NET_AUTOTUNE,
 	P4TUNE_NET_BUFSIZE,			// see netbuffer.h
 	P4TUNE_NET_KEEPALIVE_DISABLE,		// see nettcptransport.cc
@@ -196,6 +199,7 @@ enum P4TunableName {
 	P4TUNE_RPL_LABELS_GLOBAL,		// See userlabel/userlabsync
 	P4TUNE_RPL_REPLAY_USERRP,		// See server / rpl.cc
 	P4TUNE_RPL_VERIFY_CACHE,		// See rhservice.cc
+	P4TUNE_RPL_PULL_ARCHIVEDEPOTS,		// See userpull.cc
 	P4TUNE_RUN_CLIENTEXTS_ALLOW,		// see rhservice.cc
 	P4TUNE_RUN_MOVE_ALLOW,			// see usermove.cc
 	P4TUNE_RUN_OBLITERATE_ALLOW,		// see userpurge.cc
@@ -204,6 +208,8 @@ enum P4TunableName {
 	P4TUNE_RUN_USERS_AUTHORIZE,		// see userusers.cc
 	P4TUNE_SERVER_COMMANDLIMITS,		// see dmcaller.cc
 	P4TUNE_SERVER_CTRLC_FILECLEANUP,	// see rhmain.cc
+	P4TUNE_SERVER_EXTS_ALLOW_ADMIN,	        // see userextension.cc
+	P4TUNE_SERVER_EXTS_ALLOW_UNSIGNED,	// see userextension.cc
 	P4TUNE_SERVER_FILECHARSET,
 	P4TUNE_SERVER_LOCKS_ARCHIVE,		// see userarchive.cc
 	P4TUNE_SERVER_LOCKS_SYNC,		// see usersync.cc

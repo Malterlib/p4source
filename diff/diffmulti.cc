@@ -226,7 +226,7 @@ MultiMerge::Add( FileSys *f, int revId, int chgId, Error *e )
 
 	MergeLine **p = &chain;
 
-	for( ; t = s->next; s = t )
+	for( ; ( t = s->next ); s = t )
 	{
 	    // I'm sure you forgot:
 

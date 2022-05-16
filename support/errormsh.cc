@@ -61,7 +61,7 @@ EscapePercents( StrBuf &buf, int offset )
 {
 	const char *p;
 
-	while( p = strchr( buf.Text() + offset, '%' ) )
+	while( ( p = strchr( buf.Text() + offset, '%' ) ) )
 	{
 	    /* This is slow, but rare. */
 
@@ -99,7 +99,7 @@ Error::Marshall0( StrBuf &out ) const
 	ErrorId *id;
 	StrBuf tmpBuf;
 
-	for( i = 0; id = GetId( i ); i++ )
+	for( i = 0; ( id = GetId( i ) ); i++ )
 	{
 	    /* Pack code and (new) offset for message */
 
@@ -401,7 +401,7 @@ Error::Marshall2( StrBuf &out ) const
 	StrRef r, l;
 	char c0 = 0;	// for null terminating strings
 
-	for( i = 0; id = GetId( i ); i++ )
+	for( i = 0; ( id = GetId( i ) ); i++ )
 	{
 	    StrOps::PackInt( out, id->code );
 	    StrOps::PackString( out, StrRef( id->fmt ) );

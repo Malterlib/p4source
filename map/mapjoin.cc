@@ -31,12 +31,12 @@
 MapFlag mapFlagGrid[6][6] = {
 
 		/* Map */	/* Unmap */	/* Remap */	/* Havemap */	/* Changemap */	/* Andmap */
-/* Map */	MfMap,		MfUnmap,	MfRemap,	MfHavemap,	MfChangemap,	MfAndmap,
-/* Unmap */	MfUnmap,	MfUnmap,	MfUnmap,	MfUnmap,	MfUnmap,	MfUnmap,
-/* Remap */	MfRemap,	MfUnmap,	MfRemap,	MfHavemap,	MfChangemap,	MfAndmap,
-/* Havemap */	MfHavemap,	MfUnmap,	MfHavemap,	MfHavemap,	MfHavemap,	MfAndmap,
-/* Changemap */	MfChangemap,	MfUnmap,	MfChangemap,	MfHavemap,	MfChangemap,	MfAndmap,
-/* Andmap */	MfAndmap,	MfUnmap,	MfAndmap,	MfAndmap,	MfChangemap,	MfAndmap,
+{ /* Map */	MfMap,		MfUnmap,	MfRemap,	MfHavemap,	MfChangemap,	MfAndmap },
+{ /* Unmap */	MfUnmap,	MfUnmap,	MfUnmap,	MfUnmap,	MfUnmap,	MfUnmap },
+{ /* Remap */	MfRemap,	MfUnmap,	MfRemap,	MfHavemap,	MfChangemap,	MfAndmap },
+{ /* Havemap */	MfHavemap,	MfUnmap,	MfHavemap,	MfHavemap,	MfHavemap,	MfAndmap },
+{ /* Changemap */	MfChangemap,	MfUnmap,	MfChangemap,	MfHavemap,	MfChangemap,	MfAndmap },
+{ /* Andmap */	MfAndmap,	MfUnmap,	MfAndmap,	MfAndmap,	MfChangemap,	MfAndmap },
 
 } ;
 
@@ -166,7 +166,7 @@ MapTable::Join(
 	        // Walk the list of possible pairs and call MapHalf::Join()
 	        // to do the wildcard joining.
 
-	        for( int i = 0; jp = pairArray.Get(i); i++ )
+	        for( int i = 0; ( jp = pairArray.Get(i) ); i++ )
 	        {
 		    j->map = jp->item1;
 		    j->map2 = jp->tree2;

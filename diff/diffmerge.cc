@@ -44,11 +44,8 @@
 
 # include <diff.h>
 # include <diffsp.h>
-# include <diffsr.h>
 # include <diffan.h>
 # include <diffmerge.h>
-
-#include <tunable.h>
 
 # define DEBUG_MERGE ( p4debug.GetLevel( DT_DIFF ) >= 3 )
 
@@ -62,28 +59,32 @@
 enum DiffLeg { DL_BASE, DL_LEG1, DL_LEG2, DL_LAST } ;
 
 const int selbitTab[ DL_LAST ][ DD_LAST ] = {
-
+	{
 /* BASE	at */ 	/* EOF */	0,		
 		/* LEG1	*/	SEL_BASE|SEL_LEG2,	// base == leg2
 		/* LEG2	*/	SEL_BASE|SEL_LEG1,	// base == leg1
 		/* BOTH	*/	SEL_BASE,	
 		/* CONF	*/	SEL_BASE|SEL_CONF,	
 		/* ALL */	SEL_ALL,
+	},
 
+	{
 /* LEG1	at */ 	/* EOF */	0,		
 		/* LEG1	*/	SEL_LEG1|SEL_RSLT,
 		/* LEG2	*/	0,			
 		/* BOTH	*/	SEL_LEG1|SEL_LEG2|SEL_RSLT, // leg1 == leg2
 		/* CONF	*/	SEL_LEG1|SEL_RSLT|SEL_CONF, // leg1 != leg2
 		/* ALL */	0,
+	},
 
+	{
 /* LEG2 at */ 	/* EOF */	0,
 		/* LEG1	*/	0,
 		/* LEG2	*/	SEL_LEG2|SEL_RSLT,
 		/* BOTH	*/	0,			// == leg1
 		/* CONF	*/	SEL_LEG2|SEL_RSLT|SEL_CONF, // leg1 != leg2
 		/* ALL */	0,
-
+	}
 };
 
 /* 
@@ -254,14 +255,6 @@ DiffMerge::DiffMerge(
 	if( e->Test() )
 	    return;
 
-	if( p4tunable.Get( P4TUNE_MERGE_DL_ENDEOL ) && 
-	    flags.sequence == DiffFlags::DashL )
-	{
-	    ((DifflReader *)bf->sequencer)->testEndEOL = 0;
-	    ((DifflReader *)lf1->sequencer)->testEndEOL = 0;
-	    ((DifflReader *)lf2->sequencer)->testEndEOL = 0;
-	}
-
 	/*
 	**  Fork off the two diffs, between the base and l1, and between
 	**  base and l2.  Prime the diff file structures by reading the
@@ -347,7 +340,7 @@ DiffMerge::Read( char *buf, int len, int *outlen )
 
 	    case MS_BASE:		/* dumping the original */
 
-		if( selbits = selbitTab[ DL_BASE ][ diffDiff ] )
+		if( ( selbits = selbitTab[ DL_BASE ][ diffDiff ] ) )
 		{
 		    readFile = bf;
 		    readFile->SeekLine( bf->start );
@@ -357,7 +350,7 @@ DiffMerge::Read( char *buf, int len, int *outlen )
 
 	    case MS_LEG1:		/* dumping leg1 */
 
-		if( selbits = selbitTab[ DL_LEG1 ][ diffDiff ] )
+		if( ( selbits = selbitTab[ DL_LEG1 ][ diffDiff ] ) )
 		{
 		    readFile = lf1;
 		    readFile->SeekLine( lf1->start );
@@ -367,7 +360,7 @@ DiffMerge::Read( char *buf, int len, int *outlen )
 
 	    case MS_LEG2:		/* dumping leg2 */
 
-		if( selbits = selbitTab[ DL_LEG2 ][ diffDiff ] )
+		if( ( selbits = selbitTab[ DL_LEG2 ][ diffDiff ] ) )
 		{
 		    readFile = lf2;
 		    readFile->SeekLine( lf2->start );
@@ -486,138 +479,159 @@ struct DiffGrid {
 } ;
 
 const DiffGrid twoWayGrid[2][2][2][2][2][2] = {
+//    ---- BASE/LEG1        ---- BASE/LEG2           ---- LEG1/LEG2
+//    ||                    ||                       ||
+//    __   __   __     __   __   _X        __   __   X_      __   __   XX
+//    __   _X   __     __   _X   _X        __   _X   X_      __   _X   XX
+//    __   X_   __     __   X_   _X        __   X_   X_      __   X_   XX
+//    __   XX   __     __   XX   _X        __   XX   X_      __   XX   XX
 
-//    ---- BASE/LEG1         ---- BASE/LEG2         ---- LEG1/LEG2
-//    ||                     ||                     ||
-//    __   __   __      __   __   _X      __   __   X_      __   __   XX  
-//    __   _X   __      __   _X   _X      __   _X   X_      __   _X   XX  
-//    __   X_   __      __   X_   _X      __   X_   X_      __   X_   XX  
-//    __   XX   __      __   XX   _X      __   XX   X_      __   XX   XX  
+{ {
+{{{{ CONF,DD_CONF }, { CONF,DD_CONF }}, {{ CONF,DD_CONF }, { BOTH,DD_BOTH }}},
+ {{{ CONF,DD_CONF }, { CONF,DD_CONF }}, {{ CONF,DD_CONF }, { BOTH,DD_BOTH }}}},
+{{{{ CONF,DD_CONF }, { CONF,DD_CONF }}, {{ CONF,DD_CONF }, { BOTH,DD_BOTH }}},
+ {{{ CONF,DD_CONF }, { CONF,DD_CONF }}, {{ CONF,DD_CONF }, { BOTH,DD_BOTH }}}},
+},
 
-      CONF,DD_CONF,     CONF,DD_CONF,     CONF,DD_CONF,     BOTH,DD_BOTH,
-      CONF,DD_CONF,     CONF,DD_CONF,     CONF,DD_CONF,     BOTH,DD_BOTH,
-      CONF,DD_CONF,     CONF,DD_CONF,     CONF,DD_CONF,     BOTH,DD_BOTH,
-      CONF,DD_CONF,     CONF,DD_CONF,     CONF,DD_CONF,     BOTH,DD_BOTH,
+//   _X   __   __      _X   __   _X        _X   __   X_      _X   __   XX
+//   _X   _X   __      _X   _X   _X        _X   _X   X_      _X   _X   XX
+//   _X   X_   __      _X   X_   _X        _X   X_   X_      _X   X_   XX
+//   _X   XX   __      _X   XX   _X        _X   XX   X_      _X   XX   XX
 
-//    _X   __   __      _X   __   _X      _X   __   X_      _X   __   XX  
-//    _X   _X   __      _X   _X   _X      _X   _X   X_      _X   _X   XX  
-//    _X   X_   __      _X   X_   _X      _X   X_   X_      _X   X_   XX  
-//    _X   XX   __      _X   XX   _X      _X   XX   X_      _X   XX   XX  
+{
+{{{{ CONF,DD_CONF }, { CONF,DD_CONF }}, {{ CONF,DD_CONF }, { BOTH,DD_BOTH }}},
+ {{{ CONF,DD_CONF }, { CONF,DD_CONF }}, {{ CONF,DD_CONF }, { BOTH,DD_BOTH }}}},
+{{{{ CONF,DD_CONF }, { CONF,DD_CONF }}, {{ CONF,DD_CONF }, { BOTH,DD_BOTH }}},
+ {{{ CONF,DD_CONF }, { CONF,DD_CONF }}, {{ CONF,DD_CONF }, { BOTH,DD_BOTH }}}},
+},},
 
-      CONF,DD_CONF,     CONF,DD_CONF,     CONF,DD_CONF,     BOTH,DD_BOTH,
-      CONF,DD_CONF,     CONF,DD_CONF,     CONF,DD_CONF,     BOTH,DD_BOTH,
-      CONF,DD_CONF,     CONF,DD_CONF,     CONF,DD_CONF,     BOTH,DD_BOTH,
-      CONF,DD_CONF,     CONF,DD_CONF,     CONF,DD_CONF,     BOTH,DD_BOTH,
+//   X_   __   __      X_   __   _X        X_   __   X_      X_   __   XX
+//   X_   _X   __      X_   _X   _X        X_   _X   X_      X_   _X   XX
+//   X_   X_   __      X_   X_   _X        X_   X_   X_      X_   X_   XX
+//   X_   XX   __      X_   XX   _X        X_   XX   X_      X_   XX   XX
 
-//    X_   __   __      X_   __   _X      X_   __   X_      X_   __   XX  
-//    X_   _X   __      X_   _X   _X      X_   _X   X_      X_   _X   XX  
-//    X_   X_   __      X_   X_   _X      X_   X_   X_      X_   X_   XX  
-//    X_   XX   __      X_   XX   _X      X_   XX   X_      X_   XX   XX  
+{ {
+{{{{ CONF,DD_CONF }, { CONF,DD_CONF }}, {{ CONF,DD_CONF }, { BOTH,DD_BOTH }}},
+ {{{ CONF,DD_CONF }, { CONF,DD_CONF }}, {{ CONF,DD_CONF }, { BOTH,DD_BOTH }}}},
+{{{{ CONF,DD_CONF }, { CONF,DD_CONF }}, {{ CONF,DD_CONF }, { BOTH,DD_BOTH }}},
+ {{{ CONF,DD_CONF }, { CONF,DD_CONF }}, {{ CONF,DD_CONF }, { BOTH,DD_BOTH }}}},
+},{
 
-      CONF,DD_CONF,     CONF,DD_CONF,     CONF,DD_CONF,     BOTH,DD_BOTH,
-      CONF,DD_CONF,     CONF,DD_CONF,     CONF,DD_CONF,     BOTH,DD_BOTH,
-      CONF,DD_CONF,     CONF,DD_CONF,     CONF,DD_CONF,     BOTH,DD_BOTH,
-      CONF,DD_CONF,     CONF,DD_CONF,     CONF,DD_CONF,     BOTH,DD_BOTH,
+//   XX   __   __      XX   __   _X        XX   __   X_      XX   __   XX
+//   XX   _X   __      XX   _X   _X        XX   _X   X_      XX   _X   XX
+//   XX   X_   __      XX   X_   _X        XX   X_   X_      XX   X_   XX
+//   XX   XX   __      XX   XX   _X        XX   XX   X_      XX   XX   XX
 
-//    XX   __   __      XX   __   _X      XX   __   X_      XX   __   XX  
-//    XX   _X   __      XX   _X   _X      XX   _X   X_      XX   _X   XX  
-//    XX   X_   __      XX   X_   _X      XX   X_   X_      XX   X_   XX  
-//    XX   XX   __      XX   XX   _X      XX   XX   X_      XX   XX   XX  
-
-      CONF,DD_CONF,     CONF,DD_CONF,     CONF,DD_CONF,     BOTH,DD_BOTH,
-      CONF,DD_CONF,     CONF,DD_CONF,     CONF,DD_CONF,     BOTH,DD_BOTH,
-      CONF,DD_CONF,     CONF,DD_CONF,     CONF,DD_CONF,     BOTH,DD_BOTH,
-      CONF,DD_CONF,     CONF,DD_CONF,     CONF,DD_CONF,     BOTH,DD_BOTH
+{{{{ CONF,DD_CONF }, { CONF,DD_CONF }}, {{ CONF,DD_CONF }, { BOTH,DD_BOTH }}},
+ {{{ CONF,DD_CONF }, { CONF,DD_CONF }}, {{ CONF,DD_CONF }, { BOTH,DD_BOTH }}}},
+{{{{ CONF,DD_CONF }, { CONF,DD_CONF }}, {{ CONF,DD_CONF }, { BOTH,DD_BOTH }}},
+ {{{ CONF,DD_CONF }, { CONF,DD_CONF }}, {{ CONF,DD_CONF }, { BOTH,DD_BOTH }}}}
+} }
 } ;
 
 const DiffGrid optimalGrid[2][2][2][2][2][2] = {
 
-//    ---- BASE/LEG1         ---- BASE/LEG2         ---- LEG1/LEG2
-//    ||                     ||                     ||
-//    __   __   __      __   __   _X      __   __   X_      __   __   XX  
-//    __   _X   __      __   _X   _X      __   _X   X_      __   _X   XX  
-//    __   X_   __      __   X_   _X      __   X_   X_      __   X_   XX  
-//    __   XX   __      __   XX   _X      __   XX   X_      __   XX   XX  
+//   ---- BASE/LEG1          ---- BASE/LEG2            ---- LEG1/LEG2
+//   ||                      ||                        ||
+//   __   __   __       __   __   _X         __   __   X_       __   __   XX
+//   __   _X   __       __   _X   _X         __   _X   X_       __   _X   XX
+//   __   X_   __       __   X_   _X         __   X_   X_       __   X_   XX
+//   __   XX   __       __   XX   _X         __   XX   X_       __   XX   XX
 
-      CONF,DD_CONF,     INSX1,DD_LEG1,    INSX2,DD_LEG2,    BOTHX,DD_BOTH,
-      CONF,DD_CONF,     INSC6,DD_CONF,    INSX2,DD_LEG2,    BOTH,DD_BOTH,
-      CONF,DD_CONF,     CONF,DD_CONF,     DELB,DD_BOTH,     DELB,DD_BOTH,
-      EDITC1,DD_CONF,   EDIT1,DD_LEG1,    EDIT1,DD_LEG1,    ALL2,DD_ALL,
+{ {
+{{{{ CONF,DD_CONF },  { INSX1,DD_LEG1 }}, {{ INSX2,DD_LEG2 }, { BOTHX,DD_BOTH }}},
+ {{{ CONF,DD_CONF },  { INSC6,DD_CONF }}, {{ INSX2,DD_LEG2 }, { BOTH,DD_BOTH }}}},
+{{{{ CONF,DD_CONF },  { CONF,DD_CONF  }}, {{ DELB,DD_BOTH  }, { DELB,DD_BOTH }}},
+ {{{ EDITC1,DD_CONF },{ EDIT1,DD_LEG1 }}, {{ EDIT1,DD_LEG1 }, { ALL2,DD_ALL }}}},
+},
 
-//    _X   __   __      _X   __   _X      _X   __   X_      _X   __   XX  
-//    _X   _X   __      _X   _X   _X      _X   _X   X_      _X   _X   XX  
-//    _X   X_   __      _X   X_   _X      _X   X_   X_      _X   X_   XX  
-//    _X   XX   __      _X   XX   _X      _X   XX   X_      _X   XX   XX  
+//    _X   __   __      _X   __   _X        _X   __   X_       _X   __   XX
+//    _X   _X   __      _X   _X   _X        _X   _X   X_       _X   _X   XX
+//    _X   X_   __      _X   X_   _X        _X   X_   X_       _X   X_   XX
+//    _X   XX   __      _X   XX   _X        _X   XX   X_       _X   XX   XX
 
-      CONF,DD_CONF,     INSX1,DD_LEG1,    INSC5,DD_CONF,    BOTH,DD_BOTH,
-      INS12,DD_CONF,    INSX12,DD_CONF,   INSY12,DD_CONF,   BOTH,DD_BOTH,
-      CONF,DD_CONF,     CONF,DD_CONF,     INSC3,DD_CONF,    INSC3,DD_CONF,
-      INSX3,DD_LEG1,    INSX1,DD_LEG1,    INSC1,DD_CONF,    ALL2,DD_ALL,
+{
+{{{{ CONF,DD_CONF  }, { INSX1,DD_LEG1 }},{{ INSC5,DD_CONF }, { BOTH,DD_BOTH }}},
+ {{{ INS12,DD_CONF }, { INSX12,DD_CONF}},{{ INSY12,DD_CONF}, { BOTH,DD_BOTH }}}},
+{{{{ CONF,DD_CONF  }, { CONF,DD_CONF  }},{{ INSC3,DD_CONF }, { INSC3,DD_CONF }}},
+ {{{ INSX3,DD_LEG1 }, { INSX1,DD_LEG1 }},{{ INSC1,DD_CONF }, { ALL2,DD_ALL }}}},
+}, },
 
-//    X_   __   __      X_   __   _X      X_   __   X_      X_   __   XX  
-//    X_   _X   __      X_   _X   _X      X_   _X   X_      X_   _X   XX  
-//    X_   X_   __      X_   X_   _X      X_   X_   X_      X_   X_   XX  
-//    X_   XX   __      X_   XX   _X      X_   XX   X_      X_   XX   XX  
+//   X_   __   __      X_   __   _X         X_   __   X_      X_   __   XX
+//   X_   _X   __      X_   _X   _X         X_   _X   X_      X_   _X   XX
+//   X_   X_   __      X_   X_   _X         X_   X_   X_      X_   X_   XX
+//   X_   XX   __      X_   XX   _X         X_   XX   X_      X_   XX   XX
 
-      CONF,DD_CONF,     DELB,DD_BOTH,     CONF,DD_CONF,     DELB,DD_BOTH,
-      CONF,DD_CONF,     INSC4,DD_CONF,    CONF,DD_CONF,     INSC4,DD_CONF,
-      DELB,DD_BOTH,     DELB,DD_BOTH,     DELB,DD_BOTH,     DELB,DD_BOTH,
-      DEL1,DD_LEG1,     DEL1,DD_LEG1,     INSC8,DD_CONF,    ALL2,DD_ALL,
+{ {
+{{{{ CONF,DD_CONF }, { DELB,DD_BOTH  }}, {{ CONF,DD_CONF }, { DELB,DD_BOTH }}},
+ {{{ CONF,DD_CONF }, { INSC4,DD_CONF }}, {{ CONF,DD_CONF }, { INSC4,DD_CONF }}}},
+{{{{ DELB,DD_BOTH }, { DELB,DD_BOTH  }}, {{ DELB,DD_BOTH }, { DELB,DD_BOTH }}},
+ {{{ DEL1,DD_LEG1 }, { DEL1,DD_LEG1  }}, {{ INSC8,DD_CONF}, { ALL2,DD_ALL }}}},
+},
 
-//    XX   __   __      XX   __   _X      XX   __   X_      XX   __   XX  
-//    XX   _X   __      XX   _X   _X      XX   _X   X_      XX   _X   XX  
-//    XX   X_   __      XX   X_   _X      XX   X_   X_      XX   X_   XX  
-//    XX   XX   __      XX   XX   _X      XX   XX   X_      XX   XX   XX  
+//    XX   __   __       XX   __   _X         XX   __   X_       XX   __   XX
+//    XX   _X   __       XX   _X   _X         XX   _X   X_       XX   _X   XX
+//    XX   X_   __       XX   X_   _X         XX   X_   X_       XX   X_   XX
+//    XX   XX   __       XX   XX   _X         XX   XX   X_       XX   XX   XX
 
-      EDITC2,DD_CONF,   EDIT2,DD_LEG2,    EDIT2,DD_LEG2,    ALL1,DD_ALL,
-      INSX4,DD_LEG2,    INSC2,DD_CONF,    INSX2,DD_LEG2,    ALL1,DD_ALL,
-      DEL2,DD_LEG2,     INSC7,DD_CONF,    DEL2,DD_LEG2,     ALL1,DD_ALL,
-      ALL,DD_ALL,       ALL,DD_ALL,       ALL,DD_ALL,       ALL,DD_ALL
+{
+{{{{ EDITC2,DD_CONF }, { EDIT2,DD_LEG2 }}, {{ EDIT2,DD_LEG2 }, { ALL1,DD_ALL }}},
+ {{{ INSX4,DD_LEG2  }, { INSC2,DD_CONF }}, {{ INSX2,DD_LEG2 }, { ALL1,DD_ALL }}}},
+{{{{ DEL2,DD_LEG2   }, { INSC7,DD_CONF }}, {{ DEL2,DD_LEG2  }, { ALL1,DD_ALL }}},
+ {{{ ALL,DD_ALL     }, { ALL,DD_ALL    }}, {{ ALL,DD_ALL    }, { ALL,DD_ALL }}}}
+} }
 } ;
 
 const DiffGrid conservativeGrid[2][2][2][2][2][2] = {
 
-//    ---- BASE/LEG1         ---- BASE/LEG2         ---- LEG1/LEG2
-//    ||                     ||                     ||
-//    __   __   __      __   __   _X      __   __   X_      __   __   XX  
-//    __   _X   __      __   _X   _X      __   _X   X_      __   _X   XX  
-//    __   X_   __      __   X_   _X      __   X_   X_      __   X_   XX  
-//    __   XX   __      __   XX   _X      __   XX   X_      __   XX   XX  
+//   ---- BASE/LEG1         ---- BASE/LEG2           ---- LEG1/LEG2
+//   ||                     ||                       ||
+//   __   __   __      __   __   _X        __   __   X_      __   __   XX
+//   __   _X   __      __   _X   _X        __   _X   X_      __   _X   XX
+//   __   X_   __      __   X_   _X        __   X_   X_      __   X_   XX
+//   __   XX   __      __   XX   _X        __   XX   X_      __   XX   XX
 
-      NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,     BOTHX,DD_CONF,
-      NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,     BOTH,DD_CONF,
-      NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,
-      NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,
+{ {
+{{{{ NONE, DD_ALL }, { NONE, DD_ALL }}, {{ NONE, DD_ALL }, { BOTHX, DD_CONF }}},
+ {{{ NONE, DD_ALL }, { NONE, DD_ALL }}, {{ NONE, DD_ALL }, { BOTH, DD_CONF }}}},
+{{{{ NONE, DD_ALL }, { NONE, DD_ALL }}, {{ NONE, DD_ALL }, { NONE, DD_ALL }}},
+ {{{ NONE, DD_ALL }, { NONE, DD_ALL }}, {{ NONE, DD_ALL }, { NONE, DD_ALL }}}},
+}, {
 
-//    _X   __   __      _X   __   _X      _X   __   X_      _X   __   XX  
-//    _X   _X   __      _X   _X   _X      _X   _X   X_      _X   _X   XX  
-//    _X   X_   __      _X   X_   _X      _X   X_   X_      _X   X_   XX  
-//    _X   XX   __      _X   XX   _X      _X   XX   X_      _X   XX   XX  
+//   _X   __   __      _X   __   _X        _X   __   X_      _X   __   XX
+//   _X   _X   __      _X   _X   _X        _X   _X   X_      _X   _X   XX
+//   _X   X_   __      _X   X_   _X        _X   X_   X_      _X   X_   XX
+//   _X   XX   __      _X   XX   _X        _X   XX   X_      _X   XX   XX
 
-      NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,     BOTH,DD_CONF,
-      NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,     BOTH,DD_CONF,
-      NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,     BOTHX1,DD_CONF,
-      NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,
+{{{{ NONE, DD_ALL }, { NONE, DD_ALL }}, {{ NONE, DD_ALL }, { BOTH, DD_CONF }}},
+ {{{ NONE, DD_ALL }, { NONE, DD_ALL }}, {{ NONE, DD_ALL }, { BOTH, DD_CONF }}}},
+{{{{ NONE, DD_ALL }, { NONE, DD_ALL }}, {{ NONE, DD_ALL }, { BOTHX1, DD_CONF }}},
+ {{{ NONE, DD_ALL }, { NONE, DD_ALL }}, {{ NONE, DD_ALL }, { NONE, DD_ALL }}}},
+}, },
 
-//    X_   __   __      X_   __   _X      X_   __   X_      X_   __   XX  
-//    X_   _X   __      X_   _X   _X      X_   _X   X_      X_   _X   XX  
-//    X_   X_   __      X_   X_   _X      X_   X_   X_      X_   X_   XX  
-//    X_   XX   __      X_   XX   _X      X_   XX   X_      X_   XX   XX  
+//   X_   __   __      X_   __   _X        X_   __   X_      X_   __   XX
+//   X_   _X   __      X_   _X   _X        X_   _X   X_      X_   _X   XX
+//   X_   X_   __      X_   X_   _X        X_   X_   X_      X_   X_   XX
+//   X_   XX   __      X_   XX   _X        X_   XX   X_      X_   XX   XX
 
-      NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,
-      NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,     BOTHX2,DD_CONF,
-      NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,
-      NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,
+{ {
+{{{{ NONE, DD_ALL }, { NONE, DD_ALL }}, {{ NONE, DD_ALL }, { NONE, DD_ALL }}},
+ {{{ NONE, DD_ALL }, { NONE, DD_ALL }}, {{ NONE, DD_ALL }, { BOTHX2, DD_CONF }}}},
+{{{{ NONE, DD_ALL }, { NONE, DD_ALL }}, {{ NONE, DD_ALL }, { NONE, DD_ALL }}},
+ {{{ NONE, DD_ALL }, { NONE, DD_ALL }}, {{ NONE, DD_ALL }, { NONE, DD_ALL }}}},
+},
 
-//    XX   __   __      XX   __   _X      XX   __   X_      XX   __   XX  
-//    XX   _X   __      XX   _X   _X      XX   _X   X_      XX   _X   XX  
-//    XX   X_   __      XX   X_   _X      XX   X_   X_      XX   X_   XX  
-//    XX   XX   __      XX   XX   _X      XX   XX   X_      XX   XX   XX  
+//   XX   __   __      XX   __   _X        XX   __   X_      XX   __   XX
+//   XX   _X   __      XX   _X   _X        XX   _X   X_      XX   _X   XX
+//   XX   X_   __      XX   X_   _X        XX   X_   X_      XX   X_   XX
+//   XX   XX   __      XX   XX   _X        XX   XX   X_      XX   XX   XX
 
-      NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,
-      NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,
-      NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,
-      NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL,     NONE, DD_ALL
+{
+{{{{ NONE, DD_ALL }, { NONE, DD_ALL }}, {{ NONE, DD_ALL }, { NONE, DD_ALL }}},
+ {{{ NONE, DD_ALL }, { NONE, DD_ALL }}, {{ NONE, DD_ALL }, { NONE, DD_ALL }}}},
+{{{{ NONE, DD_ALL }, { NONE, DD_ALL }}, {{ NONE, DD_ALL }, { NONE, DD_ALL }}},
+ {{{ NONE, DD_ALL }, { NONE, DD_ALL }}, {{ NONE, DD_ALL }, { NONE, DD_ALL }}}}
+} }
 } ;
 
 NO_SANITIZE_UNDEFINED

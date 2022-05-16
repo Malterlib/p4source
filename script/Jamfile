@@ -29,6 +29,11 @@ if $(CLANGVER)
 	ObjectC++Flags lua53.cc : -Wno-string-plus-int ;
 }
 
+if $(CLANGVER) || $(GCCVER)
+{
+	ObjectC++Flags lua53.cc : -Wno-missing-braces ;
+}
+
 ObjectC++Flags p4script53.cc : -I $(P4)/script/lua-5.3 -I $(P4)/client ;
 
 # This is the LuaSQLite version, not the SQLite library itself.

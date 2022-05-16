@@ -12,13 +12,13 @@
 # include <map>
 # include <vector>
 
-# include <p4script.h>
-# include <p4script53.h>
-
 # include <clientapi.h>
 # include <i18napi.h>
 # include <spec.h>
 # include <debug.h>
+
+# include <p4script.h>
+# include <p4script53.h>
 
 # include "p4luadebug.h"
 # include "specdatap4lua.h"

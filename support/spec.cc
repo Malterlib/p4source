@@ -388,7 +388,7 @@ Spec::Parse( const char *buf, SpecData *data, Error *e, int validate )
 	    int i;
 	    SpecElem *de;
 
-	    for( i = 0; de = (SpecElem *)elems->Get(i); i++ )
+	    for( i = 0; ( de = (SpecElem *)elems->Get(i) ); i++ )
 	        if( de->IsRequired() && !counts[ de->index ] )
 	    {
 	        e->Set( MsgDb::FieldMissing ) << de->tag;
@@ -540,12 +540,12 @@ Spec::Format( SpecData *data, StrDict *dict )
 
 	    if( d->IsList() )
 	    {
-	        for( j = 0; v = data->GetLine( d, j, &c ); j++ ) 
+	        for( j = 0; ( v = data->GetLine( d, j, &c ) ); j++ ) 
 	            dict->SetVar( d->tag, j, *v );
 	    }
 	    else
 	    {
-	        if( v = data->GetLine( d, 0, &c ) )
+	        if( ( v = data->GetLine( d, 0, &c ) ) )
 	            dict->SetVar( d->tag, *v );
 	    }
 	}

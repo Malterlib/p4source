@@ -38,6 +38,9 @@ extern "C"
 
 extern bool P4FileSysCreateOnIntr;
 
+# ifdef USE_SSL
+# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+
 static void* p4malloc( size_t s, const char *f, int l )
 {
 	return P4_MALLOC( s );
@@ -52,6 +55,9 @@ static void p4free( void* p, const char *f, int l )
 {
 	P4_FREE( p );
 }
+
+# endif
+# endif
 
 void P4Libraries::Initialize( const int libraries, Error* e )
 {
@@ -155,7 +161,7 @@ void P4Libraries::Shutdown( const int libraries, Error* e )
 # ifdef USE_SSL
 	if( libraries & P4LIBRARIES_INIT_OPENSSL )
 	{
-	    https://wiki.openssl.org/index.php/Library_Initialization#Cleanup
+	    // https://wiki.openssl.org/index.php/Library_Initialization#Cleanup
 	    FIPS_mode_set( 0 );
 	    ENGINE_cleanup();
 	    CONF_modules_unload( 1 );
@@ -186,6 +192,7 @@ void P4Libraries::DisableZlibOptimization()
 {
 # ifndef USE_OPTIMIZED_ZLIB
 	int x86_cpu_enable_ssse3 = 0;
+	(void)x86_cpu_enable_ssse3;
 # endif
 
 	x86_check_features();

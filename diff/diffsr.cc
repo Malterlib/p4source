@@ -293,10 +293,10 @@ DifflReader::Equal(LineNo lineA, Sequence *B, LineNo lineB)
 	}
 
 	// Last line might have no newline (with -dl)
-	if( testEndEOL )
-	    if( ( !la && lb == 1 && NewLine( Bs->src->Get() ) ) ||
-	        ( !lb && la == 1 && NewLine( src->Get() ) ) )
-	        return 1;
+
+	if( ( !la && lb == 1 && NewLine( Bs->src->Get() ) ) ||
+	    ( !lb && la == 1 && NewLine( src->Get() ) ) )
+	    return 1;
 
 	return !( ( la || lb ) && !NewLine( ca ) && !NewLine( cb ) ); 
 }

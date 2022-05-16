@@ -1,6 +1,10 @@
 SubDir P4 script libs lua-curlv3 ;
 
+local C++FLAGS = [ FRemoveAny $(C++FLAGS) : -Wparentheses ] ;
+
 SubDirC++Flags [ FDefines Z_PREFIX ] ;
+
+local C++FLAGS = [ FRemoveAny $(C++FLAGS) : -Wunused ] ;
 
 SubDirHdrs $(P4)/script/libs/cURL/ ;
 SubDirHdrs $(P4)/script/libs/cURL/curl ;
@@ -16,6 +20,8 @@ if $(MSVSVER)
 	# lcopyeasy.h: FLG_ENTRY( SOCKET_TIMEOUT     )
 	ObjectC++Flags lceasy.cc : /wd4838 ;
 }
+
+local C++FLAGS = [ FRemoveAny $(C++FLAGS) : /W2 ] ;
 
 P4APILibrary $(P4SCRIPT_CURL) :
 	lceasy.cc

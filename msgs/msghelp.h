@@ -206,6 +206,7 @@ class MsgHelp {
 	static ErrorId HelpUnshelve;
 	static ErrorId HelpUnsubmit;
 	static ErrorId HelpUnzip;
+	static ErrorId HelpUpgrades;
 	static ErrorId HelpUser;
 	static ErrorId HelpUsers;
 	static ErrorId HelpVerify;

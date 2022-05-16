@@ -16,7 +16,7 @@
 
 # include "clientapilua.h"
 
-ClientApiLua::ClientApiLua( const void* l ) : l( l )
+ClientApiLua::ClientApiLua( const void* l )
 {
 }
 

@@ -154,12 +154,12 @@ MapHalf::~MapHalf()
 static const int CmpGrid[6][6] = {
 /*              EOS 	CHAR     SLASH    PERC     STAR     DOTS */
 
-/* EOS */	0,	-1,	 -1,	  0,	   0,	    0,
-/* CHAR */	1,	-2,	 -2,	  1,	   1,	    1,
-/* SLASH */	1,	-2,	 2,	  1,	   1,	    1,
-/* PERC */	0,	-1,	 -1,	  0,	   0,	    0,
-/* STAR */	0,	-1,	 -1,	  0,	   0,	    0,
-/* DOTS */	0,	-1,	 -1,	  0,	   0,	    0,
+{ /* EOS */	0,	-1,	 -1,	  0,	   0,	    0 },
+{ /* CHAR */	1,	-2,	 -2,	  1,	   1,	    1 },
+{ /* SLASH */	1,	-2,	 2,	  1,	   1,	    1 },
+{ /* PERC */	0,	-1,	 -1,	  0,	   0,	    0 },
+{ /* STAR */	0,	-1,	 -1,	  0,	   0,	    0 },
+{ /* DOTS */	0,	-1,	 -1,	  0,	   0,	    0 },
 } ;
 
 int
@@ -187,7 +187,7 @@ MapHalf::Compare( const MapHalf &item ) const
 	    case -1:	return -1;
 	    case 1:	return 1;
 	    case 0:	return 0;
-	    case -2:	if( d = ( *mc1 - *mc2 ) )
+	    case -2:	if( ( d = ( *mc1 - *mc2 ) ) )
 			    return d;
 	    case 2:	break;
 	    }
@@ -711,31 +711,31 @@ static const char *const actionNames[] = {
 static const Action Grid[3][6][6] = {
 /* Map \/ Pattern -> */
 /*              EOS      CHAR     SLASH    PERC     STAR     DOTS */
-
+{
 /* BACKUP_NONE */
-/* EOS */       aOK,     aMISS,   aMISS,   aRWILD,  aRWILD,  aRWILD,
-/* CHAR */      aMISS,   aMATCH,  aMISS,   aRWILD,  aRWILD,  aRWILD,
-/* SLASH */     aMISS,   aMISS,   aMATCH,  aRWILD,  aRWILD,  aRWILD,
-/* PERC */      aLWILD,  aLWILD,  aLWILD,  aSTAR,   aSTAR,   aSTAR,
-/* STAR */      aLWILD,  aLWILD,  aLWILD,  aSTAR,   aSTAR,   aSTAR,
-/* DOTS */      aLWILD,  aLWILD,  aLWILD,  aSTAR,   aSTAR,   aSTAR,
-
+{ /* EOS */       aOK,     aMISS,   aMISS,   aRWILD,  aRWILD,  aRWILD },
+{ /* CHAR */      aMISS,   aMATCH,  aMISS,   aRWILD,  aRWILD,  aRWILD },
+{ /* SLASH */     aMISS,   aMISS,   aMATCH,  aRWILD,  aRWILD,  aRWILD },
+{ /* PERC */      aLWILD,  aLWILD,  aLWILD,  aSTAR,   aSTAR,   aSTAR },
+{ /* STAR */      aLWILD,  aLWILD,  aLWILD,  aSTAR,   aSTAR,   aSTAR },
+{ /* DOTS */      aLWILD,  aLWILD,  aLWILD,  aSTAR,   aSTAR,   aSTAR },
+}, {
 /* BACKUP_LHS */
-/* EOS */       aOK,     aMISS,   aMISS,   aMISS,   aMISS,   aMISS,
-/* CHAR */      aMISS,   aMATCH,  aMISS,   aRBACK,  aRBACK,  aRBACK,
-/* SLASH */     aMISS,   aMISS,   aMATCH,  aMISS,   aMISS,   aRBACK,
-/* PERC */      aMISS,   aLBACK,  aMISS,   aLSTAR,  aLSTAR,  aLSTAR,
-/* STAR */      aMISS,   aLBACK,  aMISS,   aLSTAR,  aLSTAR,  aLSTAR,
-/* DOTS */      aMISS,   aLBACK,  aLBACK,  aLSTAR,  aLSTAR,  aLSTAR,
-
+{ /* EOS */       aOK,     aMISS,   aMISS,   aMISS,   aMISS,   aMISS },
+{ /* CHAR */      aMISS,   aMATCH,  aMISS,   aRBACK,  aRBACK,  aRBACK },
+{ /* SLASH */     aMISS,   aMISS,   aMATCH,  aMISS,   aMISS,   aRBACK },
+{ /* PERC */      aMISS,   aLBACK,  aMISS,   aLSTAR,  aLSTAR,  aLSTAR },
+{ /* STAR */      aMISS,   aLBACK,  aMISS,   aLSTAR,  aLSTAR,  aLSTAR },
+{ /* DOTS */      aMISS,   aLBACK,  aLBACK,  aLSTAR,  aLSTAR,  aLSTAR },
+}, {
 /* BACKUP_RHS */
-/* EOS */       aOK,     aMISS,   aMISS,   aMISS,   aMISS,   aMISS,
-/* CHAR */      aMISS,   aMATCH,  aMISS,   aRBACK,  aRBACK,  aRBACK,
-/* SLASH */     aMISS,   aMISS,   aMATCH,  aMISS,   aMISS,   aRBACK,
-/* PERC */      aMISS,   aLBACK,  aMISS,   aRSTAR,  aRSTAR,  aRSTAR,
-/* STAR */      aMISS,   aLBACK,  aMISS,   aRSTAR,  aRSTAR,  aRSTAR,
-/* DOTS */      aMISS,   aLBACK,  aLBACK,  aRSTAR,  aRSTAR,  aRSTAR
-
+{ /* EOS */       aOK,     aMISS,   aMISS,   aMISS,   aMISS,   aMISS },
+{ /* CHAR */      aMISS,   aMATCH,  aMISS,   aRBACK,  aRBACK,  aRBACK },
+{ /* SLASH */     aMISS,   aMISS,   aMATCH,  aMISS,   aMISS,   aRBACK },
+{ /* PERC */      aMISS,   aLBACK,  aMISS,   aRSTAR,  aRSTAR,  aRSTAR },
+{ /* STAR */      aMISS,   aLBACK,  aMISS,   aRSTAR,  aRSTAR,  aRSTAR },
+{ /* DOTS */      aMISS,   aLBACK,  aLBACK,  aRSTAR,  aRSTAR,  aRSTAR }
+}
 } ;
 
 //

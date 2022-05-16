@@ -90,38 +90,19 @@ InitPRNG()
  * Bury some of the OS-dependent cruft here.
  */
 
-# if defined(__GNUG__) && GCC_VERSION >= 40600 || defined(__clang__)
+# if defined(__GNUG__) && GCC_VERSION >= 40600
 # pragma GCC diagnostic push
 # pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+# endif
+# if defined(__clang__)
 # pragma clang diagnostic push
 # pragma clang diagnostic ignored "-Wdeprecated-declarations"
 # endif
 
-static unsigned int
-GetRandomInt()
-{
-#ifdef USE_OPENSSL_RAND
-	    unsigned int	val;
-	    RAND_pseudo_bytes( reinterpret_cast<unsigned char *>(&val), sizeof(val) );
-	    return val;
-#elif defined( OS_NT ) && !defined( OS_MINGW )
-	    /*
-	     * NB: rand_s() appeared in VS 2005 and is supported only from XP onwards.
-	     *     On Windows, the seed used by rand() is stored in TLS and so needs
-	     *     to be initialized in each thread.
-	     *     rand_s() doesn't use a user-provided seed, and yields a better
-	     *     random distribution, so we'll use it instead.
-	     */
-	    unsigned int	val;
-	    ::rand_s( &val );
-	    return val;
-#else
-	    return RANDOM();
-#endif // OS_NT
-}
-
-# if defined(__GNUG__) && GCC_VERSION >= 40600 || defined(__clang__)
+# if defined(__GNUG__) && GCC_VERSION >= 40600
 # pragma GCC diagnostic push
+# endif
+# if defined(__clang__)
 # pragma clang diagnostic push
 # endif
 

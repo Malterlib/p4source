@@ -397,7 +397,8 @@ ClientAliases::CheckDryRun(
 
 	const StrPtr *aliasHandling = opts[ Options::Aliases ];
 	if( aliasHandling && 
-	    ( *aliasHandling == "dry-run" || *aliasHandling == "echo" ) )
+	    ( *aliasHandling == "dry-run" || *aliasHandling == "echo" ||
+	      *aliasHandling == "debug" ) )
 	{
 	    StrBuf buf;
 	    buf << "p4 ";
@@ -1140,7 +1141,8 @@ ClientCommand::RunCommand( StrDict *dict, Error *e )
 
 	const StrPtr *aliasHandling = (*w_opts)[ Options::Aliases ];
 	if( aliasHandling && 
-	    ( *aliasHandling == "dry-run" || *aliasHandling == "echo" ) )
+	    ( *aliasHandling == "dry-run" || *aliasHandling == "echo" ||
+	      *aliasHandling == "debug" ) )
 	{
 	    StrBuf fmtBuf;
 	    FormatCommand( fmtBuf );
@@ -1203,7 +1205,8 @@ ClientCommand::FormatCommand( StrBuf &b )
 	for( int ac = 0; ac < w_argn; ac++ )
 	{
 	    if( w_args[ac] == "--aliases=dry-run" ||
-	        w_args[ac] == "--aliases=echo" )
+	        w_args[ac] == "--aliases=echo" ||
+	        w_args[ac] == "--aliases=debug" )
 	        continue;
 
 	    if( !firstArg )
@@ -1426,6 +1429,17 @@ ClientCommand::PrepareIO( StrDict *dict, Error *e )
 
 	if( inputVariable.Length() && dict )
 	{
+	    const StrPtr *aliasHandling = (*w_opts)[ Options::Aliases ];
+	    if( aliasHandling && *aliasHandling == "debug" )
+	    {
+	        StrPtr *in = dict->GetVar( inputVariable );
+	        if( in )
+	            printf( "===== BEGIN STDIN (%s) =====\n%s\n"
+	                    "===== END STDIN (%s) =====\n",
+	                    inputVariable.Text(), in->Text(),
+	                    inputVariable.Text() );
+	    }
+
 	    ui->SetInputData( dict->GetVar( inputVariable ) );
 	    StrPtr *xArg = (*w_opts)[ 'x' ];
 	    if( xArg && xArg->Text()[0] == '-' )
@@ -1742,7 +1756,10 @@ void
 ClientUserStrBuf::SetInputData( const StrPtr *data )
 {
 	if( data )
+	{
 	    input.Set( data );
+	    input << "\n";
+	}
 }
 
 void

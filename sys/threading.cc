@@ -643,8 +643,8 @@ class MultiThreader : public Threader {
 		    if( fd == 0 )
 		    {
 			// must be fd 1 and 2
-			int discard = dup(fd);
-			discard = dup(fd);
+			(void)(dup(fd)+1);
+			(void)(dup(fd)+1);
 		    }
 		}
 		if( fork() > 0 )

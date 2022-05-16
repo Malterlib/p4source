@@ -44,15 +44,13 @@ NetMulti::Select( int block, Error *e )
 	struct timeval tv;
 	tv.tv_sec = tv.tv_usec = 0;
 
-	int r;
-
 	if( maxfd < 0 )
 	    return;
 # ifdef USE_SELECT_BITARRAY
-	r = select( maxfd+1, (fd_set *)fds->fdset(), NULL, NULL,
+	select( maxfd+1, (fd_set *)fds->fdset(), NULL, NULL,
 			block ? NULL : &tv );
 # else
-	r = select( maxfd+1, fds, NULL, NULL,
+	select( maxfd+1, fds, NULL, NULL,
 			block ? NULL : &tv );
 # endif
 

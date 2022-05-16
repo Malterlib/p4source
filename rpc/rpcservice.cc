@@ -89,14 +89,14 @@ RpcServerRelease( Rpc *rs, Error *e )
 }
 
 const RpcDispatch rpcServices[] = {
-	P4Tag::p_compress1,	RpcCallback( RpcServerCompress1 ),
-	P4Tag::p_compress2,	RpcCallback( RpcServerCompress2 ),
-	P4Tag::p_echo, 		RpcCallback( RpcServerEcho ),
-	P4Tag::p_flush1,	RpcCallback( RpcServerFlush1 ), 
-	P4Tag::p_flush2,	RpcCallback( RpcServerFlush2 ),
-	P4Tag::p_protocol,	RpcCallback( RpcServerProtocol ),
-	P4Tag::p_release,	RpcCallback( RpcServerRelease ),
-	P4Tag::p_release2,	RpcCallback( RpcServerRelease ),
-	0, 0
+	{ P4Tag::p_compress1,	RpcCallback( RpcServerCompress1 ) },
+	{ P4Tag::p_compress2,	RpcCallback( RpcServerCompress2 ) },
+	{ P4Tag::p_echo, 	RpcCallback( RpcServerEcho ) },
+	{ P4Tag::p_flush1,	RpcCallback( RpcServerFlush1 ) },
+	{ P4Tag::p_flush2,	RpcCallback( RpcServerFlush2 ) },
+	{ P4Tag::p_protocol,	RpcCallback( RpcServerProtocol ) },
+	{ P4Tag::p_release,	RpcCallback( RpcServerRelease ) },
+	{ P4Tag::p_release2,	RpcCallback( RpcServerRelease ) },
+	{ 0, 0 }
 } ;
 

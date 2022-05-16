@@ -1,6 +1,8 @@
 SubDir P4 script lua-5.3 ;
 
+local CCFLAGS = [ FRemoveAny $(CCFLAGS) : -Wunused ] ;
 local C++FLAGS = [ C++FLAGS+STD $(C++_VERSION_MAX) ] ;
+C++FLAGS = [ FRemoveAny $(C++FLAGS) : -Wmissing-braces -Wunused ] ;
 
 if $(CLANGVER)
 {

@@ -413,7 +413,7 @@ NetTcpEndPoint::GetAddrInfo( AddrType type, NetAddrInfo &ai, Error *e )
 }
 
 int
-NetTcpEndPoint::BindOrConnect( AddrType type, struct Error *e )
+NetTcpEndPoint::BindOrConnect( AddrType type, Error *e )
 {
 	int fd = -1;
 

@@ -164,7 +164,7 @@ Client::Init( Error *e )
 	    DoHandshake( e );	// no-op if not ssl
 
 	    if( !e->Test() && ( unknownUnicode ||
-	        extsEnabled && exts->CanLoad() ) )
+	        ( extsEnabled && exts->CanLoad() ) ) )
 	    {
 		ClientUserNULL cnull( e );
 		
@@ -466,7 +466,6 @@ Client::GetEnv()
 	 */
 
 	const StrPtr &lang = GetLanguage();
-	const StrPtr &locale = GetLocale();
 	const StrPtr &initroot = GetInitRoot();
 
 	translated->SetVar( P4Tag::v_client, GetClient() );

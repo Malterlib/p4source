@@ -413,7 +413,7 @@ clientTraverseShort( Client *client, StrPtr *cwd, const char *dir, int traverse,
 	if( initial )
 	{
 	    StrPtr *ddir;
-	    for( int j=0; ddir=client->GetVar( StrRef("depotDirs"), j); j++)
+	    for( int j=0; ( ddir=client->GetVar( StrRef("depotDirs"), j) ); j++)
 	    {
 		StrBuf dirD;
 		dirD << ddir << dirDelim;
@@ -902,7 +902,7 @@ clientReconcileAdd( Client *client, Error *e )
 
 	// Construct a MapTable object from the strings passed in by server
 
-	for( int i = 0; mapItem = client->GetVar( StrRef("mapTable"), i ); i++)
+	for( int i = 0; ( mapItem = client->GetVar( StrRef("mapTable"), i ) ); i++)
 	{
 	    MapType m;
 	    int j;
@@ -958,9 +958,9 @@ clientReconcileAdd( Client *client, Error *e )
 	if( summary != 0 )
 	{
 	    const StrPtr *dfile;
-	    for( int j=0; dfile=client->GetVar( StrRef("depotFiles"), j); j++)
+	    for( int j=0; ( dfile=client->GetVar( StrRef("depotFiles"), j) ); j++)
 		depotFiles->Put()->Set( dfile );
-	    for( int j=0; dfile=recHandle->pathArray->Get(j); j++ )
+	    for( int j=0; ( dfile=recHandle->pathArray->Get(j) ); j++ )
 		depotFiles->Put()->Set( dfile );
 	    depotFiles->Sort( !StrBuf::CaseUsage() );
 	}
@@ -1218,7 +1218,7 @@ clientCloseMatch( Client *client, ClientFile *f1, Error *e )
 	int totalLines = 0;
 
 	for( int i = 0 ; 
-	     fname = f1->matchDict->GetVar( StrRef( P4Tag::v_toFile ), i ) ;
+	     ( fname = f1->matchDict->GetVar( StrRef( P4Tag::v_toFile ), i ) );
 	     i++ )
 	{
 	    delete f2;

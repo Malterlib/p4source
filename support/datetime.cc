@@ -440,8 +440,6 @@ DateTime::FmtISO8601( char *buf ) const
 
 	if( tm )
 	{
-	    int isdst = tm->tm_isdst;
-
 	    sprintf( buf, "%04d-%02d-%02dT%02d:%02d:%02d+00:00",
 		    tm->tm_year < 1900 ? tm->tm_year + 1900 : tm->tm_year,
 		    tm->tm_mon + 1,

@@ -233,7 +233,7 @@ CharSetApi::isUnicode(CharSetApi::CharSet c)
 int
 CharSetApi::Granularity(CharSetApi::CharSet c)
 {
-	if( c == UTF_16 || c >= UTF_16_LE && c <= UTF_16_BOM )
+	if( c == UTF_16 || ( c >= UTF_16_LE && c <= UTF_16_BOM ) )
 	    return 2;
 	if( c >= UTF_32 && c <= UTF_32_BOM )
 	    return 4;

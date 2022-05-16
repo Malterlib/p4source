@@ -11,12 +11,11 @@
 # include <string>
 # include <vector>
 
-# include <p4script.h>
-# include <p4script53.h>
-
 # include <clientapi.h>
 # include <mapapi.h>
 # include <debug.h>
+# include <p4script.h>
+# include <p4script53.h>
 
 # include "p4luadebug.h"
 # include "p4mapmaker.h"
@@ -264,7 +263,6 @@ P4MapMaker::Includes( std::string p )
 {
 	StrBuf from;
 	StrBuf to;
-	MapDir dir = MapLeftRight;
 	from = p.c_str();
 	if( map->Translate( from, to, MapLeftRight ) )
 	    return true;

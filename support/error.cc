@@ -20,6 +20,8 @@
 
 # include <cstddef>
 
+const ErrorId ErrorId::NullErrorId = { 0, NULL };
+
 const char *
 Error::severityText[] = { "empty", "info", "warning", "error", "error" };
 

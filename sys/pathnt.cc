@@ -55,14 +55,14 @@ PathNT::IsUnder( StrRef *path, const char *under ) const
 	int lastuslash = 0;
 
 	while( *s->Ptr() && ( toAlower( s->Ptr() ) == toAlower( u->Ptr() ) || 
-			isSlash( *s->Ptr() ) && isSlash( *u->Ptr() ) ) )
+			( isSlash( *s->Ptr() ) && isSlash( *u->Ptr() ) ) ) )
 	{
 	    lastuslash = isSlash( *u->Ptr() );
 	    s->Next();
 	    u->Next();
 	}
 
-	if( *u->Ptr() || *s->Ptr() && !lastuslash && !isSlash( *s->Ptr() ) )
+	if( *u->Ptr() || ( *s->Ptr() && !lastuslash && !isSlash( *s->Ptr() ) ) )
 	{
 	    delete u;
 	    delete s;

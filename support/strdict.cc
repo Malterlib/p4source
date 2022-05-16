@@ -142,7 +142,7 @@ StrDict::SetVarV( const char *arg )
 {
 	const char *p;
 
-	if( p = strchr( arg, '=' ) )
+	if( ( p = strchr( arg, '=' ) ) )
 	{
 	    StrBuf var = StrRef( (char *) arg, p - arg );
 	    var.Terminate();

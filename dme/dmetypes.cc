@@ -28,7 +28,6 @@ DmtExtName::ParseExt( const StrPtr &name, DmtExtType t, Error *e )
 {
 	const char *ptr = name.Text();
 	const char *ptrc = strstr( ptr, "::" );
-	int minlen = 1;
 	
 	// For FULLNAME, minimum length is 4 ("a::b") and first character cannot be a dash
 	if( t == DET_FULLNAME && !ptrc ) 
@@ -78,7 +77,7 @@ DmtExtName::ParseExt( const StrPtr &name, DmtExtType t, Error *e )
 	    // Cover cases where name is just ExampleInc (prefix) or
 	    // where name is full (ExampleInc::ExtName)
 	    ptr = name.Text();
-	    const char *p;
+
 	    if( ptrc )
 	    {
 	        int len = ptrc - ptr;

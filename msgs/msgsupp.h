@@ -362,6 +362,10 @@ class MsgSupp {
 	static ErrorId OptionParentNumber;
 	static ErrorId OptionPkgExtension;
 	static ErrorId OptionPath;
+	static ErrorId OptionSign;
+	static ErrorId OptionCert;
+	static ErrorId OptionComment;
+	static ErrorId OptionAllowUnsigned;
 	static ErrorId OptionNoSync;
 	static ErrorId OptionNoScript;
 	static ErrorId OptionScriptLang;
@@ -379,6 +383,10 @@ class MsgSupp {
 	static ErrorId OptionMissingInterval;
 	static ErrorId OptionMissingWait;
 	static ErrorId OptionMissingCount;
+	static ErrorId OptionSSInherit;
+	static ErrorId OptionSSNoInherit;
+	static ErrorId OptionSSSourceComments;
+	static ErrorId OptionSSParentView;
 	static ErrorId OptionLocalLicense;
 
 	static ErrorId TooManyLockTrys;
@@ -395,6 +403,11 @@ class MsgSupp {
 	static ErrorId ManifestParseError;
 	static ErrorId InvalidIntegerRange;
 	static ErrorId FatalLockError;
+	static ErrorId MissingKeyCert;
+	static ErrorId InternalSSLerror;
+	static ErrorId InvalidFormatSigFile;
+	static ErrorId ExtSignatureFailure;
+	static ErrorId ExtensionPackingSuccess;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

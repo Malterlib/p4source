@@ -658,7 +658,7 @@ NetTcpTransport::Close( void )
 	    const int max = p4tunable.Get( P4TUNE_NET_MAXCLOSEWAIT );
 
 	    if( selector->Select( r, w, max ) >= 0 && r )
-	        int discard = read( t, buf, 1 );
+	        (void)(read( t, buf, 1 )+1);
 	}
 
 	if( DEBUG_INFO )

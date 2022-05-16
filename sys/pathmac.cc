@@ -50,7 +50,7 @@ IsUnder( StrRef *path, const char *root )
 
 	// Make sure we ended at the end of root, and at a : in path.
 
-	if( *root || root[-1] != ':' && *s && *s++ != ':' )
+	if( *root || ( root[-1] != ':' && *s && *s++ != ':' ) )
 	    return 0;
 
 	// Reset path to exclude initial 'root' substring.
@@ -101,7 +101,7 @@ PathMAC::SetLocal( const StrPtr &root, const StrPtr &local )
 
 	    // Ensure local (if any) is separated from root with :.
 
-	    if( !Length() || ( Text()[ Length() - 1 ] != ':' ) && l.Length() )
+	    if( !Length() || ( ( Text()[ Length() - 1 ] != ':' ) && l.Length() ) )
 		Append( ":", 1 );
 
 	    // Finally, append what's left of local.

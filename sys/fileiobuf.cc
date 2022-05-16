@@ -122,7 +122,7 @@ FileIOBuffer::Write( const char *buf, int len, Error *e )
 		// Copy out to the next \n.  If we hit one, translate
 		// it to a \r.
 
-		if( p = (char *)memccpy( iobuf.Text() + snd, buf, '\n', l ) )
+		if( ( p = (char *)memccpy( iobuf.Text() + snd, buf, '\n', l ) ) )
 		{
 		    p[-1] = '\r';
 		    l = p - iobuf.Text() - snd;
@@ -134,7 +134,7 @@ FileIOBuffer::Write( const char *buf, int len, Error *e )
 		// it to a \r and set addnl so as to write the \n on 
 		// the next loop (when we're sure to have space). 
 
-		if( p = (char *)memccpy( iobuf.Text() + snd, buf, '\n', l ) )
+		if( ( p = (char *)memccpy( iobuf.Text() + snd, buf, '\n', l ) ) )
 		{
 		    p[-1] = '\r';
 		    l = p - iobuf.Text() - snd;
@@ -213,7 +213,7 @@ FileIOBuffer::Read( char *buf, int len, Error *e )
 		// Copy to the next \r.  If we hit one, translate
 		// it to \n.
 
-		if( p = (char *)memccpy( buf, ptr, '\r', l ) )
+		if( ( p = (char *)memccpy( buf, ptr, '\r', l ) ) )
 		{
 		    l = p - buf;
 		    p[-1] = '\n';
@@ -227,7 +227,7 @@ FileIOBuffer::Read( char *buf, int len, Error *e )
 		// \r to a \n and drop the subsequent \n.
 		// LFCRLF reads CRLF.
 
-		if( p = (char *)memccpy( buf, ptr, '\r', l ) )
+		if( ( p = (char *)memccpy( buf, ptr, '\r', l ) ) )
 		{
 		    l = p - buf;
 		    soaknl = 1;
@@ -236,7 +236,7 @@ FileIOBuffer::Read( char *buf, int len, Error *e )
 
 	    case LineTypeLfcrlf:
 
-		if( p = (char *)memccpy( buf, ptr, '\r', l ) )
+		if( ( p = (char *)memccpy( buf, ptr, '\r', l ) ) )
 		{
 		    l = p - buf;
 		    p[-1] = '\n';
@@ -366,10 +366,10 @@ FileIOBuffer::ReadLine( StrBuf *buf, Error *e )
 
 #ifndef STRICT_LINEENDING
 		// or the next \n
-		if( p = (char *)memchr( ptr, '\n', l ) )
+		if( ( p = (char *)memchr( ptr, '\n', l ) ) )
 		{
 		    l = p - ptr;
-		    if( p = (char *)memchr( ptr, '\r', l ) )
+		    if( ( p = (char *)memchr( ptr, '\r', l ) ) )
 			l = p - ptr;
 		    buf->Extend( ptr, l );
 		    l++;
@@ -377,7 +377,7 @@ FileIOBuffer::ReadLine( StrBuf *buf, Error *e )
 		}
 		else
 #endif
-		if( p = (char *)memchr( ptr, '\r', l ) )
+		if( ( p = (char *)memchr( ptr, '\r', l ) ) )
 		{
 		    l = p - ptr;
 		    buf->Extend( ptr, l );
@@ -410,7 +410,7 @@ FileIOBuffer::ReadLine( StrBuf *buf, Error *e )
 
 	    case LineTypeLfcrlf:
 
-		if( p = (char *)memchr( ptr, '\n', l ) )
+		if( ( p = (char *)memchr( ptr, '\n', l ) ) )
 		{
 		    l = p - ptr;
 		    if( p > ptr && p[-1] == '\r' )

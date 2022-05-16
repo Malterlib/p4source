@@ -299,7 +299,6 @@ FileSys::LowerCasePath()
 /*
  * FileSys::GetFd()
  * FileSys::GetSize()
- * FileSys::GetCurrentSize()
  * FileSys::Seek()
  *
  * Non-functional stubs.
@@ -331,12 +330,6 @@ FileSys::HasOnlyPerm( FilePerm perms )
 
 offL_t
 FileSys::GetSize()
-{
-	return 0;
-}
-
-offL_t
-FileSys::GetCurrentSize()
 {
 	return 0;
 }
@@ -535,7 +528,7 @@ FileSys::DepotSize( offL_t &len, Error *e )
 	len = (offL_t) -1;
 }
 
-# ifdef HAS_CPP14
+# ifdef HAS_CPP11
 
 namespace std
 {
@@ -544,6 +537,22 @@ namespace std
 	    delete *ptr;
 	    delete ptr;
 	}
+}
+
+template< typename T, typename ...Args >
+static std::unique_ptr< T > make_unique_ps( Args&& ...args )
+{
+	return std::unique_ptr< T >( new T( std::forward< Args >( args )... ) );
+}
+
+FileSysUPtr FileSys::CreateUPtr( FileSysType type )
+{
+	return make_unique_ps< FileSys* >( Create( type ) );
+}
+
+FileSysUPtr FileSys::CreateGlobalTempUPtr( FileSysType type )
+{
+	return make_unique_ps< FileSys* >( CreateGlobalTemp( type ) );
 }
 
 # endif

@@ -2972,8 +2972,6 @@
 		local dest_dir     = [ FDirName $(exec_dir) $(dirname) ] ;
 		local dist         = $(pkg)-dist ;
 
-		echo $(exec_dir) ;
-		echo $(dest_dir) ;
 		local _cpflags ;
 		if $(UNIX)
 		{
@@ -3011,18 +3009,18 @@
 		}
 	}
 
-	actions MkTarArchive
+	actions together MkTarArchive
 	{
 		tar -cf $(<) -C $(>:P) $(>:BE)$(>:SE)
 	}
 
-	actions MkZipArchive
+	actions together MkZipArchive
 	{
 		cd $(<:P)
 		$(ZIP) $(<:BE)$(<:SE) $(>:BE)$(>:SE)
 	}
 
-	actions MkComressedTarArchive
+	actions together MkComressedTarArchive
 	{
 		tar -cf - -C $(>:P) $(>:BE)$(>:SE) | $(COMPRESS) > $(<)
 	}
@@ -5511,6 +5509,16 @@ if $(UNIX) || $(NT)
 	actions File
 	{
 		$(CP) "$(>)" "$(<)"
+	}
+}
+
+switch $(OS)$(OSVER:E)
+{
+	case MINGW* :
+	# If someone beat us to creating the directory, don't bomb.
+	actions MkDir1
+	{
+		if not exist $(<) $(MKDIR) $(<)
 	}
 }
 

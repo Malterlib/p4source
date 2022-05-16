@@ -1,5 +1,7 @@
 SubDir P4 script libs cjson ;
 
+local C++FLAGS = [ FRemoveAny $(C++FLAGS) : /W2 -Wunused ] ;
+
 P4APILibrary $(P4SCRIPT) : lua_cjson.cc ;
 
 # TODO: this could be -O3 as it is in their source Makefile.

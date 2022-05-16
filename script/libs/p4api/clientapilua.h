@@ -33,7 +33,5 @@ class ClientApiLua : public ClientApi
 
 	private:
 
-	    const void* l;
-
 	    int apiMax = 0;
 } ;

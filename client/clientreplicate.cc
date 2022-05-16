@@ -191,7 +191,7 @@ ClientUserJournal::SetStateFile( const StrPtr *fname, Error *e )
 
 	    journalno = buf.Atoi();
 	    const char *cp;
-	    if( cp = buf.Contains( StrRef( "/" ) ) )
+	    if( ( cp = buf.Contains( StrRef( "/" ) ) ) )
 		sequence = StrPtr::Atoi64( ++cp );
 	}
 	e->Clear();
@@ -261,7 +261,7 @@ jtail( int ac, char **av, Options &preopts, Options &opts,
 
 	// Debugging 
 
-	for( int i = 0; s = preopts.GetValue( 'v', i ); i++ )
+	for( int i = 0; ( s = preopts.GetValue( 'v', i ) ); i++ )
 	    p4debug.SetLevel( s->Text() );
 
 	ClientUserJournal ui;
@@ -299,7 +299,7 @@ jtail( int ac, char **av, Options &preopts, Options &opts,
 	{
 	    ui.journalno = jop->Atoi();
 	    const char *cp;
-	    if( cp = jop->Contains( StrRef( "/" ) ) )
+	    if( ( cp = jop->Contains( StrRef( "/" ) ) ) )
 		ui.sequence = StrPtr::Atoi64( ++cp );
 	    if( ui.journalno < 0 )
 		ui.journalno = 0;
@@ -341,7 +341,7 @@ jtail( int ac, char **av, Options &preopts, Options &opts,
 	    Enviro enviro;
 	    const char *lc;
 	    enviro.Config( client.GetCwd() );
-	    if( s = preopts[ 'C' ] )
+	    if( ( s = preopts[ 'C' ] ) )
 		lc = s->Text();
 	    else
 		lc = enviro.Get( "P4CHARSET" );
@@ -397,9 +397,9 @@ jtail( int ac, char **av, Options &preopts, Options &opts,
 		}
 	    }
 
-	    if( s = preopts[ 'u' ] ) client.SetUser( s );
-	    if( s = preopts[ 'p' ] ) client.SetPort( s );
-	    if( s = preopts[ 'P' ] ) client.SetPassword( s );
+	    if( ( s = preopts[ 'u' ] ) ) client.SetUser( s );
+	    if( ( s = preopts[ 'p' ] ) ) client.SetPort( s );
+	    if( ( s = preopts[ 'P' ] ) ) client.SetPassword( s );
 
 	    e.Clear();
 	    ui.errorseen = 0;

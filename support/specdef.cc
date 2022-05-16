@@ -244,7 +244,7 @@ SpecElem::Decode( StrRef *s, Error *e )
 	char *y = w + s->Length();
 	char *b;
 
-	if( b = strchr( w, ';' ) ) *b++ = 0; else b = y;
+	if(( b = strchr( w, ';' ) ) ) *b++ = 0; else b = y;
 
 	// save tag
 
@@ -257,8 +257,8 @@ SpecElem::Decode( StrRef *s, Error *e )
 	    char *q;
 	    w = b;
 
-	    if( b = strchr( w, ';' ) ) *b++ = 0; else b = y;
-	    if( q = strchr( w, ':' ) ) *q++ = 0; else q = b;
+	    if( ( b = strchr( w, ';' ) ) ) *b++ = 0; else b = y;
+	    if( ( q = strchr( w, ':' ) ) ) *q++ = 0; else q = b;
 
 	    if( !*w ) break;
 
@@ -346,7 +346,7 @@ SpecElem::CheckValue( StrBuf &value )
 
 	    // Break at next /
 
-	    if( np = strchr( p, '/' ) )
+	    if( ( np = strchr( p, '/' ) ) )
 	    {
 		r.Set( p, np - p );
 		*np = 0;
@@ -397,7 +397,7 @@ SpecElem::GetPreset( const char *name )
 	    // foo,more
 	    // foo,more/more
 
-	    if( !l && ( !s || c && c < s ) )
+	    if( !l && ( !s || ( c && c < s ) ) )
 	    {
 		preset.Set( p, ( c ? c : e ) - p );
 		return preset;

@@ -5,12 +5,6 @@
  */
 
 # include <stdhdrs.h>
-# include <error.h>
-# include <msgscript.h>
-# include <debug.h>
-
-# include <p4script.h>
-# include <debugextension.h>
 
 # ifdef HAS_EXTENSIONS
 
@@ -38,15 +32,25 @@
 # include "filesyslua.h"
 # include "errorlua.h"
 
+# include <error.h>
+# include <msgscript.h>
+# include <debug.h>
+
+# include <runcmd.h>
+# include <enviro.h>
+# include <strarray.h>
+# include <pid.h>
+# include <pathsys.h>
+# include <datetime.h>
+
 # include <p4error.h>
 # include <p4result.h>
 # include <clientuserp4lua.h>
 # include <p4lua.h>
 # include <p4mapmaker.h>
 
-# include <runcmd.h>
-# include <enviro.h>
-# include <strarray.h>
+# include <p4script.h>
+# include <debugextension.h>
 
 int p4script::impl53::os_execute( void* Lv )
 {
@@ -141,12 +145,180 @@ static void debugHookShim( lua_State* L, lua_Debug* arv )
 	z->debugCb( z, arv );
 }
 
+p4script::impl53::Debug::Debug() : pid( StrNum( Pid().GetID() ) )
+{
+	type = DEBUG::NONE;
+	now = std::unique_ptr< DateTimeHighPrecision >
+	          ( new DateTimeHighPrecision() );
+}
+
+p4script::impl53::Debug::~Debug()
+{
+	if( !log )
+	    return;
+
+	Error eIgnore;
+
+	buf.Clear();
+	now->Now();
+	LogHeader( buf );
+	buf << "End of script\n\n";
+	(*log)->Write( buf, &eIgnore );
+
+	(*log)->Close( &eIgnore );
+}
+
+void p4script::impl53::Debug::SetDebug( const DEBUG type, const StrBuf* id,
+	                                const StrBuf& path, Error* e )
+{
+	this->type = type;
+	this->id = id;
+
+	if( type == DEBUG::TRACING )
+	{
+	    auto file = PathSys::CreateUPtr();
+	    (*file)->SetLocal( path, StrRef( ".p4-debug-tracing.txt" ) );
+	    log = FileSys::CreateUPtr( FST_ATEXT );
+	    (*log)->Set( (*file)->Text() );
+	    (*log)->Open( FOM_RW, e );
+
+	    buf.Clear();
+	    now->Now();
+	    LogHeader( buf );
+	    buf << "Start of script\n";
+	    (*log)->Write( buf, e );
+	}
+}
+
+void p4script::impl53::Debug::LogHeader( StrBuf& buf )
+{
+	buf << now->Seconds() << "." << now->Nanos() << " " << pid << " "
+	    << id->Text() << " ";
+}
+
+bool p4script::impl53::Debug::TraceCB( void* _L, void* arv, Error* e )
+{
+	lua_State* L = static_cast< lua_State* >( _L );
+	lua_Debug* info = static_cast< lua_Debug* >( arv );
+
+	lua_getinfo( L, "nSl", info );
+
+	if( strcmp( info->what, "Lua" ) )
+	    return true;
+
+	const char* srcFile = info->source + 1;
+
+	if( info->source && info->source[ 0 ] == '@' &&
+	    lines.find( srcFile ) == lines.cend() )
+	{
+	    std::ifstream is( srcFile );
+
+	    if( is.fail() )
+	    {
+	        StrBuf msg;
+	        msg << "p4script::impl53::Debug::TraceCB() could not open "
+	               "source file '" << srcFile << "': " << strerror( errno );
+	        e->Set( MsgScript::GenericFatal ) << msg;
+	        return false;
+	    }
+
+	    std::vector< std::string > fc;
+
+	    for( std::string line; std::getline( is, line );
+	         fc.emplace_back( std::move( line ) ) )
+	        ;
+
+	    lines[ srcFile ] = std::move( fc );
+	}
+
+	const auto& srcLines = std::get< 1 >( *(lines.find( srcFile ) ) );
+
+	int lineNo = -1;
+
+	switch( info->event )
+	{
+	    case LUA_HOOKCALL:
+	        lineNo = info->linedefined;
+	        level++;
+	        break;
+	    case LUA_HOOKRET:
+	        // This isn't called on tailcall.
+	        lineNo = info->lastlinedefined;
+	        level--;
+	        break;
+	    case LUA_HOOKLINE:
+	        lineNo = info->currentline;
+	        break;
+	    case LUA_HOOKTAILCALL:
+	        lineNo = info->linedefined;
+	        level++;
+	        break;
+	}
+
+	if( lineNo == -1 )
+	   return true;
+
+	now->Now();
+	buf.Clear();
+
+	if( lastFile != srcFile )
+	{
+	    lastFile = srcFile;
+	    LogHeader( buf );
+	    buf << lastFile.c_str() << "\n";
+	}
+
+	LogHeader( buf );
+
+	char lineNoBuf[ 16 ];
+	memset( lineNoBuf, '\0', 16 * sizeof( char ) );
+	snprintf( lineNoBuf, 16, "%5d ", lineNo );
+	buf << lineNoBuf;
+
+	if( level <= 0 )
+	    level = 1;
+
+	for( int i = 0; i < level; i++ )
+	    buf << ">>> ";
+
+	buf << " " << ( ( lineNo > srcLines.size() )
+	    ? std::string( "unknown" ) : srcLines[ lineNo - 1 ] ).c_str();
+
+	buf << "\n";
+
+	if( info->event == LUA_HOOKRET )
+	    level--;
+
+	(*log)->Write( buf, e );
+
+	if( e->Test() )
+	    return false;
+
+	return true;
+}
+
+p4script::DEBUG p4script::impl53::Debug::GetType() const
+{
+	return type;
+}
+
 void p4script::impl53::debugCb( void* Lv, void* arv )
 {
 	auto lua = cast_sol_State( l );
 	lua_State *L = lua->lua_state();
+	const lua_Debug* info = static_cast< lua_Debug* >( arv );
 
-	if( !parent.scriptCancelled && parent.checkTime() )
+	if( debug.GetType() == DEBUG::TRACING &&
+	    info->event != LUA_HOOKCOUNT &&
+	    !debug.TraceCB( L, arv, &realError ) )
+	{
+	    parent.scriptCancelled = true;
+	    luaL_error( L, "debugHook" );
+	    return;
+	}
+
+	if( info->event == LUA_HOOKCOUNT &&
+	    !parent.scriptCancelled && parent.checkTime() )
 	{
 	    realError.Set( MsgScript::ScriptMaxRunErr )
 	        << "time"
@@ -163,7 +335,6 @@ void p4script::impl53::debugCb( void* Lv, void* arv )
 void p4script::impl53::SetRealError( const Error* e )
 {
 	const bool isExit = realError.CheckId( MsgScript::OsExitRealError );
-	bool allowOsExit = true;
 
 	for( const auto& fn : parent.LuaBindCfgs )
 	    if( isExit && !fn( SCR_BINDING_LUA_OPTS::OS_EXIT ) )
@@ -268,7 +439,51 @@ void* p4script::impl53::getState()
 	return l;
 }
 
+bool p4script::impl53::SupportsDebugType( const DEBUG type ) const
+{
+	return type <= DEBUG::TRACING;
+}
+
+void p4script::impl53::SetDebug( const DEBUG type, const StrBuf* id,
+	                         const StrBuf& path, Error* e )
+{
+	auto lua = cast_sol_State( l );
+	lua_State *L = lua->lua_state();
+
+	switch( type )
+	{
+	    case DEBUG::NONE:
+	        break;
+	    case DEBUG::TRACING:
+	    {
+	        // The current implementation doesn't have an off switch.
+
+	        const int mask = LUA_MASKCOUNT | LUA_MASKCALL | LUA_MASKRET |
+	                         LUA_MASKLINE;
+	        lua_sethook( L, (lua_Hook)debugHookShim, mask, maxInsStep );
+
+	        debug.SetDebug( type, id, path, e );
+
+	        break;
+	    }
+	    case DEBUG::CRYSTAL_BALL:
+	        break;
+	    default:
+	        break;
+	}
+}
+
+bool p4script::impl53::doFile( const char *name, Error *e )
+{
+	return doCode( name, false, e );
+}
+
 bool p4script::impl53::doStr( const char *buf, Error *e )
+{
+	return doCode( buf, true, e );
+}
+
+bool p4script::impl53::doCode( const char *data, const bool isStr, Error *e )
 {
 	if( e->Test() )
 	{
@@ -283,7 +498,7 @@ bool p4script::impl53::doStr( const char *buf, Error *e )
 
 	try
 	{
-	    lua->safe_script( buf );
+	    isStr ? lua->safe_script( data ) : lua->safe_script_file( data );
 	}
 	catch( const sol::error& err )
 	{

@@ -73,6 +73,8 @@ class ObjectHashTableEntry
 {
     public:
 
+	virtual        ~ObjectHashTableEntry() {}
+  
 	ObjectHashTableEntry    *next;
 	ObjectHashTableEntry    *prev;
 	void                    *object;
@@ -108,7 +110,7 @@ class ObjectHashMap
     static const int MAX_OBJECTS = 10 * 1024 * 1024;
 
                 ObjectHashMap( int size = SMALL );
-                ~ObjectHashMap();
+                virtual ~ObjectHashMap();
 
     void            Clear();
 

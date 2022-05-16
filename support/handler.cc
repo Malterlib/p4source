@@ -105,7 +105,7 @@ Handlers::AnyErrors( const StrPtr *name )
 	Handler *h;
 	int n = 0;
 
-	if( h = Find( name ) )
+	if( ( h = Find( name ) ) )
 	{
 	    n = h->anyErrors;
 	    h->anyErrors = 0;
@@ -135,7 +135,7 @@ Handlers::SetError( const StrPtr *name, Error *e )
 	if( e->Test() )
 	    return;
 
-	if( h = Find( name ) )
+	if( ( h = Find( name ) ) )
 	{
 	    h->anyErrors = 1;
 	    return;

@@ -819,6 +819,9 @@ typedef unsigned int p4size_t;
 # endif // OS_NTX86
 
 # ifndef OS_MINGW
+# ifndef NOMINMAX
+#   define NOMINMAX
+# endif // !NOMINMAX
 # include <windef.h>
 # include <winnt.h>
 # else

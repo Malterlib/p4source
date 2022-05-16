@@ -204,7 +204,7 @@ Hash::Stats()
 
 	for( i = nel; i > 0; i-- )
 	{
-		if( here = ( *tab++ != (HashItem *)0 ) )
+		if( ( here = ( *tab++ != (HashItem *)0 ) ) )
 			count++;
 		if( here && !run )
 			sets++;

@@ -35,8 +35,6 @@
 # include <timer.h>
 # include <progress.h>
 # include <msgscript.h>
-# include <dmextension.h>
-# include <dmextension_c.h>
 
 # include <p4tags.h>
 
@@ -45,6 +43,9 @@
 # include <fileio.h>
 # include <enviro.h>
 # include <ticket.h>
+
+# include <dmextension.h>
+# include <dmextension_c.h>
 
 # include "clientmerge.h"
 # include "clientresolvea.h"
@@ -65,6 +66,7 @@ ClientFile::ClientFile( FileSys *fs )
 	isDiff = 0;
 	checksum = 0;
 	matchDict = 0;
+	progress = 0;
 }
 
 ClientFile::~ClientFile()
@@ -73,6 +75,7 @@ ClientFile::~ClientFile()
 	delete indirectFile;
 	delete checksum;
 	delete matchDict;
+	delete progress;
 }
 
 /*
@@ -250,8 +253,8 @@ ClientSvc::CheckFilePath( Client *client, FileSys *f, Error *e )
 {
 	if( !StrRef( f->Name() ).Compare( client->GetTicketFile() ) ||
 	    !StrRef( f->Name() ).Compare( client->GetTrustFile() ) ||
-	    !f->IsUnderPath( client->GetClientPath() ) &&
-	    !f->IsUnderPath( client->GetTempPath() ) )
+	    ( !f->IsUnderPath( client->GetClientPath() ) &&
+	    !f->IsUnderPath( client->GetTempPath() ) ) )
 	{
 	    e->Set( MsgClient::NotUnderPath )
 	        << f->Name() << client->GetClientPath();
@@ -269,6 +272,7 @@ ClientSvc::File( Client *client, Error *e )
 class ClientProgressReport : public ProgressReport {
     public:
 	ClientProgressReport( ClientProgress *p ) : cp(p) {}
+	~ClientProgressReport() { delete cp; }
 	void DoReport( int );
 
     protected:
@@ -310,7 +314,6 @@ Client::OutputError( Error *e )
 	    SetError();
 	    GetUi()->HandleError( e );
 	    e->Clear();
-	    ClearSecretKey();
 	    ClearPBuf();
 	}
 }
@@ -359,6 +362,7 @@ clientOpenFile( Client *client, Error *e )
 	StrPtr *modTime = client->GetVar( P4Tag::v_time );
 	StrPtr *noclobber = client->GetVar( P4Tag::v_noclobber );
 	StrPtr *sizeHint = client->GetVar( P4Tag::v_fileSize );
+	StrPtr *svrSize = client->GetVar( P4Tag::v_serverSize );
 	StrPtr *perms = client->GetVar( P4Tag::v_perms );
 	StrPtr *func = client->GetVar( P4Tag::v_func, e );
 	StrPtr *diffFlags = client->GetVar( P4Tag::v_diffFlags );
@@ -563,6 +567,21 @@ clientOpenFile( Client *client, Error *e )
 
 	    if( sizeHint )
 	        f->file->SetSizeHint( sizeHint->Atoi64() );
+
+	    // If the server told us how much it's going to send,
+	    // then we have give a process bar.
+	    // If we got a size hint, we can use that too
+
+	    ClientProgress *indicator;
+		
+	    if( svrSize && svrSize->Atoi64() > 1024 &&
+	        ( indicator = client->GetUi()->CreateProgress( CPT_RECVFILE ) ) )
+	    {
+	        f->progress = new ClientProgressReport( indicator );
+	        f->progress->Description( *clientPath );
+	        f->progress->Units( CPU_KBYTES );
+	        f->progress->Total( (long)( svrSize->Atoi64() / 1024 ) );
+	    }
 	}
 
 	// Actually open file
@@ -623,6 +642,7 @@ clientWriteFile( Client *client, Error *e )
 	                         || ( f->file->GetType() == FST_RESOURCE ) ) )
 	    f->checksum->Update( *data );
 
+
 	// Write data.
 	// On failure, mark handle with error.
 
@@ -637,6 +657,10 @@ clientWriteFile( Client *client, Error *e )
 	if( !e->Test() && f->file->IsSymlink() && data->Length() )
 	    f->symTarget << data;
 
+	if( f->progress )
+	    f->progress->Increment( data->Length() / 1024,
+	                            e->Test() ? CPP_FAILDONE : CPP_NORMAL );
+	
 	// Mark handle with any error
 	// Report non-fatal error and clear it.
 
@@ -677,7 +701,7 @@ clientCloseFile( Client *client, Error *e )
 	    FileSys *f2 = FileSys::Create( FST_BINARY );
 	    StrBuf basePath;
 	    char *p;
-	    if( p = strchr( f->symTarget.Text(), '\n' ) )
+	    if( ( p = strchr( f->symTarget.Text(), '\n' ) ) )
 	    {
 	        f->symTarget.SetEnd( p );
 	        f->symTarget.Terminate();
@@ -767,6 +791,11 @@ clientCloseFile( Client *client, Error *e )
 	    // just close actual target
 	    f->file->ClearDeleteOnClose();
 	}
+
+	// Progress complete
+	if( f->progress )
+	    f->progress->Increment( 0, e->Test() || f->IsError() ? CPP_FAILDONE
+	                                                         : CPP_DONE );
 
 	// Handle remembers if any error occurred 
 	// Report non-fatal error and clear it.
@@ -1173,27 +1202,27 @@ const struct ctTable {
 
 } checkTable[] = {
 	
-	FST_TEXT,	0, OK, CHKSZ,   "text", "text", "ctext", 
-	FST_XTEXT,	0, SUBST, CHKSZ,"xtext", "text", "text+Cx", 
-	FST_BINARY,	0, OK, OK,	"binary", "binary", 0,
-	FST_XBINARY,	0, SUBST, OK,	"xbinary", "binary", 0,
-	FST_APPLEFILE,	4, SUBST, OK,	"apple", "binary", 0,
-	FST_XAPPLEFILE,	4, SUBST, OK,	"apple+x", "binary", 0,
-	FST_CBINARY,	3, SUBST, OK,	"ubinary", "binary", 0,
-	FST_SYMLINK,	1, CANT, OK,	"symlink", 0, 0,
-	FST_RESOURCE,	2, CANT, OK,	"resource", 0, 0,
-	FST_SPECIAL,	-1, CANT, CANT,	"special", 0, 0,
-	FST_DIRECTORY,	-1, CANT, CANT,	"directory", 0, 0,
-	FST_MISSING,	-1, ASS, ASS,	"missing", "text", 0,
-	FST_CANTTELL,	-1, ASS, ASS,	"unreadable", "text", 0,
-	FST_EMPTY,	-1, ASS, ASS,	"empty", "text", 0,
-	FST_UNICODE,	5, SUBST, CHKSZ,"unicode", "text", "unicode+C",
-	FST_XUNICODE,	5, SUBST, CHKSZ,"xunicode", "text","xunicode+C",
-	FST_UTF16,	6, SUBST, CHKSZ,"utf16", "binary","utf16+C",
-	FST_XUTF16,	6, SUBST, CHKSZ,"xutf16", "binary", "xutf16+C",
-	FST_UTF8,	7, SUBST, CHKSZ,"utf8", "text","utf8+C",
-	FST_XUTF8,	7, SUBST, CHKSZ,"xutf8", "text", "xutf8+C",
-	FST_TEXT,	0, OK, OK,	0, 0, 0
+	{ FST_TEXT,	0, { OK, CHKSZ },   	"text", "text", "ctext" },
+	{ FST_XTEXT,	0, { SUBST, CHKSZ },	"xtext", "text", "text+Cx" },
+	{ FST_BINARY,	0, { OK, OK },		"binary", "binary", 0 },
+	{ FST_XBINARY,	0, { SUBST, OK },	"xbinary", "binary", 0 },
+	{ FST_APPLEFILE,4, { SUBST, OK },	"apple", "binary", 0 },
+	{ FST_XAPPLEFILE,4, { SUBST, OK },	"apple+x", "binary", 0 },
+	{ FST_CBINARY,	3, { SUBST, OK },	"ubinary", "binary", 0 },
+	{ FST_SYMLINK,	1, { CANT, OK },	"symlink", 0, 0 },
+	{ FST_RESOURCE,	2, { CANT, OK },	"resource", 0, 0 },
+	{ FST_SPECIAL,	-1, { CANT, CANT },	"special", 0, 0 },
+	{ FST_DIRECTORY,-1, { CANT, CANT },	"directory", 0, 0 },
+	{ FST_MISSING,	-1, { ASS, ASS },	"missing", "text", 0 },
+	{ FST_CANTTELL,	-1, { ASS, ASS },	"unreadable", "text", 0 },
+	{ FST_EMPTY,	-1, { ASS, ASS },	"empty", "text", 0 },
+	{ FST_UNICODE,	5, { SUBST, CHKSZ },	"unicode", "text", "unicode+C" },
+	{ FST_XUNICODE,	5, { SUBST, CHKSZ },	"xunicode", "text","xunicode+C" },
+	{ FST_UTF16,	6, { SUBST, CHKSZ },	"utf16", "binary","utf16+C" },
+	{ FST_XUTF16,	6, { SUBST, CHKSZ },	"xutf16", "binary", "xutf16+C" },
+	{ FST_UTF8,	7, { SUBST, CHKSZ },	"utf8", "text","utf8+C" },
+	{ FST_XUTF8,	7, { SUBST, CHKSZ },	"xutf8", "text", "xutf8+C" },
+	{ FST_TEXT,	0, { OK, OK },	0, 0, 0 }
 } ;
 
 static void clientCheckFileGraph( Client *client, Error *e );
@@ -2171,7 +2200,7 @@ clientSendFile( Client *client, Error *e )
 
 	ClientProgress *indicator;
 
-	if( indicator = client->GetUi()->CreateProgress( CPT_SENDFILE ) )
+	if( ( indicator = client->GetUi()->CreateProgress( CPT_SENDFILE ) ) )
 	{
 	    progress = new ClientProgressReport( indicator );
 	    progress->Description( *clientPath );
@@ -2206,10 +2235,12 @@ clientSendFile( Client *client, Error *e )
 		len += l;
 
 		if( progress )
+		{
 		    if( l )
 			progress->Position( len / 1024, CPP_NORMAL );
 		    else
 			progress->Position( filesize / 1024, CPP_DONE );
+		}
 
 		if( !l )
 		    break;
@@ -2248,11 +2279,7 @@ clientSendFile( Client *client, Error *e )
 	// knows something went wrong.
 
 	delete f;
-	if( progress )
-	{
-	    delete progress;
-	    delete indicator;
-	}
+	delete progress;
 
 	if( sendDigest )
 	{
@@ -2706,7 +2733,7 @@ clientSingleSignon( Client *client, Error *e )
 	    SSODict.SetVar( "data", "" );
 
 	ClientSSO *handler = 0;
-	if( handler = client->GetUi()->GetSSOHandler() )
+	if( ( handler = client->GetUi()->GetSSOHandler() ) )
 	{
 	    StrBuf resBuf;
 
@@ -2904,7 +2931,6 @@ clientHandleError( Client *client, Error *e )
 	    client->SetError();
 
 	client->GetUi()->HandleError( &rcvErr );
-	client->ClearSecretKey();
 	client->ClearPBuf();
 }
 
@@ -2929,12 +2955,6 @@ clientMessage( Client *client, Error *e )
 	    client->SetError();
 
 	client->GetUi()->Message( &rcvErr );
-
-	if( rcvErr.Test() )
-	{
-	    client->ClearSecretKey();
-	    client->ClearPBuf();
-	}
 
 	// MsgDm::DomainSave
 	ErrorId clientUpdate = { ErrorOf( 6, 6370, 1, 0, 2 ), "" };
@@ -3540,21 +3560,21 @@ clientProtocol( Client *client, Error *e )
 {
 	StrPtr *s;
 
-	if( s = client->GetVar( P4Tag::v_xfiles ) )
+	if( ( s = client->GetVar( P4Tag::v_xfiles ) ) )
 	    client->protocolXfiles = s->Atoi();
 
 	if( ( s = client->GetVar( P4Tag::v_server2 ) ) || 
 	    ( s = client->GetVar( P4Tag::v_server ) ) )
 	    client->protocolServer = s->Atoi();
 
-	if( s = client->GetVar( P4Tag::v_security ) ) 
+	if( ( s = client->GetVar( P4Tag::v_security ) ) )
 	    client->protocolSecurity = s->Atoi();
 
 	client->protocolNocase = client->GetVar( P4Tag::v_nocase ) != 0;
 
 	client->protocolUnicode = client->GetVar( P4Tag::v_unicode ) != 0;
 
-	if( s = client->GetVar( P4Tag::v_extensionsEnabled ) )
+	if( ( s = client->GetVar( P4Tag::v_extensionsEnabled ) ) )
 	    client->protocolClientExts = s->Atoi();
 	else
 	    client->protocolClientExts = 1;
@@ -3615,62 +3635,62 @@ void clientReceiveFiles( Client *client, Error *e );
  */
 
 const RpcDispatch clientDispatch[] = {
-	P4Tag::c_OpenFile,	RpcCallback(clientOpenFile),
-	P4Tag::c_OpenDiff,	RpcCallback(clientOpenFile),
-	P4Tag::c_OpenMatch,	RpcCallback(clientOpenFile),
-	P4Tag::c_WriteFile,	RpcCallback(clientWriteFile),
-	P4Tag::c_WriteDiff,	RpcCallback(clientWriteFile),
-	P4Tag::c_WriteMatch,	RpcCallback(clientWriteFile),
-	P4Tag::c_CloseFile,	RpcCallback(clientCloseFile),
-	P4Tag::c_CloseDiff,	RpcCallback(clientCloseFile),
-	P4Tag::c_CloseMatch,	RpcCallback(clientCloseFile),
-	P4Tag::c_AckMatch,	RpcCallback(clientAckMatch),
+	{ P4Tag::c_OpenFile,	RpcCallback(clientOpenFile) },
+	{ P4Tag::c_OpenDiff,	RpcCallback(clientOpenFile) },
+	{ P4Tag::c_OpenMatch,	RpcCallback(clientOpenFile) },
+	{ P4Tag::c_WriteFile,	RpcCallback(clientWriteFile) },
+	{ P4Tag::c_WriteDiff,	RpcCallback(clientWriteFile) },
+	{ P4Tag::c_WriteMatch,	RpcCallback(clientWriteFile) },
+	{ P4Tag::c_CloseFile,	RpcCallback(clientCloseFile) },
+	{ P4Tag::c_CloseDiff,	RpcCallback(clientCloseFile) },
+	{ P4Tag::c_CloseMatch,	RpcCallback(clientCloseFile) },
+	{ P4Tag::c_AckMatch,	RpcCallback(clientAckMatch) },
 
-	P4Tag::c_DeleteFile,	RpcCallback(clientDeleteFile),
-	P4Tag::c_ChmodFile,	RpcCallback(clientChmodFile),
-	P4Tag::c_CheckFile,	RpcCallback(clientCheckFile),
-	P4Tag::c_ConvertFile,   RpcCallback(clientConvertFile),
-	P4Tag::c_ReconcileEdit,	RpcCallback(clientReconcileEdit),
-	P4Tag::c_MoveFile,	RpcCallback(clientMoveFile),
+	{ P4Tag::c_DeleteFile,	RpcCallback(clientDeleteFile) },
+	{ P4Tag::c_ChmodFile,	RpcCallback(clientChmodFile) },
+	{ P4Tag::c_CheckFile,	RpcCallback(clientCheckFile) },
+	{ P4Tag::c_ConvertFile,	RpcCallback(clientConvertFile) },
+	{ P4Tag::c_ReconcileEdit,RpcCallback(clientReconcileEdit) },
+	{ P4Tag::c_MoveFile,	RpcCallback(clientMoveFile) },
 
-	P4Tag::c_ActionResolve, RpcCallback(clientActionResolve),
+	{ P4Tag::c_ActionResolve, RpcCallback(clientActionResolve) },
 
-	P4Tag::c_OpenMerge2,	RpcCallback(clientOpenMerge),
-	P4Tag::c_OpenMerge3,	RpcCallback(clientOpenMerge),
-	P4Tag::c_WriteMerge,	RpcCallback(clientWriteMerge),
-	P4Tag::c_CloseMerge,	RpcCallback(clientCloseMerge),
+	{ P4Tag::c_OpenMerge2,	RpcCallback(clientOpenMerge) },
+	{ P4Tag::c_OpenMerge3,	RpcCallback(clientOpenMerge) },
+	{ P4Tag::c_WriteMerge,	RpcCallback(clientWriteMerge) },
+	{ P4Tag::c_CloseMerge,	RpcCallback(clientCloseMerge) },
 
-	P4Tag::c_ReceiveFiles,	RpcCallback(clientReceiveFiles),
-	P4Tag::c_SendFile,	RpcCallback(clientSendFile),
-	P4Tag::c_EditData,	RpcCallback(clientEditData),
-	P4Tag::c_InputData,	RpcCallback(clientInputData),
-	P4Tag::c_ReconcileAdd,	RpcCallback(clientReconcileAdd),
-	P4Tag::c_ReconcileFlush,RpcCallback(clientReconcileFlush),
-	P4Tag::c_ExactMatch,    RpcCallback(clientExactMatch),
+	{ P4Tag::c_ReceiveFiles,RpcCallback(clientReceiveFiles) },
+	{ P4Tag::c_SendFile,	RpcCallback(clientSendFile) },
+	{ P4Tag::c_EditData,	RpcCallback(clientEditData) },
+	{ P4Tag::c_InputData,	RpcCallback(clientInputData) },
+	{ P4Tag::c_ReconcileAdd,RpcCallback(clientReconcileAdd) },
+	{ P4Tag::c_ReconcileFlush,RpcCallback(clientReconcileFlush) },
+	{ P4Tag::c_ExactMatch,    RpcCallback(clientExactMatch) },
 
-	P4Tag::c_Prompt,	RpcCallback(clientPrompt),
-	P4Tag::c_Progress,	RpcCallback(clientProgress),
-	P4Tag::c_ErrorPause,	RpcCallback(clientErrorPause),
-	P4Tag::c_HandleError,	RpcCallback(clientHandleError),
-	P4Tag::c_Message,	RpcCallback(clientMessage),
-	P4Tag::c_OutputError,	RpcCallback(clientOutputError),
-	P4Tag::c_OutputInfo,	RpcCallback(clientOutputInfo),
-	P4Tag::c_OutputData,	RpcCallback(clientOutputInfo),
-	P4Tag::c_OutputText,	RpcCallback(clientOutputText),
-	P4Tag::c_OutputBinary,	RpcCallback(clientOutputBinary),
-	P4Tag::c_FstatInfo,	RpcCallback(clientFstatInfo),
-	P4Tag::c_FstatPartial,	RpcCallback(clientFstatPartial),
-	P4Tag::c_OpenUrl,	RpcCallback(clientOpenUrl),
+	{ P4Tag::c_Prompt,	RpcCallback(clientPrompt) },
+	{ P4Tag::c_Progress,	RpcCallback(clientProgress) },
+	{ P4Tag::c_ErrorPause,	RpcCallback(clientErrorPause) },
+	{ P4Tag::c_HandleError,	RpcCallback(clientHandleError) },
+	{ P4Tag::c_Message,	RpcCallback(clientMessage) },
+	{ P4Tag::c_OutputError,	RpcCallback(clientOutputError) },
+	{ P4Tag::c_OutputInfo,	RpcCallback(clientOutputInfo) },
+	{ P4Tag::c_OutputData,	RpcCallback(clientOutputInfo) },
+	{ P4Tag::c_OutputText,	RpcCallback(clientOutputText) },
+	{ P4Tag::c_OutputBinary,RpcCallback(clientOutputBinary) },
+	{ P4Tag::c_FstatInfo,	RpcCallback(clientFstatInfo) },
+	{ P4Tag::c_FstatPartial,RpcCallback(clientFstatPartial) },
+	{ P4Tag::c_OpenUrl,	RpcCallback(clientOpenUrl) },
 
-	P4Tag::c_Ack,		RpcCallback(clientAck),
-	P4Tag::c_Ping,		RpcCallback(clientPing),
+	{ P4Tag::c_Ack,		RpcCallback(clientAck) },
+	{ P4Tag::c_Ping,	RpcCallback(clientPing) },
 
-	P4Tag::c_Crypto,	RpcCallback(clientCrypto),
-	P4Tag::c_SetPassword,	RpcCallback(clientSetPassword),
-	P4Tag::c_SSO,		RpcCallback(clientSingleSignon),
+	{ P4Tag::c_Crypto,	RpcCallback(clientCrypto) },
+	{ P4Tag::c_SetPassword,	RpcCallback(clientSetPassword) },
+	{ P4Tag::c_SSO,		RpcCallback(clientSingleSignon) },
 
-	P4Tag::p_protocol,	RpcCallback(clientProtocol),
-	P4Tag::p_errorHandler,	RpcCallback(clientFatalError),
+	{ P4Tag::p_protocol,	RpcCallback(clientProtocol) },
+	{ P4Tag::p_errorHandler,RpcCallback(clientFatalError) },
 
-	0, 0
+	{ 0, 0 }
 } ;

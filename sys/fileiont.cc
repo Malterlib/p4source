@@ -2539,29 +2539,6 @@ FileIOAppend::GetSize()
 	return s;
 }
 
-offL_t
-FileIOAppend::GetCurrentSize()
-{
-	// The intent of this function is to get the size of the current file
-	// (by path), not of a recently rename()'d file that still happens to
-	// be open on this->fd. But since Copy() and Truncate() are used to
-	// "rename" a FileIOAppend file on Windows, the current file should
-	// be the file open on this->fd. Therefore, this function merely
-	// wraps around GetSize().
-	//
-	// But if a FileIOAppend file on Windows is ever instead renamed
-	// using rename() semantics, this function might need changed so
-	// that it returns the correct size of the current file by path.
-	// Or alternatively, if FileIOBinary::GetSize() on Windows can
-	// be fixed so that it doesn't return a stale size of a file
-	// (by path) under high concurrency, this implementation of
-	// FileIOAppend::GetCurrentSize() can be eliminated in favor of
-	// making generic the FileIOAppend::GetCurrentSize() implementation
-	// in fileio.cc.
-
-	return GetSize();
-}
-
 void
 FileIOAppend::Write( const char *buf, int len, Error *e )
 {
@@ -2589,12 +2566,6 @@ FileIOAppend::Rename( FileSys *target, Error *e )
 {
 	// File may be open, so to rename we copy 
 	// and truncate FileIOAppend files on NT.
-	//
-	// But if a FileIOAppend file on Windows is ever instead renamed
-	// using rename() semantics, the FileIOAppend::GetCurrentSize()
-	// function on Windows might need changed so that it returns
-	// the correct size of a current file by path, not of a recently
-	// rename()'d file that still happens to be open on this->fd.
 
 	Copy( target, FPM_RO, e );
 

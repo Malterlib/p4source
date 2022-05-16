@@ -53,6 +53,60 @@ p4script::impl* p4script::GetImpl()
 	return pimpl.get();
 }
 
+bool p4script::DebugStrToEnum( const char* type, DEBUG& ret )
+{
+	StrRef t( type );
+
+	if( t == "none" )
+	{
+	    ret = DEBUG::NONE;
+	    return true;
+	}
+
+	if( t == "tracing" )
+	{
+	    ret = DEBUG::TRACING;
+	    return true;
+	}
+
+	if( t == "crystal_ball" )
+	{
+	    ret = DEBUG::CRYSTAL_BALL;
+	    return true;
+	}
+
+	return false;
+}
+
+bool p4script::DebugEnumToStr( const DEBUG type, std::string& ret )
+{
+	switch( type )
+	{
+	    case DEBUG::NONE:
+	        ret = "none";
+	    case DEBUG::TRACING:
+	        ret = "tracing";
+	    case DEBUG::CRYSTAL_BALL:
+	        // Testing placeholder.
+	        ret = "crystal_ball";
+	    default:
+	        return false;
+	}
+
+	return true;
+}
+
+bool p4script::SupportsDebugType( const DEBUG type ) const
+{
+	return pimpl->SupportsDebugType( type );
+}
+
+void p4script::SetDebug( const DEBUG type, const StrBuf* id,
+	                 const StrBuf& path, Error* e )
+{
+	pimpl->SetDebug( type, id, path, e );
+}
+
 int p4script::os_execute( void* Lv )
 {
 	switch( ((p4script*) Lv)->scriptType )
@@ -208,21 +262,7 @@ bool p4script::doFile( const char *name, Error *e )
 	    return false;
 	}
 
-	StrBuf results;
-	auto scr = FileSys::CreateUPtr( FST_BINARY );
-	(*scr)->Set( name );
-	(*scr)->Open( FOM_READ, e );
-
-	if( e->Test() )
-	    return false;
-
-	(*scr)->ReadWhole( &results, e );
-
-	if( e->Test() )
-	    return false;
-
-	return doStr( results.Text(), e );
-
+	return pimpl->doFile( name, e );
 }
 
 bool p4script::doStr( const char *buf, Error *e )

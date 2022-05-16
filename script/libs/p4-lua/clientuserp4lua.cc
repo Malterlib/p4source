@@ -14,16 +14,14 @@
 # include <map>
 # include <deque>
 
-# include <p4script.h>
-# include <p4script53.h>
-
 # include <clientapi.h>
 # include <clientprog.h>
 # include <strarray.h>
 # include <spec.h>
 # include <diff.h>
-
 # include <msgclient.h>
+# include <p4script.h>
+# include <p4script53.h>
 
 # include "p4luadebug.h"
 # include "p4error.h"
@@ -208,7 +206,6 @@ bool
 ClientUserP4Lua::CallOutputMethod(const char * method, std::string data)
 {
 	int answer = 0;
-	int excepted = 0;
 
 	if (P4LUA_COMMANDS) fprintf(stderr, "[P4] CallOutputMethod\n");
 
@@ -241,7 +238,6 @@ bool
 ClientUserP4Lua::CallOutputMethod(const char * method, sol::table data)
 {
 	int answer = 0;
-	int excepted = 0;
 
 	if (P4LUA_COMMANDS) fprintf(stderr, "[P4] CallOutputMethod\n");
 

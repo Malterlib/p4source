@@ -5,6 +5,8 @@
  */
 
 class VarArray ;
+class AltDispatcher;
+class Tnode;
 
 class RpcDispatcher {
     public:
@@ -13,9 +15,29 @@ class RpcDispatcher {
 			~RpcDispatcher( void );
 
 	void			Add( const RpcDispatch *dispatch );
+	void			AddAltDispatcher();
+	void			ClearAltDispatcher();
 	const RpcDispatch 	*Find( const char *func );
 
     private:
 
 	VarArray	*dispatches;
+	AltDispatcher	*altDispatcher;
+	int		altindex;
+
+} ;
+
+// An alternative dispatcher build on the Trie
+// algorithm. See support/trienode.cc
+
+class AltDispatcher {
+    public:
+	AltDispatcher();
+	~AltDispatcher();
+	void Add( const RpcDispatch *dispatch );
+	void Final();
+	const RpcDispatch *Find( const char *func );
+    private:
+	Tnode *trieNode;
+	int final;
 } ;

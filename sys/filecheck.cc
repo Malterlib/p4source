@@ -161,7 +161,7 @@ FileSys::CheckType( int scan )
 	    case CharSetCvt::UTF_32_LE_BOM:
 	    case CharSetCvt::UTF_32_BE_BOM:
 	    case CharSetCvt::UTF_32_BOM:
-		if( !zero && !highbit && !controlchar || utf8bomPresent )
+		if( ( !zero && !highbit && !controlchar ) || utf8bomPresent )
 		    break;
 
 		rettype = FST_UNICODE;
@@ -183,7 +183,7 @@ FileSys::CheckType( int scan )
 	    case CharSetCvt::UTF_16_LE_BOM:
 	    case CharSetCvt::UTF_16_BE_BOM:
 	    case CharSetCvt::UTF_16_BOM:
-		if( !zero && !highbit && !controlchar || utf8bomPresent )
+		if( ( !zero && !highbit && !controlchar ) || utf8bomPresent )
 		    break;
 
 		rettype = FST_UNICODE;

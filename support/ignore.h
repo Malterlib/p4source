@@ -9,7 +9,7 @@
 
 
 class IgnoreTable;
-struct IgnoreItem;
+class IgnoreItem;
 class StrArray;
 class FileSys;
 

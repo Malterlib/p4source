@@ -226,7 +226,7 @@ ReadFile::Memccpy( char *buf, int c, offL_t length )
 		
 	    char *b;
 
-	    if( b = (char *)memccpy( buf, mptr, c, l ) )
+	    if( ( b = (char *)memccpy( buf, mptr, c, l ) ) )
 		l = b - buf;
 
 	    buf += l;
@@ -258,7 +258,7 @@ ReadFile::Memchr( int c, offL_t length )
 		
 	    unsigned char *p;
 
-	    if( p = (unsigned char *)memchr( mptr, c, l ) )
+	    if( ( p = (unsigned char *)memchr( mptr, c, l ) ) )
 		l = p - mptr;
 
 	    mptr += l;

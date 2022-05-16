@@ -102,7 +102,6 @@ class DiffMerge {
 
 	DiffDiffs 	diffDiff;
 	GridTypes	gridType;
-	int		twoWay;
 	int 		state;
 	int		oldMode;
 	int		diff3behavior;

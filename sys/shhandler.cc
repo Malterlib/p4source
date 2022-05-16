@@ -112,8 +112,6 @@ SHHandleError(
 
 SHHandler::SHHandler()
 {
-	char msg[128];
-
 	// Initial values are only used when an unset is requested.
 	// If we know the previous value, we put it back.
 
@@ -180,6 +178,7 @@ SHHandler::SHHandler()
 
 	if( IsDebuggerPresent() )
 	{
+	    char msg[128];
 	    MEM_VERSION vers;
 
 	    vers = MemVersion( );
@@ -595,7 +594,6 @@ SHHandler::ListEntry (
 	)
 {
 	char fmt[128];
-	char frame[128];
 	char msg[8192];
 
 	if( !IsDebuggerPresent() )
@@ -632,6 +630,7 @@ SHHandler::ListEntry (
 	    if( info.callStack[0] != 0 )
 	    {
 		int i;
+		char frame[128];
 
 		sprintf (msg, "frames: ");
 
@@ -750,8 +749,6 @@ SHHandler::ListAllPools (
 {
 	MEM_POOL_INFO info;
 	MEM_POOL_STATUS status;
-	MEM_POOL_ENTRY entry;
-	MEM_SIZET size, s;
 	char msg[1024];
 
 	if( !IsDebuggerPresent() )

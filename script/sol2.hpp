@@ -7185,6 +7185,9 @@ namespace sol {
 			return align(alignment, size, ptr, space, required_space);
 		}
 
+# if defined(__clang__) && __clang_major__ >= 10
+# pragma clang attribute push(__attribute__((no_sanitize("undefined"))), apply_to=function)
+# endif
 		template <typename... Args>
 		inline std::size_t aligned_space_for(void* alignment = nullptr) {
 			char* start = static_cast<char*>(alignment);
@@ -7196,6 +7199,10 @@ namespace sol {
 			(void)detail::swallow{ int{}, (specific_align(std::alignment_of<Args>::value, sizeof(Args)), int{})... };
 			return static_cast<char*>(alignment) - start;
 		}
+# if defined(__clang__) && __clang_major__ >= 10
+# pragma clang attribute pop
+# endif
+
 
 		inline void* align_usertype_pointer(void* ptr) {
 			typedef std::integral_constant<bool,

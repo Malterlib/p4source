@@ -227,7 +227,8 @@ ClientMerge3::Write( StrPtr *buf, StrPtr *bits, Error *e )
 		break;
 	    }
 
-	    if( showAll || b & SEL_CONF || b == SEL_ALL && oldBits & SEL_CONF )
+	    if( showAll || ( b & SEL_CONF ) ||
+	        ( b == SEL_ALL && ( oldBits & SEL_CONF ) ) )
 	    {
 		if( needNl ) result->Write( "\n", 1, e );
 		result->Write( &markertab[ marker ], e );

@@ -314,7 +314,7 @@ StrOps::Indent( StrBuf &o, const StrPtr &buf )
 	{
 	    o.Append( "\t", 1 );
 
-	    if( t = strchr( p, '\n' ) )
+	    if( ( t = strchr( p, '\n' ) ) )
 	    {
 		o.Append( p, t - p + 1 );
 		p = t + 1;
@@ -357,7 +357,7 @@ StrOps::Replace( StrBuf &o, const StrPtr &i, const StrPtr &s, const StrPtr &r )
 
 	o.Clear();
 	start = i.Text();
-	while ( end = strstr( start, s.Text() ) )
+	while ( ( end = strstr( start, s.Text() ) ) )
 	{
 	    o.Append( start, end - start );
 	    o.Append( r.Text() );
@@ -381,7 +381,7 @@ StrOps::ReplaceWild( StrBuf &o, const StrPtr &i )
 
 	o.Clear();
 	start = i.Text();
-	while ( end = strstr( start, "*" ) )
+	while ( ( end = strstr( start, "*" ) ) )
 	{
 	    o.Append( start, end - start );
 	    if( end > start && *(end - 1) == '.' )
@@ -409,7 +409,7 @@ StrOps::Expand( StrBuf &o, const StrPtr &buf, StrDict &dict, StrDict *u )
 	const char *p = buf.Text();
 	const char *q;
 
-	while( q = strchr( p, '%' ) )
+	while( ( q = strchr( p, '%' ) ) )
 	{
 	    // look for closing %
 
@@ -432,7 +432,7 @@ StrOps::Expand( StrBuf &o, const StrPtr &buf, StrDict &dict, StrDict *u )
 		StrBuf var;
 		var.Extend( q, p - q );
 		var.Terminate();
-		if( val = dict.GetVar( var ) )
+		if( ( val = dict.GetVar( var ) ) )
 		    o.Append( val );
 	        else
 	        {
@@ -463,7 +463,7 @@ StrOps::Expand2( StrBuf &o, const StrPtr &buf, StrDict &dict )
 	//	text %var% ...
 	//	text [ stuff1 %var% stuff2 ] ...
 
-	while( q = strchr( p, '%' ) )
+	while( ( q = strchr( p, '%' ) ) )
 	{
 	    if( q[1] == '\'' ) // %' stuff '%: include stuff, uninspected...
 	    {
@@ -559,7 +559,7 @@ StrOps::AddIndex( StrBuf &o, const StrPtr &buf, const int i )
 	// Handle sequences of
 	//	text %var% ...
 
-	while( q = strchr( p, '%' ) )
+	while( ( q = strchr( p, '%' ) ) )
 	{
 	    if( q[1] == '\'' ) // %' stuff '%: include stuff, uninspected...
 	    {
@@ -1090,7 +1090,7 @@ StrOps::PackChar( StrBuf &o, const char *c, int length )
 
 	// Append up to null, or whole thing if no null
 
-	if( end = (char *)memchr( c, 0, length ) )
+	if( ( end = (char *)memchr( c, 0, length ) ) )
 	    length = end + 1 - c;
 
 	o.Append( c, length );
@@ -1197,7 +1197,7 @@ StrOps::UnpackChar( StrRef &o, char *c, int l )
 
 	// Unpack whole thing
 
-	if( end = (char *)memccpy( c, o.Text(), 0, l ) )
+	if( ( end = (char *)memccpy( c, o.Text(), 0, l ) ) )
 	    l = end - c;
 
 	o += l;

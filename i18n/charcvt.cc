@@ -684,14 +684,14 @@ CharSetCvtUTF8toEUCJP::Cvt(const char **sourcestart, const char *sourceend,
 			    if (t == 3)
 			    {
 				// code set 3,  prepend 0x8f and offset 0x8080
-				*(*targetstart)++ = 0x8f;
+				*(*targetstart)++ = (char)0x8f;
 				v += 0x8080;
 			    }
 	                
 			    if (v < 0xe0) 
 			    {
 				// code set 2, prepend 0x8e
-				*(*targetstart)++ = 0x8e;
+				*(*targetstart)++ = (char)0x8e;
 			    }
 			    else
 			    {
@@ -1089,8 +1089,8 @@ CharSetCvtCp949toUTF8::isDoubleByte( int leadByte )
 int
 CharSetCvtCp950toUTF8::isDoubleByte( int leadByte )
 {
-	return leadByte >= 0xa1 && leadByte <= 0xc6
-	    || leadByte >= 0xc9 && leadByte <= 0xf9;
+	return ( leadByte >= 0xa1 && leadByte <= 0xc6 )
+	    || ( leadByte >= 0xc9 && leadByte <= 0xf9 );
 }
 
 int

@@ -193,8 +193,9 @@ StrPtrArray::Put( const StrPtr &val )
 
 	    if( tabVal )
 	    {
-	         memcpy((StrRef *)newtabVal, (StrRef *)tabVal,
-	                tabSize * sizeof(StrRef));
+	         for( int i = 0; i < tabSize; i++ )
+	             newtabVal[i] = tabVal[i];
+
 	         delete []tabVal;
 	    }
 

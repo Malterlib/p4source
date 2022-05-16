@@ -89,7 +89,7 @@ CharStepEUCJP::Next()
 {
 	int c = 0xff & *ptr;
 
-	if ( c >= 161 && c <= 254 || c == 142 )
+	if ( ( c >= 161 && c <= 254 ) || c == 142 )
 	{
 	    if (*++ptr == 0)
 		return ptr;

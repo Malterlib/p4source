@@ -49,6 +49,14 @@ if $(OS) = NT && [ FVersionCmp $(MSVSVER) : 15 ] >= 0
 	 CCFLAGS = -D_WIN32_WINNT=0x0601 [ FRemoveAny  $(CCFLAGS) : -D_WIN32_WINNT=0x0501 ] ;
 }
 
+if $(OS) = NT && [ FVersionCmp $(MSVSVER) : 15 ] < 0
+{
+	# Suppress harmless warnings about empty archive files.  This warning
+	# does not appear in VS2017+.
+	# Note that this won't work unless it's global.
+	AR = $(AR) /ignore:4221 ;
+}
+
 if $(WIN32_WINNT)
 {
 	C++FLAGS = -D_WIN32_WINNT=$(WIN32_WINNT) [ FRemoveAny $(C++FLAGS) : -D_WIN32_WINNT=0x0501 ] ;
@@ -68,6 +76,29 @@ else
 }
 
 EnableWarningsAsErrors ;
+
+if $(GCCVER) && [ FVersionCmp $(GCCVER) : 8.0.0 ] >= 0 || $(CLANGVER)
+{
+	C++FLAGS += -Wdangling-else -Wdelete-non-virtual-dtor -Wunknown-pragmas
+	            -Wreorder -Wparentheses -Wmissing-braces -Wunused -Wunused-result ;
+	CCFLAGS += -Wparentheses -Wmissing-braces -Wunused -Wunused-result ;
+}
+
+if $(GCCVER) && [ FVersionCmp $(GCCVER) : 9.0.0 ] >= 0 || $(CLANGVER)
+{
+	C++FLAGS += -Wpessimizing-move -Wredundant-move ;
+}
+
+if $(GCCVER) && [ FVersionCmp $(GCCVER) : 8.0.0 ] >= 0
+{
+	# GCC-specific warnings
+	C++FLAGS += -Wclass-memaccess ;
+}
+
+if $(OS) = NT && $(MSVSVER)
+{
+	C++FLAGS += /W2 ;
+}
 
 if $(USE_OPTIMIZED_ZLIB) != 0 && $(USE_OPTIMIZED_ZLIB) != 1
 {

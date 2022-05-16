@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgServer error code is: 21
+ * Current high value for a MsgServer error code is: 24
  */
 
 # include <error.h>
@@ -37,6 +37,8 @@ ErrorId MsgScript::ExtAddChangeDesc    = { ErrorOf( ES_SCRIPT, 4, E_INFO , EV_NO
 ErrorId MsgScript::ExtEditChangeDesc   = { ErrorOf( ES_SCRIPT, 5, E_INFO , EV_NONE , 3 ), "Updating extension: %extName%\nVersion: %toExtVersion%\nPrevious version: %fromExtVersion%" } ;
 ErrorId MsgScript::ExtOverChangeDesc   = { ErrorOf( ES_SCRIPT, 15, E_INFO , EV_NONE , 2 ), "Overwriting extension: %extName%\nVersion: %toExtVersion%" } ;
 ErrorId MsgScript::ExtDelChangeDesc    = { ErrorOf( ES_SCRIPT, 20, E_INFO , EV_NONE , 2 ), "Deleting extension: %extName%%optVersion%" } ;
+ErrorId MsgScript::ExtCertAddChangeDesc= { ErrorOf( ES_SCRIPT, 22, E_INFO , EV_NONE , 2 ), "Installing Extension certificate for %orgCommonName%\n%desc%." } ;
+ErrorId MsgScript::ExtCertDelChangeDesc= { ErrorOf( ES_SCRIPT, 23, E_INFO , EV_NONE , 2 ), "Deleting Extension certificate for %orgCommonName%\n%desc%." } ;
 // Note:  extProds is a list, which ought to be separate arguments
 // for proper translation, but we have to hardcode the number of arguments here.
 ErrorId MsgScript::ExtWrongProduct     = { ErrorOf( ES_SCRIPT, 18, E_FATAL , EV_NONE , 2 ), "Extension is incompatible with '%prod%', supports '%extProds%'." };
@@ -51,6 +53,7 @@ ErrorId MsgScript::DevErr              = { ErrorOf( ES_SCRIPT, 9, E_FATAL, EV_FA
 ErrorId MsgScript::ScriptLangUnknown   = { ErrorOf( ES_SCRIPT, 16, E_FATAL, EV_FAULT, 1 ), "Unknown script language '%lang%'." };
 ErrorId MsgScript::ScriptLangVerUnknown= { ErrorOf( ES_SCRIPT, 17, E_FATAL, EV_FAULT, 1 ), "Unknown script language '%lang%' version '%ver%'." };
 ErrorId MsgScript::OsExitRealError     = { ErrorOf( ES_SCRIPT, 21, E_FATAL, EV_NONE, 0 ), "The Lua os.execute() function was called." };
+ErrorId MsgScript::GenericFatal        = { ErrorOf( ES_SCRIPT, 24, E_FATAL, EV_NONE, 1 ), "Script error:  %err%." };
 
 // Client-side Extensions //////////////////////////////////////////////////////
 

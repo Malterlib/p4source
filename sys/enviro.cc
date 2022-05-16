@@ -159,13 +159,13 @@ struct KeyPair {
 	void ReplaceKey( const char* k )
 	{
 	    free( key );
-	    strcpy( ( key = (char *)malloc( strlen( k ) + 1 ) ), k );
+	    key = strdup( k );
 	};
 
 	KeyPair( const HKEY hk, const char* k )
 	{
 	    hkey = hk;
-	    strcpy( ( key = (char *)malloc( strlen( k ) + 1 ) ), k );
+	    key = strdup( k );
 	}
 
 	~KeyPair() { free( key ); }
@@ -736,7 +736,7 @@ Enviro::ReadItemPlatform( ItemType type, const char *var, EnviroItem * a )
 	    return false;
 
 	char *c = NULL;
-	if( c = getenv( var ) )
+	if( ( c = getenv( var ) ) )
 	{
 	    a->value.Set( c );
 	    a->type = ENV;

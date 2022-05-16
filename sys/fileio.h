@@ -224,9 +224,6 @@ class FileIOAppend : public FileIOBuffer {
 	// for atomic filesize
 	virtual offL_t	GetSize();
 
-	// size of current (not rename()'d) file
-	virtual offL_t	GetCurrentSize();
-
 	// Copies on Windows.
 	// Locks, renames, and removes write on UNIX.
 

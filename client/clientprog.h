@@ -36,10 +36,18 @@ class ClientProgressText : public ClientProgress
 	void	Total( long );
 	int	Update( long );
 	void	Done( int fail );
+	
+	// Track if we're already in use, multiple will overwrite
+	static bool InUse;
+
+	int	GetProgressType() const;
+
     private:
 	int	cnt;
 	long	total;
 	int	typeOfProgress;
 	int	backup;
 	StrBuf	desc;
+	bool	done;
+
 };

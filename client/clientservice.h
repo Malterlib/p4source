@@ -66,6 +66,7 @@ class ClientSvc
  * ClientFile - handle client interaction with files
  */
 
+class ProgressReport;
 class ClientFile : public LastChance {
 
     public:
@@ -88,6 +89,8 @@ class ClientFile : public LastChance {
 	MD5		*checksum;
 
 	StrBufDict	*matchDict;
+
+	ProgressReport	*progress;
 } ;
 
 #endif // __CLIENTSERVICE__

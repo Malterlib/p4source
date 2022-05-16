@@ -64,8 +64,9 @@
 // client protocol 86: 2019.1
 // client protocol 87: 2019.2
 // client protocol 88: 2020.1
+// client protocol 89: 2020.2
 
-const char P4Tag::l_client[] = "88"; // Also update knownReleases in dmtypes.cc
+const char P4Tag::l_client[] = "89"; // Also update knownReleases in dmtypes.cc
 
 // see server/rhmain.cc
 
@@ -119,10 +120,11 @@ const char P4Tag::l_client[] = "88"; // Also update knownReleases in dmtypes.cc
 // server level 48: 2019.1 // uber-patch (2) for stream diff/shelf fixes
 // server level 49: 2019.2
 // server level 50: 2020.1
+// server level 51: 2020.2
 
 const char P4Tag::l_xfiles[] = "7"; // see clientservice.cc
 const char P4Tag::l_server[] = "3"; // 97.3 GUI is stuck here!
-const char P4Tag::l_server2[] = "50"; // generic server level
+const char P4Tag::l_server2[] = "51"; // generic server level
 
 // proxy level 4: 2006.1	p4 print w/o -o via proxy
 // proxy level 5: 2007.3	submit cacheing
@@ -130,6 +132,7 @@ const char P4Tag::l_server2[] = "50"; // generic server level
 // proxy level 7: 2010.1	intermediate service authentication & MiM check
 // proxy level 8: 2012.2	proxy understands brokered 'p4 info'
 // proxy level 9: 2017.2	proxy caches and delivers graph objects
+// proxy level 10: 2020.2	proxy can send progress updates
 
 // see proxy/pxservice.cc, proxy/pxclient.cc
-const char P4Tag::l_proxy[] = "9"; // proxy level
+const char P4Tag::l_proxy[] = "10"; // proxy level

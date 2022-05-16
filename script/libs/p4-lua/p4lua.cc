@@ -13,15 +13,15 @@
 # include <map>
 # include <deque>
 
-# include <p4script.h>
-# include <p4script53.h>
-
 # include <clientapi.h>
 # include <enviro.h>
 # include <hostenv.h>
 # include <debug.h>
 # include <i18napi.h>
 # include <ignore.h>
+
+# include <p4script.h>
+# include <p4script53.h>
 
 # include "p4error.h"
 # include "p4result.h"
@@ -111,7 +111,6 @@ P4Lua::doBindings( void* luaV, void *nsV,
 	// Note that the autoconnect() function is defined in
 	// Extension::extImpl53::doBindings in dmextension53_s.cc so it
 	// can be exposed only in the server.
-	sol::state* lua = static_cast< sol::state* >( luaV );
 	sol::table*  ns = static_cast< sol::table* >( nsV );
 
 	ns->new_usertype< P4Lua >( "P4",

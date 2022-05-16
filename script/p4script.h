@@ -7,8 +7,6 @@
 # ifndef P4SCRIPT_H
 # define P4SCRIPT_H
 
-# include <error.h>
-
 enum SCR_VERSION
 {
 	P4SCRIPT_UNKNOWN,
@@ -22,7 +20,6 @@ enum SCR_BINDING_LIBNAME
 	P4SCRIPT_LUA53
 };
 
-
 # ifdef HAS_EXTENSIONS
 
 enum class SCR_BINDING_LUA_OPTS
@@ -35,6 +32,7 @@ enum class SCR_BINDING_LUA_OPTS
 # include <p4_any.h>
 # include <vector>
 # include <functional>
+# include <unordered_map>
 
 using scriptClock_t   = std::chrono::steady_clock;
 using scriptTime_t    = scriptClock_t::duration;
@@ -45,6 +43,10 @@ class p4scriptImpl53;
 class ClientApi;
 class ClientApiLua;
 class ClientUserLua;
+class FileSys;
+class DateTimeHighPrecision;
+class StrBuf;
+class Error;
 
 class p4script
 {
@@ -56,6 +58,22 @@ class p4script
 	    void SetMaxTime( const uint32_t max );
 	    // Limit memory to N megabytes.
 	    void SetMaxMem ( const scriptMem_t max );
+
+	    enum class DEBUG
+	    {
+	        // These must be kept in their existing order.
+	        NONE,
+	        TRACING,
+	        // The next type goes here.
+	        CRYSTAL_BALL // For testing.
+	    };
+
+	    static bool DebugStrToEnum( const char* type, DEBUG& ret );
+	    static bool DebugEnumToStr( const DEBUG type, std::string& ret );
+	    // Enable a particular debugging mode.
+	    bool SupportsDebugType( const DEBUG type ) const;
+	    void SetDebug( const DEBUG type, const StrBuf* id,
+	                   const StrBuf& path, Error* e );
 
 	    void ConfigBinding( const SCR_BINDING_LIBNAME lib, p4_std_any::p4_any cfg,
 	                        Error* e );
@@ -154,6 +172,10 @@ class p4script::impl
 	             impl( p4script& p, Error *e );
 	    virtual ~impl();
 
+	    virtual bool SupportsDebugType( const DEBUG type ) const = 0;
+	    virtual void SetDebug( const DEBUG type, const StrBuf* id,
+	                           const StrBuf& path, Error* e ) = 0;
+
 	    virtual bool doFile( const char *name, Error *e );
 	    virtual bool doStr ( const char *buf , Error *e );
 	    virtual p4_std_any::p4_any doScriptFn( const char* name,
@@ -185,6 +207,11 @@ class p4script::impl53 : public p4script::impl
 	     impl53( p4script& p, Error *e );
 	    ~impl53();
 
+	    bool SupportsDebugType( const DEBUG type ) const;
+	    void SetDebug( const DEBUG type, const StrBuf* id,
+	                   const StrBuf& path, Error* e );
+
+	    bool doFile( const char *name, Error *e );
 	    bool doStr ( const char *buf , Error *e );
 	    p4_std_any::p4_any doScriptFn( const char* name, Error* e );
 	    bool fnExists( const char* name );
@@ -205,8 +232,45 @@ class p4script::impl53 : public p4script::impl
 
 	private:
 
+	    class Debug
+	    {
+	        public:
+	            Debug();
+	           ~Debug();
+
+	            void SetDebug( const DEBUG type, const StrBuf* id,
+	                           const StrBuf& path, Error* e );
+	            bool TraceCB( void* _L, void* arv, Error* e );
+
+	            DEBUG GetType() const;
+
+	        private:
+
+	            // Format is: SECONDS.NANOS PID ID MESSAGE
+	            void LogHeader( StrBuf& buf );
+
+	            DEBUG type = DEBUG::NONE;
+	            // Output buffer for log content.
+	            StrBuf buf;
+	            // 'id' is the string after the PID, e.g. the command UUID.
+	            const StrBuf pid, *id;
+	            std::unique_ptr< DateTimeHighPrecision > now;
+	            std::unique_ptr< FileSys* > log;
+	            // Stack depth for indentation.
+	            int level = 0;
+	            // When to emit the source file header.
+	            std::string lastFile;
+	            // Source script file content.
+	            std::unordered_map< std::string,
+	                                std::vector< std::string > > lines;
+	    };
+
+	    Debug debug;
+
 	    static void*
 	    allocator( void *ud, void *ptr, size_t osize, size_t nsize );
+
+	    bool doCode( const char *data, const bool isStr, Error *e );
 
 	    // Break script execution every N instructions to give us a
 	    // chance to abort.  This number was pulled out of a bag as

@@ -91,7 +91,7 @@ class ReadFile
     private:
 
 	int		Read();
-	int		InMem() { return mend-mptr ? mend-mptr : Read(); }
+	int		InMem() { return (mend-mptr) ? mend-mptr : Read(); }
 
 	unsigned char	*mptr;		// current char in memory window
 	unsigned char 	*maddr;		// start of memory window

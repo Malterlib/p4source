@@ -356,7 +356,7 @@ StrPtr::Itoa64( P4INT64 v, char *buffer )
 	// We return the beginning of the buffer
 
 	int neg;
-	if( neg = ( v < 0 ) )
+	if( ( neg = ( v < 0 ) ) )
 	    v = -v;
 
 	*--buffer = 0;

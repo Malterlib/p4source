@@ -248,7 +248,7 @@ PathVMS::SetCanon( const StrPtr &root, const StrPtr &canon )
 	const char *c;
 	const char *cn = canon.Text();
 
-	for( ; c = strchr( cn, '/' ); cn = c + 1 )
+	for( ; ( c = strchr( cn, '/' ) ); cn = c + 1 )
 	    AddDirectory( cn, c - cn );
 
 	// Step 3: add file component

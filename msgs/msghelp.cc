@@ -18,7 +18,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgHelp error code is: 266
+ * Current high value for a MsgHelp error code is: 267
  */
 
 ErrorId MsgHelp::NoHelp = { ErrorOf( ES_HELP, 1, E_FAILED, EV_USAGE, 1 ),
@@ -97,6 +97,12 @@ R"(
 
 	The -G flag formats all output (and batch input for form commands
 	with -i) as marshalled Python dictionary objects.
+
+	The -Mj flag formats all output (and batch input for form commands
+	with -i) as strict line-delimited JSON.  Non-UTF8 data will be
+	converted to the Unicode replacement character.
+
+	The -ztag flag is required for all marshalled output flags.
 
 	The -H flag specifies the host name, overriding the value of
 	$P4HOST in the environment and the default (the hostname).
@@ -366,13 +372,6 @@ R"(
 	Only existing source files are considered for copying to the target.
 	Target files with no corresponding source files are ignored.
 
-    p4 copy [-As | -Af] -S stream [-r] [-P parent] [file[revRange] ...]
-	Flags -As and -Af have been added to enable copying of stream specs.
-		-Af	Perform copy with files only.
-		-As	Perform copy with stream specs only.
-	If neither -Af nor -As are given, the copy is done with both
-	files and stream specs, if applicable. (See 'p4 help streamspecinteg'.)
-
     p4 cstat
 	Dump change/sync status for current client.
 	See 'p4 help cstat'.
@@ -524,14 +523,6 @@ R"(
 		-t	Force filetype and attributes to be copied from the
 			source file rather than scheduling resolves.
 
-    p4 integrate [-As | -Af] -S stream [-r] [-P parent] [file[revRange] ...]
-	Flags -As and -Af have been added to enable integration of stream
-	specs.
-		-Af	Perform integration with files only.
-		-As	Perform integration with stream specs only.
-	If neither -Af nor -As are given, the integration is done with both
-	files and stream specs, if applicable. (See 'p4 help streamspecinteg'.)
-
     p4 jobspec presets
 	Preset values for job non-optional fields that undergo variable
 	expansion, in addition to the simple $now, $blank, and $user
@@ -551,13 +542,6 @@ R"(
 	from its parent stream (or the stream specified by --from). More
 	advanced usages of 'p4 merge' are possible, using the flags as
 	described by 'p4 help integ'.
-
-    p4 merge [-As | -Af] -S stream [-r] [-P parent] [file[revRange] ...]
-	Flags -As and -Af have been added to enable merging of stream specs.
-		-Af	Perform merge with files only.
-		-As	Perform merge with stream specs only.
-	If neither -Af nor -As are given, the merge is done with both
-	files and stream specs, if applicable. (See 'p4 help streamspecinteg'.)
 
     p4 merge3
 	Three-way file merge.
@@ -613,7 +597,7 @@ R"(
 	Edit spec definitions.
 	See 'p4 help spec'.
 
-    p4 storage [ -R [ -f ] | -r | -S | -s ]
+    p4 storage [ -R [ -f | -S ] | -r | -s ]
 	These options to 'p4 storage' all have significant performance
 	impacts on a running server and extreme caution must be exercised
 	before considering invoking one of them. They all require 'super'
@@ -640,19 +624,19 @@ R"(
 	the existing state of the upgrade process. e.g.
 	'p4 storage -R -f'
 
+	The -S option can be provided with -R to only discard and rebuild
+	the shelf storage table (db.storagesh). As it only deals with the
+	shelf revisions and they are handled in phase 1 of the storage
+	upgrade process, no phase 2 of the upgrade process is performed.
+	Similar to just the -R option, the command will block all user
+	requests attempting access to any revision table while active.
+	This option will trigger a storage upgrade of any downstream edge.
+
 	The -r option to 'p4 storage' restarts a previously interrupted
 	storage upgrade process initiated by a call to 'p4 storage -R'.
 	The storage upgrade process will be continued from where it
 	had reached when it was terminated. The storage upgrade process
 	is also resumed when the server is restarted.
-
-	The -S option is variant of -R. It only discards and rebuilds the
-	shelf storage table (db.storagesh). As it only deals with the
-	shelf revisions and they are handled in phase 1 of the storage
-	upgrade process, no phase 2 of the upgrade process is performed.
-	Similar to the -R option, the command will block all user requests
-	attempting access to any revision table while active. This option
-	will trigger a storage upgrade of any downstream edge.
 
 	The -s flag requests a consistency check of the storage and revision
 	tables. It checks that the reference count in the storage records
@@ -666,6 +650,11 @@ R"(
 
 	You are strongly encouraged to only use these p4 storage options
 	after discussion with Perforce Support.
+
+    p4 streamlog -H
+	The documented '-h' follows both 'branch' and content.
+	This undocumented '-H' follows only content.
+	See 'p4 help streamlog'.
 
     p4 submit -c <change> --forcenoretransfer
 	This option instructs submit to bypass the client file transfer if
@@ -2223,10 +2212,10 @@ R"(
 	is placed into a form and the user's editor is invoked.
 
 	The -d flag deletes a pending changelist, if it has no opened files
-	and no pending fixes associated with it.  Use 'p4 opened -a' to
-	report on opened files and 'p4 reopen' to move them to another
-	changelist.  Use 'p4 fixes -c changelist#' to report on pending
-	fixes and 'p4 fix -d -c changelist# jobs...' to delete pending
+	(or stream spec) and no pending fixes associated with it.  Use
+	'p4 opened -a' to report on opened files and 'p4 reopen' to move them
+	to another changelist.  Use 'p4 fixes -c changelist#' to report on
+	pending fixes and 'p4 fix -d -c changelist# jobs...' to delete pending
 	fixes. The changelist can be deleted only by the user and client
 	who created it, or by a user with 'admin' privilege using the -f
 	flag.
@@ -2670,11 +2659,15 @@ ErrorId MsgHelp::HelpStream = { ErrorOf( ES_HELP, 110, E_INFO, EV_NONE, 0 ),
 R"(
     stream -- Create, delete, or modify a stream specification
 
-    p4 stream [-f] [-d] [-P parent] [-t type] [name]
-    p4 stream [-o [-v]] [-P parent] [-t type] [name[@change]]
+    p4 stream [-f] [-d] [-P parent] [-t type]
+              [--parentview inherit|noinherit] [name]
+    p4 stream [-o [-v]] [-P parent] [-t type]
+              [--parentview inherit|noinherit] [name[@change]]
     p4 stream [-f] [-d] name
     p4 stream -i [-f]
     p4 stream edit
+    p4 stream parentview [-c changelist# -n -o --source-comments]
+                         {--inherit|--noinherit}
     p4 stream resolve [-a<flag>] [-n] [-o]
     p4 stream revert
 
@@ -2774,6 +2767,52 @@ R"(
 	          flow options set as 'notoparent' and 'nofromparent'. Flow
 	          options are ignored for 'mainline' streams.
 
+	ParentView: 'inherit' or 'noinherit'.  Defines whether the stream
+	          inherits a view from its parent.
+
+	          If a ParentView is inherit, the Paths, Remapped, and Ignored
+	          fields will be affected.  The view created from each field is
+	          composed of the stream's fields and the set of fields
+	          "inherited" from each of the stream's ancestors. The
+	          inheritance is implicit, so the inherited Paths, Remapped,
+	          and Ignored values will not be displayed with the current
+	          stream specification.
+
+	          If a ParentView is noinherit, the Paths, Remapped, and
+	          Ignored fields are not affected by the stream's ancestors.
+	          The child views are exactly what is specified in the Paths,
+	          Remapped, and Ignored fields.
+
+	          Task streams and virtual streams may only have inherit
+	          ParentViews. All other stream types may have inherit or
+	          noinherit ParentViews.
+
+	          When a development, release, or mainline stream is first
+	          created, the ParentView field may be set with the
+	          '--parentview' parameter. The parameter may be set with
+	          values 'inherit' or 'noinherit'.
+
+	          When creating a development, release, or mainline stream
+	          without the '--parentview' parameter, the configurable
+	          dm.stream.parentview will determine the default value for
+	          the ParentView field.  The configurable has the following
+	          values:
+
+	              0: all new streams have an inherit ParentView.
+	              1: all new mainline, development and release streams have
+	                 a noinherit ParentView, all new task and virtual
+	                 streams have an inherit ParentView.
+	              2: all new release streams have a noinherit ParentView,
+	                 all new non-release streams have an inherit ParentView
+	                 value.
+
+	          The default value for dm.stream.parentview is 0.
+
+	          After a stream has been created, the ParentView field cannot
+	          be changed by editing the stream specification.  Instead, use
+	          the command 'p4 stream parentview' to change stream's
+	          parentview. See 'p4 help streamcmds' for more details.
+
 	Paths:    One or more lines that define file paths in the stream view.
 	          Each line is of the form:
 
@@ -2860,7 +2899,7 @@ R"(
 	          views.
 
 	Ignored: Optional; a list of file or directory names to be ignored in
-	         client views. For example:
+	         branch and client views. For example:
 
 	             /tmp      # ignores files named 'tmp'
 	             /tmp/...  # ignores dirs named 'tmp'
@@ -2883,7 +2922,7 @@ R"(
 	latest (or open) version.
 
 	The -P flag can be used to insert a value into the Parent field of a
-	new stream spec. It has no effect on an existing spec.
+	new stream spec. The flag has no effect on an existing spec.
 
 	The -t flag is used to insert a value into the type field of a
 	new stream spec and to adjust the default fromparent option
@@ -2897,7 +2936,8 @@ R"(
 	locked stream. It requires 'admin' access granted by 'p4 protect'.
 
 	See 'p4 help streamcmds' for information on the 'p4 stream edit',
-	'p4 stream resolve', and 'p4 stream revert' commands.
+	'p4 stream resolve', 'p4 stream revert', and 'p4 stream parentview'
+	commands.
 )"
 };
 
@@ -2914,6 +2954,8 @@ R"(
 	then submitted to make them available to other clients.
 
     p4 stream edit
+    p4 stream parentview [-c changelist# -n -o --source-comments]
+                         {--inherit|--noinherit}
     p4 stream resolve [-a<flag>] [-n] [-o]
     p4 stream revert
     p4 streamlog stream ...
@@ -2925,6 +2967,50 @@ R"(
 	to your client.  Changes made to these fields will affect your client
 	view normally, but other clients are not affected. 'p4 edit -So' has
 	the same effect as 'p4 stream edit' (see 'p4 help edit').
+
+	'p4 stream parentview' modifies the ParentView property of the client's
+	current stream spec.  This property determines whether changes to the
+	current stream's parent or ancestor affects client and branch views.
+
+		-c	Associate the stream spec with given changelist#
+			when opening the stream spec for edit.
+		-n	Previews the changes made.
+		-o	Display the changed stream spec.
+		--inherit
+			Change the ParentView field to 'inherit'. Changes to
+			the Paths, Remapped, and Ignored fields which occurred
+			when converting the stream spec to a noinherit
+			ParentView will remain.  Client and branch views for
+			streams with an inherit ParentView property will be
+			affected by changes in an ancestor's Paths, Remapped,
+			or Ignored fields.
+		--noinherit
+			Change the ParentView field to 'noinherit'.  Also
+			converts the Paths, Remapped and Ignored fields by
+			copy or merging paths from the corresponding fields in
+			the ancestor stream specifications.  Client and branch
+			views for streams with an inherit ParentView property
+			will not be affected by changes in an ancestor's Paths,
+			Remapped, or Ignored fields.
+		--source-comments
+			Add inline source comments to Paths, Remapped, or
+			Ignored lines which were copied or merged from an
+			ancestor stream spec when changing the ParentView field
+			from inherit to noinherit.  The comment will
+			specify the source ancestor spec, the change number for
+			head version of the ancestor spec, and whether a given
+			line was copied or merged into the target stream spec.
+
+	'p4 stream parentview' may be used only with mainline, development, and
+	release streams.
+
+	The client's current stream spec must not be opened to use 'p4 stream
+	parentview'.  The command will open the stream spec and change the
+	ParentView field and possibly the Paths, Remapped, or Ignored fields.
+	Any changes made to the stream spec will not be made public until the
+	change is submitted.  Once submitted, the ParentView change will become
+	part of the stream spec's integration history.
+
 
 	'p4 stream resolve' resolves changes that have been submitted to the
 	stream spec since you opened it.  You may not submit changes to the
@@ -2961,12 +3047,28 @@ ErrorId MsgHelp::HelpStreamlog = { ErrorOf( ES_HELP, 262, E_INFO, EV_NONE, 0 ),
 R"(
     streamlog -- List revision history of streams
 
-    p4 streamlog [ -l -L -t -m max ] stream ...
+    p4 streamlog [ -c  changelist# -h -i -l -L -t -m max ] stream ...
 
 	List the revision history of the specified stream specs, from the most
 	recent revision to the first.  If the stream was opened for edit
 	and submitted, the change list information is displayed.
 	Otherwise only the maximum change num at the time of edit is displayed.
+
+	The -c flag displays the stream submitted at the specified
+	changelist number.
+
+	The -i flag includes inherited stream history. For a stream created by
+	branching (using 'p4 integrate'), streamlog lists the revisions of the
+	stream's ancestors up to the branch points that led to the specified
+	revision.  Stream history inherited by renaming (using 'p4 move') is
+	always displayed regardless of whether -i is specified.
+
+	The -h flag displays the stream content history instead of stream name
+	history.  The list includes revisions of other streams that were
+	branched or copied (using 'p4 integrate' and 'p4 resolve -at') to
+	the specified revision.  Revisions that were replaced by copying
+	or branching are omitted, even if they are part of the history of
+	the specified revision.
 
 	The -t flag displays the time as well as the date.
 
@@ -3271,10 +3373,13 @@ R"(
 	specifications:
 
     p4 change
+    p4 copy
     p4 edit
     p4 describe
     p4 diff
     p4 diff2
+    p4 integ
+    p4 merge
     p4 opened
     p4 reopen
     p4 resolve
@@ -3372,6 +3477,24 @@ R"(
 	should be unshelved.  By default, the unshelve command acts on both
 	the files (-Af) and the stream spec (-As). (see 'p4 help unshelve').
 
+	'p4 copy -S stream' will copy the source stream spec propagatable
+	fields into the target stream spec and the target stream spec will be
+	opened for edit, along with stream files.  Use '-As' to copy the
+	stream spec only, and '-Af' to copy files only.
+	See 'p4 help streamspecinteg' for more details.
+
+	'p4 integ -S stream' will integrate the source stream spec propagatable
+	fields into the target stream spec and the target stream spec will be
+	opened for edit, along with stream files.  Use '-As' to integrate the
+	stream spec only, and '-Af' to integrate files only.
+	See 'p4 help streamspecinteg' for more details.
+
+	'p4 merge -S stream' will merge the source stream spec propagatable
+	fields into the target stream spec and the target stream spec will be
+	opened for edit, along with stream files.  Use '-As' to merge the
+	stream spec only, and '-Af' to merge files only.
+	See 'p4 help streamspecinteg' for more details.
+
 )"
 };
 
@@ -3380,26 +3503,23 @@ R"(
     Integrating stream specs
 
 	Stream specifications may be integrated from one stream to another.
+
 	When a stream specification is integrated/merged/copied, any field in
-	the source specification which has an Openable property of 'propagate'
-	will be integrated/merged/copied to the target specification. 
-	(See 'p4 help streamspec' for more information about the stream 
-	specification properities).
-
-	To enable stream specification integration, set the configurable
-	dm.integ.streamspec to 1.
-
+	the source specification which has an Openable property value of
+	'propagate' will be integrated/merged/copied to the target
+	specification.  See 'p4 help streamspec' for more information about the
+	stream specification properties.
 
     p4 copy [options] [-As | -Af] -S stream [-r] [-P parent] [file[revRange] ...]
     p4 integrate [options] [-As | -Af] -S stream [-r] [-P parent] [file[revRange] ...]
     p4 merge [options] [-As | -Af] -S stream [-r] [-P parent] [file[revRange] ...]
 
-	'p4 copy', 'p4 integrate', and 'p4 merge' now have options -As and -Af.
+	'p4 copy', 'p4 integrate', and 'p4 merge' now have options -Af and -As.
 
 		-Af	Perform copy/integrate/merge with files only.
 		-As	Perform copy/integrate/merge with stream specs only.	
 
-	If neither -Af nor -As are given, the copy/integrate/merge is done with
+	If neither -Af nor -As is given, the copy/integrate/merge is done with
 	both files and stream specs, if applicable.
 
 	If '-r' is not given, then the stream specification given with '-S' is
@@ -3423,6 +3543,47 @@ R"(
 	When 'p4 integrate -As' schedules a stream specification to be resolved,
 	the specification is read-only.  For other pre-submit changes,
 	'p4 edit -So' must be used to make the specification writable.
+
+	Use the configurable dm.integ.streamspec to enable/disable stream
+	specification integration.  The configurable has 3 possible values:
+
+	    0:  Stream spec integration is not allowed.
+	    1:  Allow stream spec integration only for target streams with
+	        noinherit ParentViews.  See 'p4 help streams' and 'p4 help
+	        streamcmds' to read about the stream ParentView property.
+	    2:  Allow stream spec integration for all streams.
+
+	The default value for dm.integ.streamspec is 1.
+
+    p4 istat [-As | -Af] [-a | -r] [-c | -C] [ -s ] stream
+
+	'p4 istat' will report the combined integration status for both stream
+	files and the stream spec of the specified stream.
+
+	Use the -Af or -As option to limit the report of the status to only
+	files or only the stream spec:
+
+		-Af	Report integration status for stream files only.
+		-As	Report integration status for the stream spec only.
+
+	If the cache is cleared, the integration status for both files and
+	stream spec are discovered, even if the requested report is only for
+	files or only for the stream spec.
+
+	The reporting and discovery of the stream status is dependent on the
+	dm.integ.streamspec configurable:
+
+	    0: Stream spec status is not discovered and not reported.
+	    1: Stream spec status is discovered and reported only if the 
+	       stream has a noinherit ParentView property.
+	    2: Stream spec status is discovered and reported regardless of
+	       the ParentView property value.
+
+    p4 streamlog [ -c  changelist# -h -i -l -L -t -m max ] stream ...
+
+	'p4 streamlog' lists the revision and integration history of the specified
+	stream specs.  See 'p4 help streamlog' for more details.
+
 )"
 };
 
@@ -3462,12 +3623,14 @@ R"(
 
 ErrorId MsgHelp::HelpCopy = { ErrorOf( ES_HELP, 127, E_INFO, EV_NONE, 0 ),
 R"(
-    copy -- Copy one set of files to another
+    copy -- Copy one set of files into another set of files, and/or copy
+	one stream spec into another stream spec
 
     p4 copy [options] fromFile[rev] toFile
     p4 copy [options] -b branch [-r] [toFile[rev] ...]
     p4 copy [options] -b branch -s fromFile[rev] [toFile ...]
-    p4 copy [options] -S stream [-P parent] [-F] [-r] [toFile[rev] ...]
+    p4 copy [options] [-As | -Af] -S stream [-P parent] [-F] [-r]
+                      [toFile[rev] ...]
 
 	options: -c changelist# -f -n -v -m max -q
 
@@ -3514,6 +3677,17 @@ R"(
 	expected flow. It can also force -S to generate a branch view based
 	on a virtual stream; the mapping itself refers to the underlying
 	real stream.
+
+	Stream specifications may also be copied along with stream files.
+	Any field in the source specification which has an Openable property of
+	'propagate' will be copied to the target specification. The -Af and
+	-As flags control whether stream files or the stream spec is copied.
+
+		-Af	Perform copy with files only.
+		-As	Perform copy with the stream spec only.
+
+	Both stream files and the stream spec will be copied if neither -Af
+	nor -As is specified.  See 'p4 help streamspecinteg' for more details.
 
 	The -b flag makes 'p4 copy' use a user-defined branch view.  (See
 	'p4 help branch'.) The source is the left side of the branch view
@@ -3895,8 +4069,9 @@ R"(
 
 	Display a changelist description, including the changelist number,
 	user, client, date of submission, textual description, list of
-	affected files and diffs of files updated.  Pending changelists
-	are indicated as 'pending' and file diffs are not displayed.
+	affected files and diffs of files updated, affected stream spec and
+	diff of updated stream spec.  Pending changelists are indicated as
+	'pending' and file diffs are not displayed.
 
 	For restricted changelists, 'no permission' is displayed if the user
 	is not permitted to view the change (see 'p4 help change'). If a
@@ -3945,8 +4120,9 @@ R"(
 
 ErrorId MsgHelp::HelpDiff = { ErrorOf( ES_HELP, 39, E_INFO, EV_NONE, 0 ),
 R"(
-    diff -- Diff utility for comparing workspace content to depot content.
-    (For comparing two depot paths, see p4 diff2.)
+    diff -- Diff utility for comparing workspace content to depot content
+    (supports files and stream spec). (For comparing two depot paths, see
+    p4 diff2.)
 
     p4 diff [-d<flags> -f -m max -Od -s<flag> -t] [file[rev] ...]
     p4 diff [-d<flags>] -As [streamname[@change]]
@@ -4027,8 +4203,9 @@ R"(
 
 ErrorId MsgHelp::HelpDiff2 = { ErrorOf( ES_HELP, 40, E_INFO, EV_NONE, 0 ),
 R"(
-    diff2 -- Diff utility for comparing the content at two depot paths.
-    (For comparing workspace content to depot content, see p4 diff.)
+    diff2 -- Diff utility for comparing the content at two depot paths
+    (supports files and stream specs). (For comparing workspace content to
+    depot content, see p4 diff.)
 
     p4 diff2 [options] fromFile[rev] toFile[rev]
     p4 diff2 [options] -b branch [[fromFile[rev]] toFile[rev]]
@@ -4177,7 +4354,7 @@ R"(
 
 ErrorId MsgHelp::HelpEdit = { ErrorOf( ES_HELP, 42, E_INFO, EV_NONE, 0 ),
 R"(
-    edit -- Open an existing file for edit
+    edit -- Open an existing file or stream spec for edit
 
     p4 edit [-c changelist#] [-k -n] [-t filetype] [--remote=rmt] file ...
     p4 edit [-c changelist#] -So
@@ -4193,7 +4370,7 @@ R"(
 	If -t filetype is specified, the file is assigned that Perforce
 	filetype. Otherwise, the filetype of the previous revision is reused.
 	If a partial filetype is specified, it is combined with the current
-	filetype.For details, see 'p4 help filetypes'.
+	filetype.  For details, see 'p4 help filetypes'.
 	Using a filetype of 'auto' will cause the filetype to be chosen
 	as if the file were being added, that is the typemap will be
 	considered and the file contents may be examined.
@@ -4232,16 +4409,19 @@ ErrorId MsgHelp::HelpExtension = { ErrorOf( ES_HELP, 251, E_INFO, EV_NONE, 0 ),
 R"(
     extension -- Manage the Helix Core Server extensibility mechanism
 
-    p4 extension --sample name
-    p4 extension --package dir
-    p4 extension --install file.p4-extension [--yes]
-    p4 extension --delete extension [ --name name ] [ --revision=n ]
-                 [ --path path ] [--yes]
+    p4 extension --sample extName
+    p4 extension --package dir [--sign=keyDir]
+    p4 extension --install extName.p4-extension [--yes]
+    p4 extension --install certificateFile --cert [ --comment ]
+    p4 extension --delete extFQN [ --name instName ] [ --revision=n ]
+                 [ --path filespec ] [--yes]
+    p4 extension --delete fingerprint --cert
 
-    p4 extension --configure extension [ --revision=n ] [ -o -i ]
-    p4 extension --configure extension [ --revision=n ] [ -o -i ] --name name
+    p4 extension --configure extFQN [ --revision=n ] [ -o | -i ]
+    p4 extension --configure extFQN [ --revision=n ] [ -o | -i ]
+                 --name instName
 
-    p4 extension --run extension command [ arguments ]
+    p4 extension --run instName [ extArguments ]
 
     p4 extension --list --type type
 
@@ -4252,65 +4432,84 @@ R"(
 	and 'p4 help clientextensionintro'.  Further reference is available
 	in the online documentation.
 
-	The --sample flag creates a skeleton of a new Extension in a
-	directory.  Pass it the name of the Extension to be created.
-
-	The --package flag creates a packaged Extension file from the named
-	directory of files.  The resulting file has the same name as the
-	directory, but with the '.p4-extension' suffix.
+	Extensions are referred to by their Fully-Qualified Name ('extFQN').
+	This is the combination of the Extension's namespace, name and optional
+	depot file revision.  E.g. a namespace of 'ExampleInc' and name of
+	'extName' would be referred to as 'ExampleInc::extName', or with
+	a revision of '6', 'ExampleInc::extName#6'.
 
 	By default, installation ( --install ) and deletion ( --delete ) of an
 	extension displays a preview of the results. To execute the operation,
 	you must also specify the --yes flag.
 
-	The --install flag is passed the full name of an Extension file on
-	the client and installs it server-side.  Packaged Extensions have a
-	file suffix of '.p4-extension.'
+	The --sample flag creates a skeleton of a new Extension.  The argument
+	is the name of the Extension to create as well as the name of the local
+	directory where the files are placed.  The sample Extension has
+	placeholder values that should be replaced when developing the code.
 
-	Extensions are referred to by their fully-qualified name.  This is the
-	combination of the namespace, name and optionally revision of the
-	extension as installed on a server (as opposed to the version of the
-	Extension code).  E.g. a namespace of ExampleInc and name of ExtName
-	would be referred to as ExampleInc::ExtName.
+	The --package flag creates a packaged Extension file from the named
+	directory of files, preparing it for --install on the server.  The
+	resulting file has the same name as the directory, but with the
+	'.p4-extension' suffix.  When used with the --sign flag, the files in
+	the Extension package are cryptographically signed by the key pair in
+	the directory specified with --sign (containing 'privatekey.txt' and
+	'certificate.txt').  Signing adds two files to the Extension
+	package:  a copy of the public key, renamed to '.p4-certificate.txt',
+	and the signatures of the files in the Extension '.p4-signatures.json'.
+	Packaging is done client-side and requires a version 2020.1 or newer
+	command-line client.
 
-	After installation, Extensions must be configured before use.  There
-	are two parts to this, with the first being for the super user to to
-	run 'p4 extension --configure extName' to supply various global
-	details about the Extension's configuration, such as the list of groups
-	whose members may create instances of the Extension, or Extension
-	runtime limits.  The second part is to use the --configure and --name
-	flags together to create a named instance of the Extension,
-	parameterizing the Extension to be run with specific settings.  The
-	--name flag takes the name of the configuration to create/modify and
-	the --configure flag takes the name of the Extension.  More than one
-	named instance is allowed.
+	The --install flag is passed the full name of a packaged Extension file
+	residing on the client and installs it server-side, where it can then
+	be instantiated with --configure.  When --install is used with
+	--cert, the fingerprint of the certificate pointed to with --install
+	is stored and used to validate the signatures of signed Extensions
+	prior to installation.  If signing enforcement is enabled on the
+	server (via the 'server.extensions.allow.unsigned' configurable), the
+	signing certificate must be installed prior to the Extension, via the
+	'--install --cert' options.  The --comment flag goes with --cert to
+	provide a short piece of text describing the certificate.
+
+	The --configure flag is used to supply details about an Extension's
+	configuration.  There are two parts to configuring an Extension - the
+	'global' configuration, and the 'instance' configuration.  To create
+	a global configuration, use --configure with the FQN of the Extension.
+	Use --configure with --name together to create an instance
+	configuration.  The --name flag takes the name of the configuration to
+	create or modify.  More than one named instance is allowed for most
+	event types that an Extension may be coded to work with (e.g. the
+	'change-submit' event, but not 'auth-check').
 
 	The --revision flag specifies which depot version of the Extension to
 	configure.  The default is the head rev.  This flag applies to the
 	--configure flag when used with or without the --name flag.
 
-	The --list flag displays the installed Extensions and their
-	instances.  Supplied with --type=extensions, --list shows information
-	about which Extensions are installed, and --type=configs shows
-	information about the different configurations. You can replace
-	--type=configs with --type=global or --type=instance to filter results
-	accordingly. Adding --path=<path> filters output to instance
-	configurations that are path based and their path argument matches
-	the given <path>.
+	The --list flag displays installed Extensions, configurations, and
+	certificate fingerprints.  The value of the --type flag determines
+	which data is reported.  Values for --type are: 'extensions', 'configs'
+	(further narrowed by 'global' and 'instance'), and 'certs'.  Adding
+	the --path flag filters instance configuration output to instances
+	whose events are path-based and match the specified filespec.
 
 	The --delete flag deletes an Extension, its configurations, or both.
-	Passed the --name flag, just the named instance config will be
+	Passed the --name flag, just the named instance configuration will be
 	removed.  Pass the --path flag to delete file-based instances by
 	the part of the depot they affect.  When used without a --name,
 	all revisions of an Extension and its configurations are removed,
 	unless the --revision flag is used, in which case just the
 	specific revision and instances using that revision are removed.
+	When used with --cert, it deletes a trusted certificate.
 
-	An Extension can implement custom end-user commands, executed by
-	passing the --run flag the name of an instance config and supplying
-	any optional arguments the Extension may need.
+	The --run flag is used to call an Extension-supplied command.  An
+	Extension can implement its own end-user commands that behave similarly
+	to native Helix Core commands in that they can have tagged output, send
+	RPC-level messages, and open forms client-side.  They are restricted
+	to reporting output and may not access client-side content.  The --run
+	flag takes an instance configuration as its argument, and any other
+	arguments are left to the Extension to interpret.
 
-	This command requires 'super' access granted by 'p4 protect'.  Users
+	This command requires 'super' access granted by 'p4 protect' unless
+	the 'server.extensions.allow.admin' configurable is set to 1.  Users
 	who are members of groups specified in the 'ExtAllowedGroups' field
 	of an Extension's global configuration and who are either a depot
 	or repo owner may create/configure instances of file-based Extensions
@@ -4410,7 +4609,9 @@ R"(
 	extension depot is only accessible to the super user and by read-only
 	commands.  The extension depot is created automatically.  Installing
 	or upgrading an Extension creates a changelist with information about
-	pre/post install versions.
+	pre/post install versions.  Multiple revisions of an Extension may be
+	active at any given time and may be referenced by their revision
+	number.
 
 	An Extension is not active until it has been configured.  An Extension
 	may have multiple configurations, depending on the events it registers
@@ -4426,7 +4627,7 @@ ErrorId MsgHelp::HelpFailover = { ErrorOf( ES_HELP, 255, E_INFO, EV_NONE, 0 ),
 R"(
     failover -- Fail over to a standby server
 
-    p4 failover [ -y ] [ -m | [ -i ] -s <server ID> ] [ -w <quiesce wait> ]
+    p4 failover [ -y ] [ -m | [ -i ] [ -s <server ID> ] ] [ -w <quiesce wait> ]
                 [ -v <verification time> ] [ <failover message> ]
 
 	Fail over to a standby server from the server that the standby
@@ -4519,6 +4720,9 @@ R"(
 
 	The '-s' argument specifies the master's server ID that is used if
 	the master server cannot be accessed by the standby server.
+	If '-s' is not specified for this scenario and this standby server
+	is mandatory, the value of the ReplicatingFrom server spec field
+	will be used for the master's server ID.
 
 	The '-v' argument specifies the window of time, in seconds,
 	during which classic depot file content that was updated prior to
@@ -5312,12 +5516,14 @@ R"(
 
 ErrorId MsgHelp::HelpInteg = { ErrorOf( ES_HELP, 54, E_INFO, EV_NONE, 0 ),
 R"(
-    integrate -- Integrate one set of files into another
+    integrate -- Integrate one set of files into another set of files, and/or
+	integrate one stream spec into another stream spec
 
     p4 integrate [options] fromFile[revRange] toFile
     p4 integrate [options] -b branch [-r] [toFile[revRange] ...]
     p4 integrate [options] -b branch -s fromFile[revRange] [toFile ...]
-    p4 integrate [options] -S stream [-r] [-P parent] [file[revRange] ...]
+    p4 integrate [options] [-As | -Af] -S stream [-r] [-P parent]
+	                         [file[revRange] ...]
 
 	options: -c changelist# -Di -f -h -O<flags> -n -m max -R<flags> -q -v
 
@@ -5363,6 +5569,18 @@ R"(
 	parent.  Note that to submit integrated stream files, the current
 	client must be switched to the target stream, or to a virtual child
 	stream of the target stream.
+
+	Stream specifications may also be integrated along with stream files.
+	Any field in the source specification which has an Openable property of
+	'propagate' will be integrated to the target specification. The -Af and
+	-As flags control whether stream files or the stream spec is
+	integrated.
+
+		-Af	Perform integration with files only.
+		-As	Perform integration with stream specs only.
+
+	Both stream files and the stream spec will be integrated if neither -Af
+	nor -As is specified.  See 'p4 help streamspecinteg' for more details.
 
 	The -b flag makes 'p4 integrate' use a user-defined branch view.
 	(See 'p4 help branch'.) The source is the left side of the branch view
@@ -5477,7 +5695,7 @@ ErrorId MsgHelp::HelpIstat = { ErrorOf( ES_HELP, 131, E_INFO, EV_NONE, 0 ),
 R"(
     istat -- Show/cache a stream's integration status
 
-    p4 istat [ -a -c -C -r -s ] stream
+    p4 istat [-As | -Af] [-a | -r] [-c | -C] [ -s ] stream
 
 	'p4 istat' shows a stream's cached integration status with respect
 	to its parent. If the cache is stale, either because newer changes
@@ -5502,6 +5720,22 @@ R"(
 	changelist.
 
 	The -s flag shows cached state without refreshing stale data.
+
+	'p4 istat' will report the combined integration status for both stream
+	files and the stream spec of the specified stream.
+
+	Use -Af or -As flag to limit the report of the status of files only or
+	the stream spec only:
+
+		-Af	Report integration status for stream files only.
+		-As	Report integration status for the stream spec only.
+
+	If the cache is cleared, the integration status for both files and
+	stream spec are discovered, even if the requested report is only for
+	files or only for the stream spec.
+	
+	See 'p4 help streamspecintg' for more details.
+
 )"
 };
 
@@ -7253,10 +7487,13 @@ R"(
 
 ErrorId MsgHelp::HelpMerge = { ErrorOf( ES_HELP, 134, E_INFO, EV_NONE, 0 ),
 R"(
-    merge -- Merge one set of files into another
+    merge -- Merge one set of files into another set of files, and/or merge
+	one stream spec into another stream spec
 
     p4 merge [options] [-F] [--from stream] [toFile][revRange]
     p4 merge [options] fromFile[revRange] toFile
+    p4 merge [options] [-As | -Af] -S stream [-P parent] [-F] [-r]
+                       [toFile[rev] ...]
 
 	options: -c changelist# -m max -n -Ob -q
 
@@ -7297,10 +7534,26 @@ R"(
 	source history to be probed for unintegrated revisions.  For details
 	about revision specifiers, see 'p4 help revisions'.
 
+	The typical use of 'p4 merge' is to merge into the current stream
+	from its parent stream (or the stream specified by --from). More
+	advanced uses of 'p4 merge' are possible, using the flags as described
+	by 'p4 help integ'.
+
 	The -F flag can be used to force merging against a stream's expected
 	flow. It can also force the generation of a branch view based on a
 	virtual stream; the mapping itself refers to the underlying real
 	stream.
+
+	Stream specifications may also be merged along with stream files.
+	Any field in the source specification which has an Openable property of
+	'propagate' will be merged to the target specification. The -Af and
+	-As flags control whether stream files or the stream spec is merged.
+
+		-Af	Perform merge with files only.
+		-As	Perform merge with stream specs only.
+
+	Both stream files and the stream spec will be merged if neither -Af
+	nor -As is specified.  See 'p4 help streamspecinteg' for more details.
 
 	The -Ob flag causes the base revision (if any) to be displayed along
 	with each scheduled resolve.
@@ -7487,7 +7740,7 @@ ErrorId MsgHelp::HelpObliterate = { ErrorOf( ES_HELP, 64, E_INFO, EV_NONE, 0 ),
 R"(
     obliterate -- Remove files and their history from the depot
 
-    p4 obliterate [-y -A -b -a -h -p] file[revRange] ...
+    p4 obliterate [-y -A -b -a -h -p] [-r alg] file[revRange] ...
 
 	Obliterate permanently removes files and their history from the server.
 	(See 'p4 delete' for the non-destructive way to delete a file.)
@@ -7536,6 +7789,18 @@ R"(
 	and leave the integration history intact rather than removing
 	the records.
 
+	The '-r alg' flag selects the algorithm used to purge the integration
+	records. The original algorithm scans the integration table looking
+	for a match with the rev table. The new algorithm scans the rev
+	table looking for a match with the integration table. As searches
+	using a changelist number only operate on the rev table it is
+	more efficient to use the new algorithm for file arguments that
+	includes a changelist number or revision. By default the algorithm
+	selected is decided by examining the file arguments. This option
+	forces the use of a particular algorithm. When 'alg' is set to 0,
+	then the original algorithm will be used. When alg is set to 1, then
+	the new algorithm will be used.
+
 	When a revision has been archived, its action is changed to archive.
 	By default, obliterate will not process a revision which has been
 	archived. To include such revisions, you must specify the -A flag.
@@ -7561,7 +7826,7 @@ R"(
 
 ErrorId MsgHelp::HelpOpened = { ErrorOf( ES_HELP, 65, E_INFO, EV_NONE, 0 ),
 R"(
-    opened -- List open files and display file status.
+    opened -- List open files or stream spec and display status.
 
     p4 opened [-a -c changelist# -C client -u user -m max -s -g] [file ...]
     p4 opened [-a -x -m max ] [file ...]
@@ -8073,7 +8338,7 @@ ErrorId MsgHelp::HelpPrune = { ErrorOf( ES_HELP, 174, E_INFO, EV_NONE, 0 ),
 R"(
     prune -- Remove unmodified branched files from a stream
 
-    p4 prune -d [-y] -S stream
+    p4 prune [-d] [-y] -S stream
 
 	Prune permanently removes unmodified files from a stream that is
 	no longer being actively used.  Only the owner of a stream may
@@ -8094,10 +8359,8 @@ R"(
 	branched files in the child stream to the files in the parent stream
 	that they were previously related to indirectly.
 
-	If the -d flag is given, the prune is more aggressive and performs a
-	deep prune which will include removing files that have not only been
-	branched, but also files that have been merged down multiple times
-	from the parent stream but never edited in the child stream.
+	If the -d flag is given, a deep prune is performed which also removes
+	files whose only changes in the target stream were due to merges.
 
 	By default, prune displays a preview of the results.  To execute the
 	operation, you must specify the -y flag.
@@ -8205,7 +8468,7 @@ R"(
 ErrorId MsgHelp::HelpReopen = { ErrorOf( ES_HELP, 70, E_INFO, EV_NONE, 0 ),
 R"(
     reopen -- Change the filetype of an open file or move it to
-              another changelist
+              another changelist (or move an opened stream spec)
 
     p4 reopen [-c changelist#] [-t filetype | -Si] file ...
     p4 reopen -c changelist# -So
@@ -8358,6 +8621,7 @@ R"(
 ErrorId MsgHelp::HelpResolve = { ErrorOf( ES_HELP, 71, E_INFO, EV_NONE, 0 ),
 R"(
     resolve -- Resolve integrations and updates to workspace files
+	(or stream spec)
 
     p4 resolve [options] [file ...]
 
@@ -8654,7 +8918,7 @@ R"(
 
 ErrorId MsgHelp::HelpRevert = { ErrorOf( ES_HELP, 73, E_INFO, EV_NONE, 0 ),
 R"(
-    revert -- Discard changes from an opened file.
+    revert -- Discard changes from an opened file or stream spec.
 
     p4 revert [-a -n -k -w -c cl# -C client [-Si]] [--remote=rmt] file ...
     p4 revert -So [-c changelist# -C client]
@@ -8973,7 +9237,8 @@ R"(
 
 ErrorId MsgHelp::HelpShelve = { ErrorOf( ES_HELP, 119, E_INFO, EV_NONE, 0 ),
 R"(
-    shelve -- Store files from a pending changelist into the depot
+    shelve -- Store files (or an open stream spec) from a pending changelist
+    into the depot
 
     p4 shelve [-p] [-As | [-Af] files]
     p4 shelve [-a option] [-p] -i [-f | -r] [-As | -Af]
@@ -9104,7 +9369,8 @@ R"(
     p4 submit -i [-r -s -f option -b]
               --parallel=threads=N[,batch=N][,min=N]
 
-	'p4 submit' commits a pending changelist and its files to the depot.
+	'p4 submit' commits a pending changelist and its files (or an open
+	stream spec) to the depot.
 
 	By default, 'p4 submit' attempts to submit all files in the 'default'
 	changelist.  Submit displays a dialog where you enter a description
@@ -10196,7 +10462,8 @@ R"(
 
 ErrorId MsgHelp::HelpUnshelve = { ErrorOf( ES_HELP, 120, E_INFO, EV_NONE, 0 ),
 R"(
-    unshelve -- Restore shelved files from a pending change into a workspace
+    unshelve -- Restore shelved files and/or a stream spec from a pending
+	change into a workspace
 
     p4 unshelve -s changelist# [options] [-As| [-Af] file ...]
 	Options: [-f -n] [-c changelist#]
@@ -10482,9 +10749,6 @@ R"(
 
 	'p4 verify' requires that the user be an operator or have 'admin'
 	 access, which is granted by 'p4 protect'.
-
-	See 'p4 help-graph verify' for information on using this command with
-	graph depots.
 )"
 };
 
@@ -10522,7 +10786,7 @@ ErrorId MsgHelp::HelpDbschema = { ErrorOf( ES_HELP, 109, E_INFO, EV_NONE, 0 ),
 R"(
     dbschema -- Report meta database information
 
-    p4 dbschema [tablename[:tableversion]]...
+    p4 dbschema [-A] [tablename[:tableversion]]...
 
 	'p4 dbschema' reports database structure information about the
 	Perforce metadata.  Super permission is required to execute this
@@ -10532,6 +10796,9 @@ R"(
 	By default, all current tables are reported. You can optionally specify
 	table names and versions. The results are returned as tagged output.
 	Table names are the file names that start with 'db.'
+
+	The -A flag causes all versions of the tables without version
+	specifiers to be reported.
 )"
 };
 
@@ -10832,11 +11099,15 @@ ErrorId MsgHelp::HelpLogschema = { ErrorOf( ES_HELP, 144, E_INFO, EV_NONE, 0 ),
 R"(
     logschema -- Describe the schema of a log record type
 
-    p4 logschema -a | recordtype
+    p4 logschema [-A] -a
+    p4 logschema [-A] recordtype
 
 	Logschema returns a description of the specified log record type.
 
 	The -a flag requests a specification of every known log record type.
+
+	The -A flag requests a specification of every version of the specified
+	log record types.
 
 	This command requires that the user be an operator or have 'super'
 	access, which is granted by 'p4 protect'.
@@ -11194,6 +11465,10 @@ R"(
 	dm.shelve.maxsize        0 Limit size of a file that can be shelved
 	dm.shelve.promote        0 Promote shelved changes from edge server
 	dm.repo.noautocreate     0 Repo autocreation level
+	dm.repo.unpack           1 Repo unpacking mode
+	                           0: keep pack files
+	                           1: unpack on update
+	                           2: unpack all
 	dm.user.accessupdate   300 Time interval to update user access time
 	dm.user.accessforce   3600 Time interval to force user access time
 	dm.user.loginattempts    3 Number of password attempts before delay
@@ -11305,6 +11580,7 @@ R"(
 	rpl.replay.userrp        0 Include db.user.rp data from P4TARGET
 	rpl.submit.nocopy	 0 Disable default submit archive file copy
 	rpl.verify.cache         0 Verify contents in the replica cache
+	rpl.pull.archivedepots   0 Replicate file content for archive depots
 	run.clientexts.allow     1 Allow client-side Extensions to run
 	run.unzip.user.allow     0 Should 'p4 unzip' allow '-u'
 	run.users.authorize      0 Should 'p4 users' require authentication
@@ -11667,6 +11943,7 @@ R"(
     p4 storage -u [-c change] [-T tags -F filters] [-m max] archive...
     p4 storage -d [-c change] [-y] [-D secs] [ -t target ] [-q] archive...
     p4 storage -w
+    p4 storage -U [-q] archive...
     p4 storage -l start|pause|restart|wait|status|cancel //depotdirectory/...
 
 	The first form of this command displays information about the server
@@ -11749,6 +12026,14 @@ R"(
 	is in progress. The command returns with the message
 	"The storage upgrade process is complete." only once the
 	storage upgrade is finished.
+
+	The -U flag reads all the storage records looking for an unset
+	digest field. When it detects an unset digest it recomputes
+	the digest and size fields and updates the record. This is
+	intended to be used after a storage upgrade has been performed
+	with lbr.storage.skipkeyed set to avoid the delay incurred by
+	calculating the digest during the upgrade. The -q option suppresses
+	the progress messages. This option requires 'super' access.
 
 	The -l flag controls a background process that scans the server root
 	looking for orphaned files that are no longer referenced by the server,
@@ -11959,6 +12244,7 @@ R"(
 	typemap      Modify the file name-to-type mapping table
 	unload       Unload metadata for an unused client or label
 	unzip        Import files from a p4 zip package file
+	upgrades     Report server upgrades
 	user         Create or edit a user specification
 	users        Display list of known users
 	verify       Verify that the server archives are intact
@@ -12549,8 +12835,8 @@ R"(
 	target server, none of the submit triggers are run in the
 	target server. Instead, use the push-* triggers for that purpose.
 
-       The push command can also be used to copy a shelf to the target
-       server by specifying the -s flag.
+	The push command can also be used to copy a shelf to the target
+	server by specifying the -s flag.
 
 	Typically, the push command specifies a remote spec, and the
 	DepotMap field in the remote spec specifies which files are to be
@@ -12679,6 +12965,35 @@ R"(
 
 	The unzip command requires admin permission granted by
 	p4 protect.
+)"
+};
+
+ErrorId MsgHelp::HelpUpgrades = { ErrorOf( ES_HELP, 267, E_INFO, EV_NONE, 0 ),
+R"(
+    upgrades -- Report server upgrades.
+
+    p4 upgrades [-g upgrade-step ]
+
+	'p4 upgrades' shows the status of the each upgrade step on the
+	current server.
+
+	The -g flag queries whether the specified upgrade step has been
+	completed on this and all upstream servers in multi-server
+	environments.
+
+	The possible upgrade states are:
+	    NEEDED:    The upgrade has not run on this server yet.
+	    PENDING:   An upstream server has completed the upgrade and
+	               is scheduled to run on this replica.
+	    RUNNING:   The upgrade is currently running on this server.
+	    COMPLETED: The upgrade has successfully completed on this and all
+	               upstream servers.
+	    ISOLATED:  The upgrade has successfully completed on this replica,
+	               but it was not triggered by replication.
+	    FAILED:    The upgrade has failed on this server.
+
+	'p4 upgrades' requires 'super' access, which is granted by
+	'p4 protect'.
 )"
 };
 
@@ -13504,7 +13819,6 @@ R"(
 	graph lfs-lock Create a git lfs-lock
 	graph lfs-unlock Remove a git lfs-lock
 	graph lfs-locks List git lfs-locks in repo
-	graph verify   Verify repo integrity
 	have           Display the most recently synced commit
 	lock           Lock an opened file to prevent it from being submitted
 	merge          Merge another branch into current/target branch

@@ -132,6 +132,12 @@ RpcService::Dispatcher( const RpcDispatch *dispatch )
 }
 
 void
+RpcService::AddAltDispatcher()
+{
+	dispatcher->AddAltDispatcher();
+}
+
+void
 RpcService::Listen( Error *e )
 {
 	// initialize listen
@@ -204,7 +210,7 @@ RpcService::SetProtocolV( const char *arg )
 	StrBuf s;
 	const char *p;
 
-	if( p = strchr( arg, '=' ) )
+	if( ( p = strchr( arg, '=' ) ) )
 	{
 	    s.Set( arg, p - arg );
 	    protoSendBuffer->SetVar( s, StrRef( (char *)p + 1 ) );
@@ -970,9 +976,9 @@ Rpc::Dispatch( DispatchFlag flag, RpcDispatcher *dispatcher )
 	    // If error sending, go until receive error.
 
 	    else if( flag == DfComplete ||
-		     flag == DfDuplex && DuplexDispatchReady( hiMark ) ||
-		     flag == DfFlush && duplexFrecv ||
-		     flag == DfContain && !le.Test() ||
+		     ( flag == DfDuplex && DuplexDispatchReady( hiMark ) ) ||
+		     ( flag == DfFlush && duplexFrecv ) ||
+		     ( flag == DfContain && !le.Test() ) ||
 		     se.Test() )
 	    {
 		if( !recvBuffer )
@@ -1118,7 +1124,7 @@ Rpc::DispatchOne( RpcDispatcher *dispatcher, bool passError )
 	if( passError )
 	    return;
 
-	if( disp = dispatcher->Find( P4Tag::p_errorHandler ) )
+	if( ( disp = dispatcher->Find( P4Tag::p_errorHandler ) ) )
 	{
 	    RunCallback( disp, ue );
 	    return;

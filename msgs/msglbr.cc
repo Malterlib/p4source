@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgLbr error code is: 137
+ * Current high value for a MsgLbr error code is: 139
  */
 
 # include <error.h>
@@ -65,9 +65,11 @@ ErrorId MsgLbr::LbrOpenFail            = { ErrorOf( ES_LBR, 131, E_FAILED, EV_FA
 ErrorId MsgLbr::AlreadyOpen            = { ErrorOf( ES_LBR, 132, E_FATAL, EV_FAULT, 1 ), "Librarian for %path% is already open!" } ;
 ErrorId MsgLbr::FmtLbrStat3            = { ErrorOf( ES_LBR, 133, E_INFO, EV_NONE, 15 ), "%file% %rev% %type% %state% %action% %digest% %size% %change% %revDate% %modTime% %process% %timestamp% %origin% %retries% %lastError%" } ;
 ErrorId MsgLbr::FmtLbrStat4            = { ErrorOf( ES_LBR, 137, E_INFO, EV_NONE, 16 ), "%file% %rev% %type% %state% %action% %digest% %size% %change% %revDate% %modTime% %process% %timestamp% %target% %origin% %retries% %lastError%" } ;
+ErrorId MsgLbr::FmtLbrStat5            = { ErrorOf( ES_LBR, 138, E_INFO, EV_NONE, 17 ), "%file% %rev% %type% %state% %action% %digest% %size% %change% %revDate% %modTime% %process% %timestamp% %target% %origin% %retries% %retryMissing% %lastError%" } ;
 ErrorId MsgLbr::BadKeyword             = { ErrorOf( ES_LBR, 134, E_FATAL, EV_FAULT, 1 ), "RCS keyword for %file% is malformed!" } ;
 ErrorId MsgLbr::KeywordUnterminated    = { ErrorOf( ES_LBR, 135, E_FATAL, EV_FAULT, 2 ), "While processing keywords in file %file%, a line longer than %length% was encountered which contained an initial keyword '$' sign but no matching terminating '$' sign. The maximum line length value can be configured by setting lbr.rcs.maxlen; alternately, if keyword expansion is not necessary for this file, change the file's type to remove the +k option (see 'p4 help filetypes')." } ;
 ErrorId MsgLbr::ObjectReadError        = { ErrorOf( ES_LBR, 136, E_FAILED, EV_FAULT, 5 ), "Error reading object type %objType% with sha %objSha% of length %expectedLength% at offset %offset% from pack % pack%." } ;
+ErrorId MsgLbr::SameFile               = { ErrorOf( ES_LBR, 139, E_FATAL, EV_FAULT, 3 ), "Librarian for %path% [rev %rev% and type %type%] is both target and source!" } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 

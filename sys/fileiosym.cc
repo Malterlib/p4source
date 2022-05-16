@@ -105,7 +105,7 @@ FileIOSymlink::Close( Error *e )
 
 	    char *p;
 
-	    if( p = strchr( value.Text(), '\n' ) )
+	    if( ( p = strchr( value.Text(), '\n' ) ) )
 	    {
 		value.SetEnd( p );
 		value.Terminate();

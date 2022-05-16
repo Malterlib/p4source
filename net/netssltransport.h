@@ -63,25 +63,6 @@ struct CRYPTO_dynlock_value
 };
 # endif // OS_NT
 
-extern "C" {
-
-static int
-InitLockCallbacks( Error *e );
-static int
-ShutdownLockCallbacks(void);
-static void
-LockingFunction(int mode, int n, const char *file, int line);
-static unsigned long
-IdFunction(void);
-static struct CRYPTO_dynlock_value *
-DynCreateFunction(const char *file, int line);
-static void
-DynLockFunction(int mode, struct CRYPTO_dynlock_value *l, const char *file, int line);
-static void
-DynDestroyFunction(struct CRYPTO_dynlock_value *l, const char *file, int line);
-
-}
-
 # endif // OS_HPUX
 # endif // !OpenSSL 1.1
 

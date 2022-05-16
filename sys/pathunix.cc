@@ -19,7 +19,7 @@ IsUnder( StrRef *path, const char *under )
 	while( *s && StrRef::SEqual( *s, *under ) )
 	    ++s, ++under;
 
-	if( *under || under[-1] != '/' && *s && *s++ != '/' )
+	if( *under || ( under[-1] != '/' && *s && *s++ != '/' ) )
 	    return 0;
 
 	// move past initial substring 'under'

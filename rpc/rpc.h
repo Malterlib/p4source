@@ -143,6 +143,8 @@ struct RpcTrack {
 	int		duplexRrecv;
 } ;
 
+class AltDispatcher;
+
 class RpcService {
 
     public:
@@ -151,6 +153,7 @@ class RpcService {
 
 	void		SetEndpoint( const char *addr, Error *e );
 	void		Dispatcher( const RpcDispatch *dispatch );
+	void		AddAltDispatcher();
 	void		SetProtocol( const char *var, const StrRef &val );
 	void		SetProtocolV( const char *arg );
 	void		Listen( Error *e );
@@ -274,7 +277,7 @@ class Rpc : public StrDict {
 	// expecting acks from earlier sends (i.e. duplexing).
 
 	int		Dropped() { 
-			    return re.Test() || !duplexFrecv && se.Test(); 
+			    return re.Test() || ( !duplexFrecv && se.Test() );
 			}
 	int		DuplexDispatchReady( int hiMark );
 	

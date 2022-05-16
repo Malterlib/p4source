@@ -64,7 +64,7 @@ ClientUserDebug::OutputTag( const char *tag, const char *data, int length )
 {
 	char *p;
 
-	while( p = (char *)memchr( data, '\n', length ) )
+	while( ( p = (char *)memchr( data, '\n', length ) ) )
 	{
 	    printf( "%s: ", tag );
 	    fwrite( data, 1, p + 1 - data, stdout );
@@ -92,7 +92,7 @@ ClientUserDebugMsg::Message( Error *err )
 	// print error subcodes for each ErrorId
 
 	ErrorId* id;
-	for ( int i = 0 ; id = err->GetId( i ) ; i++ )
+	for ( int i = 0 ; ( id = err->GetId( i ) ) ; i++ )
 	    printf( "code%d %d (sub %d sys %d gen %d args %d sev %d uniq %d)\n",
 		i,
 		id->code,
@@ -118,7 +118,7 @@ ClientUserDebugMsg::Prompt( Error *err, StrBuf &rsp, int noEcho, Error *e )
 	// print error subcodes for each ErrorId
 
 	ErrorId* id;
-	for ( int i = 0 ; id = err->GetId( i ) ; i++ )
+	for ( int i = 0 ; ( id = err->GetId( i ) ) ; i++ )
 	    printf( "code%d %d (sub %d sys %d gen %d args %d sev %d uniq %d)\n",
 		i,
 		id->code,
@@ -173,7 +173,7 @@ ClientUserMunge::ClientUserMunge(
 	const StrPtr *s;
 	done = 0;
 
-	for( int i = 0 ; s = opts.GetValue( Options::Field, i ) ; i++ )
+	for( int i = 0 ; ( s = opts.GetValue( Options::Field, i ) ) ; i++ )
 	    fields.Put( *s );
 }
 

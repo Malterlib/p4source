@@ -84,9 +84,9 @@ CharSetCvtUTF8UTF8::Cvt(const char **sourcestart, const char *sourceend,
 		lasterr = PARTIALCHAR;
 		return 0;
 	    }
-	    **targetstart = 0xef;
-	    *++*targetstart = 0xbb;
-	    *++*targetstart = 0xbf;
+	    **targetstart = (char)0xef;
+	    *++*targetstart = (char)0xbb;
+	    *++*targetstart = (char)0xbf;
 	    ++*targetstart;
 	    tlen -= 3;
 	}
@@ -174,17 +174,17 @@ CharSetCvtUTF832::Cvt(const char **sourcestart, const char *sourceend,
 	    }
 	    if( fileinvert )
 	    {
-		**targetstart = 0xff;
-		*++*targetstart = 0xfe;
-		*++*targetstart = 0;
-		*++*targetstart = 0;
+		**targetstart = (char)0xff;
+		*++*targetstart = (char)0xfe;
+		*++*targetstart = (char)0;
+		*++*targetstart = (char)0;
 	    }
 	    else
 	    {
-		**targetstart = 0;
-		*++*targetstart = 0;
-		*++*targetstart = 0xfe;
-		*++*targetstart = 0xff;
+		**targetstart = (char)0;
+		*++*targetstart = (char)0;
+		*++*targetstart = (char)0xfe;
+		*++*targetstart = (char)0xff;
 	    }
 	    ++*targetstart;
 	}

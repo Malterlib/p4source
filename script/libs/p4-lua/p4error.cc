@@ -11,10 +11,9 @@
 # include <string>
 # include <map>
 
+# include <clientapi.h>
 # include <p4script.h>
 # include <p4script53.h>
-
-# include <clientapi.h>
 
 # include "p4luadebug.h"
 # include "p4error.h"

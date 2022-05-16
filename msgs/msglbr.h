@@ -49,11 +49,13 @@ class MsgLbr {
 	static ErrorId FmtLbrStat2;
 	static ErrorId FmtLbrStat3;
 	static ErrorId FmtLbrStat4;
+	static ErrorId FmtLbrStat5;
 	static ErrorId LbrOpenFail;
 	static ErrorId AlreadyOpen;
 	static ErrorId BadKeyword;
 	static ErrorId KeywordUnterminated;
 	static ErrorId ObjectReadError;
+	static ErrorId SameFile;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

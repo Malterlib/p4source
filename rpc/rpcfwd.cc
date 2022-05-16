@@ -50,21 +50,21 @@ void s2cCrypto( Rpc *rpc, Error *e ) { rpc->GetForwarder()->CryptoS2C( e ); }
 void c2sCrypto( Rpc *rpc, Error *e ) { rpc->GetForwarder()->CryptoC2S( e ); }
 
 const RpcDispatch s2cDispatch[] = {
-	P4Tag::p_compress1,	RpcCallback( s2cCompress1 ),
-	P4Tag::p_flush1,	RpcCallback( s2cFlush1 ),
-	P4Tag::p_protocol,	RpcCallback( s2cForward ),
-	P4Tag::c_Crypto,	RpcCallback( s2cCrypto ),
-	P4Tag::p_funcHandler,	RpcCallback( s2cForward ),
-	0, 0
+	{ P4Tag::p_compress1,	RpcCallback( s2cCompress1 ) },
+	{ P4Tag::p_flush1,	RpcCallback( s2cFlush1 ) },
+	{ P4Tag::p_protocol,	RpcCallback( s2cForward ) },
+	{ P4Tag::c_Crypto,	RpcCallback( s2cCrypto ) },
+	{ P4Tag::p_funcHandler,	RpcCallback( s2cForward ) },
+	{ 0, 0 }
 } ;
 
 const RpcDispatch c2sDispatch[] = {
-	P4Tag::p_compress2,	RpcCallback( c2sCompress2 ),
-	P4Tag::p_flush2,	RpcCallback( c2sFlush2 ),
-	P4Tag::p_protocol,	RpcCallback( c2sForward ),
-	"crypto",		RpcCallback( c2sCrypto ),
-	P4Tag::p_funcHandler,	RpcCallback( c2sForward ),
-	0, 0
+	{ P4Tag::p_compress2,	RpcCallback( c2sCompress2 ) },
+	{ P4Tag::p_flush2,	RpcCallback( c2sFlush2 ) },
+	{ P4Tag::p_protocol,	RpcCallback( c2sForward ) },
+	{ "crypto",		RpcCallback( c2sCrypto ) },
+	{ P4Tag::p_funcHandler,	RpcCallback( c2sForward ) },
+	{ 0, 0 }
 } ;
 
 /*
@@ -421,7 +421,7 @@ RpcCrypto::C2S( Rpc *client, Rpc *server )
 			addr->Text(), daddr->Text() );
 	}
 
-	if( addr = server->GetPeerAddress( RAF_PORT ) )
+	if( ( addr = server->GetPeerAddress( RAF_PORT ) ) )
 	{
 	    StrBuf phash;
 

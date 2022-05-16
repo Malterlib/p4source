@@ -48,7 +48,7 @@ public:
 	BaseUUID(
 	    const BaseUUID	&rhs);
 
-	~BaseUUID();
+	virtual ~BaseUUID();
 
 	const BaseUUID &
 	operator=(

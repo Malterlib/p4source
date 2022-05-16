@@ -327,13 +327,13 @@ CharSetCvtUTF816::Cvt(const char **sourcestart, const char *sourceend,
 	    }
 	    if( fileinvert )
 	    {
-		**targetstart = 0xff;
-		*++*targetstart = 0xfe;
+		**targetstart = (char)0xff;
+		*++*targetstart = (char)0xfe;
 	    }
 	    else
 	    {
-		**targetstart = 0xfe;
-		*++*targetstart = 0xff;
+		**targetstart = (char)0xfe;
+		*++*targetstart = (char)0xff;
 	    }
 	    ++*targetstart;
 	}

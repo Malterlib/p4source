@@ -189,7 +189,7 @@ HostEnv::GetCwd( StrBuf &result, Error *e, Enviro * enviro )
 
 	char *c;
 
-	if( c = enviro->Get( CWD_VAR ) )
+	if( ( c = enviro->Get( CWD_VAR ) ) )
 	{
 	    result.Set( c );
 	    delete tmpenviro;
@@ -215,7 +215,7 @@ HostEnv::GetUser( StrBuf &result, Enviro * enviro )
 
 	char *c;
 
-	if( c = enviro->Get( USER_VAR ) )
+	if( ( c = enviro->Get( USER_VAR ) ) )
 	{
 	    result.Set( c );
 	    delete tmpenviro;
@@ -256,7 +256,7 @@ HostEnv::GetUser( StrBuf &result, Enviro * enviro )
 
 # ifdef HAVE_GETPWUID
 	struct passwd *pwd;
-	if( pwd = getpwuid( getuid() ) )
+	if( ( pwd = getpwuid( getuid() ) ) )
 	{
 	    result.Set( pwd->pw_name );
 	    delete tmpenviro;
@@ -374,7 +374,7 @@ HostEnv::GetUid( int &result )
 {
 # ifdef HAVE_GETPWUID
 	struct passwd *pwd;
-	if( pwd = getpwuid( getuid() ) )
+	if( ( pwd = getpwuid( getuid() ) ) )
 	{
 	    result = pwd->pw_uid;
 	    return 1;

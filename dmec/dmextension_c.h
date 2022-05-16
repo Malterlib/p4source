@@ -89,6 +89,7 @@ class ExtensionClient : public Extension
 	    void SetMaxMem( int ){}
 	    void SetMaxTime( int ){}
 	    bool doFile( const char*, Error* ){ return false; }
+	    bool doStr( const char*, Error* ){ return false; }
 
 	    void DisableExtensionBinding();
 };

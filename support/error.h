@@ -97,6 +97,7 @@ struct ErrorId {
 	int	Severity() const	{ return (code >> 28) & 0x0f; }
 	int	UniqueCode() const	{ return code & 0xffff; }
 
+	static const ErrorId NullErrorId;
 } ;
 
 struct ErrorIdMap {

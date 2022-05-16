@@ -26,3 +26,19 @@ server networking and client.  Also make sure that a Zlib upgrade doesn't break
 non-C++ APIs such as p4-java.  Testing on platforms with different endianness
 is prudent.
 
+
+The gnu compiler generates the pshufb instructions in the inline v_load8_dup()
+routine. This instruction only works with CPUs that support SSSE3 extensions.
+Some very old CPUs our customers are using don't have this faeture and
+get SIGILL signals when asked to inflate bytes on the server and client.
+
+A fix has been made to place all the functions that use pshufb into a
+single source file, inffast_chunk.c. These two functions are
+inflate() and inflate_fast_chunk_(). This file is then compiled
+twice, once as before with the pshufb instructions and a second
+time with the -nossse3 option to the compiler to omit pshufb.
+At the same time the functions are renamed with a nossse3 suffix.
+
+Then at runtime all calls to inflate() first check the value of
+x86_cpu_enable_ssse3, set by the library by querying the cpuid state,
+to determine which of these functions to call.

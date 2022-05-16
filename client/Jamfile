@@ -27,7 +27,7 @@ LinkLibraries p4 :
 	$(SUPPORTLIB)
 	;
 
-P4Main p4 : clientmain.cc clientaliases.cc ;
+P4Main p4 : clientmain.cc clientaliases.cc clientextpackage.cc ;
 
 if $(USE_EXTENSIONS) = 1
 {
@@ -39,6 +39,11 @@ if $(USE_EXTENSIONS) = 1
 	{
 	    ObjectC++Flags clientscript.cc : -std=c++17 ;
 	}
+}
+
+if $(CLANGVER) && [ FVersionCmp $(CLANGVER) : 6.0.0 ] >= 0 || $(GCCVER) && [ FVersionCmp $(GCCVER) : 4.5.4 ] >= 0
+{
+	ObjectC++Flags clientextpackage.cc : -std=c++11 ;
 }
 
 P4APILibrary $(CLIENTLIB) :
@@ -72,6 +77,7 @@ P4APILibrary $(P4SCRIPT_C) : clientscript.cc ;
 P4Library $(P4SCRIPT_CSTUB) : clientscript_stub.cc ;
 
 ObjectC++Flags p4libs.cc : -I $(P4)/script/libs/sqlite3 -I $(P4)/script/libs/cURL -I $(P4)/zlib -I$(SSLINCDIR) ;
+ObjectC++Flags clientextpackage.cc : -I$(SSLINCDIR) ;
 
-# LinkMallocLib p4 ;
-LinkLibraries p4 : $(P4MEMORYMGR_STUB) ;
+LinkMallocLib p4 ;
+#LinkLibraries p4 : $(P4MEMORYMGR_STUB) ;

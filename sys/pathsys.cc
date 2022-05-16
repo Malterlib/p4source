@@ -118,16 +118,22 @@ PathSys::Create( const StrPtr &os, Error *e )
 	return 0;
 }
 
-# ifdef HAS_CPP14
+# ifdef HAS_CPP11
+
+template< typename T, typename ...Args >
+static std::unique_ptr< T > make_unique_ps( Args&& ...args )
+{
+	return std::unique_ptr< T >( new T( std::forward< Args >( args )... ) );
+}
 
 PathSysUPtr PathSys::CreateUPtr()
 {
-	return std::make_unique< PathSys* >( Create() );
+	return make_unique_ps< PathSys* >( Create() );
 }
 
 PathSysUPtr PathSys::CreateUPtr( const StrPtr &os, Error *e )
 {
-	return std::make_unique< PathSys* >( Create( os, e ) );
+	return make_unique_ps< PathSys* >( Create( os, e ) );
 }
 
 namespace std

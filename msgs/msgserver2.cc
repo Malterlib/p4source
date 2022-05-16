@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgServer error code is: 172
+ * Current high value for a MsgServer2 error code is: 162
  *                                                   Max code is 1023!!!
  *
  * The MsgServer2 class contains overflow messages from MsgServer.
@@ -44,7 +44,7 @@ ErrorId MsgServer2::UseResolve2            = { ErrorOf( ES_SERVER2, 7, E_FAILED,
 ErrorId MsgServer2::UseOpened3             = { ErrorOf( ES_SERVER2, 8, E_FAILED, EV_USAGE, 0 ), "Usage: %'opened [ -c changelist# ] -So'%" } ;
 ErrorId MsgServer2::StorageUpgradeInProgress = { ErrorOf( ES_SERVER2, 9, E_FAILED, EV_NONE, 0 ), "A storage upgrade is already in progress" } ;
 ErrorId MsgServer2::StorageEdgeFailure     = { ErrorOf( ES_SERVER2, 10, E_FAILED, EV_FAULT, 2 ), "Upgrade storage for Edge server failed, file %file% change %change%." } ;
-ErrorId MsgServer2::UseStreamlog           = { ErrorOf( ES_SERVER2, 11, E_FAILED, EV_USAGE, 0 ), "Usage: %'streamlog [ -l -L -t -m maxRevs ] stream...'%" } ;
+ErrorId MsgServer2::UseStreamlog           = { ErrorOf( ES_SERVER2, 11, E_FAILED, EV_USAGE, 0 ), "Usage: %'streamlog [ -c changelist# -h -i -l -L -t -m maxRevs ] stream...'%" } ;
 ErrorId MsgServer2::SubmitNoBgXferTarget   = { ErrorOf( ES_SERVER2, 12, E_FAILED, EV_NOTYET, 0 ), "Background archive transfer requires 'ExternalAddress' field in edge server spec to be set --  cannot submit."} ;
 ErrorId MsgServer2::SubmitBgXferNoConfig   = { ErrorOf( ES_SERVER2, 13, E_FAILED, EV_NOTYET, 0 ), "Background archive transfer requires submit.allowbgtransfer configurable to be set --  cannot submit."} ;
 ErrorId MsgServer2::SubmitBgNotEdge        = { ErrorOf( ES_SERVER2, 129, E_INFO, EV_NOTYET, 0 ), "Background archive transfer is supported only from edge servers.\nProceeding with default submit archive transfer."} ;
@@ -54,6 +54,7 @@ ErrorId MsgServer2::SubmitNoBackgroundThreads = { ErrorOf( ES_SERVER2, 15, E_FAI
 ErrorId MsgServer2::StorageNoUpgrade       = { ErrorOf( ES_SERVER2, 16, E_FAILED, EV_NONE, 0 ), "There is no storage upgrade in progress to restart." } ;
 ErrorId MsgServer2::FailoverForced         = { ErrorOf( ES_SERVER2, 17, E_WARN, EV_ADMIN, 0 ), "Attempting unsupported forced failover; attempting to continue through any errors encountered. This server might not be as expected after the forced failover." } ;
 ErrorId MsgServer2::FailoverWriteServerID  = { ErrorOf( ES_SERVER2, 49, E_INFO, EV_NONE, 2 ), "Failover from %serverID% %address%" } ;
+ErrorId MsgServer2::FailoverDetails        = { ErrorOf( ES_SERVER2, 131, E_INFO, EV_NONE, 6 ), "%action% from source: %serverID% (%serverType% %sourcePort%) to target: %targetID% (%targetPort%)." } ;
 ErrorId MsgServer2::StorageRestoreDigest   = { ErrorOf( ES_SERVER2, 18, E_INFO, EV_NONE, 2 ), "Warning: A file with a different digest value already exists for %file% %rev% - skipping archive." } ;
 ErrorId MsgServer2::xuUpstream             = { ErrorOf( ES_SERVER2, 25, E_INFO, EV_ADMIN, 0 ), "Upgrades will be applied from '%'-xu'%' at upstream server." } ;
 ErrorId MsgServer2::xuAtStart              = { ErrorOf( ES_SERVER2, 63, E_INFO, EV_ADMIN, 0 ), "Upgrades will be applied at server startup." } ;
@@ -90,6 +91,8 @@ ErrorId MsgServer2::VerifyDataProblem      = { ErrorOf( ES_SERVER2, 47, E_FAILED
 ErrorId MsgServer2::VerifyData             = { ErrorOf( ES_SERVER2, 48, E_INFO, EV_NONE, 6 ), "%depotFile% %depotRev% - %rcount% (%type%) %digest%[ %status%]" } ; // NOTRANS
 ErrorId MsgServer2::FailoverServerIDBad    = { ErrorOf( ES_SERVER2, 50, E_FAILED, EV_ADMIN, 0 ), "Failover has occurred from this server, and the server ID must be changed. Use '%'p4d -xD'%' to change the server ID." } ;
 ErrorId MsgServer2::FailoverMasterTooOld = { ErrorOf( ES_SERVER2, 83, E_FAILED, EV_USAGE, 0 ), "Server from which failover is to occur must be at version 2018.2 or above to participate in failover." } ;
+ErrorId MsgServer2::FailoverCfgCommit   = { ErrorOf( ES_SERVER2, 115, E_INFO, EV_NONE, 0 ), "Propagating configuration of the failed-over server ..." } ;
+ErrorId MsgServer2::FailoverUnCfgCommit = { ErrorOf( ES_SERVER2, 116, E_INFO, EV_NONE, 0 ), "Undoing propagation of configuration for the failed-over server ..." } ;
 ErrorId MsgServer2::ServerIDReused         = { ErrorOf( ES_SERVER2, 51, E_FAILED, EV_ADMIN, 1 ), "Cannot reuse server ID '%serverID%' after failover." } ;
 ErrorId MsgServer2::ExtensionPostInstallMsg ={ ErrorOf( ES_SERVER2, 52, E_INFO, EV_NONE, 4 ), "Perform the following steps to turn on the Extension:\n\n# Create a global configuration if one doesn't already exist.\np4 extension --configure %extension%\n\n# Create an instance configuration to enable the Extension.\np4 extension --configure %extension% --name %extension%-instanceName\n\nFor more information, visit:\nhttps://www.perforce.com/manuals/v%serverversion%/extensions/Content/Extensions/Home-extensions.html\n" } ;
 ErrorId MsgServer2::StreamShelfReadOnly    = { ErrorOf( ES_SERVER2, 53, E_FAILED, EV_NOTYET, 4 ), "Stream spec %stream% is shelved in change %change% and is not open.\nThe stream field in this change spec is read only and cannot be\nchanged until the stream is removed from the shelf.\nSwitch your client to %stream%, then use 'p4 shelve -d -As %change%'\nto remove the stream from shelf." } ;
@@ -102,7 +105,7 @@ ErrorId MsgServer2::LbrScanUnderPath       = { ErrorOf( ES_SERVER2, 59, E_FAILED
 ErrorId MsgServer2::LbrScanNotFound        = { ErrorOf( ES_SERVER2, 60, E_FAILED, EV_NONE, 1 ), "Lbrscan request '%request%' not found." } ;
 ErrorId MsgServer2::LbrScanBadPath         = { ErrorOf( ES_SERVER2, 61, E_FAILED, EV_NONE, 1 ), "Lbrscan request '%request%' is not a local depot." } ;
 ErrorId MsgServer2::StorageZeroRefClean    = { ErrorOf( ES_SERVER2, 66, E_INFO, EV_NONE, 2 ), "Storage record with a reference count of zero %file% %rev%." } ;
-ErrorId MsgServer2::StorageZeroCount       = { ErrorOf( ES_SERVER2, 67, E_INFO, EV_NONE, 1 ), "Deleted librarian files: %count%." } ;
+ErrorId MsgServer2::StorageZeroCount       = { ErrorOf( ES_SERVER2, 67, E_INFO, EV_NONE, 2 ), "Deleted storage revisions: %count%. Deleted librarian revisions: %lcount%." } ;
 ErrorId MsgServer2::StorageDupZero         = { ErrorOf( ES_SERVER2, 68, E_FATAL, EV_NONE, 2 ), "Found multiple zero reference file during deletion for %lbrfile% %lbrrev%." } ;
 ErrorId MsgServer2::StorageShareRep        = { ErrorOf( ES_SERVER2, 69, E_FAILED, EV_NONE, 0 ), "Running the orphan scanner on a shared archive replica is not permitted." } ;
 ErrorId MsgServer2::StorageSingle          = { ErrorOf( ES_SERVER2, 70, E_FAILED, EV_NONE, 0 ), "Running the orphan scanner is not allowed in single-threaded mode." } ;
@@ -129,9 +132,57 @@ ErrorId MsgServer2::HeartbeatAccessFailed  = { ErrorOf( ES_SERVER2, 94, E_FAILED
 ErrorId MsgServer2::HeartbeatMaxWait       = { ErrorOf( ES_SERVER2, 74, E_FAILED, EV_COMM, 1 ), "Heartbeat response exceeded maximum wait duration of %ms% milliseconds." } ;
 ErrorId MsgServer2::HeartbeatTargetTooOld  = { ErrorOf( ES_SERVER2, 112, E_FAILED, EV_USAGE, 1 ), "Heartbeat target server %target% must be at version 2020.1 or above." } ;
 ErrorId MsgServer2::DigestFail2            = { ErrorOf( ES_SERVER2, 95, E_FATAL, EV_ADMIN, 4 ), "Failed to create digest for revision %file%#%rev%. Archive %lbrfile% %lbrrev%" } ;
+ErrorId MsgServer2::DuplicateCertificate   = { ErrorOf( ES_SERVER2, 97, E_FAILED, EV_NONE, 2 ), "Certificate for '%orgcommon%' with fingerprint '%fp%' already installed in trusted list." } ;
+ErrorId MsgServer2::ExtensionCertInstallSuccess= { ErrorOf( ES_SERVER2, 98, E_INFO, EV_NONE, 2 ), "Certificate for '%orgcommon%' with fingerprint '%fp%' successfully installed and added to trusted list." } ;
+ErrorId MsgServer2::ExtensionCertInstallPreview= { ErrorOf( ES_SERVER2, 99, E_INFO, EV_NONE, 2 ), "Would install certificate for '%orgcommon%' with fingerprint '%fp%'." } ;
+ErrorId MsgServer2::ExtensionCertDelSuccess= { ErrorOf( ES_SERVER2, 100, E_INFO, EV_NONE, 2 ), "Certificate for '%orgcommon%' with fingerprint '%fp%' successfully deleted from trusted list." } ;
+ErrorId MsgServer2::ExtensionCertDelPreview= { ErrorOf( ES_SERVER2, 101, E_INFO, EV_NONE, 2 ), "Would delete certificate for '%orgcommon%' with fingerprint '%fp%'." } ;
+ErrorId MsgServer2::ExtensionCertMissing   = { ErrorOf( ES_SERVER2, 102, E_FAILED, EV_NONE, 1 ), "Certificate with fingerprint '%fp%' not found in trusted list." } ;
+ErrorId MsgServer2::ExtensionNotSigned     = { ErrorOf( ES_SERVER2, 103, E_FAILED, EV_NONE, 0 ), "Installation failure: extension package must be signed but is missing required signature file or certificate file to validate authenticity." } ;
+ErrorId MsgServer2::ExtensionSignUntrusted = { ErrorOf( ES_SERVER2, 104, E_FAILED, EV_NONE, 0 ), "Installation failure: extension package is signed by untrusted certificate." } ;
+ErrorId MsgServer2::ClientTooOldToPackage  = { ErrorOf( ES_SERVER2, 105, E_FAILED, EV_USAGE, 0 ), "Extension packaging requires a 2020.1+ command-line client." } ;
+ErrorId MsgServer2::StreamSpecIntegPend    = { ErrorOf( ES_SERVER2, 106, E_WARN, EV_EMPTY, 0 ), "All stream spec revision(s) already integrated in pending changelist." } ;
+ErrorId MsgServer2::StreamSpecInteg        = { ErrorOf( ES_SERVER2, 107, E_WARN, EV_EMPTY, 0 ), "All stream spec revision(s) already integrated." } ;
 ErrorId MsgServer2::BadExternalAddr        = { ErrorOf( ES_SERVER2, 108, E_FAILED, EV_ADMIN, 3 ), "ExternalAddress %extAddr% set incorrectly for %serverId%: found server %realServerId%" } ;
+ErrorId MsgServer2::ShelvePromotedStream   = { ErrorOf( ES_SERVER2, 111, E_INFO, EV_NONE, 1 ), "%change% stream promoted." } ;
+ErrorId MsgServer2::ShelvePromotedBoth     = { ErrorOf( ES_SERVER2, 110, E_INFO, EV_NONE, 1 ), "%change% files and stream promoted." } ;
 ErrorId MsgServer2::StreamSpecPermsDisabled = { ErrorOf( ES_SERVER2, 109, E_INFO, EV_NONE, 0 ), "Stream spec permissions currently disabled. Set %'dm.protects.streamspec=1'% to enable." } ;
+ErrorId MsgServer2::UseDbSchema            = { ErrorOf( ES_SERVER2, 113, E_FAILED, EV_USAGE, 0 ), "Usage: %'dbschema [ [ -A [ dbtable ] ] | [ dbtable:version ] ]'%" } ;
+ErrorId MsgServer2::UseStreamSpecParentView= { ErrorOf( ES_SERVER2, 114, E_FAILED, EV_USAGE, 0 ), "Usage: %'stream parentview  [ -c changelist# -n -o --source-comments ] { --inherit | --noinherit }'%" } ;
+ErrorId MsgServer2::StgOrphanIndex         = { ErrorOf( ES_SERVER2, 115, E_INFO, EV_NONE, 3 ), "Orphan storage index for key %lbrfile%#%lbrrev% %lbrtype%." } ;
+ErrorId MsgServer2::StgIndexMismatch       = { ErrorOf( ES_SERVER2, 116, E_INFO, EV_NONE, 7 ), "Bad storage index for key %lbrfile%#%lbrrev% %lbrtype%. Index: %idigest% %isize% Storagesh: %sdigest% %ssize%" } ;
+ErrorId MsgServer2::StgOrphanStart         = { ErrorOf( ES_SERVER2, 117, E_INFO, EV_NONE, 1 ), "Scan started on %path%" } ;
+ErrorId MsgServer2::StgOrphanPause         = { ErrorOf( ES_SERVER2, 118, E_INFO, EV_NONE, 1 ), "Scan paused on %path%" } ;
+ErrorId MsgServer2::StgOrphanRestart       = { ErrorOf( ES_SERVER2, 119, E_INFO, EV_NONE, 1 ), "Scan restarted on %path%" } ;
+ErrorId MsgServer2::StgOrphanCancelled     = { ErrorOf( ES_SERVER2, 120, E_INFO, EV_NONE, 1 ), "Scan cancelled on %path%" } ;
+ErrorId MsgServer2::StgOrphanWait          = { ErrorOf( ES_SERVER2, 121, E_INFO, EV_NONE, 1 ), "Scan process on %path% has finished." } ;
+ErrorId MsgServer2::StgScanHeader          = { ErrorOf( ES_SERVER2, 122, E_INFO, EV_NONE, 1 ), "Status for scan %path%:" } ;
+ErrorId MsgServer2::StgNoScans             = { ErrorOf( ES_SERVER2, 123, E_FAILED, EV_NONE, 0 ), "No scans are active." } ;
+ErrorId MsgServer2::UpgradeInfo            = { ErrorOf( ES_SERVER2, 124, E_INFO, EV_NONE, 2 ), "Upgrade step %name% has status %state%" } ;
+ErrorId MsgServer2::UpgradeComplete        = { ErrorOf( ES_SERVER2, 125, E_INFO, EV_NONE, 1 ), "Upgrade step %name% has been run." } ;
+ErrorId MsgServer2::UpgradeNeeded          = { ErrorOf( ES_SERVER2, 126, E_WARN, EV_NONE, 1 ), "Upgrade step %name% has not completed on all servers." } ;
+ErrorId MsgServer2::UpgradeRplUnknown      = { ErrorOf( ES_SERVER2, 127, E_FAILED, EV_NONE, 0 ), "Upstream servers must be upgraded to at least 2020.2 to report this information." } ;
+ErrorId MsgServer2::UseUpgrades            = { ErrorOf( ES_SERVER2, 128, E_FAILED, EV_NONE, 0 ), "Usage: %'upgrades [-g upgrade-step]'%" } ;
+ErrorId MsgServer2::BadPRoot               = { ErrorOf( ES_SERVER2, 132, E_FAILED, EV_ADMIN, 1 ), "Proxy Root directory %path% (set with %'$P4PROOT'% or %'-R'% flag) invalid." };
 ErrorId MsgServer2::FailedToUpdUnExpKtextDigest = { ErrorOf( ES_SERVER2, 133, E_FAILED, EV_NONE, 3 ), "Failed to update an unexpanded ktext digest in db.storagesh on the Commit Server for %lbrfile%#%lbrrev% %lbrtype%." } ;
+ErrorId MsgServer2::StreamHasParentView    = { ErrorOf( ES_SERVER2, 134, E_INFO, EV_NONE, 2 ), "Stream spec %stream% already has a ParentView property value of %parentView%." } ;
+ErrorId MsgServer2::StreamParentViewChanged= { ErrorOf( ES_SERVER2, 135, E_INFO, EV_NONE, 2 ), "Converted stream spec %stream% ParentView property to %parentView%." } ;
+ErrorId MsgServer2::StreamPVSpecOpen       = { ErrorOf( ES_SERVER2, 136, E_FAILED, EV_USAGE, 1 ), "Stream spec %stream% is open.  To convert the ParentView property the stream spec must not be open." } ;
+ErrorId MsgServer2::UpdateDigestReport     = { ErrorOf( ES_SERVER2, 137, E_INFO, EV_NONE, 2 ), "Storage digest update complete. Records read: %reads% Records updated: %updates%." } ;
+ErrorId MsgServer2::UpdateDigestProgress   = { ErrorOf( ES_SERVER2, 138, E_INFO, EV_NONE, 2 ), "Storage digest update. Records read: %reads% Records updated: %updates%." } ;
+ErrorId MsgServer2::StreamPVVirtualOnlyInh = { ErrorOf( ES_SERVER2, 139, E_FAILED, EV_USAGE, 0 ), "Virtual streams may only have inherit ParentViews." } ;
+ErrorId MsgServer2::SSInhPVIntegNotDone    = { ErrorOf( ES_SERVER2, 140, E_FAILED, EV_ADMIN, 1 ), "The stream spec %stream% has an inherit ParentView and cannot be integrated.  The configurable dm.integ.streamspec must be 2 to integrate a stream spec with an inherit ParentView." } ;
+ErrorId MsgServer2::StreamPVTaskOnlyInh    = { ErrorOf( ES_SERVER2, 141, E_FAILED, EV_USAGE, 0 ), "Task streams may only have inherit ParentViews." } ;
+ErrorId MsgServer2::SSIntegNotCurStream    = { ErrorOf( ES_SERVER2, 142, E_FAILED, EV_USAGE, 2 ), "The target stream of a stream spec integration must be the stream associated with the current client. The specified target stream is %targetStream%, but the current stream is %currentStream%.  Stream spec integration failed." } ;
 ErrorId MsgServer2::ExtCfgMissing          = { ErrorOf( ES_SERVER2, 143, E_FAILED, EV_UNKNOWN, 2 ), "Missing Extension config for %name%, %uuid%." } ;
-ErrorId MsgServer2::SwitchStreamUnrelated   = { ErrorOf( ES_SERVER2, 148, E_FAILED, EV_ILLEGAL, 0 ), "Use the '--allow-unrelated' option to switch to a different stream hierarchy." } ;
-ErrorId MsgServer2::UnknownContext         = { ErrorOf( ES_SERVER2, 172, E_FATAL, EV_ILLEGAL, 0 ), "No context was found for this operation." } ;
+ErrorId MsgServer2::NoUnshelveVirtIntoNoInh= { ErrorOf( ES_SERVER2, 144, E_FAILED, EV_ILLEGAL, 0 ), "Can't unshelve a virtual stream spec into a stream spec with a noinherit ParentView." } ;
+ErrorId MsgServer2::NoUnshelveNoInhIntoVirt= { ErrorOf( ES_SERVER2, 145, E_FAILED, EV_ILLEGAL, 0 ), "Can't unshelve a stream spec with a noinherit ParentView into a virtual stream spec." } ;
+ErrorId MsgServer2::SwitchStreamUnrelated  = { ErrorOf( ES_SERVER2, 148, E_FAILED, EV_ILLEGAL, 0 ), "Use the '--allow-unrelated' option to switch to a different stream hierarchy." } ;
+ErrorId MsgServer2::ShelveArchiveInUse     = { ErrorOf( ES_SERVER2, 153, E_FAILED, EV_UNKNOWN, 2 ), "Archive for shelved file %depotFile%@%change% is already in use and differs!" } ;
+ErrorId MsgServer2::ShelveDupDiff          = { ErrorOf( ES_SERVER2, 154, E_FAILED, EV_UNKNOWN, 10 ), "Shelved archive file %lbrFile1%/%lbrRev1%/%lbrType1% (%size1% %hash1%) differs from %lbrFile2%/%lbrRev2%/%lbrType2% (%size2% %hash2%). Skipping any further cleanup." } ; 
+ErrorId MsgServer2::ShelveNotPromoted      = { ErrorOf( ES_SERVER2, 155, E_FAILED, EV_UNKNOWN, 1 ), "%change% does not contain promoted shelved files." } ;
+ErrorId MsgServer2::VerifyRepairKtext      = { ErrorOf( ES_SERVER2, 158, E_WARN, EV_UNKNOWN, 0 ), "Cannot find shelved archives for ktext files by digest. Skipping." } ;
+ErrorId MsgServer2::VerifyRepairNone       = { ErrorOf( ES_SERVER2, 159, E_WARN, EV_UNKNOWN, 0 ), "No suitable shelved archive found." } ;
+ErrorId MsgServer2::VerifyRepairConflict   = { ErrorOf( ES_SERVER2, 160, E_WARN, EV_UNKNOWN, 2 ), "Cannot copy shelved archive %foundLbr%. Target file %targetLbr% already exists." } ;
+ErrorId MsgServer2::VerifyRepairSnapped    = { ErrorOf( ES_SERVER2, 161, E_INFO, EV_NONE, 2 ), "Snapping revision from using archive %oldLbr% to use archive %targetLbr%." } ;
+ErrorId MsgServer2::VerifyRepairCopied     = { ErrorOf( ES_SERVER2, 162, E_INFO, EV_NONE, 2 ), "Copying shelved archive %foundLbr% to %targetLbr%." } ;

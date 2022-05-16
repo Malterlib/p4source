@@ -205,7 +205,7 @@ Sequence::Dump( FILE *out, LineNo l, LineNo m, LineType lineType )
 	int llen = 0;
 	char buf[ 1024 ];
 
-	while( len = CopyLines( l, m, buf, sizeof( buf ), lineType ) )
+	while( ( len = CopyLines( l, m, buf, sizeof( buf ), lineType ) ) )
 	{
 		fwrite( buf, 1, len, out );
 		llen = len;

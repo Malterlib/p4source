@@ -11,14 +11,13 @@
 # include <vector>
 # include <map>
 
-# include <p4script.h>
-# include <p4script53.h>
-
 # include <clientapi.h>
 # include <strops.h>
 # include <spec.h>
 # include <strtable.h>
 # include <charman.h>
+# include <p4script.h>
+# include <p4script53.h>
 
 # include "p4luadebug.h"
 # include "specdatap4lua.h"
@@ -42,21 +41,6 @@ struct defaultspec {
         "View;code:311;type:wlist;words:2;len:64;;"
     },
     {
-        "changeX",
-        "Change;code:201;rq;ro;fmt:L;seq:1;len:10;;"
-        "Date;code:202;type:date;ro;fmt:R;seq:3;len:20;;"
-        "Client;code:203;ro;fmt:L;seq:2;len:32;;"
-        "User;code:204;ro;fmt:L;seq:4;len:32;;"
-        "Status;code:205;ro;fmt:R;seq:5;len:10;;"
-        "Type;code:211;seq:6;type:select;fmt:L;len:10;"
-            "val:public/restricted;;"
-        "ImportedBy;code:212;type:line;ro;fmt:L;len:32;;"
-        "Identity;code:213;type:line;;"
-        "Description;code:206;type:text;rq;;"
-        "Jobs;code:209;type:wlist;words:2;len:32;;"
-        "Files;code:210;type:llist;len:64;;"
-    },
-    {
         "change",
         "Change;code:201;rq;ro;fmt:L;seq:1;len:10;;"
         "Date;code:202;type:date;ro;fmt:R;seq:3;len:20;;"
@@ -70,6 +54,7 @@ struct defaultspec {
         "Description;code:206;type:text;rq;seq:7;;"
         "JobStatus;code:207;fmt:I;type:select;seq:9;;"
         "Jobs;code:208;type:wlist;seq:8;len:32;;"
+        "Stream;code:214;type:line;len:64;;"
         "Files;code:210;type:llist;len:64;;"
     },
     {
@@ -93,46 +78,11 @@ struct defaultspec {
         "Stream;code:314;type:line;len:64;;"
         "StreamAtChange;code:316;type:line;len:64;;"
         "ServerID;code:315;type:line;ro;len:64;;"
-        "Type;code:318;type:select;len:10;val:writeable/readonly;;"
+        "Type;code:318;type:select;len:10;val:"
+            "writeable/readonly/graph/partitioned;;"
         "Backup;code:319;type:select;len:10;val:enable/disable;;"
         "View;code:311;type:wlist;words:2;len:64;;"
         "ChangeView;code:317;type:llist;len:64;;"
-    },
-    {
-        "clientX",
-        "Client;code:301;rq;ro;seq:1;len:32;;"
-        "Update;code:302;type:date;ro;seq:2;fmt:L;len:20;;"
-        "Access;code:303;type:date;ro;seq:4;fmt:L;len:20;;"
-        "Owner;code:304;seq:3;fmt:R;len:32;;"
-        "Host;code:305;seq:5;fmt:R;len:32;;"
-        "Description;code:306;type:text;len:128;;"
-        "Root;code:307;rq;type:line;len:64;;"
-        "AltRoots;code:308;type:llist;len:64;;"
-        "Options;code:309;type:line;len:64;val:"
-            "noallwrite/allwrite,noclobber/clobber,nocompress/compress,"
-            "unlocked/locked,nomodtime/modtime,normdir/rmdir;;"
-        "SubmitOptions;code:313;type:select;fmt:L;len:25;val:"
-            "submitunchanged/submitunchanged+reopen/revertunchanged/"
-            "revertunchanged+reopen/leaveunchanged/leaveunchanged+reopen;;"
-        "LineEnd;code:310;type:select;fmt:L;len:12;val:"
-            "local/unix/mac/win/share;;"
-        "View;code:311;type:wlist;words:2;len:64;;"
-    },
-    {
-        "clientSpecing021",
-        "Client;code:301;rq;ro;len:32;;"
-        "Update;code:302;type:date;ro;len:20;;"
-        "Access;code:303;type:date;ro;len:20;;"
-        "Owner;code:304;len:32;;"
-        "Host;code:305;len:32;;"
-        "Description;code:306;type:text;len:128;;"
-        "Root;code:307;rq;type:line;len:64;;"
-        "AltRoots;code:308;type:text;len:64;;"
-        "Options;code:309;type:line;len:64;val:"
-            "noallwrite/allwrite,noclobber/clobber,nocompress/compress,"
-            "unlocked/locked,nomodtime/modtime,normdir/rmdir;;"
-        "LineEnd;code:310;type:select;len:12;val:local/unix/mac/win/share;;"
-        "View;code:311;type:wlist;words:2;len:64;;"
     },
     {
         "depot",
@@ -153,11 +103,13 @@ struct defaultspec {
         "MaxResults;code:402;type:word;len:12;;"
         "MaxScanRows;code:403;type:word;len:12;;"
         "MaxLockTime;code:407;type:word;len:12;;"
+        "MaxOpenFiles;code:413;type:word;len:12;;"
         "Timeout;code:406;type:word;len:12;;"
         "PasswordTimeout;code:409;type:word;len:12;;"
         "LdapConfig;code:410;type:line;len:128;;"
         "LdapSearchQuery;code:411;type:line;len:128;;"
         "LdapUserAttribute;code:412;type:line;len:128;;"
+        "LdapUserDNAttribute;code:414;type:line;len:128;;"
         "Subgroups;code:404;type:wlist;len:32;opt:default;;"
         "Owners;code:408;type:wlist;len:32;opt:default;;"
         "Users;code:405;type:wlist;len:32;opt:default;;"
@@ -225,36 +177,62 @@ struct defaultspec {
         "Clients;code:458;len:8;;"
         "Users;code:459;len:8;;"
         "Files;code:460;len:8;;"
+        "Repos;code:462;len:8;;"
     },
     {
         "protect",
-        "Protections;code:501;fmt:C;type:wlist;words:5;opt:default;len:64;;"
+        "SubPath;code:502;ro;len:64;;"
+        "Update;code:503;type:date;ro;fmt:L;len:20;;"
+        "Protections;code:501;fmt:C;type:wlist;words:5;opt:default;z;len:64;;"
     },
     {
         "remote",
-        "RemoteID;code:851;rq;ro;len:32;;"
+        "RemoteID;code:851;rq;ro;fmt:L;len:32;;"
         "Address;code:852;rq;type:line;len:32;;"
         "Owner;code:853;fmt:R;len:32;;"
         "RemoteUser;code:861;fmt:R;len:32;;"
         "Options;code:854;type:line;len:32;val:"
-            "unlocked/lockednocompress/compress;;"
+            "unlocked/locked,nocompress/compress,copyrcs/nocopyrcs;;"
         "Update;code:855;type:date;ro;fmt:L;len:20;;"
         "Access;code:856;type:date;ro;fmt:L;len:20;;"
         "Description;code:857;type:text;len:128;;"
         "LastFetch;code:858;fmt:L;len:10;;"
         "LastPush;code:859;fmt:L;len:10;;"
         "DepotMap;code:860;type:wlist;words:2;len:64;;"
+        "ArchiveLimits;code:862;type:wlist;words:2;len:64;;"
     },
     {
-        "specW",
-        "Fields;code:351;type:wlist;words:5;rq;;"
-        "Required;code:357;type:wlist;;"
-        "Readonly;code:358;type:wlist;;"
-        "Words;code:352;type:wlist;words:2;;"
-        "Formats;code:353;type:wlist;words:3;;"
-        "Values;code:354;type:wlist;words:2;;"
-        "Presets;code:355;type:wlist;words:2;;"
-        "Comments;code:356;type:text;;"
+        "repo",
+        "Repo;code:1001;rq;ro;fmt:L;len:128;;"
+        "Owner;code:1002;fmt:R;len:32;;"
+        "Created;code:1003;type:date;ro;fmt:L;len:20;;"
+        "Pushed;code:1004;type:date;ro;fmt:R;len:20;;"
+        "ForkedFrom;code:1005;ro;fmt:L;len:128;;"
+        "Description;code:1006;type:text;len:128;;"
+        "DefaultBranch;code:1007;fmt:L;len:32;;"
+        "MirroredFrom;code:1008;fmt:R;len:32;;"
+        "Options;code:1009;type:select;len:10;val:lfs/nolfs;;"
+        "GconnMirrorServerId;code:1010;fmt:L;len:32;;"
+    },
+    {
+        "server",
+        "ServerID;code:751;rq;ro;len:32;;"
+        "Type;code:752;rq;len:32;;"
+        "Name;code:753;type:line;len:32;;"
+        "Address;code:754;type:line;len:32;;"
+        "ExternalAddress;code:755;type:line;len:32;;"
+        "Services;code:756;rq;len:128;;"
+        "Options;code:764;type:line;len:32;val:"
+        "nomandatory/mandatory;;"
+        "ReplicatingFrom;code:765;type:line;len:32;;"
+        "Description;code:757;type:text;len:128;;"
+        "User;code:761;type:line;len:64;;"
+        "AllowedAddresses;code:763;type:wlist;len:64;;"
+        "UpdateCachedRepos;code:766;type:wlist;len:64;;"
+        "ClientDataFilter;code:758;type:wlist;len:64;;"
+        "RevisionDataFilter;code:759;type:wlist;len:64;;"
+        "ArchiveDataFilter;code:760;type:wlist;len:64;;"
+        "DistributedConfig;code:762;type:text;len:128;;"
     },
     {
         "spec",
@@ -264,6 +242,7 @@ struct defaultspec {
         "Values;code:354;type:wlist;words:2;;"
         "Presets;code:355;type:wlist;words:2;;"
         "Openable;code:362;type:wlist;words:2;;"
+        "Maxwords;code:361;type:wlist;words:2;;"
         "Comments;code:356;type:text;;"
     },
     {
@@ -271,28 +250,30 @@ struct defaultspec {
         "Stream;code:701;rq;ro;len:64;;"
         "Update;code:705;type:date;ro;fmt:L;len:20;;"
         "Access;code:706;type:date;ro;fmt:L;len:20;;"
-        "Owner;code:704;len:32;;"
-        "Name;code:703;rq;type:line;len:32;;"
+        "Owner;code:704;len:32;open:isolate;;"
+        "Name;code:703;rq;type:line;len:32;open:isolate;;"
         "Parent;code:702;rq;len:64;open:isolate;;"
         "Type;code:708;rq;len:32;open:isolate;;"
-        "Description;code:709;type:text;len:128;;"
+        "Description;code:709;type:text;len:128;open:isolate;;"
         "Options;code:707;type:line;len:64;val:"
             "allsubmit/ownersubmit,unlocked/locked,"
             "toparent/notoparent,fromparent/nofromparent,"
-            "mergedown/mergeany;;"
-        "Paths;code:710;rq;type:wlist;words:2;maxwords:3;len:64;open:isolate;;"
-        "Remapped;code:711;type:wlist;words:2;len:64;open:isolate;;"
-        "Ignored;code:712;type:wlist;words:1;len:64;open:isolate;;"
+            "mergedown/mergeany;open:isolate;;"
+        "ParentView;code:NNN;rq;open:isolate;"
+            "pre:inherit;val:noinherit/inherit;;"
+        "Paths;code:710;rq;type:wlist;words:2;maxwords:3;len:64;open:propagate;fmt:C;;"
+        "Remapped;code:711;type:wlist;words:2;len:64;open:propagate;fmt:C;;"
+        "Ignored;code:712;type:wlist;words:1;len:64;open:propagate;fmt:C;;"
         "View;code:713;type:wlist;words:2;len:64;;"
         "ChangeView;code:714;type:llist;ro;len:64;;"
     },
     {
         "triggers",
-        "Triggers;code:551;type:wlist;words:4;len:64;opt:default;"
+        "Triggers;code:551;type:wlist;words:4;len:64;opt:default;z;;"
     },
     {
-       "typemap",
-        "TypeMap;code:601;type:wlist;words:2;len:64;opt:default;"
+        "typemap",
+        "TypeMap;code:601;type:wlist;words:2;len:64;opt:default;z;;"
     },
     {
         "user",
@@ -304,24 +285,11 @@ struct defaultspec {
         "FullName;code:655;fmt:R;type:line;rq;len:32;;"
         "JobView;code:656;type:line;len:64;;"
         "Password;code:657;len:32;;"
-        "AuthMethod;code:662;fmt:L;len:10;val:perforce/ldap;;"
+        "AuthMethod;code:662;fmt:L;len:10;val:"
+            "perforce/perforce+2fa/ldap/ldap+2fa;;"
         "Reviews;code:658;type:wlist;len:64;;"
     },
-    {
-        "server",
-        "ServerID;code:751;rq;ro;len:32;;"
-        "Type;code:752;rq;len:32;;"
-        "Name;code:753;type:line;len:32;;"
-        "Address;code:754;type:line;len:32;;"
-        "ExternalAddress;code:755;type:line;len:32;;"
-        "Services;code:756;rq;len:128;;"
-        "Description;code:757;type:text;len:128;;"
-        "User;code:761;type:line;len:64;;"
-        "ClientDataFilter;code:758;type:wlist;len:64;;"
-        "RevisionDataFilter;code:759;type:wlist;len:64;;"
-        "ArchiveDataFilter;code:760;type:wlist;len:64;;"
-    },
-    { 0, 0 }
+    { 0, 0}
 };
 
 SpecMgrP4Lua::SpecMgrP4Lua()

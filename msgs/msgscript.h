@@ -35,4 +35,7 @@ class MsgScript {
 	static ErrorId ExtWrongProduct;
 	static ErrorId ExtScriptNotInBuild;
 	static ErrorId OsExitRealError;
+	static ErrorId ExtCertAddChangeDesc;
+	static ErrorId ExtCertDelChangeDesc;
+	static ErrorId GenericFatal;
 };
