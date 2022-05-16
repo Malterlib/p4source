@@ -52,6 +52,12 @@
 #   endif
 # else
 #   include <wincrypt.h>
+#undef X509_NAME
+#undef X509_EXTENSIONS
+#undef PKCS7_ISSUER_AND_SERIAL
+#undef PKCS7_SIGNER_INFO
+#undef OCSP_REQUEST
+#undef OCSP_RESPONSE
 # endif // not OS_NT
 
 # include <error.h>
@@ -951,7 +957,7 @@ NetSslTransport::DoHandshake( Error *e )
 		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_cipher_list primary" );
 	    }
 
-# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+# if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined (OPENSSL_IS_BORINGSSL)
 	    // TLS 1.3 can send session-resumption info after the main handshake, which
 	    // will cause us to hang, so since we don't use sessions, disable that.
 	    SSL_set_num_tickets( ssl, 0 );

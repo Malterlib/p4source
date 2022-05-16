@@ -67,13 +67,16 @@ Compile
 		!!CompileDialect "C"
 		SearchPath += [
 			"../../External/zlib/contrib/minizip"->MakeAbsolute()
-			, "zlib/gzip"->MakeAbsolute()
 			, "dbsupp"->MakeAbsolute()
 			, "diff"->MakeAbsolute()
 			, "net"->MakeAbsolute()
+			, "dme"->MakeAbsolute()
+			, "dmec"->MakeAbsolute()
+			, "map"->MakeAbsolute()
+			, "script"->MakeAbsolute()
 		]
 		SearchPath += "rpc"->MakeAbsolute()
-		PreprocessorDefines += ["USE_SSL", "P4_API_ONLY", "NEED_ALL", `OS_@(PerforceOS)`, `ID_OS="@(PerforceOS)"`, `ID_REL="@(ProductVersionMajor).@(ProductVersionMinor)"`, `ID_PATCH="@(ProductVersionRevision)"`, `ID_Y=""`, "ID_M=\"\"", "ID_D=\"\""]
+		PreprocessorDefines += ["USE_SSL", "HAS_CPP11", "P4_API_ONLY", "NEED_ALL", `OS_@(PerforceOS)`, `ID_OS="@(PerforceOS)"`, `ID_REL="@(ProductVersionMajor).@(ProductVersionMinor)"`, `ID_PATCH="@(ProductVersionRevision)"`, `ID_Y=""`, "ID_M=\"\"", "ID_D=\"\""]
 		PreprocessorDefines += "_CRT_RAND_S"
 		{
 			!!PlatformFamily "Windows"
@@ -91,100 +94,27 @@ Compile
 		}*/
 		%Group "client"
 		{
-			%File "client/client.cc"
-			%File "client/clientaliases.cc"
-			%File "client/clientapi.cc"
-			%File "client/clientenv.cc"
-			%File "client/clienti18n.cc"
-			%File "client/clientinit.cc"
-			%File "client/clientmain.cc"
-			%File "client/clientmerge.cc"
-			%File "client/clientmerge2.cc"
-			%File "client/clientmerge3.cc"
-			%File "client/clientprog.cc"
-			%File "client/clientrcvfiles.cc"
-			%File "client/clientreplicate.cc"
-			%File "client/clientresolvea.cc"
-			%File "client/clientservice.cc"
-			%File "client/clientservicer.cc"
-			%File "client/clienttrust.cc"
-			%File "client/clientuser.cc"
-			%File "client/clientuserdbg.cc"
-			%File "client/clientusermsh.cc"
-			%File "client/clientusernull.cc"
-			%File "client/serverhelper.cc"
-			%File "client/serverhelperapi.cc"
+			%File "client/*.cc"
 			%File "client/*.h"
 		}
 		%Group "rpc"
 		{
-			%File "rpc/rpc.cc"
-			%File "rpc/rpcbuffer.cc"
-			%File "rpc/rpcdebug.cc"
-			%File "rpc/rpcdispatch.cc"
-			%File "rpc/rpcfwd.cc"
-			%File "rpc/rpcservice.cc"
-			%File "rpc/rpctrans.cc"
+			%File "rpc/*.cc"
 			%File "rpc/*.h"
 		}
 		%Group "support"
 		{
-			%File "support/bitarray.cc"
-			%File "support/datetime.cc"
-			%File "support/debug.cc"
-			%File "support/error.cc"
-			%File "support/errormsh.cc"
-			%File "support/errorsys.cc"
-			%File "support/handler.cc"
-			%File "support/hash.cc"
-			%File "support/ident.cc"
-			%File "support/ignore.cc"
-			%File "support/intarray.cc"
-			%File "support/jnlpos.cc"
-			%File "support/jnltrack.cc"
-			%File "support/mangle.cc"
-			%File "support/mapapi.cc"
-			%File "support/md5.cc"
-			%File "support/options.cc"
-			%File "support/progress.cc"
-			%File "support/random.cc"
-			%File "support/regmatch.cc"
-			%File "support/regexp.cc"
-			%File "support/spec.cc"
-			%File "support/specchar.cc"
-			%File "support/specdata.cc"
-			%File "support/specdef.cc"
-			%File "support/specparse.cc"
-			%File "support/splr.cc"
-			%File "support/strarray.cc"
-			%File "support/strbuf.cc"
-			%File "support/strdict.cc"
-			%File "support/strops.cc"
-			%File "support/strtable.cc"
-			%File "support/strxml.cc"
-			%File "support/ticket.cc"
-			%File "support/tracker.cc"
-			%File "support/uuid.cc"
-			%File "support/vararray.cc"
-			%File "support/varlist.cc"
-			%File "support/varqsort.cc"
+			%File "support/*.cc"
 			%File "support/*.h"
 		}
 		%Group "msgs"
 		{
-			%File "msgs/msgclient.cc"
-			%File "msgs/msgdb.cc"
-			%File "msgs/msgdm.cc"
-			%File "msgs/msglbr.cc"
-			%File "msgs/msgos.cc"
-			%File "msgs/msgrpc.cc"
-			%File "msgs/msgserver.cc"
-			%File "msgs/msgsupp.cc"
-			%File "msgs/msghelp.cc"
-			%File "msgs/msgspec.cc"
-			%File "msgs/p4tagl.cc"
-			%File "msgs/p4tags.cc"
+			%File "msgs/*.cc"
 			%File "msgs/*.h"
+			%File "msgs/msghelp.cc"
+			{
+				Compile.Disabled true
+			}
 		}
 		%Group "sys"
 		{
@@ -207,6 +137,7 @@ Compile
 			%File "sys/filestrbuf.cc"
 			%File "sys/filesys.cc"
 			%File "sys/filetmp.cc"
+			%File "sys/gzip.cc"
 			%File "sys/hostenv.cc"
 			%File "sys/fdutil.cc"
 			%File "sys/pathmac.cc"
@@ -219,7 +150,6 @@ Compile
 			%File "sys/resvmem.cc"
 			%File "sys/runcmd.cc"
 			%File "sys/rusage.cc"
-			%File "sys/shhandler.cc"
 			%File "sys/signaler.cc"
 			%File "sys/stdhdrs.cc"
 			%File "sys/threading.cc"
@@ -271,68 +201,29 @@ Compile
 			{
 				!!PlatformFamily "Windows"
 			}
+			%File "sys/runshell.cc"
+			{
+				!!PlatformFamily "Windows"
+			}
 		}
 		%Group "i18n"
 		{
 			%File "i18n/*.h"
-			%File "i18n/charcvt.cc"
-			%File "i18n/charman.cc"
-			%File "i18n/charset.cc"
-			%File "i18n/charfold.cc"
-			%File "i18n/basecvt.cc"
-			%File "i18n/i18napi.cc"
-			%File "i18n/simplecvt.cc"
-			%File "i18n/unicvt.cc"
-			%File "i18n/transdict.cc"
-			%File "i18n/jptables.cc"
-			%File "i18n/krtables.cc"
-			%File "i18n/cn936.cc"
-			%File "i18n/cn950.cc"
-			%File "i18n/validate.cc"
+			%File "i18n/*.cc"
 		}
 		%Group "diff"
 		{
 			%File "diff/*.h"
-			%File "diff/diff.cc"
-			%File "diff/diffan.cc"
-			%File "diff/diffflags.cc"
-			%File "diff/diffmerge.cc"
-			%File "diff/diffmulti.cc"
-			%File "diff/diffmultimulti.cc"
-			%File "diff/diffsp.cc"
-			%File "diff/diffsr.cc"
-		}
-		%Group "dbsupp"
-		{
-			%File "dbsupp/*.h"
-			%File "dbsupp/mapchar.cc"
-			%File "dbsupp/maphalf.cc"
-			%File "dbsupp/mapitem.cc"
-			%File "dbsupp/mapjoin.cc"
-			%File "dbsupp/mapstring.cc"
-			%File "dbsupp/maptable.cc"
-		}
-		%Group "zlib/gzip"
-		{
-			%File "zlib/*.h"
-			%File "zlib/gzip/gzip.cc"
+			%File "diff/*.cc"
 		}
 		%Group "net"
 		{
 			%File "net/*.h"
-			%File "net/netbuffer.cc"
-			%File "net/netconnect.cc"
-			%File "net/netaddrinfo.cc"
-			%File "net/netipaddr.cc"
-			%File "net/netportparser.cc"
-			%File "net/netprotectaddr.cc"
-			%File "net/netstd.cc"
-			%File "net/netsslcredentials.cc"
-			%File "net/netsslendpoint.cc"
-			%File "net/netssltransport.cc"
-			%File "net/nettcpendpoint.cc"
-			%File "net/nettcptransport.cc"
-			%File "net/netutils.cc"
+			%File "net/*.cc"
+		}
+		%Group "map"
+		{
+			%File "map/*"
 		}
 	}
 	%Dependency "Lib_zlib"

@@ -383,7 +383,7 @@ MT_STATIC int client_nullsync;
 FileDigestType
 clientFileDigestType( StrPtr *digestType )
 {
-	FileDigestType digType;
+	FileDigestType digType = FS_DIGEST_UNKNOWN;
 
 	if( !digestType->Compare(
 			StrRef( P4Tag::v_digestTypeMD5 ) ) )

@@ -33,7 +33,7 @@
  * This file is part of Perforce - the FAST SCM System.
  */
 
-#ifdef OS_NT
+#if defined(OS_NT) && !defined(_CRT_RAND_S)
 #  define _CRT_RAND_S
     // define before <stdhdrs.h>/<stdlib.h> to get rand_s()
 #endif // OS_NT
