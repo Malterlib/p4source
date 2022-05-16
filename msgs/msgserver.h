@@ -42,7 +42,9 @@ class MsgServer {
 	static ErrorId Password982;
 	static ErrorId BadPassword;
 	static ErrorId MustSetPassword;
+	static ErrorId MustSetPassword2;
 	static ErrorId WeakPassword;
+	static ErrorId WeakPassword2;
 	static ErrorId TicketOnly;
 	static ErrorId Unicode;
 	static ErrorId Unicode2;
@@ -69,7 +71,13 @@ class MsgServer {
 	static ErrorId Password032;
 	static ErrorId NoClearText;
 	static ErrorId LoginExpired;
+	static ErrorId LoginExpired2;
 	static ErrorId PasswordExpired;
+	static ErrorId PasswordExpired2;
+	static ErrorId PasswordPrompt;
+	static ErrorId OldPasswordPrompt;
+	static ErrorId NewPasswordPrompt;
+	static ErrorId NewPasswordPrompt2;
 	static ErrorId LoginNotRequired;
 	static ErrorId LoginPrintTicket;
 	static ErrorId LoginUser;
@@ -77,6 +85,9 @@ class MsgServer {
 	static ErrorId LoginNoTicket;
 	static ErrorId LoggingUserIn;
 	static ErrorId LogoutUser;
+	static ErrorId Logout2User;
+	static ErrorId Logout2NotApproved;
+	static ErrorId LogoutNoHostTicket;
 	static ErrorId LoggedOut;
 	static ErrorId Login032;
 	static ErrorId Login042;
@@ -84,6 +95,34 @@ class MsgServer {
 	static ErrorId SSOfailed;
 	static ErrorId SSONoEnv;
 	static ErrorId SSOInvalid;
+	static ErrorId Login2NoConfig;
+	static ErrorId Login2Required;
+	static ErrorId Login2Auto;
+	static ErrorId Login2Existing;
+	static ErrorId Login2NotRequired;
+	static ErrorId Login2Status;
+	static ErrorId Login2Approved;
+	static ErrorId Login2Rejected;
+	static ErrorId Login2Waiting;
+	static ErrorId Login2Waiting2;
+	static ErrorId Login2Methods;
+	static ErrorId Login2Method;
+	static ErrorId Login2MethodUnknown;
+	static ErrorId Login2NoMethods;
+	static ErrorId Login2NoPersist;
+	static ErrorId Login2BadState;
+	static ErrorId Login2BadState1;
+	static ErrorId Login2BadState2;
+	static ErrorId Login2BadState3;
+	static ErrorId Login2BadScheme;
+	static ErrorId Login2MethodPrompt;
+	static ErrorId Login2OTPPrompt;
+	static ErrorId Login2PreApproved;
+	static ErrorId Login2SuperApproved;
+	static ErrorId Login2ExtRejected;
+	static ErrorId Login2ExtApproved;
+	static ErrorId Login2OtpRejected;
+	static ErrorId Login2OtpApproved;
 	static ErrorId CantAuthenticate;
 	static ErrorId CantChangeOther;
 	static ErrorId CantResetPassword;
@@ -119,6 +158,7 @@ class MsgServer {
 	static ErrorId NoSubmit;
 	static ErrorId TriggerFailed;
 	static ErrorId TriggerOutput;
+	static ErrorId TriggerUnexpected;
 	static ErrorId TriggersFailed;
 	static ErrorId SubmitAborted;
 	static ErrorId SubmitShelvedAborted;
@@ -319,6 +359,7 @@ class MsgServer {
 	static ErrorId UseAnnotate;
 	static ErrorId UseArchive;
 	static ErrorId UseBackup;	// added in nimble
+	static ErrorId UseBGTask;
 	static ErrorId UseBranch;
 	static ErrorId UseBrancho;
 	static ErrorId UseBranchd;
@@ -428,6 +469,7 @@ class MsgServer {
 	static ErrorId UseLockg;
 	static ErrorId UseLockstat;
 	static ErrorId UseLogin;
+	static ErrorId UseLogin2;
 	static ErrorId UseLoginr;
 	static ErrorId UseLogout;
 	static ErrorId UseLogger;
@@ -602,6 +644,8 @@ class MsgServer {
 	static ErrorId CachepurgeBadMode;
 	static ErrorId ReplicaCacheConfig;
 	static ErrorId PullNotReplica;
+	static ErrorId PullNeedsBatch;
+	static ErrorId PullNeedsU;
 	static ErrorId CommandRunning;
 	static ErrorId PullOnDemand;
 	static ErrorId NoUpdateForwarding;
@@ -618,7 +662,9 @@ class MsgServer {
 	static ErrorId JournalCounterMismatch;
 
 	static ErrorId TransferCancelled;
+	static ErrorId TransferReset;
 	static ErrorId NoSuchTransfer;
+	static ErrorId NoTransfersFound;
 	static ErrorId TransferNotReplica;
 	static ErrorId UsersCRNotReplica;
 	static ErrorId UsersCRNotBoth;
@@ -692,6 +738,8 @@ class MsgServer {
 	static ErrorId AttrNoPropEdge;
 
 	static ErrorId BadTriggerOutput;
+	static ErrorId BGTaskCrumb;
+	static ErrorId BGTaskRetry;
 
 	static ErrorId ReopenNotOwnerCL;
 
@@ -798,6 +846,7 @@ class MsgServer {
 	static ErrorId ServerIDIdentity;
 	static ErrorId NoTriggerDir;
 	static ErrorId NoPullTrigger;
+	static ErrorId TriggerNameNotFound;
 
 	//nimble
 	static ErrorId BackupOff;		// added in nimble

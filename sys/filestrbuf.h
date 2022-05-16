@@ -22,6 +22,8 @@ class FileStrPtr : public FileSys
 
 	int	Read( char *buf, int len, Error *e );
 	void	Open( FileOpenMode mode, Error *e );
+	void	Seek( offL_t offset, Error *e );
+	offL_t  Tell();
 	offL_t	GetSize();
 
 	// FileSys stubs

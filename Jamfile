@@ -19,6 +19,7 @@ SubInclude P4 dmrpc ;
 SubInclude P4 dms ;
 SubInclude P4 dmx ;
 SubInclude P4 i18n ;
+SubInclude P4 jsmn ;
 SubInclude P4 lbr ;
 SubInclude P4 lbrobj ;
 SubInclude P4 msgs ;

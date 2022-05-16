@@ -264,12 +264,17 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"net.parallel.batchsize",0,	0,	1,	BBIG,	1,	B1K, 0,
 	"net.parallel.min",	0,	0,	2,	RBIG,	1,	R1K, 0,
 	"net.parallel.minsize",	0,	0,	1,	BBIG,	1,	B1K, 0,
+	"net.parallel.shelve.threads",0,0,	2,	100,	1,	B1K, 0,
+	"net.parallel.shelve.batch",0,	0,	1,	RBIG,	1,	R1K, 0,
+	"net.parallel.shelve.min",0,	0,	2,	RBIG,	1,	R1K, 0,
 	"net.parallel.submit.threads",0,0,	2,	100,	1,	1, 0,
 	"net.parallel.submit.batch",0,	0,	1,	RBIG,	1,	R1K, 0,
 	"net.parallel.submit.min",0,	0,	2,	RBIG,	1,	R1K, 0,
+	"net.parallel.sync.svrthreads",0,0,	2,	RBIG,	1,	1, 0,
 	"net.rcvbufsize",	0,	B1M,	1,	BBIG,	1,	B1K, 0,
 	"net.reuseport",	0,	0,	0,	1,	1,	1, 0,
 	"net.rfc3484",		0,	0,	0,	1,	1,	1, 0,
+	"net.sendlimit",	0,	B4K,	1,	BBIG,	1,	B1K, 0,
 	"net.tcpsize",		0,	B512K,	B1K,	B256M,	B1K,	B1K, 0,
 	"net.backlog",		0,	128,	1,      SMAX,   1,	B1K, 0,
 	"net.x3.minsize",	0,	B512K,	0,	RBIG,	B1K,	B1K, 0,
@@ -358,12 +363,18 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"info.p4auth.usercheck",0,	1,	0,	1,	1,	1, 0,
 	"auth.autologinprompt", 0,	1,	0,	1,	1,	1, 0,
 	"rpl.submit.nocopy",	0,	0,	0,	1,	1,	1, 0,
+	"auth.2fa.persist",	0,	1,	0,	2,	1,	1, 0,
 
 	0, 0, 0, 0, 0, 0, 0, 0
 
 	// name			isSet,	value,	min,	max,	mod,	k, orig
 
 } ;
+
+
+MT_STATIC int
+list2[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+            -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 } ;
 
 int
 P4Tunable::IsKnown( const char *n )
@@ -381,7 +392,11 @@ P4Tunable::IsSet( const char * n ) const
 	int i;
 	for( i = 0; list[i].name; i++ )
 	    if( !strcmp( list[i].name, n ) )
-	        return list[i].isSet;
+	    {
+		if( i < DT_LAST && list2[i] != -1 )
+		    return 1;
+		return list[i].isSet;
+	    }
 	return 0;
 }
 
@@ -391,7 +406,11 @@ P4Tunable::GetLevel( const char *n ) const
 	int i;
 	for( i = 0; list[i].name; i++ )
 	    if( !strcmp( list[i].name, n ) )
-	        return list[i].value;
+	    {
+		if( i < DT_LAST && list2[i] != -1 )
+		    return list2[i];
+		return list[i].value;
+	    }
 	return 0;
 }
 
@@ -431,6 +450,13 @@ P4Tunable::UnsetAll()
 	        list[i].isSet = 0;
 	    }
 	}
+}
+
+int
+P4Tunable::Get( int t ) const
+{
+	return t < DT_LAST && list2[t] != -1 && list2[t] > list[t].value ?
+	    list2[t] : list[t].value;
 }
 
 void
@@ -491,6 +517,70 @@ P4Tunable::Set( const char *set )
 	            list[i].original = list[i].value;
 		list[i].value = val;
 		list[i].isSet = 1;
+
+	        Unbuffer();
+	    }
+
+	    set = *comma ? comma + 1 : comma;
+	}
+}
+
+void
+P4Tunable::SetTLocal( const char *set )
+{
+	while( *set )
+	{
+	    int i;
+	    const char *comma, *equals;
+
+	    if( !( comma = strchr( set, ',' ) ) )
+		comma = set + strlen( set );
+		
+	    if( !( equals = strchr( set, '=' ) ) || equals > comma )
+		equals = comma;
+
+	    for( i = 0; list[i].name; i++ )
+	    {
+		if( strlen( list[i].name ) == equals - set && 
+		    !strncmp( list[i].name, set, equals - set ) )
+			break;
+	    }
+
+	    // Only debug values!
+	    if( i < DT_LAST && list[i].name )
+	    {
+		int val = 0;
+		int negative = 0;
+
+		// Atoi()
+
+		if( equals[1] == '-' )
+		{
+		    negative = 1;
+		    equals++;
+		}
+
+		while( ++equals < comma && isdigit( *equals ) )
+		    val = val * 10 + *equals - '0';
+
+		if( negative )
+		    val = -val;
+
+		// k = *1000, m = *1000,000
+
+		if( *equals == 'k' || *equals == 'K' )
+		    val *= list[i].k, ++equals;
+
+		if( *equals == 'm' || *equals == 'M' )
+		    val *= list[i].k * list[i].k;
+
+		// Min, max, and mod
+
+		val = val < list[i].minVal ? list[i].minVal : val;
+		val = val > list[i].maxVal ? list[i].maxVal : val;
+		val = val + list[i].modVal - 1 & ~( list[i].modVal - 1 );
+
+		list2[i] = val;
 
 	        Unbuffer();
 	    }
@@ -642,7 +732,7 @@ P4Debug::printf( const char *fmt, ... )
 
 		rsz++;
 
-		sz = p4debughelp->Alloc( rsz );
+		p4debughelp->Alloc( rsz );
 
 		va_start( l, fmt );
 

@@ -2,7 +2,7 @@ SubDir P4 rpc ;
 
 SubDirHdrs $(P4) net ;
 
-SubDirC++Flags -I$(SSLINCDIR) ;
+SubDirC++Flags -I$(SSLINCDIR) [ FDefines Z_PREFIX ] ;
 
 P4Library $(RPCLIB) :
 	rpc.cc

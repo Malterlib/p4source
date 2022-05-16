@@ -350,11 +350,13 @@ RunProcess(
 RunCommand::RunCommand()
 {
 	pid = 0;
+	abandon = false;
 }
 
 RunCommand::~RunCommand()
 {
-	WaitChild();
+	if( !abandon )
+	    WaitChild();
 }
 
 int
@@ -974,12 +976,14 @@ RunCommand::RunCommand()
 {
 # ifdef HAVE_FORK
 	pid = 0;
+	abandon = false;
 # endif
 }
 
 RunCommand::~RunCommand()
 {
-	WaitChild();
+	if( !abandon )
+	    WaitChild();
 }
 
 int

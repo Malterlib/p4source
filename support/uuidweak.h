@@ -2,114 +2,109 @@
 // vi:ts=8 sw=4 noexpandtab autoindent
 
 /**
- * uuid.h
+ * uuidweak.h
  *
  * Description:
- *	Abstract base class for UUID implementations
+ *	A simple implementation of UUIDs.
  *
  *	See:
  *	    http://en.wikipedia.org/wiki/Uuid
  *	    http://www.boost.org/doc/libs/1_47_0/libs/uuid/uuid.html
  *
- * Copyright 2017 Perforce Software.  All rights reserved.
+ * Copyright 2011 Perforce Software.  All rights reserved.
  *
  * This file is part of Perforce - the FAST SCM System.
  */
 
-class BaseUUID {
+class WeakUUID : public BaseUUID {
 public:
-	typedef unsigned char	ValueType;
-	typedef ValueType	*iterator;
-	typedef const ValueType	*const_iterator;
-
-	enum TypeVersion {
-	    kVersionUnknown = -1,
-	    kVersionTimeBased = 1,
-	    kVersionDceSecurity = 2,
-	    kVersionNameBasedMd5 = 3,
-	    kVersionRandomNumberBased = 4,
-	    kVersionNameBasedSha1 = 5
+	enum
+	{
+	    kDataSize = 16,	// 128 bits, per RFC-4122
+	    kStringSize = 36	// 2 hex digits per byte + 4 hyphens
 	};
 
-	enum TypeVariant {
-	    kVariantNil = 0,
-	    kVariantRfc4122 = 1,
-	    kVariantMicrosoft = 2,
-	    kVariantFuture = 3
-	};
+	// buffer big enough to hold the raw uuid data (implementation-dependent)
+	typedef ValueType	DataType[kDataSize];
 
 	// Orthodox Canonical Form (OCF) methods
-	BaseUUID();		// generate a random UUID
+	WeakUUID();		// generate a random UUID
 
 	// generate UUID data as copies of "val" byte
-	BaseUUID(
+	WeakUUID(
 	    int		val);
 
-	BaseUUID(
-	    const BaseUUID	&rhs);
+	WeakUUID(
+	    const WeakUUID	&rhs);
 
-	~BaseUUID();
+	~WeakUUID();
 
-	const BaseUUID &
+	virtual const WeakUUID &
 	operator=(
-	    const BaseUUID	&rhs);
+	    const WeakUUID	&rhs);
 
 	virtual bool
 	operator==(
-	    const BaseUUID	&rhs) const;
+	    const WeakUUID	&rhs) const;
 
 	virtual bool
 	operator!=(
-	    const BaseUUID	&rhs) const;
+	    const WeakUUID	&rhs) const;
 
 	// accessors
 
 	virtual bool
-	IsNil() const
-	{
-	    return true;
-	}
+	IsNil() const;
 
 	// return the variant type of this UUID
 	virtual TypeVariant
-	VariantType() const = 0;
+	VariantType() const;
 
 	// return the version of this UUID variant
 	virtual TypeVersion
-	VersionType() const = 0;
+	VersionType() const;
+
+	// copy the raw uuid data bytes
+	void
+	Data(DataType &data) const;
 
 	// return the size of the underlying boost uuid data
 	virtual unsigned int
-	SizeofData() const = 0;
+	SizeofData() const;
 
 	// mutators
 
 	// swap the underlying uuid data bytes with rhs
 	virtual void
-	Swap(BaseUUID	&rhs)
-	{
-	}
-
+	Swap(WeakUUID	&rhs);
 
 	// iterators
 
 	virtual iterator
-	begin() = 0;
+	begin()
+	{
+	    return &m_uuid[0];
+	}
 
 	virtual iterator
-	end() = 0;
+	end()
+	{
+	    return &m_uuid[kDataSize];
+	}
 
 	virtual const_iterator
-	begin() const = 0;
+	begin() const
+	{
+	    return &m_uuid[0];
+	}
 
 	virtual const_iterator
-	end() const = 0;
-
+	end() const
+	{
+	    return &m_uuid[kDataSize];
+	}
 
 	// Other methods
-
-	virtual bool
-	operator<(const BaseUUID &rhs) const;
 
 	// Set "buf" to the formatted hexadecimal character representation
 	// of this UUID.
@@ -119,4 +114,5 @@ public:
 protected:
 
 private:
+	DataType	m_uuid;
 };

@@ -14,9 +14,10 @@
 
 # include "client.h"
 
-	ClientApi::ClientApi() { client = new Client; ui = 0; }
-	ClientApi::ClientApi( ClientUser *i ) { client = new Client; ui = i; }
-	ClientApi::~ClientApi() { delete client; }
+	ClientApi::ClientApi() { client = new Client; ui = 0; ourClient = 1; }
+	ClientApi::ClientApi( ClientUser *i ) { client = new Client; ui = i; ourClient = 1; }
+	ClientApi::ClientApi( Client *c ) { client = c; ui = 0; ourClient = 0; }
+	ClientApi::~ClientApi() { if( ourClient ) delete client; }
 
 void	ClientApi::SetTrans( int output, int content, int fnames, int dialog )
 		{ client->SetTrans(output, content, fnames, dialog); }

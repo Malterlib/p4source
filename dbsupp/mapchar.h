@@ -41,7 +41,8 @@ enum MapCharClass {
 class MapChar {
 
     public:
-	int 		Set( char *&p, int &nStars, int &nDots );
+	int 		Set( char *&p, int &nStars, int &nDots,
+			     int caseMode = -1 );
 
 	void		MakeParam( StrBuf &buf, MapChar *mc2, int &wildSlot );
 
@@ -49,31 +50,29 @@ class MapChar {
 
 	int		IsWild() { return cc >= cPERC; }
 
-	int	operator -( MapChar &mc ) 
-		{ return StrPtr::SCompare( c, mc.c ); }
+	int	operator -( MapChar &mc ) { return this->operator-(mc.c); }
 
-	int 	operator -( char oc ) 
-		{ return StrPtr::SCompare( c, oc ); }
+	int 	operator -( char oc );
 
-	int	operator ==( MapChar &mc ) 
-		{ return StrPtr::SEqual( c, mc.c ); }
+	int	operator ==( MapChar &mc ) { return this->operator==(mc.c); }
 
-	int 	operator ==( char oc ) 
-		{ return StrPtr::SEqual( c, oc ); }
+	int 	operator ==( char oc );
 
     public:
 	char		c;			// current character
 	char		paramNumber;		// current ParamNumber
 	MapCharClass	cc;			// current char's type
+	int		caseMode;		// case handling
 
     private:
 	static const char * const mapCharNames[];
 } ;
 
 inline int
-MapChar::Set( char *&p, int &nStars, int &nDots )
+MapChar::Set( char *&p, int &nStars, int &nDots, int caseMode )
 {
 	this->c = *p;
+	this->caseMode = caseMode;
 
 	if( c == '/' )
 	{

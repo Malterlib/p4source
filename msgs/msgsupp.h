@@ -58,6 +58,7 @@ class MsgSupp {
 	static ErrorId OptionPreview;
 	static ErrorId OptionDelete;
 	static ErrorId OptionForce;
+	static ErrorId OptionAdded;
 	static ErrorId OptionInput;
 	static ErrorId OptionOutput;
 	static ErrorId OptionMax;
@@ -312,8 +313,28 @@ class MsgSupp {
 	static ErrorId OptionGraphOnly;
 	static ErrorId OptionMinSize;
 	static ErrorId OptionMaxSize;
+	static ErrorId OptionNameOnly;
+	static ErrorId OptionNoFastForward;
+	static ErrorId OptionFastForwardOnly;
+	static ErrorId OptionMustExist;
+	static ErrorId OptionRepoName;
+	static ErrorId OptionTargetBranch;
+	static ErrorId OptionByUser;
+	static ErrorId OptionByOwner;
+	static ErrorId OptionSquash;
+	static ErrorId OptionAllowEmpty;
+	static ErrorId OptionCreateIndex;
+	static ErrorId OptionDropIndex;
+	static ErrorId OptionRetry;
 
 	static ErrorId TooManyLockTrys;
+
+	static ErrorId JsmnBadType;
+	static ErrorId JsmnBadParent;
+	static ErrorId JsmnBadMem;
+	static ErrorId JsmnBadSyn;
+	static ErrorId JsmnTooFew;
+	static ErrorId JsmnKeyNotFound;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

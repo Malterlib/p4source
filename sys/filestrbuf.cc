@@ -56,6 +56,18 @@ FileStrPtr::Read( char *buf, int len, Error * )
 	return len;
 }
 
+void
+FileStrPtr::Seek( offL_t offset, Error *e )
+{
+	this->offset = offset;
+}
+
+offL_t
+FileStrPtr::Tell()
+{
+	return offset;
+}
+
 offL_t
 FileStrPtr::GetSize()
 {

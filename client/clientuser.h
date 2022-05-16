@@ -102,6 +102,8 @@ class Enviro;
 class ClientMerge;
 class ClientResolveA;
 class ClientProgress;
+class ClientTransfer;
+class ClientApi;
 
 class ClientUser {
 
@@ -113,6 +115,7 @@ class ClientUser {
 			    quiet = 0;
 			    autoLogin = autoLoginPrompt;
 			    outputTaggedWithErrorLevel = 0;
+			    transfer = 0;
 			}
 	virtual		~ClientUser();
 
@@ -126,10 +129,14 @@ class ClientUser {
 	virtual void 	OutputText( const char *data, int length );
 
 	virtual void	OutputStat( StrDict *varList );
-	virtual int	OutputStatPartial( StrDict * ) { return 0; };
+	virtual int	OutputStatPartial( StrDict * ) { return 0; }
 	// The above method returns 0 to carry the fstat partials or non-0
 	// to drop them (return 1 if you print them as you get them)
 
+	virtual void	Prompt( Error *err, StrBuf &rsp, 
+				int noEcho, Error *e );
+	virtual void	Prompt( Error *err, StrBuf &rsp,
+				int noEcho, int noOutput, Error *e );
 	virtual void	Prompt( const StrPtr &msg, StrBuf &rsp, 
 				int noEcho, Error *e );
 	virtual void	Prompt( const StrPtr &msg, StrBuf &rsp,
@@ -173,19 +180,25 @@ class ClientUser {
 	virtual void	SetQuiet();
 	virtual int	CanAutoLoginPrompt();
 	virtual int	IsOutputTaggedWithErrorLevel();
+	
+	// ClientTransfer allows the threading behavor of parrallel sync/submit
+	// to be overridden my the client application. The ClientTransfer will
+	// be deleted with the the ClientUser.
+	virtual void	SetTransfer( ClientTransfer* t );
+	virtual ClientTransfer*	GetTransfer() { return transfer; }
 
 	// Output... and Help must use 'const char' instead of 'char'
 	// The following will cause compile time errors for using 'char'
 	virtual int 	OutputError( char *errBuf )
-	    { OutputError( (const char *)errBuf ); return 0; };
+	    { OutputError( (const char *)errBuf ); return 0; }
 	virtual int	OutputInfo( char level, char *data )
-	    { OutputInfo( level, (const char *)data ); return 0; };
+	    { OutputInfo( level, (const char *)data ); return 0; }
 	virtual int 	OutputBinary( char *data, int length )
-	    { OutputBinary( (const char *)data, length ); return 0; };
+	    { OutputBinary( (const char *)data, length ); return 0; }
 	virtual int 	OutputText( char *data, int length )
-	    { OutputText( (const char *)data, length ); return 0; };
+	    { OutputText( (const char *)data, length ); return 0; }
 	virtual int	Help( char *const *help )
-	    { Help( (const char * const *)help ); return 0; };
+	    { Help( (const char * const *)help ); return 0; }
 
     private:
 	int		binaryStdout;	// stdout is in binary mode
@@ -196,16 +209,30 @@ class ClientUser {
 	int		outputCharset;	// P4CHARSET for output
 	StrBuf		editFile;
 	int		outputTaggedWithErrorLevel;	// "p4 -s cmd" yes/no
+	ClientTransfer	*transfer;
 
 } ;
 
 class ClientUserProgress : public ClientUser {
     public:
 			ClientUserProgress( int autoLoginPrompt = 0 ) :
-			    ClientUser( autoLoginPrompt ) {};
+			                ClientUser( autoLoginPrompt ) {}
 	virtual ClientProgress *CreateProgress( int );
 	virtual int	ProgressIndicator();
 } ;
+
+class ClientTransfer {
+    public:
+	virtual		~ClientTransfer() {}
+
+	virtual int	Transfer( ClientApi *client,
+			          ClientUser *ui,
+			          const char *cmd,
+			          StrArray &args,
+			          StrDict &pVars,
+			          int threads,
+			          Error *e ) = 0;
+};
 
 /*
  * StrDict now provides the GetVar() interface for OutputStat();

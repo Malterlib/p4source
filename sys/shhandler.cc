@@ -545,6 +545,7 @@ SHHandler::UnsetTunable( int index )
 
 # ifdef OS_NT
 	LeaveCriticalSection( &section );
+# endif
 
 	// Emit a trace message for p4diag.
 	if( IsDebuggerPresent() && prevbytes != membytes )
@@ -557,7 +558,6 @@ SHHandler::UnsetTunable( int index )
 	    sprintf (msg, fmt, name, membytes);
 	    OutputDebugString(msg);
 	}
-# endif
 }
 
 int

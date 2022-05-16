@@ -248,7 +248,7 @@ MultiMerge::Add( FileSys *f, int revId, int chgId, Error *e )
 
 	// Mark (last) lines s->x -> s->u as current.
 
-	p = MergeLine::MarkLines( p, s->u - s->x, 
+	MergeLine::MarkLines( p, s->u - s->x, 
 	    fx->revId, fy->revId, fx->chgId, fy->chgId );
 
 	// Done diffing fx & fy.

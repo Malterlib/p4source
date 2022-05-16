@@ -18,7 +18,8 @@ class MapItem {
     public:
 			MapItem( 
 			    MapItem *c, const StrPtr &l, 
-			    const StrPtr &r, MapFlag f, int s ) 
+			    const StrPtr &r, MapFlag f, int s,
+			    int caseMode = -1 ) 
 			{
 			    *Lhs() = l;
 			    *Rhs() = r;
@@ -31,6 +32,11 @@ class MapItem {
 			    halves[1].left = 0;
 			    halves[1].center = 0;
 			    halves[1].right = 0;
+			    if( caseMode == 0 || caseMode == 1 )
+			    {
+			        halves[0].half.SetCaseMode( caseMode );
+			        halves[1].half.SetCaseMode( caseMode );
+			    }
 			}
 
 	MapHalf *	Lhs() { return Half( LHS ); }

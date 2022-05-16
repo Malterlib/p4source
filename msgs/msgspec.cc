@@ -63,7 +63,7 @@ ErrorId MsgSpec::SpecClient = { ErrorOf( ES_SPEC, 2, E_INFO, EV_NONE, 0  ),
 "#                      %'revertunchanged/revertunchanged+reopen'%\n"
 "#                      %'leaveunchanged/leaveunchanged+reopen'%\n"
 "#  %'LineEnd'%:     Text file line endings on client: %'local/unix/mac/win/share'%.\n"
-"#  %'Type'%:        Type of client: %'writeable/readonly/partitioned'%.\n"
+"#  %'Type'%:        Type of client: %'writeable/readonly/graph/partitioned'%.\n"
 "#  %'Backup'%:      Client's participation in backup %'enable/disable'%. If not\n"
 "#               specified backup of a writable client defaults to enabled.\n"
 "#  %'ServerID'%:    If set, restricts access to the named server.\n"
@@ -414,6 +414,7 @@ ErrorId MsgSpec::SpecTrigger = { ErrorOf( ES_SPEC, 8, E_INFO, EV_NONE, 0  ),
 "#  		%'Name'%:   The name of the trigger.\n"
 "#\n"
 "#  		%'Type'%:   '%'archive'%'	  external archive access triggers\n"
+"#			'%'bgtask'%    '      server-side user processes\n"
 "#			'%'auth-check'%'      check authentication trigger\n"
 "#			'%'auth-check-sso'%'  sso check authentication trigger\n"
 "#			'%'auth-set'%'        set authentication trigger\n"
@@ -484,6 +485,7 @@ ErrorId MsgSpec::SpecTrigger = { ErrorOf( ES_SPEC, 8, E_INFO, EV_NONE, 0  ),
 "#		%'cscheck change-submit //depot/... \"cmd '%%%%'changelist'%%%%'\"'%\n"
 "#		%'no-oblits command pre-user-obliterate fail'%\n"
 "#		%'mkspec form-out client \"'%%%%'quote'%%%%'//trig/scr.pl'%%%%'quote'%%%%'\"'%\n"
+"#		%'daily_verify bgtask unset \"verify.pl\"'%\n"
 "#\n"
 "# See '%'p4 help triggers'%' for more information about triggers.\n" };
 
@@ -558,6 +560,8 @@ ErrorId MsgSpec::SpecRepo = { ErrorOf( ES_SPEC, 18, E_INFO, EV_NONE, 0  ),
 "#  %'Owner'%:       The user who created this repo.\n"
 "#  %'Created'%:     The date this specification was created.\n"
 "#  %'Pushed'%:      The date of the last '%'push'%' to this repo.\n"
+"#  %'Options'%:     Repo options:\n"
+"#                       %'[no]lfs'%\n"
 "#  %'Description'%: A short description of the remote server (optional).\n"
 "#  %'MirroredFrom'%:  Upstream URL that this repo is mirrored (readonly) from.\n"
 "#  %'DefaultBranch'%: The default branch to clone (eg, \"refs/heads/trunk\" or\n"

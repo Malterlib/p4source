@@ -268,6 +268,10 @@ NetBuffer::Send( const char *buffer, int length, Error *re, Error *se )
 	    StrOps::Dump( StrRef( buffer, length ) );
 	}
 
+	int sendLimit = sendBuf.Length();
+	if( sendLimit > p4tunable.Get( P4TUNE_NET_SENDLIMIT ) )
+	    sendLimit = p4tunable.Get( P4TUNE_NET_SENDLIMIT );
+
 	/*
 	 * Send buffering:
 	 *	If sendBuf is full, send it
@@ -281,7 +285,7 @@ NetBuffer::Send( const char *buffer, int length, Error *re, Error *se )
 	    // If we can send without buffering, do so. Since we set the ioPtrs
 	    // to point outside our buffer space, we must be sure to reset them.
 
-	    if( !SendReady() && length >= sendBuf.Length() && !zout )
+	    if( !SendReady() && length >= sendLimit && !zout )
 	    {
 		ioPtrs.sendPtr = (char *)buffer;
 		ioPtrs.sendEnd = (char *)buffer + length;
@@ -304,7 +308,7 @@ NetBuffer::Send( const char *buffer, int length, Error *re, Error *se )
 
 	    //  If sendBuf is of sendable size, do it
 
-	    if( SendReady() >= sendBuf.Length() )
+	    if( SendReady() >= sendLimit )
 	    {
 		PackRecv();
 

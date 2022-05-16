@@ -4,6 +4,10 @@ SubDirHdrs $(P4) dbsupp ;
 SubDirHdrs $(P4) i18n ;
 SubDirC++Flags -I$(SSLINCDIR) ;
 
+# Permit #include from boost (for StrongUUID).
+BOOSTINCDIR ?= [ FDirName $(EXEC_INC) ] ;
+SubDirC++Flags -I$(BOOSTINCDIR) ;
+
 if USE_OPENLDAP
 {
         SubDirC++Flags
@@ -32,6 +36,7 @@ P4Library $(SUPPORTLIB) :
 	intarray.cc
 	jnlpos.cc
 	jnltrack.cc
+	jsonescapes.cc
 	mangle.cc
 	mapapi.cc
 	md5.cc
@@ -58,6 +63,8 @@ P4Library $(SUPPORTLIB) :
 	ticket.cc
 	tracker.cc
 	uuid.cc
+	uuidweak.cc
+#	uuidstrong.cc
 	vararray.cc
 	varlist.cc
 	varqsort.cc ;

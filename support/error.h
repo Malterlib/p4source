@@ -41,6 +41,8 @@
  *
  * 	Error::GetId() - get an individual Error item
  *	Error::CheckId() - is first error a particular code?
+ *	Error::CheckIdi() - is i'th error a particular code?
+ *	Error::CheckIds() - is any error a particular code?
  *	Error::Fmt() - format an error message
  *	Error::GetDict() - get StrDict of error parameters
  *
@@ -178,9 +180,12 @@ class Error {
 	ErrorId *	GetId( int i ) const;
 
 	int		CheckId( const ErrorId &id ) const
+			{ return CheckIdi( 0, id ); }
+	int		CheckIdi( const int i, const ErrorId &id ) const
 			{ return severity &&
-				GetId(0)->Subsystem() == id.Subsystem() &&
-				GetId(0)->SubCode()   == id.SubCode(); }
+				GetId(i)->Subsystem() == id.Subsystem() &&
+				GetId(i)->SubCode()   == id.SubCode(); }
+	int		CheckIds( const ErrorId &id ) const;
 
 	StrDict *	GetDict();
 

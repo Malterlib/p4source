@@ -176,6 +176,19 @@ Error::LimitErrorCount()
 }
 
 /*
+ * Error::CheckIds() - check each individual Error item for a particular code
+ */
+
+int Error::CheckIds( const ErrorId &id ) const
+{
+	for( int i = 0; i < GetErrorCount(); i++ )
+	    if( CheckIdi( i, id ) )
+		return 1;
+
+	return 0;
+}
+
+/*
  * Error::GetDict() - get StrDict of error parameters
  */
 

@@ -164,7 +164,7 @@ class ClientApi : public StrDict {
 
     public:
 	// caller's main interface
-
+	
 			ClientApi();
 			~ClientApi();
 
@@ -261,6 +261,10 @@ class ClientApi : public StrDict {
 	void		SetUi( ClientUser *i );
 	void		Run( const char *func );
 
+	// Internal wrapping constructor
+
+			ClientApi( Client *client );
+
     private:
 	// Our StrDict implementation
 	// Set strdict.h for various GetVar/SetVar calls
@@ -271,6 +275,7 @@ class ClientApi : public StrDict {
     private:
 	Client		*client;	// wrapped up RPC
 	ClientUser	*ui;		// the old way
+	int		 ourClient;
 
 } ;
 

@@ -114,8 +114,9 @@ class MapHalf : public StrBuf {
 
     public:
 
-			MapHalf() { mapChar = 0; }
-			MapHalf( const StrPtr &n ) { mapChar = 0; *this = n; }
+			MapHalf() { mapChar = 0; caseMode = -1; }
+			MapHalf( const StrPtr &n )
+			{ mapChar = 0; caseMode = -1; *this = n; }
 			~MapHalf();
 
 	void		operator =( const StrPtr &newHalf );
@@ -146,6 +147,8 @@ class MapHalf : public StrBuf {
 
 	void		Validate( MapHalf *item, Error *e );
 
+	void		SetCaseMode( int caseMode );
+
     private:
 
 	void		FindParams( char *params, Error *e );
@@ -156,5 +159,6 @@ class MapHalf : public StrBuf {
 	int		fixedLen;	// How much until wildcard
 	int		isWild;		// has a wildcard at all?
 	int		nWilds;		// number of wildcards
+	int		caseMode;	// case sensitivity mode
 } ;
 

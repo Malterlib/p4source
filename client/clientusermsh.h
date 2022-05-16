@@ -143,13 +143,14 @@ class ClientUserRuby : public ClientUserMarshal {
 class ClientUserPhp : public ClientUserMarshal {
 
     public:
-            ClientUserPhp();
-            ~ClientUserPhp();
-        
-    virtual void    WriteOutput( StrPtr *buf );
-    virtual void    Prompt( const StrPtr &msg, StrBuf &buf, int noEcho, Error *e );
-    
+			ClientUserPhp();
+			~ClientUserPhp();
+
+	virtual void	WriteOutput( StrPtr *buf );
+	virtual void	Prompt( const StrPtr &msg, StrBuf &buf, int noEcho,
+			        Error *e );
+
     private:
-        int     outputCount;        // The number of times output is written
-        StrBuf  *outputBuffer;      // The deferred output buffer
+	int		outputCount;   // The number of times output is written
+	StrBuf		*outputBuffer; // The deferred output buffer
 } ;

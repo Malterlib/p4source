@@ -6,8 +6,19 @@
 #include <ticket.h>
 #include <client.h>
 #include <msgrpc.h>
+#include <error.h>
+#include <errornum.h>
 
-static ErrorId trustHelp = { ErrorOf( 0, 0, E_INFO, 0, 0),
+class MsgClientLocal
+{
+    public:
+
+	static ErrorId trustHelp;
+	static ErrorId trustUsage;
+	static ErrorId trustNotSSL;
+};
+
+ErrorId MsgClientLocal::trustHelp = { ErrorOf( ES_HELP, 0, E_INFO, EV_NONE, 0 ),
 "\n"
 "	trust -- Establish trust of an SSL connection\n"
 "\n"
@@ -51,13 +62,13 @@ static ErrorId trustHelp = { ErrorOf( 0, 0, E_INFO, 0, 0),
 "	or -d.\n"
 };
 
-static ErrorId trustUsage = { ErrorOf( 0, 0, E_FAILED, 0, 0),
+ErrorId MsgClientLocal::trustUsage = { ErrorOf( ES_HELP, 1, E_FAILED, EV_NONE, 0 ),
 	"p4 [ -p port ] trust [ -y -n -d -l -f -r -i <fingerprint> ]\n"
 	"\tOnly one of -y -n -d -l -i is allowed.\n"
 	"\tUse p4 trust -h for detailed help.\n"
 };
 
-static ErrorId trustNotSSL = { ErrorOf( 0, 0, E_INFO, 0, 0),
+ErrorId MsgClientLocal::trustNotSSL = { ErrorOf( ES_HELP, 2, E_INFO, EV_NONE, 0 ),
 	"Only SSL connections require trust"
 };
 
@@ -65,7 +76,7 @@ int
 clientTrustHelp( Error *e )
 {
 	ClientUser cuser;
-	e->Set( trustHelp );
+	e->Set( MsgClientLocal::trustHelp );
 	cuser.Message( e );
 	e->Clear();
 	return 0;
@@ -120,7 +131,7 @@ clientTrust( Client *client, Error *e )
 	                   Options::Status, Options::Yes, Options::No,
 	                   Options::Force, Options::Replacement, 0 };
 	opts.ParseLong( argc, argv, "hyndflri:", longOpts,
-	                OPT_NONE, trustUsage, e );
+	                OPT_NONE, MsgClientLocal::trustUsage, e );
 
 	if( e->Test() )
 	    return;
@@ -137,13 +148,13 @@ clientTrust( Client *client, Error *e )
 	if( flags > ( iflag ? 0 : 1 ) )	// tricky!
 	{
 	    e->Set( MsgSupp::TooMany );
-	    e->Set( trustUsage );
+	    e->Set( MsgClientLocal::trustUsage );
 	    return;
 	}
 
 	if( hflag )
 	{
-	    e->Set( trustHelp );
+	    e->Set( MsgClientLocal::trustHelp );
 	    client->GetUi()->Message( e );
 	    return;
 	}
@@ -164,7 +175,7 @@ clientTrust( Client *client, Error *e )
 
 	if( !fingerprint.Length() )
 	{
-		e->Set( trustNotSSL );
+		e->Set( MsgClientLocal::trustNotSSL );
 		client->GetUi()->Message( e );
 		return;
 	}

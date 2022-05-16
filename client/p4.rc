@@ -18,7 +18,7 @@ BEGIN
         BLOCK "040904E4"
         BEGIN
             VALUE "CompanyName", "Perforce Software Inc."
-            VALUE "FileDescription", "Perforce Command-Line Client"
+            VALUE "FileDescription", "Helix Command-Line Client"
             VALUE "FileVersion", P4_FILE_VERSION
             VALUE "InternalName", "p4.exe"
             VALUE "LegalCopyright", "Copyright (C) 1995-" P4_COPYRIGHT

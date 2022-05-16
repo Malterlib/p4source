@@ -1,5 +1,7 @@
 SubDir P4 sys ;
 
+SubDirC++Flags [ FDefines Z_PREFIX ] ;
+
 SubDirHdrs $(P4) zlib ;
 SubDirHdrs $(P4) i18n ;
 

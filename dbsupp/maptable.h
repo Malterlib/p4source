@@ -245,6 +245,8 @@ class MapTable {
 
 	MapItem **	Sort( MapTableT, int streamFlag=0 );
 
+	void		SetCaseSensitivity( int mode );
+
 
     private:
 
@@ -274,5 +276,7 @@ class MapTable {
 	int		hasOverlays;
 	int		hasHavemaps;
 	int		hasAndmaps;
+
+	int		caseMode;
 
 } ;

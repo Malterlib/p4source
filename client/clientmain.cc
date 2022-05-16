@@ -1356,7 +1356,6 @@ clientIgnores( int argc, char **argv, Options &global_opts, Error *e )
 	    if( argc-- )
 	    {
 	        f->Set( argv++[0] );
-	        int exists = f->Stat();
 	        path.Set( f->Path() );
 	        p->SetCanon( cwd, path );
 	        path.Set( p->Text() );

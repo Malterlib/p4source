@@ -2,7 +2,7 @@ SubDir P4 net ;
 
 SubDirHdrs $(P4) zlib ;
 
-SubDirC++Flags -I$(SSLINCDIR) ;
+SubDirC++Flags -I$(SSLINCDIR) [ FDefines Z_PREFIX ] ;
 
 P4Library $(RPCLIB) :
 	netbuffer.cc

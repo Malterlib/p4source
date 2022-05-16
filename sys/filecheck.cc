@@ -125,7 +125,7 @@ FileSys::CheckType( int scan )
 	    }
 
 	    // is there an UTF16 BOM at the start
-	    if( ( *(unsigned short *)buf == 0xfeff ||
+	    if( len > 1 && ( *(unsigned short *)buf == 0xfeff ||
 		  *(unsigned short *)buf == 0xfffe ) &&
 		((unsigned short *)buf)[1] != 0 ) // second word of zero means UTF-32
 	    {

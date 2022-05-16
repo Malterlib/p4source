@@ -401,7 +401,6 @@ AppleForkCombine::Read( char *buf, int length, Error *e )
 	    }
 
 	    buf += l;
-	    length -= l;
 	    dataLength += l;
 
 	    // no more?

@@ -22,6 +22,7 @@
  *	StrOps::Lower() - lowercase each character (in place) in a string
  *	StrOps::Upper() - uppercase each character (in place) in a string
  *	StrOps::Words() - break buffer into whitespace-separated words
+ *	StrOps::WordsQ() - Words(), but preserving quoted sequences
  *	StrOps::OtoX() - turn an octet stream into hex
  *	StrOps::XtoO() - turn hex into an octet stream
  *	StrOps::WildToStr() - turn wildcards into %x escaped string
@@ -55,6 +56,7 @@ class StrPtr;
 class StrRef;
 class StrBuf;
 class StrDict;
+class Error;
 
 class StrOps {
 
@@ -78,6 +80,10 @@ class StrOps {
 	static void	Upper( StrBuf &o );
 	static int	Words( StrBuf &tmp, const char *w, 
 				char *vec[], int maxVec );
+	static int	Words( StrBuf &tmp, const char *w, 
+				char *vec[], int maxVec, char chr );
+	static int	WordsQ( StrBuf &tmp, StrRef buf, 
+				char *vec[], int maxVec, Error *e );
 
 	static void	OtoX( const StrPtr &octet, StrBuf &hex );
 	static void	XtoO( const StrPtr &hex, StrBuf &octet );

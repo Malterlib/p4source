@@ -16,6 +16,8 @@
 # include <charset.h>
 # include <debug.h>
 # include <validate.h>
+# include <error.h>
+# include <regmatch.h>
 
 # include "strbuf.h"
 # include "strdict.h"
@@ -75,7 +77,105 @@ StrOps::Words( StrBuf &tmp, const char *buf, char *vec[], int maxVec )
 	    tmp.Extend( '\0' );
 	}
 
+	return count;
+}
+
+int
+StrOps::Words( StrBuf &tmp, const char *buf, char *vec[], int maxVec, char s )
+{
+	// Ensure tmp clear and big enough to avoid realloc
+
+	tmp.Clear();
+	tmp.Alloc( strlen( buf ) + 1 );
+	tmp.Clear();
+
+	int count = 0;
+
+	while( count < maxVec )
+	{
+	    // Skip blanks 
+
+	    while( *buf == s ) buf++;
+	    if( !*buf ) break;
+
+	    // First letter of new word 
+
+	    vec[ count++ ] = tmp.End();
+
+	    // Eat word 
+
+	    int quote = 0;
+
+	    for( ; *buf; ++buf )
+	    {
+		if( buf[0] == '"' && buf[1] == '"' )
+		    tmp.Extend( buf[0] ), ++buf;
+		else if( buf[0] == '"' )
+		    quote = !quote;
+		else if( quote || *buf != s )
+		    tmp.Extend( buf[0] );
+		else break;
+	    }
+
+	    tmp.Extend( '\0' );
+	}
+
         return count;
+}
+
+int
+StrOps::WordsQ( StrBuf &tmp, StrRef cmd, char *words[], int maxVec, Error *e )
+{
+	RegMatch m;
+
+	//  a b          -> (a) (b)
+	// 'a b' | "a b" -> (a b)
+	// 'a "b c" d'   -> (a) (b c) (d)
+	// unescaped regex:  "([^"]*)"|'([^']*)'|([^"' 	]+)
+
+	m.compile( "\"([^\"]*)\"|'([^']*)'|([^\"' 	]+)", e );
+
+	if( e->Test() )
+	    return 0;
+
+	tmp.Clear();
+	tmp.Alloc( cmd.Length() + 1 );
+	tmp.Clear();
+
+	int count = 0;
+
+	char *p = cmd.Text();
+
+	words[ count ] = tmp.Text();
+
+	while( count < maxVec && p < cmd.Text() + cmd.Length() )
+	{
+	    if( m.matches( p, e ) )
+	    {
+	        if( e->Test() )
+	            return 0;
+
+	        if( isBlank( *p ) )
+	        {
+	            p += 1;
+	            continue;
+	        }
+
+	        if( *p == '\'' || *p == '"' )
+	            tmp.Extend( p + 1, m.len() - 2 );
+	        else
+	            tmp.Extend( p, m.len() );
+
+	        p += m.end() + 1;
+	        tmp.Extend( '\0' );
+	        words[ count + 1 ] = tmp.End();
+	        count++;
+	    }
+	    else
+	        break;
+	}
+
+	return count;
 }
 
 /*

@@ -48,6 +48,9 @@
  *	RunCommand::PollChild() - check to see if the child launched
  *	        by RunChild() is still running.
  *
+ *	RunCommand::SetAbandon() - Allow the spawned command to continue
+ *	                after the RunCommand instance is gone.
+ *
  *	RunCommandIo::Run() - run the command, sending stdin, capturing 
  *			stdout. Used to run triggers for 'p4 submit'.
  *			Uses RunChild() which isn't implmented for MAC, VMS.
@@ -163,6 +166,7 @@ class RunCommand {
 	void 	RunChild( RunArgv &cmd, int opts, int f[2], Error *e );
 	void	DoRunChild( char *cmdText, char *argv[], int opts, int fds[2], Error *e );
 
+	void	SetAbandon() { abandon = true; }
 	int	WaitChild();
 
     // NT only!  no-op on all other platforms
@@ -177,6 +181,8 @@ class RunCommand {
 # ifdef OS_NT
 	void	*pid;
 # endif
+
+	bool abandon;
 
 } ;
 

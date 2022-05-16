@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSupp error code is: 298
+ * Current high value for a MsgSupp error code is: 318
  */
 
 # include <error.h>
@@ -286,8 +286,8 @@ ErrorId MsgSupp::OptionActive          = { ErrorOf( ES_SUPP, 249, E_INFO, EV_NON
 ErrorId MsgSupp::OptionNoRetransfer    = { ErrorOf( ES_SUPP, 250, E_INFO, EV_NONE, 0 ), "%'--noretransfer'%: override submit.noretransfer configurable behavior." } ;
 ErrorId MsgSupp::OptionForceNoRetransfer    = { ErrorOf( ES_SUPP, 251, E_INFO, EV_NONE, 0 ), "%'--forcenoretransfer'%: skip file transfer if archive files are found (undoc and not recommended)." } ;
 ErrorId MsgSupp::OptionDurableOnly     = { ErrorOf( ES_SUPP, 252, E_INFO, EV_NONE, 0 ), "%'--durable-only'%: deliver only durable journal records." } ;
-ErrorId MsgSupp::OptionNonAcknowledging= { ErrorOf( ES_SUPP, 253, E_INFO, EV_NONE, 0 ), "%'--non-acknowledging'%: this request does not acknowledge previous journal records." } ;
-ErrorId MsgSupp::OptionReplicationStatus= { ErrorOf( ES_SUPP, 254, E_INFO, EV_NONE, 0 ), "%'--replication-status (-J)'%: show the replication status of the server and of its replicas." } ;
+ErrorId MsgSupp::OptionNonAcknowledging = { ErrorOf( ES_SUPP, 253, E_INFO, EV_NONE, 0 ), "%'--non-acknowledging'%: this request does not acknowledge previous journal records." } ;
+ErrorId MsgSupp::OptionReplicationStatus = { ErrorOf( ES_SUPP, 254, E_INFO, EV_NONE, 0 ), "%'--replication-status (-J)'%: show the replication status of the server and of its replicas." } ;
 ErrorId MsgSupp::OptionGroupMode       = { ErrorOf( ES_SUPP, 255, E_INFO, EV_NONE, 0 ), "%'--groups (-g)'%: updates Perforce group users with LDAP group members." } ;
 ErrorId MsgSupp::OptionUserMode        = { ErrorOf( ES_SUPP, 285, E_INFO, EV_NONE, 0 ), "%'--users (-u)'%: updates Perforce users from LDAP user." } ;
 ErrorId MsgSupp::OptionUserModeCreate  = { ErrorOf( ES_SUPP, 286, E_INFO, EV_NONE, 0 ), "%'--create (-c)'%: creates new users found in LDAP." } ;
@@ -301,9 +301,9 @@ ErrorId MsgSupp::OptionMainline           = { ErrorOf( ES_SUPP, 259, E_INFO, EV_
 ErrorId MsgSupp::OptionMoveChanges        = { ErrorOf( ES_SUPP, 260, E_INFO, EV_NONE, 0 ), "%'--movechanges (-r)'%: Move open files to the stream you are switching to, instead of shelving and reverting them." } ;
 ErrorId MsgSupp::OptionJavaProtocol       = { ErrorOf( ES_SUPP, 262, E_INFO, EV_NONE, 0 ), "%'--java'%: enable Java support via the rsh protocol." } ;
 ErrorId MsgSupp::OptionPullBatch          = { ErrorOf( ES_SUPP, 263, E_INFO, EV_NONE, 0 ), "%'--batch'%: pull N archives in a single request to master." } ;
-ErrorId MsgSupp::OptionDepotType= { ErrorOf( ES_SUPP, 265, E_INFO, EV_NONE, 0 ), "%'--depot-type (-t)'%: specifies the type of depot" } ;
+ErrorId MsgSupp::OptionDepotType          = { ErrorOf( ES_SUPP, 265, E_INFO, EV_NONE, 0 ), "%'--depot-type (-t)'%: specifies the type of depot" } ;
 ErrorId MsgSupp::OptionClientType         = { ErrorOf( ES_SUPP, 280, E_INFO, EV_NONE, 0 ), "%'--client-type'%: specifies the type of client." } ;
-ErrorId MsgSupp::OptionGlobalLock= { ErrorOf( ES_SUPP, 266, E_INFO, EV_NONE, 0 ), "%'--global (-g)'%: reports or changes global locks from Edge Server" } ;
+ErrorId MsgSupp::OptionGlobalLock         = { ErrorOf( ES_SUPP, 266, E_INFO, EV_NONE, 0 ), "%'--global (-g)'%: reports or changes global locks from Edge Server" } ;
 ErrorId MsgSupp::OptionEnableDVCSTriggers = { ErrorOf( ES_SUPP, 267, E_INFO, EV_NONE, 0 ), "%'--enable-dvcs-triggers'%: fires any push-* triggers for changelists imported by this unzip command." } ;
 ErrorId MsgSupp::OptionUsers	          = { ErrorOf( ES_SUPP, 269, E_INFO, EV_NONE, 0 ), "%'--users (-u)'%: show the user who modifed the line." } ;
 ErrorId MsgSupp::OptionConvertAdminComments = { ErrorOf( ES_SUPP, 270, E_INFO, EV_NONE, 0 ), "%'--convert-p4admin-comments'%: When used with -o option converts P4Admin style comments into new ## native spec comments." } ;
@@ -331,6 +331,27 @@ ErrorId MsgSupp::OptionIgnoreHave         = { ErrorOf( ES_SUPP, 295, E_INFO, EV_
 ErrorId MsgSupp::OptionGraphOnly          = { ErrorOf( ES_SUPP, 296, E_INFO, EV_NONE, 0 ), "%'--graph-only'%: skip any non-graph results." } ;
 ErrorId MsgSupp::OptionMinSize            = { ErrorOf( ES_SUPP, 297, E_INFO, EV_NONE, 0 ), "%'--min-size'%: Pull archive trigger min file size." } ;
 ErrorId MsgSupp::OptionMaxSize            = { ErrorOf( ES_SUPP, 298, E_INFO, EV_NONE, 0 ), "%'--max-size'%: Pull archive trigger max file size." } ;
+ErrorId MsgSupp::OptionNameOnly           = { ErrorOf( ES_SUPP, 299, E_INFO, EV_NONE, 0 ), "%'--name-only'%: List only filenames." } ;
+ErrorId MsgSupp::OptionNoFastForward      = { ErrorOf( ES_SUPP, 300, E_INFO, EV_NONE, 0 ), "%'--no-ff'%: Create a merge commit even when the merge resolves as a fast-forward." } ;
+ErrorId MsgSupp::OptionFastForwardOnly    = { ErrorOf( ES_SUPP, 301, E_INFO, EV_NONE, 0 ), "%'--ff-only'%: Refuse to merge unless the current HEAD is already up-to-date or merge can be resolved as a fast-forward." } ;
+ErrorId MsgSupp::OptionMustExist          = { ErrorOf( ES_SUPP, 302, E_INFO, EV_NONE, 0 ), "%'--exists'%: Only output spec if it exists." } ;
+ErrorId MsgSupp::OptionRepoName           = { ErrorOf( ES_SUPP, 303, E_INFO, EV_NONE, 0 ), "%'--repo'%: specifies the repo for a non-interactive merge." } ;
+ErrorId MsgSupp::OptionTargetBranch       = { ErrorOf( ES_SUPP, 304, E_INFO, EV_NONE, 0 ), "%'--target'%: specifies the target branch for a non-interactive merge." } ;
+ErrorId MsgSupp::OptionByUser             = { ErrorOf( ES_SUPP, 305, E_INFO, EV_NONE, 0 ), "%'--user (-u)'%: limit output to repos readable by specified user or group." } ;
+ErrorId MsgSupp::OptionByOwner            = { ErrorOf( ES_SUPP, 306, E_INFO, EV_NONE, 0 ), "%'--owner (-O)'%: limit output to repos owned by specified user or group." } ;
+ErrorId MsgSupp::OptionSquash             = { ErrorOf( ES_SUPP, 307, E_INFO, EV_NONE, 0 ), "%'--squash'%: Create a single commit on top of the specified branch, with content from the merge." } ;
+ErrorId MsgSupp::OptionAllowEmpty         = { ErrorOf( ES_SUPP, 308, E_INFO, EV_NONE, 0 ), "%'--allow-empty'%: allows submitting empty repo commit." } ;
+ErrorId MsgSupp::OptionAdded              = { ErrorOf( ES_SUPP, 309, E_INFO, EV_NONE, 0 ), "%'--added (-a)'%: display content of added files." } ;
+ErrorId MsgSupp::OptionCreateIndex        = { ErrorOf( ES_SUPP, 310, E_INFO, EV_NONE, 0 ), "%'--create-index'%: create repo index for direct file history access." } ;
+ErrorId MsgSupp::OptionDropIndex          = { ErrorOf( ES_SUPP, 311, E_INFO, EV_NONE, 0 ), "%'--drop-index'%: drop repo index." } ;
+
+ErrorId MsgSupp::JsmnBadType              = { ErrorOf( ES_SUPP, 312, E_FAILED, EV_CONFIG, 3 ), "JSON error: token not expected type. Token number %index% Expected type %expected% Observed type %observed%." } ;
+ErrorId MsgSupp::JsmnBadParent            = { ErrorOf( ES_SUPP, 313, E_FAILED, EV_CONFIG, 3 ), "JSON error: token does not have the expected parent. Token number %index% Expected parent index %expected% Observed parent index %observed%." } ;
+ErrorId MsgSupp::JsmnBadMem               = { ErrorOf( ES_SUPP, 314, E_FAILED, EV_CONFIG, 1 ), "JSON error: parse failed, input has too many tokens. Limit is %limit%." } ;
+ErrorId MsgSupp::JsmnBadSyn               = { ErrorOf( ES_SUPP, 315, E_FAILED, EV_CONFIG, 0 ), "JSON error: parse failed, bad syntax." } ;
+ErrorId MsgSupp::JsmnTooFew               = { ErrorOf( ES_SUPP, 316, E_FAILED, EV_CONFIG, 0 ), "JSON error: parse failed, missing tokens." } ;
+ErrorId MsgSupp::JsmnKeyNotFound          = { ErrorOf( ES_SUPP, 317, E_FAILED, EV_CONFIG, 2 ), "JSON error: not found key name \"%tname%\" in token at index %index%." } ;
+ErrorId MsgSupp::OptionRetry              = { ErrorOf( ES_SUPP, 318, E_INFO, EV_NONE, 0 ), "%'--retry (-R)'%: retry transfer of files that failed to transfer." } ;
 
 // ErrorId graveyard'%: retired/deprecated ErrorIds.
 

@@ -22,18 +22,18 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgGraph error code is 285
+ * Current high value for a MsgGraph error code is 311
  */
 
 # include <error.h>
 # include <errornum.h>
 # include <msggraph.h>
 
-ErrorId MsgGraph::CommitDataShort  = { ErrorOf( ES_GRAPH, 1, E_INFO, EV_NONE, 3 ), "commit %sha%\ntree %tree%\n%description%\n" } ;
+ErrorId MsgGraph::CommitDataShort     = { ErrorOf( ES_GRAPH, 1, E_INFO, EV_NONE, 3 ), "commit %sha%\ntree %tree%\n%description%\n" } ;
 ErrorId MsgGraph::UseGraph            = { ErrorOf( ES_GRAPH, 61, E_FAILED, EV_USAGE, 0 ), "Usage: see %'p4 help graph'%" } ;
 ErrorId MsgGraph::UseCatFile          = { ErrorOf( ES_GRAPH, 2, E_FAILED, EV_USAGE, 0 ), "Usage: %'cat-file [ commit | -n repo blob | -t ] object-sha'%" } ;
 ErrorId MsgGraph::UseChanges          = { ErrorOf( ES_GRAPH, 226, E_FAILED, EV_USAGE, 0 ), "Usage: %'changes [-m max] -n repo commit...'%" } ;
-ErrorId MsgGraph::UseLsTree           = { ErrorOf( ES_GRAPH, 3, E_FAILED, EV_USAGE, 0 ), "Usage: %'ls-tree tree-sha'%" } ;
+ErrorId MsgGraph::UseLsTree           = { ErrorOf( ES_GRAPH, 3, E_FAILED, EV_USAGE, 0 ), "Usage: %'ls-tree [ -r [--name-only] ]  treeish-sha'%\n%'       ls-tree [ -r [--name-only] ] -n //repo/name [commit|reference]'%" } ;
 ErrorId MsgGraph::UseDescribe         = { ErrorOf( ES_GRAPH, 230, E_FAILED, EV_USAGE, 0 ), "Usage: %'describe -n repo [-s] commit'%" } ;
 ErrorId MsgGraph::UseDiff             = { ErrorOf( ES_GRAPH, 259, E_FAILED, EV_USAGE, 0 ), "Usage: %'diff [ -d<flags> -sr ] [files...]'%" } ;
 ErrorId MsgGraph::UseDiffTree         = { ErrorOf( ES_GRAPH, 4, E_FAILED, EV_USAGE, 0 ), "Usage: %'diff-tree -n repo tree-1-sha tree-2-sha'%" } ;
@@ -43,17 +43,17 @@ ErrorId MsgGraph::UseFilelog          = { ErrorOf( ES_GRAPH, 235, E_FAILED, EV_U
 ErrorId MsgGraph::UseFiles            = { ErrorOf( ES_GRAPH, 224, E_FAILED, EV_USAGE, 0 ), "Usage: %'files [-m max] filespec'%" } ;
 ErrorId MsgGraph::UseFstat            = { ErrorOf( ES_GRAPH, 262, E_FAILED, EV_USAGE, 0 ), "Usage: %'fstat [ -m max ] file...'%" } ;
 ErrorId MsgGraph::UseLock             = { ErrorOf( ES_GRAPH, 246, E_FAILED, EV_USAGE, 0 ), "Usage: %'lock [-c change] file...'%" } ;
-ErrorId MsgGraph::UseLog              = { ErrorOf( ES_GRAPH, 6, E_FAILED, EV_USAGE, 0 ), "Usage: %'log -n repo [ -u user -A date -B date -a -m N -N N -X N ] [ commit... ]'%" } ;
+ErrorId MsgGraph::UseLog              = { ErrorOf( ES_GRAPH, 6, E_FAILED, EV_USAGE, 0 ), "Usage: %'log -n repo [ -u user -A date -B date -p -N N -X N ] [ -a | -m N ] [ commit... ]'%" } ;
 ErrorId MsgGraph::UseShowRef          = { ErrorOf( ES_GRAPH, 58, E_FAILED, EV_USAGE, 0 ), "Usage: %'show-ref [ -a -n repo -u user -t type -m N ]'%" } ;
 ErrorId MsgGraph::UseMerge            = { ErrorOf( ES_GRAPH, 7, E_FAILED, EV_USAGE, 0 ), "Usage: %'merge [ --no-ff ] other-branch'%" } ;
 ErrorId MsgGraph::UseOpen             = { ErrorOf( ES_GRAPH, 221, E_FAILED, EV_USAGE, 0 ), "Usage: %'add/edit/delete [-c changelist#] [-n] [-t type] files...'%" } ;
-ErrorId MsgGraph::UseTag              = { ErrorOf( ES_GRAPH, 211, E_FAILED, EV_USAGE, 0 ), "Usage: %'tag -n repo [-d -l -m max] [ tag sha ]'%" } ;
+ErrorId MsgGraph::UseTag              = { ErrorOf( ES_GRAPH, 211, E_FAILED, EV_USAGE, 0 ), "Usage: %'tag -n repo [ -d tag | -l [ -m max ] | -c comment | -o ] tag [ sha ]'%" } ;
 ErrorId MsgGraph::UseReconcile        = { ErrorOf( ES_GRAPH, 261, E_FAILED, EV_USAGE, 0 ), "Usage: %'reconcile [ -a -e -d -n -c change ]'%" } ;
 ErrorId MsgGraph::UseReopen           = { ErrorOf( ES_GRAPH, 257, E_FAILED, EV_USAGE, 0 ), "Usage: %'reopen [-c changelist#] files...'%" } ;
 ErrorId MsgGraph::UseResolve          = { ErrorOf( ES_GRAPH, 220, E_FAILED, EV_USAGE, 0 ), "Usage: %'resolve'%" } ;
 ErrorId MsgGraph::UseResolved         = { ErrorOf( ES_GRAPH, 244, E_FAILED, EV_USAGE, 0 ), "Usage: %'resolved'%" } ;
 ErrorId MsgGraph::UseRevert           = { ErrorOf( ES_GRAPH, 222, E_FAILED, EV_USAGE, 0 ), "Usage: %'revert [ -n -w -a -c changelist# ] files...'%" } ;
-ErrorId MsgGraph::UseSwitch           = { ErrorOf( ES_GRAPH, 216, E_FAILED, EV_USAGE, 0 ), "Usage: %'switch [-l | [-c|-d] branch]'%" } ;
+ErrorId MsgGraph::UseSwitch           = { ErrorOf( ES_GRAPH, 216, E_FAILED, EV_USAGE, 0 ), "Usage: %'switch [-l | [-a|-c|-d|-r repo] branch]'%" } ;
 ErrorId MsgGraph::UseUnlock           = { ErrorOf( ES_GRAPH, 247, E_FAILED, EV_USAGE, 0 ), "Usage: %'unlock [-c change] file...'%" } ;
 ErrorId MsgGraph::UseReceivePack      = { ErrorOf( ES_GRAPH, 59, E_FAILED, EV_USAGE, 0 ), "Usage: %'receive-pack -n repo [-u user -v] -i files... [ -r refs... | -F refs... | -p packed-refs ]'%" } ;
 ErrorId MsgGraph::UsePackObjects      = { ErrorOf( ES_GRAPH, 60, E_FAILED, EV_USAGE, 0 ), "Usage: %'pack-objects -n repo [-u user] -o git-pack-dir [ -a | commit... ]'%" } ;
@@ -74,12 +74,15 @@ ErrorId MsgGraph::UsePermissionR      = { ErrorOf( ES_GRAPH, 111, E_FAILED, EV_U
 ErrorId MsgGraph::UsePermissionS      = { ErrorOf( ES_GRAPH, 112, E_FAILED, EV_USAGE, 0 ), "Usage: %'show-permission [ -r ref ] [ -u user ] [ -g group ] [ -p perm ] -d graphdepot|-n //repo/name'%" } ;
 ErrorId MsgGraph::UsePermissionC      = { ErrorOf( ES_GRAPH, 113, E_FAILED, EV_USAGE, 0 ), "Usage: %'check-permission -n //repo/name [ -r ref ] -u user -p perm'%" } ;
 ErrorId MsgGraph::UsePermNoRef        = { ErrorOf( ES_GRAPH, 279, E_FAILED, EV_USAGE, 1 ), "Usage: -r (ref) not required for permission '%perm%'" } ;
+ErrorId MsgGraph::UsePermNeedRef      = { ErrorOf( ES_GRAPH, 290, E_FAILED, EV_USAGE, 1 ), "Usage: -r (ref) required for permission '%perm%'" } ;
+ErrorId MsgGraph::UsePermBadRestrict  = { ErrorOf( ES_GRAPH, 307, E_FAILED, EV_USAGE, 1 ), "Usage: -n (repo) required for permission '%perm%'" } ;
 ErrorId MsgGraph::UseRefHist          = { ErrorOf( ES_GRAPH, 115, E_FAILED, EV_USAGE, 0 ), "Usage: %'ref-hist [ -n repo -r ref -u user -t reftype -a action -s start -e end -m max]'%" } ;
 ErrorId MsgGraph::UsePubKey           = { ErrorOf( ES_GRAPH, 127, E_FAILED, EV_USAGE, 0 ), "Usage: %'pubkey -d | -i [-f] [-u user] [-s scope]'%" } ;
 ErrorId MsgGraph::UsePubKeyS          = { ErrorOf( ES_GRAPH, 128, E_FAILED, EV_USAGE, 0 ), "Usage: %'pubkeys [-u user] [-s scope]'%" } ;
 ErrorId MsgGraph::ReferenceData       = { ErrorOf( ES_GRAPH, 8, E_INFO, EV_NONE, 5 ), "%depot% %sha% %owner% %type% %name%" } ;
 ErrorId MsgGraph::ReferenceHistory    = { ErrorOf( ES_GRAPH, 116, E_INFO, EV_NONE, 7 ), "%repo% %sha% %type% %name% %action% %user% %date%" } ;
 ErrorId MsgGraph::ReferenceDataShort  = { ErrorOf( ES_GRAPH, 9, E_INFO, EV_NONE, 3 ), "%depot% %sha% %name%" } ;
+ErrorId MsgGraph::ReferenceDataMatch  = { ErrorOf( ES_GRAPH, 302, E_INFO, EV_NONE, 3 ), "%depot% %sha% %name% *" } ;
 ErrorId MsgGraph::RepositoryData      = { ErrorOf( ES_GRAPH, 70, E_INFO, EV_NONE, 1 ), "%repo%" } ;
 ErrorId MsgGraph::FileLogData         = { ErrorOf( ES_GRAPH, 10, E_INFO, EV_NONE, 4 ), "%depotFile%%depotRev% (%action%) %commit%" } ;
 ErrorId MsgGraph::SubmoduleData       = { ErrorOf( ES_GRAPH, 253, E_INFO, EV_NONE, 3 ), "%repo% %path% %subrepo%" } ;
@@ -134,7 +137,7 @@ ErrorId MsgGraph::LbrWrongType        = { ErrorOf( ES_GRAPH, 50, E_FAILED, EV_FA
 ErrorId MsgGraph::InvalidBlobHeader   = { ErrorOf( ES_GRAPH, 51, E_FAILED, EV_FAULT, 1 ), "Invalid object header for %sha%." } ;
 ErrorId MsgGraph::LbrBadAccess        = { ErrorOf( ES_GRAPH, 52, E_FATAL, EV_FAULT, 1 ), "LbrGraphLoose: invalid operation %operation%." } ;
 ErrorId MsgGraph::LbrPackBadAccess    = { ErrorOf( ES_GRAPH, 53, E_FATAL, EV_FAULT, 1 ), "LbrGraphPack: invalid operation %operation%." } ;
-ErrorId MsgGraph::LooseWriterBadAccess= { ErrorOf( ES_GRAPH, 54, E_FATAL, EV_FAULT, 1 ), "LbrGraphLooseWriter: invalid operation %operation%." } ;
+ErrorId MsgGraph::LooseWriterBadAccess = { ErrorOf( ES_GRAPH, 54, E_FATAL, EV_FAULT, 1 ), "LbrGraphLooseWriter: invalid operation %operation%." } ;
 ErrorId MsgGraph::LbrWriteOnly        = { ErrorOf( ES_GRAPH, 55, E_FAILED, EV_FAULT, 0 ), "This librarian type only supports write access." } ;
 ErrorId MsgGraph::TreeMissing         = { ErrorOf( ES_GRAPH, 56, E_FAILED, EV_FAULT, 1 ), "Tree record not found in db for sha %sha%." } ;
 ErrorId MsgGraph::TreeNotUnique       = { ErrorOf( ES_GRAPH, 57, E_FAILED, EV_USAGE, 1 ), "Tree sha prefix %sha% is not unique. Please specify a longer prefix." } ;
@@ -154,6 +157,7 @@ ErrorId MsgGraph::InvalidRepoRef      = { ErrorOf( ES_GRAPH, 282, E_FAILED, EV_U
 ErrorId MsgGraph::InvalidRepo         = { ErrorOf( ES_GRAPH, 83, E_FAILED, EV_USAGE, 1 ), "Repository %repository% does not appear to be valid." } ;
 ErrorId MsgGraph::PackObjectCount     = { ErrorOf( ES_GRAPH, 84, E_FATAL, EV_FAULT, 2 ), "Pack construction wrote %actual% objects rather than the anticipated %expected% objects." } ;
 ErrorId MsgGraph::PackObjectMissing   = { ErrorOf( ES_GRAPH, 85, E_FATAL, EV_FAULT, 1 ), "Pack construction failure: object %sha% missing from database." } ;
+ErrorId MsgGraph::PackFileMissing     = { ErrorOf( ES_GRAPH, 303, E_FATAL, EV_FAULT, 0 ), "Pack file missing." } ;
 ErrorId MsgGraph::PackObjectLength    = { ErrorOf( ES_GRAPH, 86, E_FATAL, EV_FAULT, 3 ), "Pack verification failure: Expected object of type %objectType% and length %objectLength% but uncompressed an object of length %actualLength%." } ;
 ErrorId MsgGraph::InvalidRepoName     = { ErrorOf( ES_GRAPH, 87, E_FAILED, EV_USAGE, 1 ), "Repository name [%repoName% is invalid|is missing]. Please specify a name in the format //depot-name/path/to/repo." } ;
 ErrorId MsgGraph::InvalidDepotName    = { ErrorOf( ES_GRAPH, 255, E_FAILED, EV_USAGE, 1 ), "Graph Depot name %depotName% is invalid. The name may not include the string %'.git'%." } ;
@@ -166,6 +170,7 @@ ErrorId MsgGraph::UseRepo             = { ErrorOf( ES_GRAPH, 96, E_FAILED, EV_US
 ErrorId MsgGraph::UseRepoo            = { ErrorOf( ES_GRAPH, 97, E_FAILED, EV_USAGE, 0 ), "Usage: %'repo -o repo'%" } ;
 ErrorId MsgGraph::UseRepod            = { ErrorOf( ES_GRAPH, 98, E_FAILED, EV_USAGE, 0 ), "Usage: %'repo -d [ -f ] repo'%" } ;
 ErrorId MsgGraph::UseRepoi            = { ErrorOf( ES_GRAPH, 99, E_FAILED, EV_USAGE, 0 ), "Usage: %'repo -i'%" } ;
+ErrorId MsgGraph::UseRepoc            = { ErrorOf( ES_GRAPH, 298, E_FAILED, EV_USAGE, 0 ), "Usage: %'repo [ --create-index | --drop-index ] [ repo ]'%" } ;
 ErrorId MsgGraph::UseRepos            = { ErrorOf( ES_GRAPH, 100, E_FAILED, EV_USAGE, 0 ), "Usage: %'repos [-e|-E filter -m max -u user -O owner --from=origin]'%" } ;
 ErrorId MsgGraph::ReposData           = { ErrorOf( ES_GRAPH, 101, E_INFO, EV_NONE, 5 ), "%repo% %owner% %forked% %created% %description%" } ;
 ErrorId MsgGraph::RepoSave            = { ErrorOf( ES_GRAPH, 102, E_INFO, EV_NONE, 1 ), "Repo %repoName% saved." } ;
@@ -220,10 +225,11 @@ ErrorId MsgGraph::RefValidation       = { ErrorOf( ES_GRAPH, 161, E_FAILED, EV_U
 ErrorId MsgGraph::SpecifyForce        = { ErrorOf( ES_GRAPH, 162, E_FAILED, EV_USAGE, 1 ), "To change the value of the %fieldName% field, you must specify the -f flag." } ;
 ErrorId MsgGraph::OpenSuccess         = { ErrorOf( ES_GRAPH, 200, E_INFO, EV_NONE, 2 ), "%depotFile% - opened for %action%" } ;
 ErrorId MsgGraph::NoMultiRepoSubmit   = { ErrorOf( ES_GRAPH, 201, E_FAILED, EV_USAGE, 1 ), "Client %client% must specify precisely one repo in its View." } ;
+ErrorId MsgGraph::NoReposForSubmit    = { ErrorOf( ES_GRAPH, 299, E_FAILED, EV_USAGE, 0 ), "None of repos involved by this change are mapped by this client." } ;
 ErrorId MsgGraph::SubmitComplete      = { ErrorOf( ES_GRAPH, 202, E_INFO, EV_NONE, 2 ), "%change% renamed %commitSha% and submitted." } ;
 ErrorId MsgGraph::SingleRepoOnly      = { ErrorOf( ES_GRAPH, 203, E_FAILED, EV_USAGE, 0 ), "This command requires that exactly 1 repo be mapped by this client." } ;
 ErrorId MsgGraph::DiffData            = { ErrorOf( ES_GRAPH, 204, E_INFO, EV_NONE, 2 ), "==== %depotFile% - %localPath% ====" } ;
-ErrorId MsgGraph::NotAtHead           = { ErrorOf( ES_GRAPH, 205, E_FAILED, EV_USAGE, 4 ), "Submit failed: In %repo%, the head of %branch% is currently %headRef%, but your client is currently at %haveRef%. You must sync to the head before submitting." } ;
+ErrorId MsgGraph::NotAtHead           = { ErrorOf( ES_GRAPH, 205, E_FAILED, EV_USAGE, 5 ), "%command% failed: In %repo%, the head of %branch% is currently %headRef%, but your client is currently at %haveRef%. Sync to the head and try again." } ;
 ErrorId MsgGraph::RepoNotHad          = { ErrorOf( ES_GRAPH, 263, E_FAILED, EV_USAGE, 1 ), "Submit failed: Your client includes %repo%, but you are not currently synced to that repo. You must sync to the head before submitting." } ;
 ErrorId MsgGraph::SyncAdd             = { ErrorOf( ES_GRAPH, 206, E_INFO, EV_NONE, 2 ), "%depotFile% - added as %localPath%" } ;
 ErrorId MsgGraph::SyncDelete          = { ErrorOf( ES_GRAPH, 207, E_INFO, EV_NONE, 2 ), "%depotFile% - deleted as %localPath%" } ;
@@ -240,6 +246,7 @@ ErrorId MsgGraph::NotSyncd            = { ErrorOf( ES_GRAPH, 217, E_FAILED, EV_U
 ErrorId MsgGraph::BranchCreated       = { ErrorOf( ES_GRAPH, 218, E_INFO, EV_NONE, 1 ), "Branch %branchName% created." } ;
 ErrorId MsgGraph::BranchDeleted       = { ErrorOf( ES_GRAPH, 219, E_INFO, EV_NONE, 1 ), "Branch %branchName% deleted." } ;
 ErrorId MsgGraph::BranchAlreadyExists = { ErrorOf( ES_GRAPH, 283, E_FAILED, EV_USAGE, 1 ), "Branch %branchName% already exists." } ;
+ErrorId MsgGraph::DefaultBranchReset  = { ErrorOf( ES_GRAPH, 301, E_INFO, EV_NONE, 1 ), "DefaultBranch set to %branchName%." } ;
 ErrorId MsgGraph::FilesData           = { ErrorOf( ES_GRAPH, 225, E_INFO, EV_NONE, 1 ), "%depotFile%" } ;
 ErrorId MsgGraph::ResolvedData        = { ErrorOf( ES_GRAPH, 245, E_INFO, EV_NONE, 4 ), "%clientFile% %how% %depotFile% %shaBuf%" } ;
 ErrorId MsgGraph::DescribeFile        = { ErrorOf( ES_GRAPH, 231, E_INFO, EV_NONE, 2 ), "%depotFile% (%action%)" } ;
@@ -250,7 +257,9 @@ ErrorId MsgGraph::SyncUnknownBranch   = { ErrorOf( ES_GRAPH, 234, E_FATAL, EV_FA
 ErrorId MsgGraph::CommitSummary       = { ErrorOf( ES_GRAPH, 236, E_INFO, EV_NONE, 4 ), "Commit: %sha%\nAuthor: %authorName%\nDate: %authorDate%\nDescription: %description%\n" } ;
 ErrorId MsgGraph::NoMergeOpenFiles    = { ErrorOf( ES_GRAPH, 237, E_FAILED, EV_USAGE, 0 ), "Merge not allowed: workspace has opened files." } ;
 ErrorId MsgGraph::FastForwardMerge    = { ErrorOf( ES_GRAPH, 238, E_INFO, EV_NONE, 2 ), "Fast-forward merge of branch %branchName% to commit %sha%." } ;
+ErrorId MsgGraph::MergePreview        = { ErrorOf( ES_GRAPH, 291, E_INFO, EV_NONE, 2 ), "%action% of branch %branchName% would succeed." } ;
 ErrorId MsgGraph::BranchNotFound      = { ErrorOf( ES_GRAPH, 240, E_FAILED, EV_USAGE, 1 ), "Branch %branchName% not found." } ;
+ErrorId MsgGraph::ManyReposUseAll     = { ErrorOf( ES_GRAPH, 308, E_FAILED, EV_USAGE, 0 ), "More than one repos on client, use -a for all." } ;
 ErrorId MsgGraph::MergeComplete       = { ErrorOf( ES_GRAPH, 242, E_INFO, EV_NONE, 1 ), "Merge completed as %sha%." } ;
 ErrorId MsgGraph::NoChangeFixes       = { ErrorOf( ES_GRAPH, 243, E_FAILED, EV_USAGE, 1 ), "Change %change% has fixes attached, and therefore may not be submitted." } ;
 ErrorId MsgGraph::UnsupportedFileType = { ErrorOf( ES_GRAPH, 248, E_FAILED, EV_USAGE, 1 ), "File type %fileType% is not currently supported." } ;
@@ -267,13 +276,30 @@ ErrorId MsgGraph::NoAdvancedMappings  = { ErrorOf( ES_GRAPH, 268, E_FAILED, EV_U
 ErrorId MsgGraph::CantAddToRepo       = { ErrorOf( ES_GRAPH, 269, E_FAILED, EV_NONE, 1 ), "p4 add of '%filepath%' failed - verify that this is the correct path and the repository for this file exists." } ;
 ErrorId MsgGraph::CantUpdateMirror    = { ErrorOf( ES_GRAPH, 277, E_FAILED, EV_NONE, 3 ), "p4 %action% of '%filepath%' failed - repo '%repo%' is mirrored and cannot be updated." } ;
 ErrorId MsgGraph::CantSubmitMirror    = { ErrorOf( ES_GRAPH, 278, E_FAILED, EV_NONE, 1 ), "Submit failed: repo '%repo%' is mirrored and cannot be updated." } ;
+ErrorId MsgGraph::CantSubmitEmpty     = { ErrorOf( ES_GRAPH, 292, E_FAILED, EV_NONE, 0 ), "Submit failed: no modified repo files - submit empty commit requires '--allow-empty'." } ;
 ErrorId MsgGraph::AutoLabelsOnly      = { ErrorOf( ES_GRAPH, 270, E_FAILED, EV_USAGE, 1 ), "Graph depot paths are only permitted in automatic labels." };
 ErrorId MsgGraph::LabelViewMustLimit  = { ErrorOf( ES_GRAPH, 271, E_FAILED, EV_USAGE, 1 ), "Graph depot paths must be explicitly limited in label views." };
 ErrorId MsgGraph::LabelViewMustNotLimit = { ErrorOf( ES_GRAPH, 272, E_FAILED, EV_USAGE, 1 ), "Only graph depot paths may be explicitly limited in label views." };
-ErrorId MsgGraph::RepoNotMirrored       = { ErrorOf( ES_GRAPH, 274, E_FAILED, EV_USAGE, 1 ), "Repo '%repo%' not configured for mirror operation." } ;
-ErrorId MsgGraph::RepoIsMirrored        = { ErrorOf( ES_GRAPH, 275, E_FAILED, EV_USAGE, 1 ), "Repo '%repo%' is configured only for mirror operations." } ;
-ErrorId MsgGraph::GraphNotCompat        = { ErrorOf( ES_GRAPH, 280, E_FAILED, EV_USAGE, 1 ), "This version of the API is not compatible with GraphDepot." } ;
-ErrorId MsgGraph::InvalidDefaultBranch  = { ErrorOf( ES_GRAPH, 285, E_INFO, EV_USAGE, 1 ), "DefaultBranch '%defaultbranch%' must begin with \"refs/\" if git is to use it." } ;
+ErrorId MsgGraph::RepoNotMirrored     = { ErrorOf( ES_GRAPH, 274, E_FAILED, EV_USAGE, 1 ), "Repo '%repo%' not configured for mirror operation." } ;
+ErrorId MsgGraph::RepoIsMirrored      = { ErrorOf( ES_GRAPH, 275, E_FAILED, EV_USAGE, 1 ), "Repo '%repo%' is configured only for mirror operations." } ;
+ErrorId MsgGraph::GraphNotCompat      = { ErrorOf( ES_GRAPH, 280, E_FAILED, EV_USAGE, 1 ), "This version of the API is not compatible with GraphDepot." } ;
+ErrorId MsgGraph::InvalidDefaultBranch = { ErrorOf( ES_GRAPH, 285, E_INFO, EV_USAGE, 1 ), "DefaultBranch '%defaultbranch%' must begin with \"refs/\" if git is to use it." } ;
+ErrorId MsgGraph::LsTree              = { ErrorOf( ES_GRAPH, 286, E_INFO, EV_NONE, 4 ), "%mode% %type% %sha%\t%path%" } ;
+ErrorId MsgGraph::LsTreeNameOnly      = { ErrorOf( ES_GRAPH, 287, E_INFO, EV_NONE, 4 ), "%path%" } ;
+ErrorId MsgGraph::MergeConflict       = { ErrorOf( ES_GRAPH, 288, E_FAILED, EV_USAGE, 1 ), "Merge failed, conflict detected for '%depotFile%'" } ;
+ErrorId MsgGraph::MergeNotText        = { ErrorOf( ES_GRAPH, 289, E_FAILED, EV_USAGE, 1 ), "Merge failed, non-textual file '%depotFile%'" } ;
+ErrorId MsgGraph::MergeSkippedResolve = { ErrorOf( ES_GRAPH, 300, E_FAILED, EV_USAGE, 0 ), "Merge failed, some file(s) were skipped in interactive resolve." } ;
+ErrorId MsgGraph::LFSDisabled         = { ErrorOf( ES_GRAPH, 293, E_FAILED, EV_FAULT, 1 ), "Import of LFS objects is disabled for '%repo%'." } ;
+ErrorId MsgGraph::UseUpdateRef        = { ErrorOf( ES_GRAPH, 294, E_FAILED, EV_USAGE, 0 ), "Usage: %'update-ref -n repo [-u user -v] [-r refs... | -F refs...]'%" } ;
+ErrorId MsgGraph::RepoIndexAlready    = { ErrorOf( ES_GRAPH, 295, E_FAILED, EV_USAGE, 1 ), "'%repo%' - index already exists." } ;
+ErrorId MsgGraph::RepoIndexNone       = { ErrorOf( ES_GRAPH, 296, E_FAILED, EV_USAGE, 1 ), "'%repo%' - index does not exist." } ;
+ErrorId MsgGraph::RepoIndexSuccess    = { ErrorOf( ES_GRAPH, 297, E_INFO, EV_NONE, 3 ), "'%repo%' - index created, %commits% commit(s), %files% file(s)." } ;
+ErrorId MsgGraph::NoRepoEdgeSubmit    = { ErrorOf( ES_GRAPH, 304, E_FAILED, EV_NONE, 0 ), "Cannot submit using a graph client on edge replica." } ;
+ErrorId MsgGraph::MirrorMissingFile   = { ErrorOf( ES_GRAPH, 305, E_FAILED, EV_NONE, 1 ), "Mirrored repo '%repo%' is missing some LFS files. Mirroring does not support LFS files.\n'%file%' missing LFS object." } ;
+ErrorId MsgGraph::NoWriteForRef       = { ErrorOf( ES_GRAPH, 306, E_FAILED, EV_FAULT, 2 ), "%file% - no write permission on %ref% reference." } ;
+ErrorId MsgGraph::RepoSwitchChanged   = { ErrorOf( ES_GRAPH, 309, E_INFO, EV_NONE, 3 ), "%depot% changed branch from %orig% to %name%" } ;
+ErrorId MsgGraph::RepoAlreadyOnBranch = { ErrorOf( ES_GRAPH, 310, E_INFO, EV_NONE, 2 ), "%depot% is already on branch %name%" } ;
+ErrorId MsgGraph::RepoSwitchMissing   = { ErrorOf( ES_GRAPH, 311, E_INFO, EV_NONE, 3 ), "%depot% has no branch %name%, will remain on branch %orig%" } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 

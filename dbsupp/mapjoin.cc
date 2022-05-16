@@ -109,6 +109,9 @@ MapTable::Join(
 	    m2->Dump( dir2 == LHS ? "lhs" : "rhs" );
 	}
 
+	if( m1->caseMode == 0 || m1->caseMode == 1 )
+	    this->SetCaseSensitivity( m1->caseMode );
+
 	// Give up if we internally produce more than 1,000,000 rows
 	// or more than 10000 + the sum of the two mappings.
 
@@ -131,7 +134,6 @@ MapTable::Join(
 		    {
 			joinError = 1;
 			emptyReason = &MsgDb::TooWild2;
-			reason = &MsgDb::TooWild2;
 			this->joinError = 1;
 			this->emptyReason = &MsgDb::TooWild;
 			return;

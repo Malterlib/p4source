@@ -302,6 +302,27 @@ Client::OutputError( Error *e )
 // If set, we will not write client side files during a sync.
 static int client_nullsync;
 
+FileDigestType
+clientFileDigestType( StrPtr *digestType )
+{
+	FileDigestType digType;
+
+	if( !digestType->Compare(
+			StrRef( P4Tag::v_digestTypeMD5 ) ) )
+	    digType = FS_DIGEST_MD5;
+	else if( !digestType->Compare(
+			StrRef( P4Tag::v_digestTypeGitText ) ) )
+	    digType = FS_DIGEST_GIT_TEXT_SHA1;
+	else if( !digestType->Compare(
+			StrRef( P4Tag::v_digestTypeGitBinary ) ) )
+	    digType = FS_DIGEST_GIT_BINARY_SHA1;
+	else if( !digestType->Compare(
+			StrRef( P4Tag::v_digestTypeSHA256 ) ) )
+	    digType = FS_DIGEST_SHA256;
+
+	return digType;
+}
+
 void
 clientOpenFile( Client *client, Error *e )
 {
@@ -321,6 +342,8 @@ clientOpenFile( Client *client, Error *e )
 	StrPtr *func = client->GetVar( P4Tag::v_func, e );
 	StrPtr *diffFlags = client->GetVar( P4Tag::v_diffFlags );
 	StrPtr *digest = client->GetVar( P4Tag::v_digest );
+	StrPtr *digestType = client->GetVar( P4Tag::v_digestType );
+	bool do_checksum = false;
 
 	// clear syncTime
 
@@ -335,6 +358,16 @@ clientOpenFile( Client *client, Error *e )
 		goto bail;
 	    }
 	    return;
+	}
+
+	if ( digestType )
+	{
+	    // Requires check on digest if present, hence
+	    // before opening the file, check if it exist
+	    if ( FileSys::FileExists( clientPath->Text() ) )
+	    {
+		do_checksum = true;
+	    }
 	}
 
 	// Create file object for writing.
@@ -402,6 +435,22 @@ clientOpenFile( Client *client, Error *e )
 	else
 	{
 	    // Handle noclobber.
+	    if ( do_checksum )
+	    {
+		StrBuf localDigest;
+		FileDigestType digType;
+
+		digType = clientFileDigestType( digestType );
+
+		fs->ComputeDigest( digType, &localDigest, e );
+		if( e->Test() || localDigest.XCompare( *digest ) ) 
+		{
+		    e->Set( MsgClient::NoModifiedFile ) 
+			<< "update"
+			<< f->file->Name();
+		    goto bail;
+		}
+	    }
 
 	    int statFlags = f->file->Stat();
 
@@ -503,7 +552,7 @@ clientOpenFile( Client *client, Error *e )
 	// non-textual filetypes updates are performed by FileIOBinary::Write()
 	// note:  do this after the open (because open does a write on NT).
 
-	if( digest && p4tunable.Get( P4TUNE_LBR_VERIFY_OUT ) 
+	if( !digestType && digest && p4tunable.Get( P4TUNE_LBR_VERIFY_OUT ) 
 	           && !f->file->IsSymlink() )
 	{
 	    f->serverDigest.Set( digest );
@@ -673,8 +722,6 @@ clientMoveFile( Client *client, Error *e )
 	client->NewHandler();
 	StrPtr *clientPath = client->transfname->GetVar( P4Tag::v_path, e );
 	StrPtr *targetPath = client->transfname->GetVar( P4Tag::v_path2, e );
-	StrPtr *targetType = client->GetVar( P4Tag::v_type2, e );
-	StrPtr *clientHandle = client->GetVar( P4Tag::v_handle );
 	StrPtr *confirm = client->GetVar( P4Tag::v_confirm, e );
 	StrPtr *rmdir = client->GetVar( P4Tag::v_rmdir );
 	StrPtr *doForce = client->GetVar( P4Tag::v_force );
@@ -741,11 +788,11 @@ void
 clientDeleteFile( Client *client, Error *e )
 {
 	client->NewHandler();
-	StrPtr *clientPath = client->transfname->GetVar( P4Tag::v_path, e );
-	StrPtr *clientType = client->GetVar( P4Tag::v_type );
 	StrPtr *noclobber = client->GetVar( P4Tag::v_noclobber );
 	StrPtr *clientHandle = client->GetVar( P4Tag::v_handle );
 	StrPtr *rmdir = client->GetVar( P4Tag::v_rmdir );
+	StrPtr *digest = client->GetVar( P4Tag::v_digest );
+	StrPtr *digestType = client->GetVar( P4Tag::v_digestType );
 
 	// clear syncTime
 
@@ -774,6 +821,30 @@ clientDeleteFile( Client *client, Error *e )
 	{
 	    delete f;
 	    return;
+	}
+
+	// Don't delete modified files noclobber allwrite (digestType set)
+	if( digestType )
+	{
+	    StrBuf localDigest;
+	    FileDigestType digType;
+
+	    digType = clientFileDigestType( digestType );
+
+	    f->ComputeDigest( digType, &localDigest, e );
+	    if( e->Test() || localDigest.XCompare( *digest ) )
+	    {
+		LastChance l;
+		client->handles.Install( clientHandle, &l, e );
+		l.SetError();
+
+		e->Set( MsgClient::NoModifiedFile ) 
+		    << "delete"
+		    << f->Name();
+		client->OutputError( e );
+		delete f;
+		return;
+	    }
 	}
 
 	// Don't clobber poor file
@@ -841,9 +912,7 @@ void
 clientChmodFile( Client *client, Error *e )
 {
 	client->NewHandler();
-	StrPtr *clientPath = client->transfname->GetVar( P4Tag::v_path, e );
 	StrPtr *perms = client->GetVar( P4Tag::v_perms, e );
-	StrPtr *clientType = client->GetVar( P4Tag::v_type );
 	StrPtr *modTime = client->GetVar( P4Tag::v_time );
 
 	if( e->Test() && !e->IsFatal() )
@@ -1338,7 +1407,6 @@ clientCheckFile( Client *client, Error *e )
 void
 clientCheckFileGraph( Client *client, Error *e )
 {
-	StrPtr *clientPath = client->transfname->GetVar( P4Tag::v_path, e );
 	StrPtr *clientType = client->GetVar( P4Tag::v_type, e );
 	StrPtr *digest = client->GetVar( P4Tag::v_digest, e );
 	StrPtr *digestType = client->GetVar( P4Tag::v_digestType, e );
@@ -1857,7 +1925,6 @@ clientSendFile( Client *client, Error *e )
 {
 	client->NewHandler();
 	StrPtr *clientPath = client->transfname->GetVar( P4Tag::v_path, e );
-	StrPtr *clientType = client->GetVar( P4Tag::v_type );
 	StrPtr *perms = client->GetVar( P4Tag::v_perms );
 	StrPtr *handle = client->GetVar( P4Tag::v_handle, e );
 	StrPtr *open = client->GetVar( P4Tag::v_open, e );
@@ -1865,6 +1932,7 @@ clientSendFile( Client *client, Error *e )
 	StrPtr *confirm = client->GetVar( P4Tag::v_confirm, e );
 	StrPtr *decline = client->GetVar( P4Tag::v_decline, e );
 	StrPtr *serverDigest = client->GetVar( "serverDigest" );
+	StrPtr *digestType = client->GetVar( P4Tag::v_digestType );
 	StrPtr *pendingDigest = client->GetVar( "pendingDigest" );
 	StrPtr *revertUnchanged = client->GetVar( P4Tag::v_revertUnchanged );
 	StrPtr *depotTime = client->GetVar( P4Tag::v_depotTime );
@@ -1935,8 +2003,25 @@ clientSendFile( Client *client, Error *e )
 	// 2006.2 server, sends digest for 'p4 submit -R'
 	// 2010.2 server @257282 sends digest for 'p4 resolve' of integ
 	// 2014.1 server sends digest for shelve -a leaveunchanged
+	// 2017.2 server sends sha1 for submit and digestType
 
-	if( serverDigest || pendingDigest )
+	if( digestType )
+	{
+	    FileDigestType digType;
+	    digType = clientFileDigestType(digestType);
+
+	    StrBuf localDigest;
+	    f->ComputeDigest( digType, &localDigest, e );
+	    if( !e->Test() && !localDigest.XCompare( *serverDigest ) )
+	    {
+	        client->SetVar( P4Tag::v_status, "same" );
+	        client->SetVar( P4Tag::v_sha, &localDigest );
+	        client->Confirm( confirm );
+	        delete f;
+	        return;
+	    }
+	}
+	else if( serverDigest || pendingDigest )
 	{
 	    StrBuf localDigest;
 	    f->Translator( ClientSvc::XCharset( client, FromClient ) );
@@ -2197,32 +2282,55 @@ clientPrompt( Client *client, Error *e )
 {
 	client->FstatPartialClear();
 	client->NewHandler();
-	StrPtr *data = client->translated->GetVar( P4Tag::v_data, e );
+	Error e1;
+	Error rcvErr;
+	StrBuf resp;
+
+	StrPtr *data = client->translated->GetVar( P4Tag::v_data, &e1 );
 	StrPtr *confirm = client->GetVar( P4Tag::v_confirm, e );
 	StrPtr *truncate = client->GetVar( P4Tag::v_truncate );
-	StrPtr *func = client->GetVar( P4Tag::v_func );
 	StrPtr *noecho = client->GetVar( P4Tag::v_noecho );
 	StrPtr *noprompt = client->GetVar( P4Tag::v_noprompt );
 	StrPtr *digest = client->GetVar( P4Tag::v_digest );
 	StrPtr *mangle = client->GetVar( P4Tag::v_mangle );
 	StrPtr *user = client->GetVar( P4Tag::v_user );
-	StrBuf resp;
+
+	StrDict *errorDict = client;
+	if( !e->Test() && !data )
+	{
+	    if( client != client->translated )
+	        errorDict = ((TransDict *)client->translated)
+	            ->CreateErrorOutputDict();
+	    rcvErr.UnMarshall1( *errorDict );
+	}
+
+	if( !e->Test() && !rcvErr.GetErrorCount() && e1.Test() )
+	    *e = e1;
 
 	if( e->Test() )
 	{
 	    if ( !e->IsFatal() )
 		client->OutputError( e );
+	    if( client != errorDict )
+	        delete errorDict;
 	    return;
 	}
 
 	if( noprompt )
 	    resp = *client->GetPBuf();
-	else
+	else if( data )
 	    client->GetUi()->Prompt( *data, resp, noecho != 0, e );
+	else
+	    client->GetUi()->Prompt( &rcvErr, resp, noecho != 0, e );
+
 	client->SetPBuf( resp );
 
 	if( e->Test() )
+	{
+	    if( client != errorDict )
+	        delete errorDict;
 	    return;
+	}
 
 	// if digest set, we'll send the md5 of the response
 	// otherwise, we'll send the raw thing.
@@ -2371,7 +2479,11 @@ clientPrompt( Client *client, Error *e )
 	        m.In( *data, *mangle, key, e );     
 
 	        if( e->Test() )
+	        {
+	            if( client != errorDict )
+	                delete errorDict;
 	            return;
+	        }
 
 	        client->SetVar( P4Tag::v_data, key );
 	    }
@@ -2381,7 +2493,10 @@ clientPrompt( Client *client, Error *e )
 	    // Drop support for really old password/login exchange
 
 	    StrBuf promptStr;
-	    promptStr << *data;
+	    if( data )
+	        promptStr << *data;
+	    else
+	        rcvErr.Fmt( promptStr, 0 );
 	    StrOps::Lower( promptStr );
 
 	    if( resp.Length() && 
@@ -2395,13 +2510,16 @@ clientPrompt( Client *client, Error *e )
 	    client->translated->SetVar( P4Tag::v_data, resp );
 	}
 
+	if( client != errorDict )
+            delete errorDict;
+
 	client->Confirm( confirm );
 }
 
 void
 clientSyncTrigger( Client *client, Error *e )
 {
-	StrPtr *syncClient = client->GetVar( "zerosync", e );
+	client->GetVar( "zerosync", e );
 
 	if( e->Test() )
 	{
@@ -2994,7 +3112,6 @@ clientSetPassword( Client *client, Error *e )
 	StrPtr *data = client->GetVar( P4Tag::v_data, e );
 	StrPtr *serverID = client->GetVar( P4Tag::v_serverAddress );
 	StrPtr *noprompt = client->GetVar( P4Tag::v_noprompt );
-	StrPtr *func = client->GetVar( P4Tag::v_func );
 
 	if( e->Test() )
 	    return;

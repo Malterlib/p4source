@@ -26,6 +26,9 @@
 
 # define toAlower(x)	( isAhighchar(x) ? *(x) : tolower(*(x)) )
 
+// isblank is a C++11 feature not supported by a number of our compilers
+# define isBlank(x)	((x)==' '||(x)=='\t')
+
 /*
  * tolowerq -- quick version for NT that doesn't use SLOW locale stuff
  * toupperq -- quick version for NT that doesn't use SLOW locale stuff

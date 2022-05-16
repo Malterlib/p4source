@@ -112,6 +112,8 @@ class MsgClient {
 	static ErrorId CommandNotAliased;
 	static ErrorId AliasEmptyPattern;
 
+	static ErrorId NoModifiedFile;
+
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 
 	// still sending these.

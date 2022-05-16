@@ -131,12 +131,17 @@ enum P4TunableName {
 	P4TUNE_NET_PARALLEL_BATCHSIZE,		// see usersync.cc
 	P4TUNE_NET_PARALLEL_MIN,		// see usersync.cc
 	P4TUNE_NET_PARALLEL_MINSIZE,		// see usersync.cc
+	P4TUNE_NET_PARALLEL_SHELVE_THREADS,	// see usershelve.cc
+	P4TUNE_NET_PARALLEL_SHELVE_BATCH,	// see usershelve.cc
+	P4TUNE_NET_PARALLEL_SHELVE_MIN,		// see usershelve.cc
 	P4TUNE_NET_PARALLEL_SUBMIT_THREADS,	// see usersubmit.cc
 	P4TUNE_NET_PARALLEL_SUBMIT_BATCH,	// see usersubmit.cc
 	P4TUNE_NET_PARALLEL_SUBMIT_MIN,		// see usersubmit.cc
+	P4TUNE_NET_PARALLEL_SYNC_SVRTHREADS,	// see usersync.cc
 	P4TUNE_NET_RCVBUFSIZE,			// see netbuffer.h
 	P4TUNE_NET_REUSEPORT,			// see nettcpendpoint.cc
 	P4TUNE_NET_RFC3484,			// see nettcpendpoint.cc
+	P4TUNE_NET_SENDLIMIT,			// set netbuffer.cc
 	P4TUNE_NET_TCPSIZE,			// set nettcp.cc
 	P4TUNE_NET_BACKLOG,			// see nettcp.cc
 	P4TUNE_NET_X3_MINSIZE,			// see rmtservice.cc
@@ -224,6 +229,7 @@ enum P4TunableName {
 	P4TUNE_INFO_P4AUTH_USERCHECK,		// see userinfo.cc
 	P4TUNE_AUTH_AUTOLOGIN,			// see rhservice.cc
 	P4TUNE_RPL_SUBMIT_NOCOPY,		// see usersubmit.cc
+	P4TUNE_AUTH_2FA_PERSIST,		// see login2.cc
 
 	P4TUNE_LAST
 

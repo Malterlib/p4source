@@ -39,6 +39,7 @@ MapTable::MapTable()
 	hasAndmaps = 0;
 	emptyReason = 0;
 	joinError = 0;
+	caseMode = -1;
 
 	trees = new MapTree[2];
 }
@@ -61,8 +62,6 @@ MapTable::operator=( MapTable &f )
         return ( *this );
 }
 
-
-
 void
 MapTable::Clear() 
 {
@@ -84,6 +83,21 @@ MapTable::Clear()
 
 	trees[ LHS ].Clear();
 	trees[ RHS ].Clear();
+}
+
+void
+MapTable::SetCaseSensitivity( int mode )
+{
+	if( mode != 0 && mode != 1 )
+	    return;
+
+	caseMode = mode;
+
+	for( MapItem *map = entry; map; map = map->Next() )
+	{
+	    map->Half( LHS )->SetCaseMode( mode );
+	    map->Half( RHS )->SetCaseMode( mode );
+	}
 }
 
 void
@@ -110,7 +124,7 @@ MapTable::Insert( MapTable *table, int fwd, int rev )
 void
 MapTable::Insert( const StrPtr &lhs, const StrPtr &rhs, MapFlag mapFlag )
 {
-	entry = new MapItem( entry, lhs, rhs, mapFlag, count++ );
+	entry = new MapItem( entry, lhs, rhs, mapFlag, count++, caseMode );
 
 	// For IsEmpty(), HasOverlays() and HasHavemaps()
 
@@ -715,9 +729,9 @@ MapTable::Explode( MapTableT dir, const StrPtr &from)
 	    MakeTree( dir );
 	
 	MapItemArray ands;
-	MapItem *map = trees[ dir ].tree
-	    ? trees[ dir ].tree->Match( dir, from, &ands )
-	    : 0;
+	MapItem *map;
+
+	trees[ dir ].tree->Match( dir, from, &ands );
 
 	// Expand into target string.
 	// We have to Match2 here, because the last Match2 done in

@@ -336,32 +336,37 @@
 		# Common setup for darwin/macosx platform.
 		# Determine correct version and location of SDK to use, and arch flags.
 
-		local _xcode = /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform ;
-		local _sdkver = $(1:J=.) ;   # Override computed sdk version
-		local _xflags = $(2) ;       # additional flags to compiler+linker
-		local _uplats = $(3:E=i386 x86_64) ;  # platforms for "universal" builds
+		local _legacy  = /Developer ; # sdk10.6 and earlier
+		# sdk10.7 - sdk10.11 live deep under Xcode.app
+		local _xcode   = /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform ;
+		local _cltools = /Library/Developer/CommandLineTools ; # sdk 10.12 (and later?)
+		local _prefix  = $(_legacy) ;
+
+		local _sdkver  = $(1:J=.) ;   # Override computed sdk version
+		local _xflags  = $(2) ;       # additional flags to compiler+linker
+		local _uplats  = $(3:E=i386 x86_64) ;  # platforms for "universal" builds
 
 		switch $(OS:U)
 		{
 		case DARWIN :
-			# For Darwin 11 (OSX 10.7) and later, sdk lives deep under xcode.app
-			if [ FVersionCmp $(OSVER) : 110 ] >= 0 { XCODE_PREFIX ?= $(_xcode) ; }
+			if      [ FVersionCmp $(OSVER) : 160 ] >= 0 { _prefix = $(_cltools) ; }
+			else if [ FVersionCmp $(OSVER) : 110 ] >= 0 { _prefix = $(_xcode)$(_legacy) ; }
 
 			local _v = [ MATCH ([0-9]+)[0-9]$ : $(OSVER) ] ;
-			# darwin:       1  2  3  4  5  6  7  8  9  10  11  12  13  14  15  16
-			local _sdkmap = 0  0  0  0  1  2  3  4  5   6   7   8   9  10  11  12 ;
+			# darwin:       1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20
+			local _sdkmap = 0 0 0 0 1 2 3 4 5  6  7  8  9 10 11 12 13 14 15 16 ;
 			_sdkver ?= 10.$(_sdkmap[$(_v)]) ;
 
 		case MACOSX :
-			# For OSX 10.7 and later, sdk lives deep under xcode.app
-			if [ FVersionCmp $(OSVER) : 107 ] >= 0 { XCODE_PREFIX ?= $(_xcode) ; }
+			if      [ FVersionCmp $(OSVER) : 1012 ] >= 0 { _prefix = $(_cltools) ; }
+			else if [ FVersionCmp $(OSVER) : 107  ] >= 0 { _prefix = $(_xcode)$(_legacy) ; }
 
 			local _v = [ MATCH ([0-9][0-9])([0-9]*)$ : $(OSVER) ] ;
 			_sdkver ?= $(_v:J=.) ;
 		}
 		if $(_sdkver) = 10.4 { _sdkver = $(_sdkver)u ; }  # "10.4u.sdk"
 
-		MACOSX_SDK       ?= $(XCODE_PREFIX:E)/Developer/SDKs/MacOSX$(_sdkver).sdk ;
+		MACOSX_SDK       ?= $(_prefix)/SDKs/MacOSX$(_sdkver).sdk ;
 		MACOSX_SDK_FLAGS ?= -isysroot $(MACOSX_SDK) ;
 
 		# OSPLAT=U : universal binary
@@ -377,8 +382,8 @@
 		}
 
 		# n.b. we used to have a "CS" OSVER suffix so you could produce a
-		# case-sensitive server on mac, but that's no longer necessary
-		# since you can specify a different default at runtime on any platform.
+		# case-sensitive server on mac, but that's no longer necessary since
+		# you can now specify a different default at runtime on any platform.
 		$(GENFLAGS) += $(MACOSX_SDK_FLAGS) $(_arch) -DCASE_INSENSITIVE  $(_xflags) ;
 		LINKFLAGS   += $(MACOSX_SDK_FLAGS) $(_arch) $(_xflags) ;
 	}
@@ -768,8 +773,17 @@
 	# asan: https://code.google.com/p/address-sanitizer/wiki/AddressSanitizer
 	case asan   : OPTIM     = -g -fsanitize=address -fno-omit-frame-pointer -O1 ;
 	              LINKLIBS  = -lasan ;
-	case gcov   : OPTIM     = -fprofile-arcs -ftest-coverage -g -O ;
-	              LINKFLAGS = -fprofile-arcs -ftest-coverage -g ;
+	case gcov   :
+		if [ FVersionCmp $(GCCVER) : 7.1 ] >= 0
+		{
+		    OPTIM     = -fprofile-arcs -fprofile-update=atomic -ftest-coverage -g -O ;
+		    LINKFLAGS = -fprofile-arcs -fprofile-update=atomic -ftest-coverage -g ;
+		}
+		else
+		{
+		    OPTIM     = -fprofile-arcs -ftest-coverage -g -O ;
+		    LINKFLAGS = -fprofile-arcs -ftest-coverage -g ;
+		}
 
 	case *vsdebug* : # special-target builds; see NT section
 
@@ -874,14 +888,7 @@
 		C++FLAGS += -DUSE_CRLF ;
 
 	case DARWIN :
-		CC        = cc ;
-		C++       = cc ;
-		C++FLAGS += -DCASE_INSENSITIVE ;
-
-	case DARWIN60cs : #case-sensitive
-		CC   = cc ;
-		C++  = cc ;
-		LINK = g++ ;
+		Exit "Set OSVER to 80, 90, 100, 110, 120, ... for DARWIN" ;
 
 	case DARWIN8* :
 		SetCommonCompiler $(OSCOMP:E=gcc) ;
@@ -918,7 +925,7 @@
 
 		LIBRARY_DEPOLYMENT_SDK = sdk10.5 ;
 
-	case DARWIN1[345]* :
+	case DARWIN* :  # DARWIN13 and above
 		SetCommonCompiler $(OSCOMP:E=clang) ;
 		SetOSXSdk : -mmacosx-version-min=10.5 -fwrapv ;
 
@@ -1131,7 +1138,7 @@
 		NOARSCAN = true ;
 
 	case MACOSX :
-		Exit Set OSVER to 104, 105, 106, ... for MACOSX ;
+		Exit "Set OSVER to 104, 105, 106, ..., 1010, 1011, 1012, ... for MACOSX" ;
 
 	case MACOSX104 :
 		SetCommonCompiler $(OSCOMP:E=gcc) ;
@@ -1195,7 +1202,7 @@
 		               -framework Foundation ;
 
 	case MACOSX10[78] :
-		SetCommonCompiler $(OSCOMP:E=gcc) ;
+        SetCommonCompiler $(OSCOMP:E=gcc) ;
 		SetOSXSdk : -mmacosx-version-min=10.5 -fwrapv ;
 
 		LIBRARY_DEPOLYMENT_SDK = sdk10.5 ;
@@ -1210,7 +1217,7 @@
 		LINKLIBS    += -framework ApplicationServices
 		               -framework Foundation ;
 
-	case MACOSX1[01]* : # 10.9 and later
+	case MACOSX10* :  # 10.9 and above
 		SetCommonCompiler $(OSCOMP:E=clang) ;
 		SetOSXSdk : -mmacosx-version-min=10.5 -fwrapv ;
 
@@ -1341,16 +1348,8 @@
 		C++FLAGS = [ FRemoveAny $(C++FLAGS) : /MT ] ;
 		CCFLAGS  = [ FRemoveAny $(CCFLAGS)  : /MT ] ;
 
-		if $(TYPE_DYNAMIC)
-		{
-			# Define minimum Windows 7 version for P4GT.
-			C++FLAGS += -D_WIN32_WINNT=0x0601 ;
-		}
-		else
-		{
-			# Define min windows version supported
-			C++FLAGS += -D_WIN32_WINNT=0x0501 ;
-		}
+		# Define min windows version supported
+		C++FLAGS += -D_WIN32_WINNT=0x0501 ;
 
 		if $(FULL_PATH_DIAGNOSTICS) = true
 		{
@@ -2716,7 +2715,7 @@
 		Depends all : $(<) ;
 		MkDistArchive $(<) : $(dirname) ;
 	}
-	
+
 	rule MakeP4TestsArchive
 	{
 		local bindir = bin.$(EXEC_SUB_TOKENS[1]) ;

@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgDm error code is: 959
+ * Current high value for a MsgDm error code is: 962
  */
 
 # include <error.h>
@@ -789,6 +789,8 @@ ErrorId MsgDm::TriggerSave             = { ErrorOf( ES_DM, 352, E_INFO, EV_NONE,
 ErrorId MsgDm::TriggerNoChange         = { ErrorOf( ES_DM, 353, E_INFO, EV_NONE, 0 ), "Triggers not changed." } ;
 ErrorId MsgDm::TriggerNoDepotFile      = { ErrorOf( ES_DM, 793, E_FAILED, EV_USAGE, 2 ), "Trigger depot file '%file%' not found, purged or wrong type for trigger '%trigger%'." } ;
 ErrorId MsgDm::TriggerNoArchiveType    = { ErrorOf( ES_DM, 794, E_FAILED, EV_USAGE, 0 ), "Archive trigger may not use trigger depot files." } ;
+ErrorId MsgDm::TriggerDuplicateType    = { ErrorOf( ES_DM, 960, E_FAILED, EV_USAGE, 1 ), "Only one trigger of type %type% allowed." } ;
+ErrorId MsgDm::TriggerIncomplete2FA    = { ErrorOf( ES_DM, 961, E_FAILED, EV_USAGE, 0 ), "Incomplete set of second factor authentication triggers defined." } ;
 
 ErrorId MsgDm::TypeMapSave             = { ErrorOf( ES_DM, 354, E_INFO, EV_NONE, 1 ), "%type% saved." } ;
 ErrorId MsgDm::TypeMapNoChange         = { ErrorOf( ES_DM, 355, E_INFO, EV_NONE, 1 ), "%type% not changed." } ;
@@ -977,6 +979,7 @@ ErrorId MsgDm::CannotChangeStorageType = { ErrorOf( ES_DM, 894, E_FAILED, EV_USA
 ErrorId MsgDm::ServerLocksOrder        = { ErrorOf( ES_DM, 895, E_FATAL, EV_FAULT, 4 ), "Server locking failure: %objectType% %objectName% %lockOrder% locked after %currentLockOrder%!" } ;//NOTRANS
 ErrorId MsgDm::CounterNoTAS            = { ErrorOf( ES_DM, 920, E_FAILED, EV_USAGE, 2 ), "New value for %counterName% not set. Current value is %counterValue%." } ;
 ErrorId MsgDm::JoinMax1TooSmall	       = { ErrorOf( ES_DM, 922, E_FAILED, EV_FAULT, 1 ), "Command exceeded map.joinmax1 size (%joinmax1% bytes).  This length can be increased by setting the map.joinmax1 configurable." } ;
+ErrorId MsgDm::RevMissing              = { ErrorOf( ES_DM, 962, E_FATAL, EV_FAULT, 2 ), "Revision %depotFile%%depotRev% is missing from the metadata! (Perhaps it was obliterated?)" } ;
 ErrorId MsgDm::RevChangedDuringPush    = { ErrorOf( ES_DM, 923, E_FAILED, EV_USAGE, 2 ), "Conflict: A concurrent modification to %depotFile%%depotRev% occurred during this push/fetch/unzip operation, causing the import step to be halted." } ;
 ErrorId MsgDm::UnknownReadonlyDir      = { ErrorOf( ES_DM, 936, E_FAILED, EV_ADMIN, 1 ), "Client %clientName% cannot be accessed, because clients of type %'readonly'% are unavailable if the %'client.readonly.dir'% configuration variable is invalid or unset." } ;
 ErrorId MsgDm::ShelveNotSubmittable    = { ErrorOf( ES_DM, 937, E_FAILED, EV_NOTYET, 1 ), "Shelved file %depotFile% has no submitted revisions. Perhaps the file was obliterated after the shelf was created, or perhaps the shelf was pushed from another server where the underlying file exists. You may unshelve the file and resolve it to specify that the new file should be added, or you may remove the file from the shelf, or you may submit the underlying revision first, but you may not submit this shelf as-is." } ;

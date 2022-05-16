@@ -514,7 +514,6 @@ NetTcpTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	            io.recvPtr += l;
 				if( doGoAround )
 				{
-					writable = 1;
 					readable = 0;
 					doGoAround = 0;
 					goto goAround;
@@ -526,7 +525,6 @@ NetTcpTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	        {
 				if( doGoAround )
 				{
-					writable = 1;
 					readable = 0;
 					doGoAround = 0;
 					goto goAround;

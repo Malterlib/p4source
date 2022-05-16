@@ -763,6 +763,8 @@ class MsgDm {
 	static ErrorId TriggerNoChange;
 	static ErrorId TriggerNoDepotFile;
 	static ErrorId TriggerNoArchiveType;
+	static ErrorId TriggerDuplicateType;
+	static ErrorId TriggerIncomplete2FA;
 
 	static ErrorId TypeMapSave;
 	static ErrorId TypeMapNoChange;
@@ -953,6 +955,7 @@ class MsgDm {
 	static ErrorId CannotChangeStorageType;
 	static ErrorId ServerLocksOrder;
 	static ErrorId CounterNoTAS;
+	static ErrorId RevMissing;
 	static ErrorId RevChangedDuringPush;
 	static ErrorId UnknownReadonlyDir;
 	static ErrorId ShelveNotSubmittable;

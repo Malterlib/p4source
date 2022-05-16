@@ -53,6 +53,8 @@ class MsgGraph {
 	static ErrorId UsePermissionS;
 	static ErrorId UsePermissionC;
 	static ErrorId UsePermNoRef;
+	static ErrorId UsePermNeedRef;
+	static ErrorId UsePermBadRestrict;
 	static ErrorId UsePubKey;
 	static ErrorId UsePubKeyS;
 	static ErrorId UseReopen;
@@ -64,6 +66,7 @@ class MsgGraph {
 	static ErrorId ReferenceData;
 	static ErrorId ReferenceHistory;
 	static ErrorId ReferenceDataShort;
+	static ErrorId ReferenceDataMatch;
 	static ErrorId ReferenceHeadShort;
 	static ErrorId ReferenceHaveShort;
 	static ErrorId RepoDefaultBranch;
@@ -137,6 +140,7 @@ class MsgGraph {
 	static ErrorId InvalidRepo;
 	static ErrorId PackObjectCount;
 	static ErrorId PackObjectMissing;
+	static ErrorId PackFileMissing;
 	static ErrorId PackObjectLength;
 	static ErrorId InvalidRepoName;
 	static ErrorId InvalidDepotName;
@@ -149,6 +153,7 @@ class MsgGraph {
 	static ErrorId UseRepoo;
 	static ErrorId UseRepoi;
 	static ErrorId UseRepod;
+	static ErrorId UseRepoc;
 	static ErrorId UseRepos;
 	static ErrorId ReposData;
 	static ErrorId RepoSave;
@@ -202,6 +207,7 @@ class MsgGraph {
 	static ErrorId SpecifyForce;
 	static ErrorId OpenSuccess;
 	static ErrorId NoMultiRepoSubmit;
+	static ErrorId NoReposForSubmit;
 	static ErrorId SubmitComplete;
 	static ErrorId SingleRepoOnly;
 	static ErrorId DiffData;
@@ -222,6 +228,7 @@ class MsgGraph {
 	static ErrorId BranchCreated;
 	static ErrorId BranchDeleted;
 	static ErrorId BranchAlreadyExists;
+	static ErrorId DefaultBranchReset;
 	static ErrorId FilesData;
 	static ErrorId ResolvedData;
 	static ErrorId DescribeFile;
@@ -233,7 +240,9 @@ class MsgGraph {
 	static ErrorId CommitSummary;
 	static ErrorId NoMergeOpenFiles;
 	static ErrorId FastForwardMerge;
+	static ErrorId MergePreview;
 	static ErrorId BranchNotFound;
+	static ErrorId ManyReposUseAll;
 	static ErrorId MergeComplete;
 	static ErrorId NoChangeFixes;
 	static ErrorId UnsupportedFileType;
@@ -258,6 +267,23 @@ class MsgGraph {
 	static ErrorId GraphNotCompat;
 	static ErrorId UseGraphPackInfo;
 	static ErrorId InvalidDefaultBranch;
+	static ErrorId LsTree;
+	static ErrorId LsTreeNameOnly;
+	static ErrorId MergeConflict;
+	static ErrorId MergeNotText;
+	static ErrorId MergeSkippedResolve;
+	static ErrorId CantSubmitEmpty;
+	static ErrorId LFSDisabled;
+	static ErrorId UseUpdateRef;
+	static ErrorId RepoIndexAlready;
+	static ErrorId RepoIndexNone;
+	static ErrorId RepoIndexSuccess;
+	static ErrorId NoRepoEdgeSubmit;
+	static ErrorId MirrorMissingFile;
+	static ErrorId NoWriteForRef;
+	static ErrorId RepoSwitchChanged;
+	static ErrorId RepoAlreadyOnBranch;
+	static ErrorId RepoSwitchMissing;
 
 	// Retired ErrorIds. We need to keep these so that clients
 	// built with newer apis can commnunicate with older servers

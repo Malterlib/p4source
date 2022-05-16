@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgServer error code is: 888
+ * Current high value for a MsgServer error code is: 937
  */
 # include <error.h>
 # include <errornum.h>
@@ -59,7 +59,9 @@ ErrorId MsgServer::SkippedJnls	       = { ErrorOf( ES_SERVER, 368, E_FAILED, EV_
 ErrorId MsgServer::Password982         = { ErrorOf( ES_SERVER, 20, E_FAILED, EV_UPGRADE, 0 ), "You need a %'98.2'% or newer client to access as a password-protected user." } ;
 ErrorId MsgServer::BadPassword         = { ErrorOf( ES_SERVER, 21, E_FAILED, EV_CONFIG, 0 ), "Perforce password (%'P4PASSWD'%) invalid or unset." } ;
 ErrorId MsgServer::MustSetPassword     = { ErrorOf( ES_SERVER, 307, E_FAILED, EV_USAGE, 0 ), "Password must be set before access can be granted." } ;
+ErrorId MsgServer::MustSetPassword2    = { ErrorOf( ES_SERVER, 923, E_INFO, EV_NONE, 1 ), "Password must be set for user %user% before access can be granted." } ;
 ErrorId MsgServer::WeakPassword        = { ErrorOf( ES_SERVER, 321, E_FAILED, EV_USAGE, 0 ), "The security level of this server requires the password to be reset." } ;
+ErrorId MsgServer::WeakPassword2       = { ErrorOf( ES_SERVER, 924, E_INFO, EV_NONE, 1 ), "User %user% password is too weak and must be reset." } ;
 ErrorId MsgServer::TicketOnly          = { ErrorOf( ES_SERVER, 322, E_FAILED, EV_USAGE, 0 ), "Password not allowed at this server security level, use '%'p4 login'%'." } ;
 ErrorId MsgServer::Unicode             = { ErrorOf( ES_SERVER, 22, E_FAILED, EV_CONFIG, 0 ), "Unicode server permits only unicode enabled clients." } ;
 ErrorId MsgServer::Unicode2            = { ErrorOf( ES_SERVER, 23, E_FAILED, EV_CONFIG, 0 ), "Unicode clients require a unicode enabled server." } ;
@@ -83,14 +85,23 @@ ErrorId MsgServer::Password991         = { ErrorOf( ES_SERVER, 36, E_FAILED, EV_
 ErrorId MsgServer::Password032         = { ErrorOf( ES_SERVER, 310, E_FAILED, EV_UPGRADE, 0 ), "Only %'2003.2'% or later clients support '%'p4 passwd'%' at this server security level." } ;
 ErrorId MsgServer::NoClearText         = { ErrorOf( ES_SERVER, 311, E_FAILED, EV_UPGRADE, 0 ), "This operation is not permitted at this server security level." } ;
 ErrorId MsgServer::LoginExpired        = { ErrorOf( ES_SERVER, 312, E_FAILED, EV_ILLEGAL, 0 ), "Your session has expired, please %'login'% again." } ;
+ErrorId MsgServer::LoginExpired2       = { ErrorOf( ES_SERVER, 925, E_INFO, EV_NONE, 1 ), "User %user% session has expired." } ;
 ErrorId MsgServer::PasswordExpired     = { ErrorOf( ES_SERVER, 455, E_FAILED, EV_ILLEGAL, 0 ), "Your password has expired, please change your password." } ;
-ErrorId MsgServer::LoginNotRequired    = { ErrorOf( ES_SERVER, 313, E_INFO, EV_NONE, 0 ), "'%'login'%' not necessary, no password set for this user." } ;
+ErrorId MsgServer::PasswordExpired2     = { ErrorOf( ES_SERVER, 926, E_INFO, EV_NONE, 1 ), "User %user% password has expired and must be reset." } ;
+ErrorId MsgServer::PasswordPrompt      = { ErrorOf( ES_SERVER, 905, E_INFO, EV_NONE, 0 ), "Enter password: " } ; //NOTRANS
+ErrorId MsgServer::OldPasswordPrompt   = { ErrorOf( ES_SERVER, 906, E_INFO, EV_NONE, 0 ), "Enter old password: " } ; //NOTRANS
+ErrorId MsgServer::NewPasswordPrompt   = { ErrorOf( ES_SERVER, 907, E_INFO, EV_NONE, 0 ), "Enter new password: " } ; //NOTRANS
+ErrorId MsgServer::NewPasswordPrompt2  = { ErrorOf( ES_SERVER, 908, E_INFO, EV_NONE, 0 ), "Re-enter new password: " } ; //NOTRANS
+ErrorId MsgServer::LoginNotRequired    = { ErrorOf( ES_SERVER, 313, E_INFO, EV_NONE, 1 ), "'%'login'%' not necessary, no password set for [user %user%|this user]." } ;
 ErrorId MsgServer::LoginPrintTicket    = { ErrorOf( ES_SERVER, 314, E_INFO, EV_NONE, 1 ), "%ticket%" } ;
 ErrorId MsgServer::LoginUser           = { ErrorOf( ES_SERVER, 325, E_INFO, EV_NONE, 1 ), "User %user% logged in." } ;
 ErrorId MsgServer::LoginGoodTill       = { ErrorOf( ES_SERVER, 326, E_INFO, EV_NONE, 3 ), "User %user% ticket expires in %hours% hours %minutes% minutes." } ;
 ErrorId MsgServer::LoginNoTicket       = { ErrorOf( ES_SERVER, 327, E_INFO, EV_NONE, 1 ), "User %user% was authenticated by password not ticket." } ;
 ErrorId MsgServer::LoggingUserIn       = { ErrorOf( ES_SERVER, 859, E_INFO, EV_NONE, 2 ), "Attempting login for user '%user%' against server '%port%'" } ;
-ErrorId MsgServer::LogoutUser          = { ErrorOf( ES_SERVER, 315, E_INFO, EV_NONE, 1 ), "User %user% logged out." } ;
+ErrorId MsgServer::LogoutUser          = { ErrorOf( ES_SERVER, 315, E_INFO, EV_NONE, 2 ), "User %user% logged out[ on host %target%]." } ;
+ErrorId MsgServer::Logout2User         = { ErrorOf( ES_SERVER, 922, E_INFO, EV_NONE, 2 ), "Second factor authentication has been reset for user %user%[ on host %target%]." } ;
+ErrorId MsgServer::Logout2NotApproved  = { ErrorOf( ES_SERVER, 920, E_WARN, EV_NONE, 2 ), "User %user% has no second factor authentication approval[ for host %host%|s]." } ;
+ErrorId MsgServer::LogoutNoHostTicket  = { ErrorOf( ES_SERVER, 921, E_INFO, EV_NONE, 2 ), "No host specific tickets found for user %user% and host %host%." } ;
 ErrorId MsgServer::LoggedOut           = { ErrorOf( ES_SERVER, 318, E_FAILED, EV_ILLEGAL, 0 ), "Your session was logged out, please %'login'% again." } ;
 ErrorId MsgServer::Login032            = { ErrorOf( ES_SERVER, 319, E_FAILED, EV_UPGRADE, 0 ), "Only %'2003.2'% or later clients support '%'p4 login'%' at this server security level." } ;
 ErrorId MsgServer::Login042            = { ErrorOf( ES_SERVER, 335, E_FAILED, EV_UPGRADE, 0 ), "Only %'2004.2'% or later clients support '%'p4 login'%' for external authentication." } ;
@@ -98,6 +109,34 @@ ErrorId MsgServer::Login072            = { ErrorOf( ES_SERVER, 355, E_FAILED, EV
 ErrorId MsgServer::SSOfailed           = { ErrorOf( ES_SERVER, 356, E_FAILED, EV_UNKNOWN, 1 ), "Single sign-on on client failed: %result%" } ;
 ErrorId MsgServer::SSONoEnv            = { ErrorOf( ES_SERVER, 357, E_FAILED, EV_UNKNOWN, 0 ), "Single sign-on on client failed: '%'P4LOGINSSO'%' not set." } ;
 ErrorId MsgServer::SSOInvalid          = { ErrorOf( ES_SERVER, 358, E_FAILED, EV_ILLEGAL, 0 ), "Login invalid." } ;
+ErrorId MsgServer::Login2NoConfig      = { ErrorOf( ES_SERVER, 890, E_FAILED, EV_ILLEGAL, 0 ), "Second factor authentication not configured!" } ;
+ErrorId MsgServer::Login2Required      = { ErrorOf( ES_SERVER, 891, E_FAILED, EV_CONFIG, 0 ), "Second factor authentication required! Run 'p4 login2'." } ;
+ErrorId MsgServer::Login2Auto          = { ErrorOf( ES_SERVER, 892, E_INFO, EV_NONE, 2 ), "Beginning second factor authentication for user '%user%' against server at '%port%'" } ;
+ErrorId MsgServer::Login2Existing      = { ErrorOf( ES_SERVER, 893, E_INFO, EV_NONE, 0 ), "Second factor authentication already approved." } ;
+ErrorId MsgServer::Login2NotRequired   = { ErrorOf( ES_SERVER, 894, E_INFO, EV_NONE, 1 ), "User %user% does not use second factor authentication." } ;
+ErrorId MsgServer::Login2Status        = { ErrorOf( ES_SERVER, 895, E_INFO, EV_NONE, 3 ), "User %user% on host %host%: %status%" } ;
+ErrorId MsgServer::Login2Approved      = { ErrorOf( ES_SERVER, 896, E_INFO, EV_NONE, 1 ), "Second factor authentication approved[ for user %user%]." } ;
+ErrorId MsgServer::Login2Rejected      = { ErrorOf( ES_SERVER, 911, E_FAILED, EV_UNKNOWN, 0 ), "Second factor authentication was rejected." } ;
+ErrorId MsgServer::Login2Waiting       = { ErrorOf( ES_SERVER, 912, E_FAILED, EV_UNKNOWN, 0 ), "Second factor authentication approval is pending." } ;
+ErrorId MsgServer::Login2Waiting2      = { ErrorOf( ES_SERVER, 913, E_WARN, EV_UNKNOWN, 0 ), "Second factor authentication approval is pending. Retrying..." } ;
+ErrorId MsgServer::Login2Methods       = { ErrorOf( ES_SERVER, 897, E_INFO, EV_NONE, 0 ), "Available second factor authentication methods: " } ;
+ErrorId MsgServer::Login2Method        = { ErrorOf( ES_SERVER, 898, E_INFO, EV_NONE, 2 ), "%id%: %desc%" } ;
+ErrorId MsgServer::Login2MethodUnknown = { ErrorOf( ES_SERVER, 899, E_FAILED, EV_ILLEGAL, 1 ), "Unknown method '%method%'!" } ;
+ErrorId MsgServer::Login2NoMethods     = { ErrorOf( ES_SERVER, 900, E_FAILED, EV_ILLEGAL, 0 ), "No available second factor authentication methods for user!" } ;
+ErrorId MsgServer::Login2NoPersist     = { ErrorOf( ES_SERVER, 927, E_FAILED, EV_CONFIG, 0 ), "Persistent second factor authentication has been disabled on this server." } ;
+ErrorId MsgServer::Login2BadState      = { ErrorOf( ES_SERVER, 901, E_FAILED, EV_ILLEGAL, 0 ), "Bad state! Must be: list-methods, init-auth or check-auth." } ;
+ErrorId MsgServer::Login2BadState1     = { ErrorOf( ES_SERVER, 902, E_FAILED, EV_ILLEGAL, 0 ), "Method required to init-auth" } ;
+ErrorId MsgServer::Login2BadState2     = { ErrorOf( ES_SERVER, 903, E_FAILED, EV_ILLEGAL, 0 ), "Cannot check status! Must init-auth first!" } ;
+ErrorId MsgServer::Login2BadState3     = { ErrorOf( ES_SERVER, 928, E_FAILED, EV_ILLEGAL, 0 ), "Method cannot be provided to list-methods!" } ;
+ErrorId MsgServer::Login2BadScheme     = { ErrorOf( ES_SERVER, 904, E_FAILED, EV_ILLEGAL, 1 ), "Unknown second factor authentication scheme: %scheme%" } ;
+ErrorId MsgServer::Login2MethodPrompt  = { ErrorOf( ES_SERVER, 910, E_INFO, EV_NONE, 1 ), "Enter the number for the chosen method: " } ; //NOTRANS
+ErrorId MsgServer::Login2OTPPrompt     = { ErrorOf( ES_SERVER, 909, E_INFO, EV_NONE, 1 ), "Enter OTP[ (%challenge%)]: " } ; //NOTRANS
+ErrorId MsgServer::Login2PreApproved   = { ErrorOf( ES_SERVER, 914, E_INFO, EV_NONE, 0 ), "Second factor authentication skipped and approved by auth-pre-2fa trigger." } ;
+ErrorId MsgServer::Login2SuperApproved = { ErrorOf( ES_SERVER, 915, E_INFO, EV_NONE, 0 ), "Second factor authentication approved by super-user override." } ;
+ErrorId MsgServer::Login2ExtRejected   = { ErrorOf( ES_SERVER, 916, E_FAILED, EV_USAGE, 0 ), "Second factor authentication rejected by auth-check-2fa trigger (external prompt)." } ;
+ErrorId MsgServer::Login2ExtApproved   = { ErrorOf( ES_SERVER, 917, E_INFO, EV_NONE, 0 ), "Second factor authentication approved by auth-check-2fa trigger (external prompt)." } ;
+ErrorId MsgServer::Login2OtpRejected   = { ErrorOf( ES_SERVER, 918, E_FAILED, EV_USAGE, 0 ), "Second factor authentication rejected by auth-check-2fa trigger (otp prompt)." } ;
+ErrorId MsgServer::Login2OtpApproved   = { ErrorOf( ES_SERVER, 919, E_INFO, EV_NONE, 0 ), "Second factor authentication approved by auth-check-2fa trigger (otp prompt)." } ;
 ErrorId MsgServer::CantAuthenticate    = { ErrorOf( ES_SERVER, 334, E_FAILED, EV_ILLEGAL, 1 ), "Command unavailable: external authentication '%triggerType%' trigger not found." } ;
 ErrorId MsgServer::CantChangeOther     = { ErrorOf( ES_SERVER, 336, E_FAILED, EV_ILLEGAL, 0 ), "Cannot change password for another user with external authentication." } ;
 ErrorId MsgServer::CantResetPassword   = { ErrorOf( ES_SERVER, 732, E_FAILED, EV_ILLEGAL, 0 ), "Cannot reset password with external authentication." } ;
@@ -131,6 +170,7 @@ ErrorId MsgServer::RetypeInvalidTempobj = { ErrorOf( ES_SERVER, 374, E_FAILED, E
 ErrorId MsgServer::NoSubmit            = { ErrorOf( ES_SERVER, 46, E_FAILED, EV_EMPTY, 0 ), "No files to submit." } ;
 ErrorId MsgServer::TriggerFailed       = { ErrorOf( ES_SERVER, 47, E_FAILED, EV_NOTYET, 2 ), "'%trigger%' validation failed: %result%" } ;
 ErrorId MsgServer::TriggerOutput       = { ErrorOf( ES_SERVER, 362, E_INFO, EV_NOTYET, 1 ), "%result%" } ;
+ErrorId MsgServer::TriggerUnexpected   = { ErrorOf( ES_SERVER, 889, E_FAILED, EV_NOTYET, 0 ), "Unexpected return code from trigger!" } ;
 ErrorId MsgServer::TriggersFailed      = { ErrorOf( ES_SERVER, 48, E_FAILED, EV_NOTYET, 1 ), "Submit validation failed -- fix problems then use '%'p4 submit -c'% %change%'." } ;
 ErrorId MsgServer::SubmitAborted       = { ErrorOf( ES_SERVER, 49, E_FAILED, EV_NOTYET, 1 ), "Submit aborted -- fix problems then use '%'p4 submit -c'% %change%'." } ;
 ErrorId MsgServer::SubmitShelvedAborted = { ErrorOf( ES_SERVER, 642, E_FAILED, EV_NOTYET, 1 ), "Submit aborted -- fix problems then use '%'p4 submit -e'% %change%'." } ;
@@ -336,12 +376,13 @@ ErrorId MsgServer::UseAdminCheckpoint  = { ErrorOf( ES_SERVER, 203, E_FAILED, EV
 ErrorId MsgServer::UseAdminJournal     = { ErrorOf( ES_SERVER, 204, E_FAILED, EV_USAGE, 0 ), "Usage: %'admin journal [ -z ] [ prefix ]'%" } ;
 ErrorId MsgServer::UseAdminSpecDepot   = { ErrorOf( ES_SERVER, 352, E_FAILED, EV_USAGE, 0 ), "Usage: %'admin updatespecdepot [ -a | -s type ]'%" } ;
 ErrorId MsgServer::UseAdminResetPassword = { ErrorOf( ES_SERVER, 620, E_FAILED, EV_USAGE, 0 ), "Usage: %'admin resetpassword -a | -u user'%" } ;
-ErrorId MsgServer::UseAdminSetLdapUsers= { ErrorOf( ES_SERVER, 780, E_FAILED, EV_USAGE, 0 ), "Usage: %'admin setldapusers [ -n ]'%" } ;
+ErrorId MsgServer::UseAdminSetLdapUsers = { ErrorOf( ES_SERVER, 780, E_FAILED, EV_USAGE, 0 ), "Usage: %'admin setldapusers [ -n ]'%" } ;
 ErrorId MsgServer::UseAdminDBSigs      = { ErrorOf( ES_SERVER, 502, E_FAILED, EV_USAGE, 0 ), "Usage: %'journaldbchecksums [ -s -b batchsize -c change -l level -u file -t includelist -T excludelist -v version -z ]'%" } ;
 ErrorId MsgServer::UseAdminImport      = { ErrorOf( ES_SERVER, 360, E_FAILED, EV_USAGE, 0 ), "Usage: %'admin import [ -l ] [ -b batchsize ] [ -f ]'%" } ;
 ErrorId MsgServer::UseAnnotate         = { ErrorOf( ES_SERVER, 289, E_FAILED, EV_USAGE, 0 ), "Usage: %'annotate [ -aciIqtTu -d<flags> ] files...'%" } ;
 ErrorId MsgServer::UseArchive          = { ErrorOf( ES_SERVER, 453, E_FAILED, EV_USAGE, 0 ), "Usage: %'archive -D depot [-n -h -p -q -t ] files...'%" } ;
 ErrorId MsgServer::UseBackup           = { ErrorOf( ES_SERVER, 816, E_FAILED, EV_USAGE, 0 ), "Usage: %'backup'%" } ;
+ErrorId MsgServer::UseBGTask           = { ErrorOf( ES_SERVER, 935, E_FAILED, EV_USAGE, 0 ), "Usage: bgtask [ -b -d -f -i -m -w ] [ -e -t ]" } ;
 ErrorId MsgServer::UseBranch           = { ErrorOf( ES_SERVER, 205, E_FAILED, EV_USAGE, 0 ), "Usage: %'branch [ -d -f -i -S stream -P parent -o ] branchname'%" } ;
 ErrorId MsgServer::UseBrancho          = { ErrorOf( ES_SERVER, 206, E_FAILED, EV_USAGE, 0 ), "Usage: %'branch [ -S stream [ -P parent ] ] -o branchname'%" } ;
 ErrorId MsgServer::UseBranchd          = { ErrorOf( ES_SERVER, 207, E_FAILED, EV_USAGE, 0 ), "Usage: %'branch -d [ -f ] branchname'%" } ;
@@ -354,7 +395,7 @@ ErrorId MsgServer::UseChangei          = { ErrorOf( ES_SERVER, 212, E_FAILED, EV
 ErrorId MsgServer::UseChanget          = { ErrorOf( ES_SERVER, 456, E_FAILED, EV_USAGE, 0 ), "Usage: %'change -t restricted | public [ -U user ] [ -f | -u | -O | -I ] changelist#'%" } ;
 ErrorId MsgServer::UseChangeU          = { ErrorOf( ES_SERVER, 651, E_FAILED, EV_USAGE, 0 ), "Usage: %'change -U user [ -t restricted | public ] [ -f ] changelist#'%" } ;
 ErrorId MsgServer::UseChangeUt         = { ErrorOf( ES_SERVER, 652, E_FAILED, EV_USAGE, 0 ), "Usage: %'change -U user -t restricted | public [ -f ] changelist#'%" } ;
-ErrorId MsgServer::UseChanges          = { ErrorOf( ES_SERVER, 213, E_FAILED, EV_USAGE, 0 ), "Usage: %'changes [-i -t -l -L -f -c client -e changelist# -m count -s status -u user] [files...]'%" } ;
+ErrorId MsgServer::UseChanges          = { ErrorOf( ES_SERVER, 213, E_FAILED, EV_USAGE, 0 ), "Usage: %'changes [-i -t -l -L -f -r -c client -e changelist# -m count -s status -u user] [files...]'%" } ;
 ErrorId MsgServer::UseClean            = { ErrorOf( ES_SERVER, 674, E_FAILED, EV_USAGE, 0 ), "Usage: %'clean [ -a -d -e -I -l -n ] [ files... ]'%" } ;
 ErrorId MsgServer::UseClient           = { ErrorOf( ES_SERVER, 214, E_FAILED, EV_USAGE, 0 ), "Usage: %'client [ -d -f -Fs -i -o -s ] [ -T type ] [ -t template | -S stream ] [ -c change ] [ clientname ]'%" } ;
 ErrorId MsgServer::UseCliento          = { ErrorOf( ES_SERVER, 215, E_FAILED, EV_USAGE, 0 ), "Usage: %'client -o [ -t template ] clientname'%" } ;
@@ -379,7 +420,7 @@ ErrorId MsgServer::UseDepoto           = { ErrorOf( ES_SERVER, 221, E_FAILED, EV
 ErrorId MsgServer::UseDepotd           = { ErrorOf( ES_SERVER, 222, E_FAILED, EV_USAGE, 0 ), "Usage: %'depot -d depotname'%" } ;
 ErrorId MsgServer::UseDepoti           = { ErrorOf( ES_SERVER, 223, E_FAILED, EV_USAGE, 0 ), "Usage: %'depot -i'%" } ;
 ErrorId MsgServer::UseDepots           = { ErrorOf( ES_SERVER, 224, E_FAILED, EV_USAGE, 0 ), "Usage: %'depots [ -t type ]'%" } ;
-ErrorId MsgServer::UseDescribe         = { ErrorOf( ES_SERVER, 225, E_FAILED, EV_USAGE, 0 ), "Usage: %'describe [-d<flags> -m max -s -S -f -O -I] changelist# ...'%" } ;
+ErrorId MsgServer::UseDescribe         = { ErrorOf( ES_SERVER, 225, E_FAILED, EV_USAGE, 0 ), "Usage: %'describe [-d<flags> -a -m max -s -S -f -O -I] changelist# ...'%" } ;
 ErrorId MsgServer::UseDiff             = { ErrorOf( ES_SERVER, 226, E_FAILED, EV_USAGE, 0 ), "Usage: %'diff [ -d<flags> -f -m max -Od -s<flag> -t ] [files...]'%" } ;
 ErrorId MsgServer::UseDiff2            = { ErrorOf( ES_SERVER, 227, E_FAILED, EV_USAGE, 0 ), "Usage: %'diff2 [ -d<flags> -Od -q -t -u ] [ -b branchName ] [ -S stream ] [ -P parent ] file file2'%" } ;
 ErrorId MsgServer::UseDiff2b           = { ErrorOf( ES_SERVER, 228, E_FAILED, EV_USAGE, 0 ), "Usage: %'diff2 [ -d<flags> -Od -q -t -u ] -b branchName [ [ file ] file2 ]'%" } ;
@@ -454,9 +495,10 @@ ErrorId MsgServer::LockGlobalError     = { ErrorOf( ES_SERVER, 847, E_FAILED, EV
 ErrorId MsgServer::UnlockGlobalError   = { ErrorOf( ES_SERVER, 849, E_FAILED, EV_NOTYET, 0 ), "Failed to unlock files globally." } ;
 ErrorId MsgServer::NoGlobalLock        = { ErrorOf( ES_SERVER, 848, E_FAILED, EV_UPGRADE, 0 ), "Global option (%'-g'%) not supported on Commit Server." } ;
 ErrorId MsgServer::UseLockstat         = { ErrorOf( ES_SERVER, 610, E_FAILED, EV_USAGE, 0 ), "Usage: %'lockstat [-c client | -C]'%" } ;
-ErrorId MsgServer::UseLogin            = { ErrorOf( ES_SERVER, 316, E_FAILED, EV_USAGE, 0 ), "Usage: %'login [ -a -p ] [ -s ] [ -r remotespec ] [ -h host username ]'%" } ;
-ErrorId MsgServer::UseLoginr           = { ErrorOf( ES_SERVER, 839, E_FAILED, EV_USAGE, 0 ), "Usage: %'login -r remotespec [ -a -p ] [ -s ]'%" } ;
-ErrorId MsgServer::UseLogout           = { ErrorOf( ES_SERVER, 317, E_FAILED, EV_USAGE, 0 ), "Usage: %'logout [ -a ] [ username ]'%" } ;
+ErrorId MsgServer::UseLogin            = { ErrorOf( ES_SERVER, 316, E_FAILED, EV_USAGE, 0 ), "Usage: %'login [ -s | -p ] [ -a | -h host ] [ -r remotespec ] [ username ]'%" } ;
+ErrorId MsgServer::UseLogin2           = { ErrorOf( ES_SERVER, 931, E_FAILED, EV_USAGE, 0 ), "Usage: %'login2 [ -s [ -a ] | -p -R -m method -S state ] [ -h host ] [ -r remotespec ] [ username ]'%" } ;
+ErrorId MsgServer::UseLoginr           = { ErrorOf( ES_SERVER, 839, E_FAILED, EV_USAGE, 0 ), "Usage: %'login -r remotespec [ -a ] [ -s | -p ]'%" } ;
+ErrorId MsgServer::UseLogout           = { ErrorOf( ES_SERVER, 317, E_FAILED, EV_USAGE, 0 ), "Usage: %'logout [ -a | -h host ] [ username ]'%" } ;
 ErrorId MsgServer::UseLogger           = { ErrorOf( ES_SERVER, 261, E_FAILED, EV_USAGE, 0 ), "Usage: %'logger [ -c sequence# ] [ -t counter_name ]'%" } ;
 ErrorId MsgServer::UseLogAppend        = { ErrorOf( ES_SERVER, 560, E_FAILED, EV_USAGE, 0 ), "Usage: %'logappend -a args...'%" } ;
 ErrorId MsgServer::UseLogParse         = { ErrorOf( ES_SERVER, 574, E_FAILED, EV_USAGE, 0 ), "Usage: %'logparse [ -e ] [-T field...] [-F filter] [-s offset] [-m max] logfilename'%" } ;
@@ -487,7 +529,7 @@ ErrorId MsgServer::UseProtect          = { ErrorOf( ES_SERVER, 266, E_FAILED, EV
 ErrorId MsgServer::UseProtects         = { ErrorOf( ES_SERVER, 339, E_FAILED, EV_USAGE, 0 ), "Usage: %'protects [-s spec][ -a | -g group | -u user ] [ -h host ] [ -m ] [ file ... ]'%" } ;
 ErrorId MsgServer::UseProtectsM        = { ErrorOf( ES_SERVER, 477, E_FAILED, EV_USAGE, 0 ), "Usage: %'protects -M [ -g group | -u user ] [ file ... ]'%" } ;
 ErrorId MsgServer::UsePrune            = { ErrorOf( ES_SERVER, 738, E_FAILED, EV_USAGE, 0 ), "Usage: %'prune -d [ -y ] -S stream'%" } ;
-ErrorId MsgServer::UsePull             = { ErrorOf( ES_SERVER, 441, E_FAILED, EV_USAGE, 0 ), "Usage: %'pull [ -u | -l [ -s | -j ] | -d -f file -r rev ] [ -J prefix -P filterpattern -T tableexcludelist ] [ -i <N> ] [ -b <N> ] [ --batch=n ] [ -L ]'%" } ;
+ErrorId MsgServer::UsePull             = { ErrorOf( ES_SERVER, 441, E_FAILED, EV_USAGE, 0 ), "Usage: %'pull [ -u [ --min-size=n ] [ --max-size=n ] [ --trigger ] | -l [ -s | -j ] | -d -f file -r rev | -R [ file ] ] [ -J prefix -P filterpattern -T tableexcludelist ] [ -i <N> ] [ -b <N> ] [ --batch=n ] [ -L ]'%" } ;
 ErrorId MsgServer::UsePurge            = { ErrorOf( ES_SERVER, 267, E_FAILED, EV_USAGE, 0 ), "Usage: %'obliterate [-y -A -b -a -h] files...'%" } ;
 ErrorId MsgServer::UsePush             = { ErrorOf( ES_SERVER, 745, E_FAILED, EV_USAGE, 0 ), "Usage: %'push [ -n -r remotespec -v -O flags ] [ -S stream | files | -s shelf ]'%" } ;
 ErrorId MsgServer::UseRelease          = { ErrorOf( ES_SERVER, 268, E_FAILED, EV_USAGE, 0 ), "Usage: %'revert [ -a -n -k -w -c changelist# -C client ] [--remote=rmt] files...'%" } ;
@@ -642,9 +684,13 @@ ErrorId MsgServer::CachepurgeNotReplica = { ErrorOf( ES_SERVER, 723, E_FAILED, E
 ErrorId MsgServer::CachepurgeBadMode   = { ErrorOf( ES_SERVER, 817, E_FAILED, EV_USAGE, 0 ), "Cachepurge is only available on replica servers with lbr.replication=readonly or lbr.replication=cache." } ;
 ErrorId MsgServer::ReplicaCacheConfig  = { ErrorOf( ES_SERVER, 840, E_FATAL, EV_ADMIN, 0 ), "Replica cannot run! This replica server appears to share archive storage with its master server. However, the replica was not configured with lbr.replication=shared. Sharing archive storage without setting lbr.replication=shared can result in lost or damaged data. Please reconfigure this replica or contact Perforce Technical Support for assistance." } ;
 ErrorId MsgServer::PullNotReplica      = { ErrorOf( ES_SERVER, 442, E_FAILED, EV_ADMIN, 0 ), "Pull only allowed on replica servers." } ;
+ErrorId MsgServer::PullNeedsBatch             = { ErrorOf( ES_SERVER, 929, E_FAILED, EV_USAGE, 0 ), "Pull needs --batch > 1 for --min-size, --max-size and --triger." } ;
+ErrorId MsgServer::PullNeedsU             = { ErrorOf( ES_SERVER, 930, E_FAILED, EV_USAGE, 0 ), "Pull --min-size, --max-size and --trigger are only supported with the -u option" } ;
 ErrorId MsgServer::CommandRunning  = { ErrorOf( ES_SERVER, 678, E_FAILED, EV_USAGE, 1 ), "A %cmd% command is already running in this server." } ;
 ErrorId MsgServer::TransferCancelled   = { ErrorOf( ES_SERVER, 643, E_INFO, EV_NONE, 0 ), "The file content transfer was cancelled." } ;
+ErrorId MsgServer::TransferReset   = { ErrorOf( ES_SERVER, 932, E_INFO, EV_NONE, 1 ), "File content transfer will be retried for %count% file(s)." } ;
 ErrorId MsgServer::NoSuchTransfer      = { ErrorOf( ES_SERVER, 644, E_FAILED, EV_ADMIN, 2 ), "File %lbrFile% revision %lbrRev% is not currently scheduled to be transferred." } ;
+ErrorId MsgServer::NoTransfersFound      = { ErrorOf( ES_SERVER, 933, E_INFO, EV_NONE, 0 ), "No file transfer failures have been found." } ;
 ErrorId MsgServer::PullOnDemand        = { ErrorOf( ES_SERVER, 645, E_FAILED, EV_ADMIN, 0 ), "This command is not used with a replica server which uses lbr.replication=shared." } ;
 ErrorId MsgServer::NoUpdateForwarding  = { ErrorOf( ES_SERVER, 871, E_FAILED, EV_ADMIN, 0 ), "A forwarding replica may not specify db.replication=update." } ;
 ErrorId MsgServer::JournalCopyBadJnlState = { ErrorOf( ES_SERVER, 718, E_FAILED, EV_ADMIN, 0 ), "This command must be used with a standby replica." } ;
@@ -727,6 +773,8 @@ ErrorId MsgServer::NoteHookError       = { ErrorOf( ES_SERVER, 830, E_FAILED, EV
 ErrorId MsgServer::TargetAccessFailed  = { ErrorOf( ES_SERVER, 708, E_FAILED, EV_COMM, 0 ), "Replica access to %'P4TARGET'% server failed." } ;
 
 ErrorId MsgServer::BadTriggerOutput    = { ErrorOf( ES_SERVER, 675, E_FAILED, EV_ADMIN, 2 ), "A server-side trigger ('%trigger%') produced indecipherable output (%type%)" } ;
+ErrorId MsgServer::BGTaskCrumb        = { ErrorOf( ES_SERVER, 936, E_INFO, EV_NONE, 1 ), "Running task with server PID %pid%." } ;
+ErrorId MsgServer::BGTaskRetry        = { ErrorOf( ES_SERVER, 937, E_INFO, EV_NONE, 1 ), "Retry %retry%/%tries% of failed task '%task%':  %error%" } ;
 
 ErrorId MsgServer::LdapAuthSuccess     = { ErrorOf( ES_SERVER, 688, E_INFO, EV_NONE, 0 ), "Authentication successful." } ;
 ErrorId MsgServer::LdapAuthSuccessD    = { ErrorOf( ES_SERVER, 733, E_INFO, EV_NONE, 2 ), "Authentication for %user% succeeded against configuration %ldap%." } ;
@@ -766,7 +814,7 @@ ErrorId MsgServer::LdapNoAttrsFound    = { ErrorOf( ES_SERVER, 843, E_WARN, EV_N
 ErrorId MsgServer::LdapSyncUserAdd     = { ErrorOf( ES_SERVER, 873, E_INFO, EV_NONE, 3 ), "User %user% added as '%name%' (%email%)" } ;
 ErrorId MsgServer::LdapSyncUserUpdate  = { ErrorOf( ES_SERVER, 874, E_INFO, EV_NONE, 5 ), "User %user% updated from '%oldName%' (%oldEmail%) to '%newName%' (%newEmail%)" };
 ErrorId MsgServer::LdapSyncUserDel     = { ErrorOf( ES_SERVER, 875, E_INFO, EV_NONE, 1 ), "User %user% deleted." } ;
-ErrorId MsgServer::LdapSyncUserNoChange= { ErrorOf( ES_SERVER, 876, E_INFO, EV_NONE, 0 ), "No changes made to users." } ;
+ErrorId MsgServer::LdapSyncUserNoChange = { ErrorOf( ES_SERVER, 876, E_INFO, EV_NONE, 0 ), "No changes made to users." } ;
 
 ErrorId MsgServer::LicenceInputOnly    = { ErrorOf( ES_SERVER, 870, E_FAILED, EV_USAGE, 0 ), "Only '%'p4 license -i'%' and '%'p4 license -u'%' may be used until a license is installed." };
 
@@ -833,10 +881,11 @@ ErrorId MsgServer::ClientRejected      = { ErrorOf( ES_SERVER, 812, E_FAILED, EV
 ErrorId MsgServer::OpenReadOnly        = { ErrorOf( ES_SERVER, 825, E_FAILED, EV_USAGE, 0 ), "Client of type '%'readonly'%' cannot modify files." } ;
 ErrorId MsgServer::OpenNotDVCSLocal    = { ErrorOf( ES_SERVER, 863, E_FAILED, EV_USAGE, 0 ), "The %'--remote'% flag is only available on a server created by the %'p4 clone'% or %'p4 init'% commands." } ;
 ErrorId MsgServer::ServerIDIdentity    = { ErrorOf( ES_SERVER, 865, E_FAILED, EV_ADMIN, 0 ), "The change could not be submitted, because this server has no serverid, but the %'submit.identity=serverid'% configuration requires that a serverid be used." } ;
-ErrorId MsgServer::ClientTooOldToSkipXfer= { ErrorOf( ES_SERVER, 867, E_FAILED, EV_USAGE, 0 ), "You must use newer client software in order to enable bypass of file transfers." } ;
-ErrorId MsgServer::UserEmptyGroup= { ErrorOf( ES_SERVER, 868, E_FAILED, EV_USAGE, 3 ), "User %user% is the last member of group %group% and cannot be deleted.\nDelete the group via 'p4 group -d -F %group%', then try again." } ;
+ErrorId MsgServer::ClientTooOldToSkipXfer = { ErrorOf( ES_SERVER, 867, E_FAILED, EV_USAGE, 0 ), "You must use newer client software in order to enable bypass of file transfers." } ;
+ErrorId MsgServer::UserEmptyGroup = { ErrorOf( ES_SERVER, 868, E_FAILED, EV_USAGE, 3 ), "User %user% is the last member of group %group% and cannot be deleted.\nDelete the group via 'p4 group -d -F %group%', then try again." } ;
 ErrorId MsgServer::NoTriggerDir  = { ErrorOf( ES_SERVER, 887, E_FATAL, EV_UNKNOWN, 0 ), "pull --trigger requires config 'pull.trigger.dir'" } ;
 ErrorId MsgServer::NoPullTrigger = { ErrorOf( ES_SERVER, 888, E_FATAL, EV_UNKNOWN, 0 ), "pull --trigger requires a 'pull' trigger to be configured" } ;
+ErrorId MsgServer::TriggerNameNotFound = { ErrorOf( ES_SERVER, 934, E_FAILED, EV_UNKNOWN, 0 ), "No trigger of type '%type%' named '%trigger%' found." } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 

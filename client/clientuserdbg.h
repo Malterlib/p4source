@@ -35,6 +35,7 @@ class ClientUserDebugMsg : public ClientUserDebug {
     public:
 
 	virtual void	Message( Error* err );
+	virtual void	Prompt( Error *err, StrBuf &rsp, int noEcho,Error *e );
 
 } ;
 

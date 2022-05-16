@@ -63,7 +63,7 @@ MapHalf::operator =( const StrPtr &newHalf )
 	int nDots = 0;
 	MapChar *mc = mapChar;
 
-	while( mc->Set( p, nStars, nDots ) )
+	while( mc->Set( p, nStars, nDots, caseMode ) )
 	    ++mc;
 
 	// Find non-wildcard tail
@@ -286,6 +286,15 @@ MapHalf::Validate( MapHalf *item, Error *e )
 	    e->Set( MsgDb::WildMismatch ) << *this << *item;
 	    return;
 	}
+}
+
+void
+MapHalf::SetCaseMode( int caseMode )
+{
+	this->caseMode = caseMode;
+	if( mapChar )
+	    for( MapChar *mc = mapChar; mc->cc != cEOS; mc++ )
+	        mc->caseMode = caseMode;
 }
 
 //

@@ -1118,7 +1118,7 @@ int
 CharSetCvtCptoUTF8::Cvt(const char **sourcestart, const char *sourceend,
 		    char **targetstart, char *targetend)
 {
-    unsigned int v, oldv;
+    unsigned int v;
 
     while (*sourcestart < sourceend && *targetstart < targetend)
     {
@@ -1135,7 +1135,6 @@ CharSetCvtCptoUTF8::Cvt(const char **sourcestart, const char *sourceend,
 	    v <<= 8;
 	    v |= *++*sourcestart & 0xff;
 	}
-	oldv = v;
 	if (v > 0x7f)
 	    v = MapThru(v, toMap, toMapSize, 0xfffd);
 	if (v == 0xfffd)

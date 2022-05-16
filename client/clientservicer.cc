@@ -887,7 +887,15 @@ clientReconcileAdd( Client *client, Error *e )
 	    client->handles.Install( &skipAdd, recHandle, e );
 
 	    if( e->Test() )
+	    {
+	        delete files;
+	        delete sizes;
+	        delete dirs;
+	        delete depotFiles;
+	        delete digests;
+	        delete map;
 		return;
+	     }
 	}
 
 	// status -s also needs the list of files opened for add appended
@@ -1008,9 +1016,7 @@ clientExactMatch( Client *client, Error *e )
 	// index    = exact match
 
 	client->NewHandler();
-	StrPtr *clientType = client->GetVar( P4Tag::v_type );
 	StrPtr *digest = client->GetVar( P4Tag::v_digest );
-	StrPtr *fileSize = client->GetVar( P4Tag::v_fileSize );
 	StrPtr *confirm = client->GetVar( P4Tag::v_confirm, e );
 
 	if( e->Test() )

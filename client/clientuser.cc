@@ -52,11 +52,28 @@ int commandChaining = 0; // can be set by clientmain to support '-x run'
 
 ClientUser::~ClientUser()
 {
+    delete transfer;
 }
 
 /*
  * ClientUser::Prompt() - prompt the user, and wait for a response.
  */
+
+void
+ClientUser::Prompt( Error *err, StrBuf &buf, int noEcho, Error *e )
+{
+	StrBuf ebuf;
+	err->Fmt( ebuf, EF_PLAIN );
+	Prompt( ebuf, buf, noEcho, e );
+}
+
+void
+ClientUser::Prompt( Error *err, StrBuf &buf, int noEcho, int noOutput, Error *e )
+{
+	StrBuf ebuf;
+	err->Fmt( ebuf, EF_PLAIN );
+	Prompt( ebuf, buf, noEcho, noOutput, e );
+}
 
 void
 ClientUser::Prompt( const StrPtr &msg, StrBuf &buf, int noEcho, Error *e )
@@ -838,6 +855,12 @@ void
 ClientUser::DisableTmpCleanup()
 {
 	signaler.Disable();
+}
+
+void
+ClientUser::SetTransfer( ClientTransfer* t )
+{
+	transfer = t;
 }
 
 void

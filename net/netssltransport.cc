@@ -780,8 +780,8 @@ bool
 NetSslTransport::SslHandshake( Error *e )
 {
 	bool      done = false;
-	int       readable = isAccepted? 1 : 0;
-	int       writable = isAccepted? 0 : 1;
+	int       readable;
+	int       writable;
 	int       counter = 0;
 	/* select timeout */
 	const int tv = HALF_SECOND;
@@ -1011,17 +1011,13 @@ NetSslTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	{
 	    DoHandshake( se );
 	    if( se->Test() )
-	    {
-		re = se;
 		goto end;
-	    }
 	}
 
 	for ( ;; )
 	{
 	    doRead = io.recvPtr != io.recvEnd && !re->Test();
 	    doWrite = io.sendPtr != io.sendEnd && !se->Test();
-	    sslPending = 0;
 
 	    if( !doRead && !doWrite )
 	    {

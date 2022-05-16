@@ -99,6 +99,32 @@ ClientUserDebugMsg::Message( Error *err )
 	    ui.OutputStat( err->GetDict() );
 }
 
+void
+ClientUserDebugMsg::Prompt( Error *err, StrBuf &rsp, int noEcho, Error *e )
+{
+	ClientUserDebug::Prompt( err, rsp, noEcho, e );
+
+	// print error subcodes for each ErrorId
+
+	ErrorId* id;
+	for ( int i = 0 ; id = err->GetId( i ) ; i++ )
+	    printf( "code%d %d (sub %d sys %d gen %d args %d sev %d uniq %d)\n",
+		i,
+		id->code,
+		id->SubCode(),
+		id->Subsystem(),
+		id->Generic(),
+		id->ArgCount(),
+		id->Severity(),
+		id->UniqueCode() );
+
+	// use base ClientUser OutputStat/Info() to print dict
+
+	ClientUser ui;
+	if ( err->GetDict() )
+	    ui.OutputStat( err->GetDict() );
+}
+
 /*
  * ClientUserFmt -- user-specified formatting ("-F" global opt)
  */

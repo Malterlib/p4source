@@ -437,34 +437,13 @@ DateTime::SetGit( const StrPtr &s, Error *e )
 
 	p++;
 
-	int sign = 1;
-	int seconds = 0, hours = 0, minutes = 0;
-
-	if( *p == '-' )
-	{
-	    sign = -1;
+	if( *p == '-' || *p == '+' )
 	    p++;
-	}
-	else if( *p == '+' )
-	{
-	    p++;
-	}
 
 	// 4 valid digits?
-	if( isAdigit( &p[0] ) && isAdigit( &p[1] ) &&
-	    isAdigit( &p[2] ) && isAdigit( &p[3] ) )
-	{
-	    hours = p[0] - '0';
-	    hours = hours * 10 + p[1] - '0';
-	    minutes = p[2] - '0';
-	    minutes = minutes * 10 + p[3] - '0';
-	    seconds = hours * 3600 + minutes * 60;
-	}
-	else
-	{
+	if( !( isAdigit( &p[0] ) && isAdigit( &p[1] ) &&
+	       isAdigit( &p[2] ) && isAdigit( &p[3] ) ) )
 	    e->Set( MsgSupp::InvalidDate ) << s;
-	    return;
-	}
 }
 
 void

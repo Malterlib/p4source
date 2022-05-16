@@ -45,8 +45,9 @@ class P4Tunable {
     public:
 
 	void		Set( const char *set );
+	void		SetTLocal( const char *set );
 	void		Unset( const char *set );
-    	int		Get( int t ) const { return list[t].value; }
+	int		Get( int t ) const;
     	int		GetLevel( const char *n ) const;
     	int		GetIndex( const char *n ) const;
 	const char	*GetName( int t ) const { return list[t].name; }

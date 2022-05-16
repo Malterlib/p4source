@@ -137,6 +137,7 @@ struct P4Tag {
 	static const char v_compare[];
 	static const char v_confirm[];
 	static const char v_counter[];
+	static const char v_current[];
 	static const char v_cwd[];
 	static const char v_daddr[];
 	static const char v_data[];
@@ -265,6 +266,7 @@ struct P4Tag {
 	static const char v_proxyCertExpires[];
 	static const char v_proxyRoot[];
 	static const char v_proxyVersion[];
+	static const char v_purge[];
 	static const char v_pusher[];
 	static const char v_rActionType[];
 	static const char v_rActionMerge[];
@@ -304,6 +306,7 @@ struct P4Tag {
 	static const char v_rseq[];
 	static const char v_scanSize[];
 	static const char v_scope[];
+	static const char v_secondFactor[];
 	static const char v_security[];
 	static const char v_sndbuf[];
 	static const char v_sendspec[];
@@ -341,6 +344,8 @@ struct P4Tag {
 	static const char v_tableexcludelist[];
 	static const char v_tag[];
 	static const char v_tagJnl[];
+	static const char v_targetSha[];
+	static const char v_targetType[];
 	static const char v_theirName[];
 	static const char v_theirTime[];
 	static const char v_time[];
@@ -424,8 +429,10 @@ struct P4Tag {
 	static const char v_replace[];		// shelve
 	static const char v_revertUnchanged[];  // submit
 	static const char v_revRec[];		// proxy
+	static const char v_revGRec[];		// proxy
 	static const char v_revtime[];		// proxy invalidation
 	static const char v_revver[];		// proxy rev table version
+	static const char v_revgver[];		// proxy graphrev table version
 	static const char v_role[];		// cluster role (svr svcs)
 	static const char v_save[];		// revert
 	static const char v_setViews[];		// set client views even if empty

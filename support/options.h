@@ -279,6 +279,8 @@ class Options
 	                Users          , // annotate -u
 	                Tab            , // annotate -T
 	                Rename         , // move -r
+	                DoAdded        , // describe -a 
+			Retry          , // pull -R
 
 	        // options which have only long-form option names go here:
 
@@ -322,6 +324,18 @@ class Options
 	                GraphOnly      , // --graph-only
 			MinSize        , // --min-size
 			MaxSize        , // --max-size
+			NameOnly       , // --name-only
+			NoFastForward  , // --no-ff
+			FastForwardOnly, // --ff-only
+			MustExist      , // --exists
+			RepoName       , // --repo (for merge)
+			TargetBranch   , // --target branch (for merge)
+			ByUser         , // --user username
+			ByOwner        , // --owner username
+			Squash         , // --squash
+			AllowEmpty     , // --allow-empty
+			CreateIndex    , // --create-index (on a repo)
+			DropIndex      , // --drop-index (from a repo)
 
 	                UnusedLastOption
 	} ;

@@ -957,7 +957,7 @@ NetTcpEndPoint::Accept( KeepAlive *keep, Error *e )
 {
 	TYPE_SOCKLEN lpeer;
 	struct sockaddr_storage peer;
-	int t, rd, wr;
+	int t;
 	NetTcpSelector *selector = NULL;
 
 	TRANSPORT_PRINTF( DEBUG_CONNECT, "NetTcpEndpoint accept on %d", s );
@@ -966,7 +966,6 @@ NetTcpEndPoint::Accept( KeepAlive *keep, Error *e )
 
 	if( keep )
 		selector = new NetTcpSelector( s );
-	rd = wr = 0;
 
 	// Loop accepting, as it gets interrupted (by SIGCHILD) on
 	// some platforms (MachTen, but not FreeBSD).
@@ -981,8 +980,7 @@ NetTcpEndPoint::Accept( KeepAlive *keep, Error *e )
 				delete selector;
 				return 0;
 			}
-			rd = 1;
-			int sr;
+			int sr, rd = 1, wr = 0;
 			if( ( sr = selector->Select( rd, wr, 500 ) ) == 0 )
 				continue;
 			if( sr == -1 )

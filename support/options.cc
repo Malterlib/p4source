@@ -47,6 +47,8 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionDelete,
 	"force",              Options::Force,        'f', 0,
 	                      &MsgSupp::OptionForce,
+	"added",              Options::DoAdded,      'a', 0,
+	                      &MsgSupp::OptionAdded,
 	"input",              Options::Input,        'i', 0,
 	                      &MsgSupp::OptionInput,
 	"output",             Options::Output,       'o', 0,
@@ -481,6 +483,8 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionForceDelete,
 	"rename",             Options::Rename, 'r', 0,
 	                      &MsgSupp::OptionRename,
+	"retry",              Options::Retry, 'R', 0,
+	                      &MsgSupp::OptionRetry,
 
 	// Options below this line have no short-form equivalent:
 
@@ -558,7 +562,30 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionMinSize,
 	"max-size",           Options::MaxSize, 0, ':',
 	                      &MsgSupp::OptionMaxSize,
-
+	"name-only",          Options::NameOnly, 0, 0,
+	                      &MsgSupp::OptionNameOnly,
+	"no-ff",              Options::NoFastForward, 0, 0,
+	                      &MsgSupp::OptionNoFastForward,
+	"ff-only",            Options::FastForwardOnly, 0, 0,
+	                      &MsgSupp::OptionFastForwardOnly,
+	"exists",             Options::MustExist, 0, 0,
+	                      &MsgSupp::OptionMustExist,
+	"repo",               Options::RepoName, 0, ':',
+	                      &MsgSupp::OptionRepoName,
+	"target",             Options::TargetBranch, 0, ':',
+	                      &MsgSupp::OptionTargetBranch,
+	"user",               Options::ByUser, 'u', ':',
+	                      &MsgSupp::OptionByUser,
+	"owner",               Options::ByOwner, 'O', ':',
+	                      &MsgSupp::OptionByOwner,
+	"squash",             Options::Squash, 0, 0,
+	                      &MsgSupp::OptionSquash,
+	"allow-empty",        Options::AllowEmpty, 0, 0,
+	                      &MsgSupp::OptionAllowEmpty,
+	"create-index",       Options::CreateIndex, 0, 0,
+	                      &MsgSupp::OptionCreateIndex,
+	"drop-index",         Options::DropIndex, 0, 0,
+	                      &MsgSupp::OptionDropIndex,
 	0, 0, 0, 0, 0
 } ;
 
