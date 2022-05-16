@@ -671,6 +671,146 @@ StrBuf::TrimBlanks()
 	}
 }
 
+/**
+ * StrBuf::CompressTail
+ *
+ * @brief Chop the common substring off tail and
+ *        prepend with the offset value of the substring
+ *        in the passed string.
+ *
+ * @param the string to match
+ * @return offset into string argument
+ *         -1 if error
+ *         0 if not compressed
+ */
+int
+StrBuf::EncodeTail( StrPtr &s, const char *replaceBytes )
+{
+	/*
+	 * If replaceBytes is NULL, then ASSUME we shall compress
+	 * the string. If replaceBytes is not NULL and the contents
+	 * does not match the first two bytes of our buffer (e.g. "//")
+	 * then we return assuming that the buffer has already been
+	 * compressed. (This happens in DbOpen::Put since the record
+	 * is written in two parts, the keys then the non key columns).
+	 * To compress our string, compare a string with a supplied argument s.
+	 * Find the count of trailing identical characters then
+	 * truncate the common substring from the end. The
+	 * get the offset value for the common string into the supplied
+	 * argument, convert to 2-byte hex value and prepend to the leading
+	 * non-matching piece. (max offset 255 for FF)
+	 */
+
+	// job075871: advance past the client name so that substring
+	// is not considered in the match process.
+	register int i = 2;
+	while( i < s.Length() && s.buffer[i] != '/' )
+	    i++;
+	if( s.buffer[i] != '/' )
+	    return 0;
+
+	register int shortest = length < (s.Length() - i)? length : (s.Length() - i);
+	// bail early if one string is empty
+	if( shortest == 0 )
+	    return 0;
+
+	// reset counter
+	i = 0;
+
+	register const unsigned char *a = (const unsigned char *)(s.buffer + s.Length() - 1);
+	register const unsigned char *b = (const unsigned char *)(buffer + length - 1);
+
+	if( replaceBytes && strncmp(buffer, replaceBytes, 2) != 0)
+		return 0;
+	while( i < shortest && *a == *b )
+	{
+	    a--;
+	    b--;
+	    i++;
+	}
+
+	// sanity check
+	if ( i > (length - 2) )
+	{
+	    // If client path contains full depot path
+	    // back off a character so that we have enough
+	    // room to store offset.
+	    if( i == (length - 1) )
+		i--;
+	    else
+		return -1;
+	}
+
+	/*
+	 * get the offset value into the passed StrPtr where the
+	 * common substring starts.
+	 */
+	register int v = s.Length() - i;
+
+	if ((i == 0) || (v > 255) )
+	{
+	    // nothing to compress or
+	    // the offset is too large do not compress the tail
+	    return 0;
+	}
+
+	// chop off common part of path
+	length -= i;
+	Terminate();
+
+	// prepend this value to the first 2 bytes of our buffer
+	*(buffer+1) = StrOps::OtoX( v & 0xf ); v >>= 4;
+	*(buffer)   = v ? StrOps::OtoX( v & 0xf ) : '0';
+	return (s.Length() - i);
+}
+
+int
+StrBuf::DecodeTail( StrPtr &s, const char *replaceBytes )
+{
+	/*
+	 * If replaceBytes is NULL, then ASSUMES a compressed string.
+	 * If replaceBytes is not NULL and contains the
+	 * identical first two bytes of our buffer (e.g. "//")
+	 * then we return assuming that the buffer is uncompressed.
+	 * This StrBuf will may grow to accommodate the common
+	 * substring which will be appended.  If replacedBytes
+	 * is non-NULL then the first two bytes will replace
+	 * those currently in the buffer.
+	 */
+
+	/* Sanity Checks */
+
+	// bail early if target string is empty
+	if( s.Length() == 0 )
+	    return -1;
+
+	// bail if not enough room for offset in source
+	if( length < 2 )
+	    return 0;
+
+	// bail if passed replacement string and it has already been replaced
+	if( replaceBytes && strlen(replaceBytes) >= 2 && strncmp(buffer, replaceBytes, 2) == 0)
+	    return 0;
+
+	int v = ( StrOps::XtoO( buffer[0] ) << 4 )
+	      | ( StrOps::XtoO( buffer[1] ) << 0 );
+
+	// santity check offset value
+	if( v <= 2 || v > 255 )
+	    return -1;
+
+	if( replaceBytes && strlen(replaceBytes) >= 2 )
+	{
+	    buffer[0] = replaceBytes[0];
+	    buffer[1] = replaceBytes[1];
+	}
+	if( s.Length() >= v )
+	    Append( s.buffer + v );
+	else
+	    return -1;
+	return v;
+}
+
 void
 StrBuf::Compress( StrPtr *s )
 {

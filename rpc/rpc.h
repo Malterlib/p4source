@@ -38,6 +38,7 @@
  *	Rpc::Release() - wrapper to call Invoke() with 'release' op
  *	
  *	Rpc::Dispatch() - dispatch uncoming RPC's until 'release' received
+ *	RPC::AbortDispatch() - prematurely shut down the dispatcher
  *	Rpc::GetVar() - get a variable from receive buffer
  *	Rpc::CopyVars() - copy all variables from receive to send buffer
  *
@@ -196,8 +197,9 @@ class Rpc : public StrDict {
 	void            GetPeerFingerprint(StrBuf &value);
 	void            GetExpiration(StrBuf &value);
 
-	StrPtr *	GetAddress( int raf_flags );
-	StrPtr *	GetPeerAddress( int raf_flags = 0 );
+	bool		HasAddress();
+	virtual StrPtr *GetAddress( int raf_flags );
+	virtual StrPtr *GetPeerAddress( int raf_flags = 0 );
 	int		GetPortNum();
 	bool		IsSockIPv6();
 	KeepAlive	*GetKeepAlive();
@@ -209,6 +211,7 @@ class Rpc : public StrDict {
 
 	virtual void	Invoke( const char *opName );
 	void		InvokeDuplex( const char *opName );
+	void		InvokeDuplexPlus( const char *opName, int extra );
 	void		InvokeDuplexRev( const char *opName );
 	void		InvokeOver( const char *opName );
 	void		FlushDuplex();
@@ -227,6 +230,8 @@ class Rpc : public StrDict {
 	void		DispatchFlush() { 
 			    Dispatch( DfFlush, service->dispatcher ); 
 			}
+
+	void		AbortDispatch() { endDispatch = 1; };
 
 	// Variable setting/getting
 	// The V* are virtuals of StrDict
@@ -310,6 +315,8 @@ class Rpc : public StrDict {
 	virtual RpcType	GetRpcType() { return RPC_UNKNOWN; };
 
     private:
+
+	friend class RpcForward;
 
 	RpcService	*service;
 	RpcTransport	*transport;		// send/receive transport

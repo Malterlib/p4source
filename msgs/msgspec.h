@@ -21,6 +21,7 @@ class MsgSpec {
 	static ErrorId SpecDepot;
 	static ErrorId SpecGroup;
 	static ErrorId SpecProtect;
+	static ErrorId SpecRemote;
 	static ErrorId SpecServer;
 	static ErrorId SpecStream;
 	static ErrorId SpecTrigger;

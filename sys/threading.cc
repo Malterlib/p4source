@@ -173,9 +173,10 @@ class MultiThreader : public Threader {
 	}
 
 	// By now threads have been notified to self terminate.
-	// We wait 60 seconds for the thread count to go to 0.
+	// We wait 15 seconds for the thread count to go to 0.
 	// In practice most threads will terminate immediately.
 	// Any hold out threads will have to be suspended in Reap.
+	// Windows "net stop" can timeout if we take too long.
 
 	void Quiesce()
 	{
@@ -193,9 +194,9 @@ class MultiThreader : public Threader {
 	    AssertLog.Report( &e );
 
 	    int retries = 0;
-	    while( ! NT_ThreadList->Empty() && retries++ < 60 )
-		sleep( 2 );
-	    if( retries < 60 )
+	    while( ! NT_ThreadList->Empty() && retries++ < 15 )
+		sleep( 1 );
+	    if( retries < 15 )
 		return;
 
 	    e.Clear();

@@ -295,8 +295,8 @@ SHHandler::SetTunable(
 
 	case P4TUNE_SYS_MEMORY_SUBPOOLS:
 # ifdef OS_NT
-// Smart Heap bug, debug library doesn't have this export.
 # ifndef MEM_DEBUG
+	    // Smart Heap bug, debug library doesn't have this export.
 	    prevbytes = MemPoolSetMaxSubpools( MemDefaultPool, membytes);
 # endif
 # endif
@@ -333,43 +333,19 @@ SHHandler::SetTunable(
 	LeaveCriticalSection( &section );
 # endif
 
-	// These traversal functions will take some time, do these
-	// outside of the critical section.
-	// The pool will be locked during the listing.
-
-	MEM_POOL pool = (MEM_POOL)(long)*value;
+	// These traversal functions will take some time.  Do these
+	// outside of the critical section since the pool will be
+	// locked during the listing.
 
 	switch( index )
 	{
-	case P4TUNE_CMD_MEMORY_LISTPOOL:
-	    // List heap entry detail.
-	    // ListPool (pool, tag, ckpt, show_unused, detail)
-	    // ckpt of -1 lists all SH checkpoints
-	    ListPool( pool, (const char *)"List Pool", -1, 0, 2 );
-	    break;
-
-	case P4TUNE_CMD_MEMORY_LISTPOOL2:
-	    // List heap entry detail, including unused entries.
-	    // ListPool (pool, tag, ckpt, show_unused, detail)
-	    // ckpt of -1 lists all SH checkpoints
-	    ListPool( pool, (const char *)"List Pool", -1, 1, 2 );
-	    break;
-
-	case P4TUNE_CMD_MEMORY_LISTALL:
-	    // ListAllPools (tag, ckpt, show_unused, detail)
-	    // ckpt of -1 lists all SH checkpoints
-	    ListAllPools( (const char *)"All Pools", -1, 0, *value );
-	    break;
-
-	case P4TUNE_CMD_MEMORY_LISTALL2:
-	    // ListAllPools (tag, ckpt, show_unused, detail)
-	    // List unused heap entries as well
-	    // ckpt of -1 lists all SH checkpoints
-	    ListAllPools( (const char *)"All Pools", -1, 1, *value );
+	case P4TUNE_CMD_MEMORY_LISTPOOLS:
+	    // ListAllPools (tag, detail)
+	    ListAllPools( (const char *)"cmd.memory.listpools", *value );
 	    break;
 
 	case P4TUNE_CMD_MEMORY_CHKPT:
-	    Checkpoint( (const char *)"User Chkpt", *value );
+	    Checkpoint( (const char *)"cmd.memory.chkpt", *value );
 	    break;
 	}
 
@@ -394,14 +370,8 @@ SHHandler::SetTunable(
 		sprintf (msg, fmt, name, membytes);
 		break;
 
-	    case P4TUNE_CMD_MEMORY_LISTPOOL:
-	    case P4TUNE_CMD_MEMORY_LISTPOOL2:
-	    case P4TUNE_CMD_MEMORY_LISTALL:
-	    case P4TUNE_CMD_MEMORY_LISTALL2:
+	    case P4TUNE_CMD_MEMORY_LISTPOOLS:
 	    case P4TUNE_CMD_MEMORY_CHKPT:
-		*msg = '\0';
-		break;
-
 	    default:
 		sprintf (fmt, "tunable: set %%s from %s to %s\n", FMT_U, FMT_U);
 		sprintf (msg, fmt, name, prevbytes, membytes);
@@ -416,8 +386,8 @@ SHHandler::SetTunable(
 // External function for setting SH tunables.
 int
 SHHandler::SetTunable(
-	const StrPtr &name,
-	StrBuf *value
+	StrBuf &name,
+	StrBuf &value
 	)
 {
 	int idx;
@@ -433,14 +403,14 @@ SHHandler::SetTunable(
 	    idx > P4TUNE_CMD_MEMORY_CHKPT )
 		return (1);
 
-	setting = Config2Membytes( value->Text() );
+	setting = Config2Membytes( value.Text() );
 
 	SetTunable( idx, &setting );
 
 	// The setting may have been modified in SetTunable().
 
 	if( setting )
-	    value->Set( StrNum( (int)setting ) );
+	    value.Set( StrNum( (int)setting ) );
 
 	// If setting a cmd.memory tunable, return 0 to ensure it is
 	// not permanently stored.
@@ -564,13 +534,12 @@ SHHandler::Close()
 void
 SHHandler::ListEntry (
 	const MEM_POOL_ENTRY *entry,
-	int ckpt,
 	int show_unused
 	)
 {
 # ifdef OS_NT
 	char fmt[128];
-	char frm[128];
+	char frame[128];
 	char msg[8192];
 
 	if( !IsDebuggerPresent() )
@@ -589,36 +558,36 @@ SHHandler::ListEntry (
 
 	    // Information about the memory block.
 	    //
-	    if( ckpt == -1 || ckpt == info.checkpoint )
-	    {
-		const char *srcfile = info.createFile;
-		if (srcfile == NULL)
-		    srcfile = "unknown";
+	    const char *srcfile = info.createFile;
+	    if (srcfile == NULL)
+		srcfile = "unknown";
 
-		sprintf (fmt, "lentry: 0x%%p %s %%lu %%d '%%s' %%d\n", FMT_U);
-		sprintf (msg, fmt,
-		    entry->entry, entry->size, info.threadID,
+	    //          entry              sz/asz  thrd cp srcfile line
+	    // "lentry: 0x0000000001491BD0 24/32   3036 1 'unknown' 0"
+	    sprintf (fmt, "lentry: 0x%%p %s/%s %%lu %%d '%%s' %%d\n",
+		    FMT_U, FMT_U);
+	    sprintf (msg, fmt,
+		    entry->entry, entry->size, info.argSize, info.threadID,
 		    info.checkpoint, srcfile, info.createLine);
-		OutputDebugString (msg);
+	    OutputDebugString (msg);
 
-		// Callstack for the memory block.
-		//
-		if( info.callStack[0] != 0 )
+	    // Callstack for the memory block.
+	    //
+	    if( info.callStack[0] != 0 )
+	    {
+		register int i;
+
+		sprintf (msg, "frames: ");
+
+		// MEM_MAXCALLSTACK is from smrtheap.h
+		for (i=0; i<MEM_MAXCALLSTACK && info.callStack[i]!=0; i++)
 		{
-		    register int i;
-
-		    sprintf (msg, "frames: ");
-
-		    // MEM_MAXCALLSTACK is from smrtheap.h
-		    for (i=0; i<MEM_MAXCALLSTACK && info.callStack[i]!=0; i++)
-		    {
-			sprintf (frm, "0x%p ", info.callStack[i]);
-			strcat (msg, frm);
-		    }
-		    strcat (msg, "\n");
-
-		    OutputDebugString (msg);
+		    sprintf (frame, "0x%p ", info.callStack[i]);
+		    strcat (msg, frame);
 		}
+		strcat (msg, "\n");
+
+		OutputDebugString (msg);
 	    }
 # else // MEM_DEBUG
 	    // Information about the memory block.
@@ -637,12 +606,29 @@ SHHandler::ListEntry (
 # endif // OS_NT
 }
 
+MEM_BOOL
+SHHandler::ValidatePool (
+	MEM_POOL pool
+	)
+{
+	MEM_POOL_INFO info;
+	MEM_POOL_STATUS status;
+
+	status = MemPoolFirst (&info, 0);
+	while (status == MEM_POOL_OK)
+	{
+	    if( pool == info.pool )
+	    	return (MEM_BOOL)1;
+
+	    status = MemPoolNext (&info, 0);
+	}
+    	return (MEM_BOOL)0;
+}
+
 void
 SHHandler::ListPool (
 	MEM_POOL pool,
 	const char *tag,
-	int ckpt,
-	int show_unused,
 	unsigned int detail
 	)
 {
@@ -650,6 +636,7 @@ SHHandler::ListPool (
 	MEM_POOL_ENTRY entry;
 	char fmt[1024];
 	char msg[1024];
+	int show_unused=0;
 
 	if( !IsDebuggerPresent() )
 	    return;
@@ -657,16 +644,26 @@ SHHandler::ListPool (
 	if( pool == (MEM_POOL)1 )
 	    pool = MemDefaultPool;
 
+	if( !ValidatePool(pool) )
+	{
+	    OutputDebugString ("note: ListPool(): Invalid Pool\n");
+	    return;
+	}
+
+	// Show heap entries currently not in use.
+	if( detail >= 3 )
+	    show_unused = 1;
+
 	sprintf (fmt, "poolbegin: %s '%%s' %s %s\n", FMT_X, FMT_U, FMT_U);
 	sprintf (msg, fmt, pool, tag, MemPoolCount(pool), MemPoolSize(pool));
 	OutputDebugString (msg);
 
-	// Skip listing of the heap entries.
+	// Show only pool related information.
 	if( detail < 2 )
 	    goto end;
 
 	OutputDebugString ("control: set log2file=off\n");
-	OutputDebugString ("note: See p4diag log file for pool entries.\n");
+	OutputDebugString ("note: See p4diag log file for heap entries.\n");
 	OutputDebugString ("control: set log2file=on\n");
 
 	// Tell p4diag to disable the terminal window logging.
@@ -677,7 +674,7 @@ SHHandler::ListPool (
 	MemPoolLock (pool);
 	while (MemPoolWalk (pool, &entry) == MEM_POOL_OK)
 	{
-	    ListEntry (&entry, ckpt, show_unused);
+	    ListEntry (&entry, show_unused);
 	}
 	MemPoolUnlock (pool);
 
@@ -695,8 +692,6 @@ end:
 void
 SHHandler::ListAllPools (
 	const char *tag,
-	int ckpt,
-	int show_unused,
 	unsigned int detail
 	)
 {
@@ -710,18 +705,18 @@ SHHandler::ListAllPools (
 	if( !IsDebuggerPresent() )
 	    return;
 
-	sprintf (msg, "note: --- List All Pools: '%s' Begin ---\n", tag);
+	sprintf (msg, "listbegin: '%s' %d\n", tag, detail);
 	OutputDebugString (msg);
 
 	status = MemPoolFirst (&info, 0);
 	while (status == MEM_POOL_OK)
 	{
-	    ListPool( info.pool, tag, ckpt, 0, detail );
+	    ListPool( info.pool, tag, detail );
 
 	    status = MemPoolNext (&info, 0);
 	}
 
-	sprintf (msg, "note: --- List All Pools: '%s' End ---\n\n", tag);
+	sprintf (msg, "listend: '%s'\n", tag);
 	OutputDebugString (msg);
 # endif // OS_NT
 }

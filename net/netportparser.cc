@@ -13,7 +13,7 @@
  *     pseudo-regex syntax loose definition:
  *
  *     p4port         ::= [prefix:][host:]port ;
- *     prefix         ::= "rsh"|"tcp"|"tcp4"|"tcp6"|"ssl"|"ssl4"|"ssl6" ;
+ *     prefix         ::= "jsh"|"rsh"|"tcp"|"tcp4"|"tcp6"|"ssl"|"ssl4"|"ssl6" ;
  *       NB: "tcp"   means non-ssl, IPv4 only
  *           "tcp4"  means non-ssl, IPv4 only (synonym for "tcp")
  *           "tcp6"  means non-ssl, IPv6 only
@@ -408,6 +408,19 @@ NetPortParser::WantIPv6() const
 }
 
 bool
+NetPortParser::MayJSH() const
+{
+	// JSH is never optional; either you must use JSH or you must not
+	return MustJSH();
+}
+
+bool
+NetPortParser::MustJSH() const
+{
+	return mPrefix.mType == PT_JSH;
+}
+
+bool
 NetPortParser::MayRSH() const
 {
 	// RSH is never optional; either you must use RSH or you must not
@@ -548,6 +561,7 @@ NetPortParser::FindPrefix(
 	int len)
 {
 	static const Prefix prefixes[] = {
+	    {"jsh",     PT_JSH},	// java flavor of rsh
 	    {"rsh",     PT_RSH},
 	    {"tcp",     PT_TCP},
 	    {"tcp4",    PT_TCP4},
@@ -561,7 +575,7 @@ NetPortParser::FindPrefix(
 	    {"ssl64",   PT_SSL64},
 	    {"",        PT_NONE}
 	};
-	static const int kNoPrefix = 11;    // index of the PT_NONE entry
+	static const int kNoPrefix = 12;    // index of the PT_NONE entry
 
 	if( (len < 3) || (len > 5) )
 	{
@@ -596,9 +610,9 @@ NetPortParser::Parse()
 	        str = ++p;
 	    }
 
-	    // don't parse rsh: cmd
+	    // don't parse rsh: or jsh: cmd
 	    // store the cmd in the host field
-	    if( pfx->mType == PT_RSH )
+	    if( pfx->mType == PT_JSH || pfx->mType == PT_RSH )
 	    {
 	        mPrefix = *pfx;
 	        mHost.Set( str );
@@ -606,6 +620,17 @@ NetPortParser::Parse()
 	        mTransport = mPrefix.mName;
 	        return;
 	    }
+	}
+	else if( strcmp(str, "jsh") == 0 )
+	{
+	    // java flavor of "rsh"
+	    // "jsh" should be used only by p4d after seeing "-ij"
+	    pfx = FindPrefix( "jsh", 3 );
+	    mPrefix = *pfx;
+	    mHost.Set( str );
+	    mHostPort.Set( str );
+	    mTransport = mPrefix.mName;
+	    return;
 	}
 	else if( strcmp(str, "rsh") == 0 )
 	{
@@ -714,7 +739,7 @@ NetPortParser::Parse()
 bool
 NetPortParser::IsValid(Error *e) const
 {
-	if( !MustRSH() && !mPortColon && (mPort.Length() <= 0) )
+	if( !MustJSH() && !MustRSH() && !mPortColon && (mPort.Length() <= 0) )
 	{
 	    e->Set( MsgServer::PortMissing ) << String();
 	    return false;

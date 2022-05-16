@@ -8,6 +8,8 @@
 
 # include <strbuf.h>
 # include <strdict.h>
+# include <strtable.h>
+# include <strarray.h>
 # include <error.h>
 # include <ticket.h>
 # include <md5.h>
@@ -19,6 +21,7 @@
 # include <rpcdebug.h>
 # include <rpcdispatch.h>
 # include <rpcservice.h>
+# include <rpcbuffer.h>
 
 # include <p4tags.h>
 
@@ -249,6 +252,9 @@ RpcForward::Flush1( Error *e )
 
 	    KeepAlive *k = client->GetKeepAlive();
 
+	    RpcRecvBuffer *oldbuf = client->recvBuffer;
+	    client->recvBuffer = new RpcRecvBuffer;
+
 	    while( duplexCount > himark2 )
 	    {
 		if( client->Dropped() )
@@ -256,6 +262,9 @@ RpcForward::Flush1( Error *e )
 			break;
 		client->DispatchOne( c2sDispatcher );
 	    }
+
+	    delete client->recvBuffer;
+	    client->recvBuffer = oldbuf;
 	}
 	else
 	    Forward( server, client );

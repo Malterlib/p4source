@@ -608,7 +608,7 @@ NetSslTransport::SslHandshake( Error *e )
 	/* select timeout */
 	const int tv = HALF_SECOND;
 	int	  sslClientTimeoutMs
-	    = p4tunable.GetLevel("ssl.client.timeout") * 1000;
+	    = p4tunable.Get( P4TUNE_SSL_CLIENT_TIMEOUT ) * 1000;
 	DateTimeHighPrecision dtBeforeSelect, dtAfterSelect;
 	int maxwait = p4tunable.Get( P4TUNE_NET_MAXWAIT ) * 1000;
 	if( maxwait && 

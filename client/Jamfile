@@ -25,6 +25,7 @@ P4Library $(CLIENTLIB) :
 	clientapi.cc
 	clientenv.cc
 	clienti18n.cc
+	clientinit.cc
 	clientmerge.cc
 	clientmerge2.cc
 	clientmerge3.cc
@@ -41,4 +42,3 @@ P4Library $(CLIENTLIB) :
 	clientusernull.cc
 	;
 
-LinkSSL p4 ;

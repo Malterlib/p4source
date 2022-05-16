@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgDm error code is: 821
+ * Current high value for a MsgDm error code is: 882
  */
 
 # include <error.h>
@@ -136,6 +136,7 @@ ErrorId MsgDm::OpenAttrRO	       = { ErrorOf( ES_DM, 687, E_FAILED, EV_ILLEGAL, 
 ErrorId MsgDm::ReconcileBadName        = { ErrorOf( ES_DM, 676, E_WARN, EV_ILLEGAL, 1 ), "%file% - can't %'reconcile'% filename with illegal characters." } ;
 ErrorId MsgDm::ReconcileNeedForce      = { ErrorOf( ES_DM, 677, E_WARN, EV_ILLEGAL, 1 ), "%file% - can't %'reconcile'% filename with wildcards [@#%%*]. Use -f to force %'reconcile'%." } ;
 ErrorId MsgDm::StatusSuccess             = { ErrorOf( ES_DM, 684, E_INFO, EV_NONE, 4 ), "%localfile% - reconcile to %action% %depotFile%%workRev%" } ;
+ErrorId MsgDm::StatusOpened             = { ErrorOf( ES_DM, 852, E_INFO, EV_NONE, 5 ), "%localfile% - submit change %change% to %action% %depotFile%%workRev%" } ;
 ErrorId MsgDm::PurgeFirst              = { ErrorOf( ES_DM, 67, E_FAILED, EV_NOTYET, 1 ), "Depot %depot% isn't empty. To delete a depot, all file revisions must be removed and all lazy copy references from other depots must be severed. Use '%'p4 obliterate'%' or '%'p4 snap'%' to break file linkages from other depots, then clear this depot with '%'p4 obliterate'%', then retry the deletion." } ;
 ErrorId MsgDm::SnapFirst               = { ErrorOf( ES_DM, 619, E_FAILED, EV_NOTYET, 1 ), "Depot %depot% isn't empty of archive contents. One or more files are still present in the depot directory. Other depots may have branched or integrated from files in this depot. Break those linkages with '%'p4 snap'%' and/or remove references from other depots with '%'p4 obliterate'%' first. Next, remove all non-Perforce files from the depot prior to depot deletion. Once all references have been removed, either remove any remaining physical files and directories from the depot directory and retry the operation, or specify '-f' to bypass this check and delete the depot." } ;
 ErrorId MsgDm::DepotHasStreams         = { ErrorOf( ES_DM, 751, E_FAILED, EV_NOTYET, 1 ), "Depot '%depot%' is the location of existing streams; cannot delete until they are removed." } ;
@@ -181,6 +182,7 @@ ErrorId MsgDm::LabelNoSync             = { ErrorOf( ES_DM, 437, E_FAILED, EV_NOT
 ErrorId MsgDm::FixBadVal               = { ErrorOf( ES_DM, 88, E_FAILED, EV_USAGE, 1 ), "Job fix status must be one of %values%." } ;
                                
 ErrorId MsgDm::ParallelOptions         = { ErrorOf( ES_DM, 795, E_FAILED, EV_USAGE, 0 ), "Usage: threads=N,batch=N,batchsize=N,min=N,minsize=N" } ;     // NOTRANS
+ErrorId MsgDm::ParSubOptions         = { ErrorOf( ES_DM, 856, E_FAILED, EV_USAGE, 0 ), "Usage: threads=N,batch=N,min=N" } ;     // NOTRANS
 ErrorId MsgDm::ParallelNotEnabled      = { ErrorOf( ES_DM, 796, E_FAILED, EV_USAGE, 0 ), "Parallel file transfer must be enabled using %'net.parallel.max'%" } ;
 ErrorId MsgDm::NoClient                = { ErrorOf( ES_DM, 89, E_FATAL, EV_FAULT, 1 ), "%clientFile% - can't translate to local path -- no client!" } ;
 ErrorId MsgDm::NoDepot                 = { ErrorOf( ES_DM, 90, E_FATAL, EV_FAULT, 1 ), "Can't find %depot% in depot map!" } ;
@@ -334,6 +336,7 @@ ErrorId MsgDm::NoStreamAtChange          = { ErrorOf( ES_DM, 550, E_FAILED, EV_C
 ErrorId MsgDm::NotStreamReady            = { ErrorOf( ES_DM, 557, E_FAILED, EV_USAGE, 1 ), "Client '%client%' requires an application that can fully support streams." } ;
 ErrorId MsgDm::MissingStream             = { ErrorOf( ES_DM, 575, E_FAILED, EV_UNKNOWN, 2 ), "Missing stream '%name%' in stream hierarchy for '%stream%'." } ;
 ErrorId MsgDm::InvalidStreamFmt          = { ErrorOf( ES_DM, 576, E_FAILED, EV_NONE, 1), "Stream '%stream%' is not the correct format of '//depotname/string' " } ;
+ErrorId MsgDm::StreamNotRelative	 = { ErrorOf( ES_DM, 872, E_FAILED, EV_NONE, 0), "Must specify a full stream path if not currently using a stream client." } ;
 ErrorId MsgDm::StreamPathRooted          = { ErrorOf( ES_DM, 578, E_FAILED, EV_NONE, 1), "View '%view%' must be relative and not contain leading slashes "  } ;
 ErrorId MsgDm::StreamPathSlash           = { ErrorOf( ES_DM, 579, E_FAILED, EV_NONE, 1), "Imported path '%view%' requires leading slashes in full depot path "  } ;
 ErrorId MsgDm::StreamHasChildren        = { ErrorOf( ES_DM, 580, E_FAILED, EV_NOTYET, 1 ), "Stream '%stream%' has child streams; cannot delete until they are removed." } ;
@@ -353,6 +356,12 @@ ErrorId MsgDm::StreamBadConvert          = { ErrorOf( ES_DM, 740, E_FAILED, EV_U
 ErrorId MsgDm::ClientNoSwitch    = { ErrorOf( ES_DM, 821, E_FAILED, EV_NONE, 1 ), "Client '%client%' already exists; use a new client or -s without -o to switch to different stream." } ;
 ErrorId MsgDm::DepotsData              = { ErrorOf( ES_DM, 213, E_INFO, EV_NONE, 6 ), "%type% %depotName% %updateDate% %location% %map% '%description%'" } ;
 ErrorId MsgDm::DepotsDataExtra         = { ErrorOf( ES_DM, 214, E_INFO, EV_NONE, 7 ), "%type% %depotName% %updateDate% %location% %address% %map% '%description%'" } ;
+
+ErrorId MsgDm::RemoteSave              = { ErrorOf( ES_DM, 836, E_INFO, EV_NONE, 1 ), "Remote %remoteName% saved." } ;
+ErrorId MsgDm::RemoteNoChange          = { ErrorOf( ES_DM, 837, E_INFO, EV_NONE, 1 ), "Remote %remoteName% not changed." } ;
+ErrorId MsgDm::RemoteDelete            = { ErrorOf( ES_DM, 838, E_INFO, EV_NONE, 1 ), "Remote %remoteName% deleted." } ;
+ErrorId MsgDm::NoSuchRemote            = { ErrorOf( ES_DM, 839, E_FAILED, EV_UNKNOWN, 1 ), "Remote '%remote%' doesn't exist." } ;
+ErrorId MsgDm::RemotesData             = { ErrorOf( ES_DM, 840, E_INFO, EV_NONE, 3 ), "%remoteID% %address% '%description%'" } ;
 
 ErrorId MsgDm::ServerSave              = { ErrorOf( ES_DM, 661, E_INFO, EV_NONE, 1 ), "Server %serverName% saved." } ;
 ErrorId MsgDm::ServerNoChange          = { ErrorOf( ES_DM, 662, E_INFO, EV_NONE, 1 ), "Server %serverName% not changed." } ;
@@ -422,6 +431,8 @@ ErrorId MsgDm::GroupNotUpdated         = { ErrorOf( ES_DM, 244, E_INFO, EV_NONE,
 ErrorId MsgDm::GroupUpdated            = { ErrorOf( ES_DM, 245, E_INFO, EV_NONE, 1 ), "Group %group% updated." } ;
 ErrorId MsgDm::GroupNotOwner	       = { ErrorOf( ES_DM, 472, E_FAILED, EV_NONE, 2), "User '%user%' is not an owner of group '%group%'." } ;
 ErrorId MsgDm::GroupExists             = { ErrorOf( ES_DM, 718, E_FAILED, EV_NONE, 1), "No permission to modify existing group %group%." };
+ErrorId MsgDm::GroupLdapIncomplete     = { ErrorOf( ES_DM, 861, E_FAILED, EV_CONTEXT, 0), "All three LDAP fields must be set for LDAP group synchronization." };
+ErrorId MsgDm::GroupLdapNoOwner        = { ErrorOf( ES_DM, 862, E_FAILED, EV_CONTEXT, 0), "At least one group owner is required for LDAP group synchronization." } ;
 
 ErrorId MsgDm::GroupsData              = { ErrorOf( ES_DM, 246, E_INFO, EV_NONE, 1 ), "%group%" } ;
 ErrorId MsgDm::GroupsDataVerbose       = { ErrorOf( ES_DM, 474, E_INFO, EV_NONE, 5 ), "%group% %maxresults% %maxscanrows% %maxtimeout% %timeout%" };
@@ -527,6 +538,7 @@ ErrorId MsgDm::OpenReOpen              = { ErrorOf( ES_DM, 292, E_INFO, EV_NONE,
 ErrorId MsgDm::OpenUpToDate            = { ErrorOf( ES_DM, 293, E_INFO, EV_NONE, 3 ), "%depotFile%%workRev% - currently opened for %action%" } ;
 ErrorId MsgDm::OpenCantExists          = { ErrorOf( ES_DM, 294, E_INFO, EV_NONE, 2 ), "%depotFile% - can't %action% existing file" } ;
 ErrorId MsgDm::OpenCantDeleted         = { ErrorOf( ES_DM, 295, E_INFO, EV_NONE, 2 ), "%depotFile% - can't %action% deleted file" } ;
+ErrorId MsgDm::OpenCantMissing         = { ErrorOf( ES_DM, 860, E_INFO, EV_NONE, 2 ), "%depotFile% - can't %action% missing file" } ;
 ErrorId MsgDm::OpenSuccess             = { ErrorOf( ES_DM, 296, E_INFO, EV_NONE, 3 ), "%depotFile%%workRev% - opened for %action%" } ;
 ErrorId MsgDm::OpenMustResolve         = { ErrorOf( ES_DM, 297, E_INFO, EV_USAGE, 2 ), "%depotFile% - must %'sync'%/%'resolve'% %workRev% before submitting" } ;
 ErrorId MsgDm::OpenIsLocked            = { ErrorOf( ES_DM, 298, E_INFO, EV_USAGE, 3 ), "%depotFile% - locked by %user%@%client%" } ;
@@ -541,6 +553,7 @@ ErrorId MsgDm::OpenWarnChangeMap       = { ErrorOf( ES_DM, 799, E_INFO, EV_USAGE
 ErrorId MsgDm::OpenOtherDepot          = { ErrorOf( ES_DM, 724, E_FAILED, EV_NONE, 3 ), "%clientFile% - can't open %depotFile% (already opened as %depotFile2%)" } ;
 ErrorId MsgDm::OpenTaskNotMapped       = { ErrorOf( ES_DM, 752, E_INFO, EV_NONE, 2 ), "%clientFile% - can't open %depotFile% (not mapped in client), must sync first." } ;
 ErrorId MsgDm::OpenHasResolve          = { ErrorOf( ES_DM, 815, E_FAILED, EV_ILLEGAL, 2 ), "%clientFile% - can't %action% file with pending integrations." } ;
+ErrorId MsgDm::OpenWarnReaddMoved      = { ErrorOf( ES_DM, 825, E_INFO, EV_USAGE, 1 ), "opened for %action% as new file; use '%'move'%' to recover moved files."} ;
 
 ErrorId MsgDm::OpenedData              = { ErrorOf( ES_DM, 302, E_INFO, EV_NONE, 5 ), "%depotFile%%workRev% - %action% %change% (%type%)" } ;
 ErrorId MsgDm::OpenedOther             = { ErrorOf( ES_DM, 303, E_INFO, EV_NONE, 7 ), "%depotFile%%workRev% - %action% %change% (%type%) by %user%@%client%" } ;
@@ -703,6 +716,11 @@ ErrorId MsgDm::SyncNotSafeUpdate       = { ErrorOf( ES_DM, 604, E_INFO, EV_NONE,
 ErrorId MsgDm::SyncNotSafeReplace      = { ErrorOf( ES_DM, 605, E_INFO, EV_NONE, 3 ), "%depotFile%%depotRev% - can't replace modified file %localPath%" } ;
 ErrorId MsgDm::SyncIndexOutOfBounds    = { ErrorOf( ES_DM, 606, E_FATAL, EV_FAULT, 2 ), "Index out of range %index% of %total%" } ; // NOTRANS
 
+ErrorId MsgDm::TangentBadSource        = { ErrorOf( ES_DM, 878, E_FAILED, EV_FAULT, 2 ), "Can't create a tangent of %depotFile% because it is in a %badPlace%." } ;
+ErrorId MsgDm::TangentBlockedDepot     = { ErrorOf( ES_DM, 879, E_FAILED, EV_FAULT, 1 ), "A %depotType% depot called '%'tangent'%' already exists; must create a new %'tangent'% depot." } ;
+ErrorId MsgDm::TangentBranchedFile     = { ErrorOf( ES_DM, 880, E_INFO, EV_NONE, 2 ), "%depotFile%%depotRev% - branched to tangent" } ;
+ErrorId MsgDm::TangentMovedFile        = { ErrorOf( ES_DM, 881, E_INFO, EV_NONE, 2 ), "%depotFile%%depotRev% - relocated to tangent" } ;
+
 ErrorId MsgDm::TraitCleared            = { ErrorOf( ES_DM, 429, E_INFO, EV_NONE, 3 ), "%depotFile%%depotRev% - %name% cleared" } ;
 ErrorId MsgDm::TraitNotSet             = { ErrorOf( ES_DM, 430, E_INFO, EV_NONE, 3 ), "%depotFile%%depotRev% - %name% not set" } ;
 ErrorId MsgDm::TraitSet                = { ErrorOf( ES_DM, 431, E_INFO, EV_NONE, 3 ), "%depotFile%%depotRev% - %name% set" } ;
@@ -774,6 +792,7 @@ ErrorId MsgDm::ExOPENCHANGE            = { ErrorOf( ES_DM, 381, E_WARN, EV_EMPTY
 ErrorId MsgDm::ExUNLOCKCHANGE            = { ErrorOf( ES_DM, 650, E_WARN, EV_EMPTY, 1 ), "[%argc% - shelved|Shelved] file(s) not locked in that changelist." } ;
 ErrorId MsgDm::ExOPENCLIENT            = { ErrorOf( ES_DM, 382, E_WARN, EV_EMPTY, 1 ), "[%argc% - file(s)|File(s)] not opened on this client." } ;
 ErrorId MsgDm::ExOPENNOTEDIT           = { ErrorOf( ES_DM, 383, E_WARN, EV_EMPTY, 1 ), "[%argc% - file(s)|File(s)] not opened for edit." } ;
+ErrorId MsgDm::ExOPENNOTEDITADD           = { ErrorOf( ES_DM, 849, E_WARN, EV_EMPTY, 1 ), "[%argc% - file(s)|File(s)] not opened for edit or add." } ;
 ErrorId MsgDm::ExOPENDFLT              = { ErrorOf( ES_DM, 384, E_WARN, EV_EMPTY, 1 ), "[%argc% - file(s)|File(s)] not opened in default changelist." } ;
 ErrorId MsgDm::ExRESOLVED              = { ErrorOf( ES_DM, 385, E_WARN, EV_EMPTY, 1 ), "[%argc% - no|No] file(s) resolved." } ;
 ErrorId MsgDm::ExTORESOLVE             = { ErrorOf( ES_DM, 387, E_WARN, EV_EMPTY, 1 ), "[%argc% - no|No] file(s) to resolve." } ;
@@ -813,6 +832,8 @@ ErrorId MsgDm::MonitorCantTerminate    = { ErrorOf( ES_DM, 409, E_INFO, EV_NONE,
 
 ErrorId MsgDm::AdminSpecData           = { ErrorOf( ES_DM, 466, E_INFO, EV_NONE, 1 ), "%depotFile% - created" } ;
 ErrorId MsgDm::AdminPasswordData       = { ErrorOf( ES_DM, 723, E_INFO, EV_NONE, 1 ), "%user% - must reset password" } ;
+ErrorId MsgDm::AdminSetLdapUserData    = { ErrorOf( ES_DM, 867, E_INFO, EV_NONE, 1 ), "%user% - now authenticates against LDAP" } ;
+ErrorId MsgDm::AdminSetLdapUserNoSuper = { ErrorOf( ES_DM, 875, E_FAILED, EV_USAGE, 0 ), "At least one super user with AuthMethod of 'perforce' must exist to perform this operation." } ;
 
 // Plucked from msgdb.cc.
 // XXX These should be ES_DM.
@@ -837,6 +858,50 @@ ErrorId MsgDm::ResourceAlreadyLocked   = { ErrorOf( ES_DM, 628, E_FATAL, EV_FAUL
 ErrorId MsgDm::NoSuchResource          = { ErrorOf( ES_DM, 629, E_FATAL, EV_FAULT, 2 ), "Resource %objType%#%objName% was never locked!" } ; // NOTRANS
 ErrorId MsgDm::ServersJnlAckData       = { ErrorOf( ES_DM, 801, E_INFO, EV_NONE, 9 ),
     "%serverID% '%lastUpdate%' %serverType% %persistedJnl%/%persistedPos% %appliedJnl%/%appliedPos% %jaFlags% %isAlive%" } ; // NOTRANS
+ErrorId MsgDm::NoSharedRevision        = { ErrorOf( ES_DM, 817, E_FAILED, EV_USAGE, 1 ), "Cannot import %depotFile% because there is no existing revision." } ;
+ErrorId MsgDm::NoSharedHistory         = { ErrorOf( ES_DM, 853, E_FAILED, EV_USAGE, 2 ), "Cannot import %depotFile%%depotRev% because it is not common to both file histories." } ;
+ErrorId MsgDm::ImportNoPermission         = { ErrorOf( ES_DM, 846, E_FAILED, EV_CONTEXT, 1 ), "Cannot import '%depotFile%' - protected namespace - access denied" } ;
+ErrorId MsgDm::ImportNoDepot           = { ErrorOf( ES_DM, 847, E_FAILED, EV_CONTEXT, 1 ), "Cannot import '%depotFile%' because it is in an unknown depot. " } ;
+ErrorId MsgDm::ImportDepotReadOnly     = { ErrorOf( ES_DM, 848, E_FAILED, EV_CONTEXT, 1 ), "Cannot import '%depotFile%' because this is a read-only depot. " } ;
+ErrorId MsgDm::ZipIntegMismatch        = { ErrorOf( ES_DM, 834, E_FAILED, EV_FAULT, 0 ), "Integration record mismatch." } ;
+ErrorId MsgDm::ZipBranchDidntMap       = { ErrorOf( ES_DM, 835, E_FAILED, EV_USAGE, 1 ), "Specified branch map is missing an entry for %depotFile%." } ;
+ErrorId MsgDm::UnrecognizedRevision    = { ErrorOf( ES_DM, 823, E_FAILED, EV_USAGE, 1 ), "Cannot import %depotFile% because its history is unrecognizable." } ;
+ErrorId MsgDm::NoLazySource            = { ErrorOf( ES_DM, 824, E_FAILED, EV_USAGE, 1 ), "Cannot import %depotFile%#%depotRev% because the source revision cannot be found." } ;
+ErrorId MsgDm::RevisionAlreadyPresent  = { ErrorOf( ES_DM, 822, E_FAILED, EV_USAGE, 1 ), "Cannot import %depotFile% because there is already an existing revision." } ;
+ErrorId MsgDm::SharedActionMismatch    = { ErrorOf( ES_DM, 818, E_FAILED, EV_USAGE, 3 ), "Conflict: %change% %depotFile%%depotRev% (%action%)." } ;
+ErrorId MsgDm::SharedDigestMismatch    = { ErrorOf( ES_DM, 819, E_FAILED, EV_USAGE, 6 ), "Cannot import %importFile%%importRev% (%importDigest%) over %depotFile%%depotRev% (%digest%)" } ;
+ErrorId MsgDm::ImportedChange          = { ErrorOf( ES_DM, 841, E_INFO, EV_NONE, 2 ), "Change %change% imported as change %finalChange%." } ;
+ErrorId MsgDm::ImportedFile            = { ErrorOf( ES_DM, 842, E_INFO, EV_NONE, 3 ), "File %depotFile%%depotRev% imported as %targetRev%." } ;
+ErrorId MsgDm::ImportedIntegration     = { ErrorOf( ES_DM, 843, E_INFO, EV_NONE, 2 ), "Integration imported from %fromFile% to %toFile%." } ;
+ErrorId MsgDm::ImportSkippedInteg      = { ErrorOf( ES_DM, 851, E_INFO, EV_NONE, 2 ), "Integration from %fromFile% to %toFile% was already present in the target repository." } ;
+ErrorId MsgDm::ImportDanglingInteg     = { ErrorOf( ES_DM, 857, E_INFO, EV_NONE, 2 ), "Integration from %fromFile% to %toFile% ignored due to missing revision." } ;
+ErrorId MsgDm::ImportSkippedChange     = { ErrorOf( ES_DM, 844, E_INFO, EV_NONE, 1 ), "Change %change% was already present in the target repository." } ;
+ErrorId MsgDm::ImportSkippedFile       = { ErrorOf( ES_DM, 845, E_INFO, EV_NONE, 1 ), "File %depotFile%%depotRev% was already present in the target repository." } ;
+ErrorId MsgDm::InvalidZipFormat        = { ErrorOf( ES_DM, 826, E_FAILED, EV_FAULT, 1 ), "Invalid zipfile format: %details%." } ;
+ErrorId MsgDm::UnzipCouldntLock        = { ErrorOf( ES_DM, 858, E_FAILED, EV_USAGE, 1 ), "Cannot import revisions. Not all files could be %action%." } ;
+ErrorId MsgDm::UnzipIsTaskStream       = { ErrorOf( ES_DM, 877, E_FAILED, EV_USAGE, 3 ), "File %depotFile%%depotRev% cannot be imported. This version of the server does not support copying changes from a remote server into the task stream %streamName%. Exclude the task stream's files from the remote map, or map them to an alternate destination, or delete the task stream from the destination server, and retry the operation." } ;
+ErrorId MsgDm::UnzipIsLocked           = { ErrorOf( ES_DM, 859, E_FAILED, EV_USAGE, 3 ), "%depotFile% - locked by %user%@%client%" } ;
+ErrorId MsgDm::ResubmitNoFiles         = { ErrorOf( ES_DM, 864, E_FAILED, EV_USAGE, 1 ), "Cannot resubmit shelved %change% because no shelved files were found." } ;
+ErrorId MsgDm::ResubmitStreamClassic   = { ErrorOf( ES_DM, 865, E_FAILED, EV_USAGE, 0 ), "Cannot resubmit these changes because some affect stream depots while others affect classic depots." } ;
+ErrorId MsgDm::ResubmitMultiStream     = { ErrorOf( ES_DM, 866, E_FAILED, EV_USAGE, 1 ), "Cannot resubmit change %change% because it affects multiple stream depots." } ;
+ErrorId MsgDm::UnsubmittedChange       = { ErrorOf( ES_DM, 855, E_INFO, EV_NONE, 1 ), "Change %change% unsubmitted and shelved." } ;
+ErrorId MsgDm::UnsubmittedRenamed      = { ErrorOf( ES_DM, 868, E_INFO, EV_NONE, 2 ), "Change %change% renamed as %origChange%, unsubmitted and shelved." } ;
+ErrorId MsgDm::UnsubmitNotHead         = { ErrorOf( ES_DM, 827, E_FAILED, EV_USAGE, 3 ), "Cannot unsubmit %depotFile%%depotRev% because the head revision is %headRev%" } ;
+ErrorId MsgDm::UnsubmitNoTraits        = { ErrorOf( ES_DM, 850, E_FAILED, EV_USAGE, 2 ), "Cannot unsubmit %depotFile%%depotRev% because it has associated attributes." } ;
+ErrorId MsgDm::UnsubmitOpened          = { ErrorOf( ES_DM, 828, E_FAILED, EV_USAGE, 3 ), "Cannot unsubmit %depotFile%%depotRev% because it is currently opened by %client%" } ;
+ErrorId MsgDm::UnsubmitArchived        = { ErrorOf( ES_DM, 854, E_FAILED, EV_USAGE, 3 ), "Cannot unsubmit %depotFile%%depotRev% - %action% has occurred." } ;
+ErrorId MsgDm::UnsubmitTaskStream      = { ErrorOf( ES_DM, 863, E_FAILED, EV_USAGE, 2 ), "Cannot unsubmit %depotFile%%depotRev% - it is in an active task stream." } ;
+ErrorId MsgDm::UnsubmitNotSubmitted    = { ErrorOf( ES_DM, 829, E_FAILED, EV_USAGE, 1 ), "Cannot unsubmit change %change% because it is not a submitted change." } ;
+ErrorId MsgDm::UnsubmitWrongUser       = { ErrorOf( ES_DM, 830, E_FAILED, EV_USAGE, 1 ), "Cannot unsubmit change %change% because it was submitted by another user." } ;
+ErrorId MsgDm::UnsubmitWrongClient     = { ErrorOf( ES_DM, 831, E_FAILED, EV_USAGE, 1 ), "Cannot unsubmit change %change% because it was submitted by another client." } ;
+ErrorId MsgDm::UnsubmitIntegrated      = { ErrorOf( ES_DM, 832, E_FAILED, EV_USAGE, 3 ), "Cannot unsubmit %change% because %depotFile%%depotRev% has been integrated elsewhere." } ;
+ErrorId MsgDm::UnsubmitNoInteg         = { ErrorOf( ES_DM, 833, E_FAILED, EV_FAULT, 0 ), "Integration record mismatch." } ;
+ErrorId MsgDm::UnsubmitNoChanges       = { ErrorOf( ES_DM, 874, E_FAILED, EV_USAGE, 1 ), "No changes were found matching %filespec% that could be unsubmitted." } ;
+ErrorId MsgDm::UnzipChangePresent      = { ErrorOf( ES_DM, 869, E_FATAL, EV_FAULT, 1 ), "An attempt was made to import %change% into this server, but a change record for that change is already present!" } ;
+ErrorId MsgDm::UnzipNoSuchArchive      = { ErrorOf( ES_DM, 882, E_FAILED, EV_FAULT, 1 ), "Input zip file does not contain an archive entry for %archiveEntry%." } ;
+ErrorId MsgDm::UnzipRevisionPresent    = { ErrorOf( ES_DM, 870, E_FATAL, EV_FAULT, 2 ), "An attempt was made to import %depotFile%%depotRev% into this server, but a revision record for that revision is already present!" } ;
+ErrorId MsgDm::UnzipIntegrationPresent = { ErrorOf( ES_DM, 871, E_FATAL, EV_FAULT, 4 ), "An attempt was made to import integration %toFile% %how% %fromFile% %fromRevRange% into this server, but an integration record for that integration is already present!" } ;
+ErrorId MsgDm::UnzipArchiveUnknown     = { ErrorOf( ES_DM, 873, E_FATAL, EV_FAULT, 4 ), "Partner server sent an unexpected archive! For index %index%, the supplied archive was %lbrFile% %lbrRev%, but our archive decision was %decision%." } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 

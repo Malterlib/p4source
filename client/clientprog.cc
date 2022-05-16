@@ -10,7 +10,7 @@
 # include <progress.h>
 
 ClientProgressText::ClientProgressText( int ty )
-    : typeOfProgress( ty ), total( 0 ), cnt( 0 ), first( 1 )
+    : typeOfProgress( ty ), total( 0 ), cnt( 0 ), backup( 0 )
 {
 }
 
@@ -19,11 +19,12 @@ ClientProgressText::~ClientProgressText()
 }
 
 void
-ClientProgressText::Description( const StrPtr *desc, int units )
+ClientProgressText::Description( const StrPtr *description, int units )
 {
-	printf( "%s ", desc->Text() );
+	desc.Set( description );
+	printf( "%s ", desc.Text() );
 	cnt = 0;
-	first = 1;
+	backup = 0;
 	total = 0;
 }
 
@@ -36,27 +37,36 @@ ClientProgressText::Total( long t )
 int
 ClientProgressText::Update( long pos )
 {
+	StrBuf res;
+
+	if( cnt == 40 )
+	{
+	    // every 40 updates, rewrite description
+
+	    printf( "\r%s ", desc.Text() );
+	    backup = 0;
+	    cnt = 0;
+	}
 	if( total )
 	{
 	    int pct = int(100.0 * pos / total);
 
-	    if( !first )
-		printf( "\b\b\b\b\b\b" );
-
-	    printf( "%3d%% %c", pct, "|/-\\"[ cnt ] );
+	    res << pct;
+	    res.Extend( '%' );
 	}
 	else
-	{
-	    if( !first )
-		printf( "\b\b\b\b\b\b\b\b" );
+	    res << pos;
+	res.Extend( ' ' );
+	res.Extend( "|/-\\"[ cnt++ & 3 ] );
+	res.Terminate();
 
-	    printf( "%6ld %c", pos, "|/-\\"[ cnt ] );
-	}
+	while( backup-- > 0 )
+		putchar( '\b' );
 
-	first = 0;
+	fputs( res.Text(), stdout );
+	backup = res.Length();
+
 	fflush(stdout);
-	if( ++cnt == 4 )
-	    cnt = 0;
 
 	return 0;
 }
@@ -64,7 +74,7 @@ ClientProgressText::Update( long pos )
 void
 ClientProgressText::Done( int fail )
 {
-	if( !first )
-	    printf( "\b" );
+	if( backup )
+	    putchar( '\b' );
 	printf( fail == CPP_FAILDONE ? "failed!\n" : "finishing\n");
 }

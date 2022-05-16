@@ -67,6 +67,9 @@ public:
     static bool
     IsIpV6Address(const char *addr, bool allowPrefix = true);
 
+    static bool
+    IsLocalAddress(const char *addr);
+
     // return a printable address
     static void
     GetAddress(

@@ -82,6 +82,8 @@ class NetBuffer : public NetTransport {
 
 	// NetTransport s
 
+	bool		HasAddress()
+			{ return transport->HasAddress(); }
 	StrPtr *	GetAddress( int raf_flags )
 			{ return transport->GetAddress( raf_flags ); }
 	StrPtr *	GetPeerAddress( int raf_flags )

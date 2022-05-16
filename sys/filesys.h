@@ -42,7 +42,6 @@
  *	FileSys::Open() - open named file according to mode
  *	FileSys::Write() - write a block into file
  *	FileSys::Read() - read a block from file
- *	FileSys::Readlink() - NOT IMPL ON WINDOWS returns target of the symbolic link
  *	FileSys::ReadLine() - read a line into string
  *	FileSys::ReadWhole() - read whole file into string
  *	FileSys::Close() - close file description
@@ -84,7 +83,6 @@ enum FileSysType
 
 	FST_TEXT =	0x0001,	// file is text
 	FST_BINARY =	0x0002,	// file is binary
-	FST_GZIP =	0x0003,	// file is gzip
 	FST_DIRECTORY =	0x0005,	// it's a directory
 	FST_SYMLINK =	0x0006,	// it's a symlink
 	FST_RESOURCE =	0x0007,	// Macintosh resource file
@@ -93,10 +91,16 @@ enum FileSysType
 	FST_CANTTELL =	0x000A,	// can read file to find out
 	FST_EMPTY =	0x000B,	// file is empty
 	FST_UNICODE =	0x000C,	// file is unicode
-	FST_GUNZIP =	0x000D,	// stream is gzip
 	FST_UTF16 =	0x000E,	// stream is utf8 convert to utf16
 
 	FST_MASK =	0x000F,	// mask for types
+
+	// Compression Modifiers
+
+	FST_C_ASIS =	0x0400,	// replacing FST_M_COMP
+	FST_C_GZIP =	0x0800,	// for gziped files
+	FST_C_GUNZIP =	0x0c00,	// for compress on client
+	FST_C_MASK =	0x0c00,
 
 	// Modifiers
 
@@ -130,11 +134,13 @@ enum FileSysType
 	FST_XBINARY =	0x0102,	// executable binary
 	FST_APPLETEXT =	0x0201,	// apple format text
 	FST_APPLEFILE =	0x0202,	// apple format binary
-	FST_XAPPLEFILE =	0x0302,	// executable apple format binary
+	FST_XAPPLEFILE =0x0302,	// executable apple format binary
 	FST_XUNICODE =	0x010C,	// executable unicode text
 	FST_XUTF16 =	0x010E,	// stream is utf8 convert to utf16
-	FST_RCS =	0x1041 	// RCS temporary file: raw text, sync on close
-
+	FST_RCS =	0x1041,	// RCS temporary file: raw text, sync on close
+	FST_GZIP =	0x0802,	// file is gzip
+	FST_GUNZIP =	0x0c02,	// stream is gzip
+	FST_GZIPTEXT =  0x0801, // file is text gzipped
 };
 
 enum FileStatFlags {
@@ -146,6 +152,10 @@ enum FileStatFlags {
 	FSF_EXECUTABLE	= 0x20,	// file is executable
 	FSF_EMPTY	= 0x40,	// file is empty
 	FSF_HIDDEN	= 0x80	// file is invisible (hidden)
+} ;
+
+enum FileSysAttr {
+	FSA_HIDDEN	= 0x01	// file is invisible (hidden)
 } ;
 
 enum FileOpenMode {
@@ -236,6 +246,7 @@ class FileSys {
 	void		Perms( FilePerm p ) { perms = p; }
 	void		ModTime( StrPtr *u ) { modTime = u->Atoi(); }
 	void		ModTime( time_t t ) { modTime = (int)t; }
+	time_t		GetModTime() { return modTime; }
 
 	// Set filesize hint for NT fragmentation avoidance
 
@@ -294,12 +305,9 @@ class FileSys {
 	virtual void	Truncate( offL_t offset, Error *e ) = 0;
 	virtual void	Unlink( Error *e = 0 ) = 0;
 	virtual void	Rename( FileSys *target, Error *e ) = 0;
-	// Note: Readlink in NOT IMPLEMENTED on Windows, sets Fatal error
-	virtual int	Readlink( StrBuf &linkPath, Error *e );
-	// Note: Writelink in NOT IMPLEMENTED on Windows, sets Fatal error
-	virtual int	Writelink( const StrPtr &linkPath, Error *e );
 	virtual void	Chmod( FilePerm perms, Error *e ) = 0;
 	virtual void	ChmodTime( Error *e ) = 0;
+	virtual void	SetAttribute( FileSysAttr attrs, Error *e ) { };
 
 	virtual void	Fsync( Error *e ) { }
 
@@ -343,6 +351,7 @@ class FileSys {
 	virtual void	MkDir( const StrPtr &p, Error *e );
 	void		MkDir( Error *e ) { MkDir( path, e ); }
 
+	virtual void	PurgeDir( const char *p, Error *e );
 	virtual void	RmDir( const StrPtr &p, Error *e );
 	void		RmDir( Error *e = 0 ) { RmDir( path, e ); }
 

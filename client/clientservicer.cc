@@ -67,6 +67,46 @@ class ReconcileHandle : public LastChance {
 			int delCount;
 } ;
 
+/*
+ * SendDir - utility method used by clientTraverseShort to decide if a
+ *	     filename should be output as a file or as a directory (status -s)
+ */
+int
+SendDir( PathSys *fileName, StrPtr *cwd, StrArray *dirs, int &idx, int skip )
+{
+	int isDir = 0;
+
+	// Skip printing file in current directory and just report subdirectory
+
+	if( skip )
+	{
+	    fileName->SetLocal( *cwd, StrRef( "..." ) );
+	    return 1;
+	}
+
+	// If file is in the current directory: isDirs is unset so that our
+	// caller will send back the original file.
+
+	fileName->ToParent();
+
+	if( !fileName->SCompare( *cwd ) )
+	    return isDir;
+
+	// Set path to the directory under cwd containing this file.
+	// 'dirs' is the list of dirs in cwd on workspace.
+
+	for( ; idx < dirs->Count() && !isDir; idx++ )
+	{
+	    if( fileName->IsUnderRoot( *dirs->Get( idx ) ) )
+	    {
+		fileName->SetLocal( *dirs->Get(idx), StrRef( "..." ));
+		++isDir;
+	    }
+	}
+
+	return isDir;
+}
+
 void
 clientReconcileFlush( Client *client, Error *e )
 {
@@ -160,10 +200,10 @@ clientReconcileEdit( Client *client, Error *e )
 		f->Translator( ClientSvc::XCharset( client, FromClient ) );
 
 		// Bypass expensive digest computation with -m unless the
-		// local file is newer than the submit time. 
+		// local file's timestamp is different from the server's.
 
 		if( !submitTime ||
-		    ( submitTime && ( f->StatModTime() > submitTime->Atoi()) ) )
+		    ( submitTime && ( f->StatModTime() != submitTime->Atoi()) ) )
 		{
 		    f->Digest( &localDigest, e );
 
@@ -193,10 +233,361 @@ clientReconcileEdit( Client *client, Error *e )
 	client->OutputError( e );
 }
 
+int
+clientTraverseShort( Client *client, StrPtr *cwd, const char *dir, int traverse,
+		    int noIgnore, int initial, int skipCheck, int skipCurrent,
+		    MapApi *map, StrArray *files, StrArray *dirs, int &idx,
+		    StrArray *depotFiles, int &ddx, const char *config, 
+		    Error *e )
+{
+	// Variant of clientTraverseDirs that computes the files to be
+	// added during traversal of directories instead of at the end,
+	// and returns directories and files rather than all files.
+	// This is used by 'status -s'.
+
+	// Scan the directory.
+
+	FileSys *f = client->GetUi()->File( FST_BINARY );
+	f->SetContentCharSetPriv( client->content_charset );
+	f->Set( StrRef( dir ) );
+	int fstat = f->Stat();
+
+	Ignore *ignore = client->GetIgnore();
+	StrPtr ignored = client->GetIgnoreFile();
+	StrBuf from;
+	StrBuf to;
+	CharSetCvt *cvt = ( (TransDict *)client->transfname )->ToCvt();
+	const char *fileName;
+	int found = 0;
+
+	// Use server case-sensitivity rules to find files to add
+	// from.SetCaseFolding( client->protocolNocase );
+
+	// With unicode server and client using character set, we need
+	// to send files back as utf8.
+
+	if( client != client->translated )
+	    fileName = cvt->FastCvt( f->Name(), strlen(f->Name()), 0 );
+	else
+	    fileName = f->Name();
+
+	// If this is a file, not a directory, and not to be ignored,
+	// save the filename 
+
+	if( !( fstat & FSF_DIRECTORY ) )
+	{
+	    if( ( fstat & FSF_EXISTS ) || ( fstat & FSF_SYMLINK ) )
+	    {
+		if( noIgnore || 
+	           !ignore->Reject( StrRef(f->Name()), ignored, config ) )
+		{
+		    files->Put()->Set( fileName );
+		    found = 1;
+		}
+	    }
+	    delete f;
+	    return found;
+	}
+
+	// If this is a symlink to a directory, and not to be ignored,
+	// return filename and quit
+
+	if( ( fstat & FSF_SYMLINK ) && ( fstat & FSF_DIRECTORY ) )
+	{
+	    if( noIgnore || 
+	        !ignore->Reject( StrRef(f->Name()), ignored, config ) )
+	    {
+		files->Put()->Set( fileName );
+		found = 1;
+	    }
+	    delete f;
+	    return found;
+	}
+
+	// This is a directory to be scanned.
+
+	StrArray *ua = f->ScanDir( e );
+
+	if( e->Test() )
+	{
+	    // report error but keep moving
+
+	    delete f;
+	    client->OutputError( e );
+	    return 0;
+	}
+
+	// PathSys for concatenating dir and local path,
+	// to get full path
+
+	PathSys *p = PathSys::Create();
+	p->SetCharSet( f->GetCharSetPriv() );
+
+	// Attach path delimiter to dirs so Sort() works correctly, and also to
+	// save relevant Stat() information.
+
+	StrArray *a = new StrArray();
+	StrBuf dirDelim;
+	StrBuf symDelim;
+
+#ifdef OS_NT
+	dirDelim.Set( "\\" );
+	symDelim.Set( "\\\\" );
+#else
+	dirDelim.Set( "/" );
+	symDelim.Set( "//" );
+#endif
+
+	// Now files & dirs at this level from ScanDir() will be sorted
+	// in the same order as the depotFiles array. And delimiters tell us
+	// the Stat() of those files.
+
+	for( int i = 0; i < ua->Count(); i++ )
+	{
+	    p->SetLocal( StrRef( dir ), *ua->Get(i) );
+	    f->Set( *p );
+	    int stat = f->Stat();
+	    StrBuf out;
+
+	    if( ( stat & FSF_DIRECTORY ) && !( stat & FSF_SYMLINK ) )
+		out << ua->Get( i ) << dirDelim;
+	    else if( ( stat & FSF_DIRECTORY ) && ( stat & FSF_SYMLINK ) )
+		out << ua->Get( i ) << symDelim;
+	    else if( ( stat & FSF_EXISTS ) || ( stat & FSF_SYMLINK ) )
+		out << ua->Get(i);
+	    else
+		continue;
+
+	    a->Put()->Set( out );
+	}
+	a->Sort( !StrBuf::CaseUsage() );
+	delete ua;
+
+	// If directory is unknown to p4, we don't need to check that files
+	// are in depot (they aren't), so just return after the first file
+	// is found and bypass checking. 
+
+	int doSkipCheck = skipCheck;
+
+	int dddx = 0;
+	int matched;
+	StrArray *depotDirs = new StrArray();
+
+	// First time through we save depot dirs
+
+	if( initial )
+	{
+	    StrPtr *ddir;
+	    for( int j=0; ddir=client->GetVar( StrRef("depotDirs"), j); j++)
+	    {
+		StrBuf dirD;
+		dirD << ddir << dirDelim;
+		depotDirs->Put()->Set( dirD );
+	    }
+	    depotDirs->Sort( !StrBuf::CaseUsage() );
+	}
+
+	// For each directory entry.
+
+	for( int i = 0; i < a->Count(); i++ )
+	{
+	    // Strip delimiters and use the hints to determine stat
+
+	    int isDir = 0;
+	    int isSymDir = 0;
+	    StrBuf fName;
+	    if( a->Get(i)->EndsWith( symDelim.Text(), 2 ) )
+	    {
+		++isDir;
+		++isSymDir;
+		fName.Set( a->Get(i)->Text(), a->Get(i)->Length() - 2 );
+	    }
+	    else if( a->Get(i)->EndsWith( dirDelim.Text(), 1 ) )
+	    {
+		++isDir;
+		fName.Set( a->Get(i)->Text(), a->Get(i)->Length() - 1 );
+	    }
+	    else
+		fName.Set( a->Get(i) );
+		
+	    // Check mapping, ignore files before sending file or symlink back
+
+	    p->SetLocal( StrRef( dir ), fName );
+	    f->Set( *p );
+	    int checkFile = 0;
+	    StrPtr *ddir;
+
+	    if( client != client->translated )
+		fileName = cvt->FastCvt( f->Name(), strlen(f->Name()) );
+	    else
+		fileName = f->Name();
+
+	    if( isDir )
+	    {
+		if( isSymDir )
+		{
+		    from.Set( fileName );
+		    from << "/";
+
+	            if( client->protocolNocase != StrBuf::CaseUsage() )
+	            {
+	                from.SetCaseFolding( client->protocolNocase );
+	                matched = map->Translate( from, to, MapLeftRight );
+	                from.SetCaseFolding( !client->protocolNocase );
+	            }
+	            else
+	                matched = map->Translate( from, to, MapLeftRight );
+
+		    if( !matched )
+			continue;
+
+		    if( noIgnore || 
+	                !ignore->Reject( StrRef(f->Name()), ignored, config ) )
+		    {
+			if( doSkipCheck )
+			{
+			    p->Set( fileName );
+			    (void)SendDir( p, cwd, dirs, idx, skipCurrent );
+			    files->Put()->Set( p );
+			    found = 1;
+			    break;
+			}
+			else
+			   ++checkFile;
+		    }
+		}
+		else if( traverse )
+		{
+		    if( initial )
+		    {
+			dirs->Put()->Set( fileName );
+			int foundOne = 0;
+			int l;
+
+			// If this directory is unknown to the depot, we don't
+			// need to compare against depot files. 
+
+			for( ; dddx < depotDirs->Count() && !foundOne; dddx++)
+			{
+			    StrBuf fName;
+			    fName << fileName << dirDelim;
+			    const StrPtr *ddir = depotDirs->Get( dddx );
+			    p->SetLocal( *cwd, *ddir );
+			    l =  fName.SCompare( *p );
+			    if( !l )
+				++foundOne;
+			    else if( l < 0 )
+				break;
+			}
+			skipCheck = !foundOne ? 1 : 0;
+		    }
+
+		    found = clientTraverseShort( client, cwd, f->Name(),
+						traverse, noIgnore, 0,
+						skipCheck, skipCurrent, map,
+						files, dirs, idx, depotFiles,
+						ddx, config, e );
+
+		    // Stop traversing directories when we have a file to
+		    // to add, unless we are at the top and need to check
+		    // for files in the current directory.
+
+		    if( found && !initial )
+			break;
+		    else if( found && initial && !skipCurrent )
+			found = 0;
+		    if( found )
+			break;
+		}
+	    }
+	    else
+	    {
+		from.Set( fileName );
+
+	        if( client->protocolNocase != StrBuf::CaseUsage() )
+	        {
+	            from.SetCaseFolding( client->protocolNocase );
+	            matched = map->Translate( from, to, MapLeftRight );
+	            from.SetCaseFolding( !client->protocolNocase );
+	        }
+	        else
+	            matched = map->Translate( from, to, MapLeftRight );
+
+		if( !matched )
+		    continue;
+
+		if( noIgnore || 
+	            !ignore->Reject( StrRef(f->Name()), ignored, config ) )
+		{
+		    if( doSkipCheck )
+		    {
+			p->Set( fileName );
+			(void)SendDir( p, cwd, dirs, idx, skipCurrent );
+			files->Put()->Set( p );
+			found = 1;
+			break;
+		    }
+		    else
+			++checkFile;
+		}
+	    }
+
+	    // See if file is in depot and if not, either set the file
+	    // or directory to be reported back to the server.
+
+	    if( checkFile )
+	    {
+		int l = 0;
+		int finished = 0;
+		while ( !finished )
+		{
+		    if( ddx >= depotFiles->Count())
+			l = -1;
+		    else
+			l = StrRef( fileName ).SCompare( *depotFiles->Get(ddx));
+
+		    if( !l )
+		    {
+			++ddx;
+			++finished;
+		    }
+		    else if( l < 0 )
+		    {
+			p->Set( fileName );
+			if( initial && skipCurrent )
+			{
+			    p->ToParent();
+			    p->SetLocal( *p, StrRef("...") );
+			    files->Put()->Set( p );
+			}
+			else if( SendDir( p, cwd, dirs, idx, skipCurrent ) )
+			    files->Put()->Set( p );
+			else
+			    files->Put()->Set( fileName );
+			found = 1;
+			break;
+		    }
+		    else
+			++ddx;
+		}
+		if( ( !initial || skipCurrent ) && found )
+		    break;
+	    }
+	}
+
+	delete p;
+	delete a;
+	delete f;
+	delete depotDirs;
+
+	return found;
+}
+
 void
-clientTraverseDirs( Client *client, const char *dir, int traverse,
-		    int noIgnore, MapApi *map, StrArray *files, 
-		    StrArray *sizes, Error *e )
+clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
+		    MapApi *map, StrArray *files, StrArray *sizes, 
+		    int &hasIndex, StrArray *hasList, const char *config, 
+		    Error *e )
 {
 	// Return all files in dir, and optionally traverse dirs in dir,
 	// while checking each file against map before returning it
@@ -215,10 +606,6 @@ clientTraverseDirs( Client *client, const char *dir, int traverse,
 	CharSetCvt *cvt = ( (TransDict *)client->transfname )->ToCvt();
 	const char *fileName;
 
-	// Use server case-sensitivity rules to find files to add
-
-	from.SetCaseFolding( client->protocolNocase );
-
 	// With unicode server and client using character set, we need
 	// to send files back as utf8.
 
@@ -234,7 +621,8 @@ clientTraverseDirs( Client *client, const char *dir, int traverse,
 	{
 	    if( ( fstat & FSF_EXISTS ) || ( fstat & FSF_SYMLINK ) )
 	    {
-		if( noIgnore || !ignore->Reject( StrRef(f->Name()), ignored ) )
+		if( noIgnore || 
+	            !ignore->Reject( StrRef(f->Name()), ignored, config ) )
 		{
 		    files->Put()->Set( fileName );
 		    sizes->Put()->Set( StrNum( f->GetSize() ) );
@@ -249,11 +637,21 @@ clientTraverseDirs( Client *client, const char *dir, int traverse,
 
 	if( ( fstat & FSF_SYMLINK ) && ( fstat & FSF_DIRECTORY ) )
 	{
-	    if( noIgnore || !ignore->Reject( StrRef(f->Name()), ignored ) )
+	    if( noIgnore || 
+	        !ignore->Reject( StrRef(f->Name()), ignored, config ) )
 	    {
 		files->Put()->Set( fileName );
 		sizes->Put()->Set( StrNum( f->GetSize() ) );
 	    }
+	    delete f;
+	    return;
+	}
+
+	// Directory might be ignored,  bail
+
+	if( !noIgnore && 
+	    ignore->Reject( StrRef( f->Name() ), ignored, config ) )
+	{
 	    delete f;
 	    return;
 	}
@@ -271,13 +669,15 @@ clientTraverseDirs( Client *client, const char *dir, int traverse,
 	    return;
 	}
 
-	a->Sort(0);
+	// Sort in case sensitivity of client
+	a->Sort( !StrBuf::CaseUsage() );
 
 	// PathSys for concatenating dir and local path,
 	// to get full path
 
 	PathSys *p = PathSys::Create();
 	p->SetCharSet( f->GetCharSetPriv() );
+	int matched;
 
 	// For each directory entry.
 
@@ -287,12 +687,34 @@ clientTraverseDirs( Client *client, const char *dir, int traverse,
 
 	    p->SetLocal( StrRef( dir ), *a->Get(i) );
 	    f->Set( *p );
-	    int stat = f->Stat();
 
 	    if( client != client->translated )
 		fileName = cvt->FastCvt( f->Name(), strlen(f->Name()) );
 	    else
 		fileName = f->Name();
+
+	    // Do compare with array list (skip files if possible)
+	    int cmp = -1;
+
+	    while( hasList && hasIndex < hasList->Count() )
+	    {
+	        cmp = f->Path()->SCompare( *hasList->Get( hasIndex ) );
+
+	        if( cmp < 0 )
+	            break;
+
+	        hasIndex++;
+
+	        if( cmp == 0 )
+	            break;
+	    }
+
+	    // Don't stat if we matched a file from the edit list
+
+	    if( cmp == 0 )
+	        continue;
+
+	    int stat = f->Stat();
 
 	    if( stat & FSF_DIRECTORY )
 	    {
@@ -301,10 +723,20 @@ clientTraverseDirs( Client *client, const char *dir, int traverse,
 		    from.Set( fileName );
 		    from << "/";
 
-		    if( !map->Translate( from, to, MapLeftRight ) )
+	            if( client->protocolNocase != StrBuf::CaseUsage() )
+	            {
+	                from.SetCaseFolding( client->protocolNocase );
+	                matched = map->Translate( from, to, MapLeftRight );
+	                from.SetCaseFolding( !client->protocolNocase );
+	            }
+	            else
+	                matched = map->Translate( from, to, MapLeftRight );
+
+		    if( !matched )
 			continue;
 
-		    if( noIgnore || !ignore->Reject( StrRef(f->Name()),ignored))
+		    if( noIgnore || 
+	                !ignore->Reject( StrRef(f->Name()), ignored, config ) )
 		    {
 			files->Put()->Set( fileName );
 			sizes->Put()->Set( StrNum( f->GetSize() ) );
@@ -312,15 +744,27 @@ clientTraverseDirs( Client *client, const char *dir, int traverse,
 		}
 		else if( traverse )
 		    clientTraverseDirs( client, f->Name(), traverse, noIgnore,
-					map, files, sizes, e );
+					map, files, sizes, hasIndex, hasList, 
+	                                config, e );
 	    }
 	    else if( ( stat & FSF_EXISTS ) || ( stat & FSF_SYMLINK ) )
 	    {
 		from.Set( fileName );
-		if( !map->Translate( from, to, MapLeftRight ) )
+
+	        if( client->protocolNocase != StrBuf::CaseUsage() )
+	        {
+	            from.SetCaseFolding( client->protocolNocase );
+	            matched = map->Translate( from, to, MapLeftRight );
+	            from.SetCaseFolding( !client->protocolNocase );
+	        }
+	        else
+	            matched = map->Translate( from, to, MapLeftRight );
+
+		if( !matched )
 		    continue;
 
-		if( noIgnore || !ignore->Reject( StrRef(f->Name()), ignored ) )
+		if( noIgnore || 
+	            !ignore->Reject( StrRef(f->Name()), ignored, config ) )
 		{
 		    files->Put()->Set( fileName );
 		    sizes->Put()->Set( StrNum( f->GetSize() ) );
@@ -350,7 +794,9 @@ clientReconcileAdd( Client *client, Error *e )
 	StrPtr *dir = client->transfname->GetVar( P4Tag::v_dir, e );
 	StrPtr *confirm = client->GetVar( P4Tag::v_confirm, e );
 	StrPtr *traverse = client->GetVar( "traverse" );
+	StrPtr *summary = client->GetVar( "summary" );
 	StrPtr *skipIgnore = client->GetVar( "skipIgnore" );
+	StrPtr *skipCurrent = client->GetVar( "skipCurrent" );
 	StrPtr *mapItem;
 
 	if( e->Test() )
@@ -359,6 +805,8 @@ clientReconcileAdd( Client *client, Error *e )
 	MapApi *map = new MapApi;
 	StrArray *files = new StrArray();
 	StrArray *sizes = new StrArray();
+	StrArray *dirs = new StrArray();
+	StrArray *depotFiles = new StrArray();
 
 	// Construct a MapTable object from the strings passed in by server
 
@@ -376,12 +824,10 @@ clientReconcileAdd( Client *client, Error *e )
 	    map->Insert( StrRef( c+j ), StrRef( c+j ), m );
 	}
 
-	clientTraverseDirs( client, dir->Text(), traverse != 0, skipIgnore != 0,
-			    map, files, sizes, e );
-	delete map;
-
 	// If we have a list of files we know are in the depot already,
-	// filter them out of our list of files to add
+	// filter them out of our list of files to add. For -s option,
+	// we need to have this list of depot files for computing files
+	// and directories to add (even if it is an empty list).
 
 	StrRef skipAdd( "skipAdd" );
 	ReconcileHandle *recHandle =
@@ -389,8 +835,59 @@ clientReconcileAdd( Client *client, Error *e )
 
 	if( recHandle )
 	{
-	    recHandle->pathArray->Sort(0);
+	    recHandle->pathArray->Sort( !StrBuf::CaseUsage() );
+	}
+	else if( !recHandle && summary != 0 )
+	{
+	    recHandle = new ReconcileHandle;
+	    client->handles.Install( &skipAdd, recHandle, e );
 
+	    if( e->Test() )
+		return;
+	}
+
+	// status -s also needs the list of files opened for add appended
+	// to the list of depot files.
+
+	if( summary != 0 )
+	{
+	    const StrPtr *dfile;
+	    for( int j=0; dfile=client->GetVar( StrRef("depotFiles"), j); j++)
+		depotFiles->Put()->Set( dfile );
+	    for( int j=0; dfile=recHandle->pathArray->Get(j); j++ )
+		depotFiles->Put()->Set( dfile );
+	    depotFiles->Sort( !StrBuf::CaseUsage() );
+	}
+
+	// status -s will output files in the current directory and paths
+	// rather than all of the files individually. Compare against depot
+	// files early so we can abort traversal early if we can.
+
+	int hasIndex = 0;
+	const char *config = client->GetEnviro()->Get( "P4CONFIG" );
+
+	if( summary != 0 )
+	{
+	    int idx = 0;
+	    int ddx = 0;
+	    (void)clientTraverseShort( client, dir, dir->Text(), traverse != 0,
+				      skipIgnore != 0, 1, 0, skipCurrent != 0,
+				      map, files, dirs, idx,
+				      depotFiles, ddx, config, e );
+	}
+	else
+	    clientTraverseDirs( client, dir->Text(), traverse != 0,
+				skipIgnore != 0, map, files, sizes, hasIndex, 
+				recHandle ? recHandle->pathArray : 0, 
+	                        config, e );
+	delete map;
+
+	// Compare list of files on client with list of files in the depot
+	// if we have this list from ReconcileEdit. Skip this comparison
+	// if summary because it was done already.
+
+	if( recHandle && !summary )
+	{
 	    int i1 = 0, i2 = 0, i0 = 0, l = 0;
 
 	    while( i1 < files->Count() )
@@ -435,6 +932,8 @@ clientReconcileAdd( Client *client, Error *e )
 	client->Confirm( confirm );
 	delete files;
 	delete sizes;
+	delete dirs;
+	delete depotFiles;
 }
 
 void

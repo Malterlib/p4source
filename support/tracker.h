@@ -50,8 +50,10 @@ enum TrackerType {
 	TT_DB_PAGE_OUT,			// pages written out of cache
 	TT_DB_READ_WAIT,		// max wait for read lock in ms
 	TT_DB_WRITE_WAIT,		// max wait for write lock in ms
+	TT_DB_PEEK_WAIT,		// max wait for peek lock in ms
 	TT_DB_READ_HELD,		// max hold of read lock in ms
-	TT_DB_WRITE_HELD,		// max hold of read lock in ms
+	TT_DB_WRITE_HELD,		// max hold of write lock in ms
+	TT_DB_PEEK_HELD,		// max hold of peek lock in ms
 	TT_DB_WEDGED,			// wedged (failed 3 attempts)
 	TT_DB_REORG_CNT,		// number of pages reorged
 	TT_DB_SPLIT_CNT,		// number of page splits
@@ -90,3 +92,13 @@ class Tracker {
 
 } ;
 
+class TrackReportCallback
+{
+    public:
+	    			TrackReportCallback() { }
+	virtual			~TrackReportCallback() { }
+
+	virtual int		Level() const = 0;
+
+	virtual void		Report( const char * ) const = 0;
+} ;

@@ -37,6 +37,7 @@ class ClientMerge2 : public ClientMerge {
 	virtual void	Select( MergeStatus stat, Error *e );
 	virtual void	Chmod( const char *perms, Error *e );
 	virtual void	CopyDigest( StrPtr *digest, Error *e );
+	virtual void	SetTheirModTime( StrPtr *modTime );
 
 	virtual MergeStatus Resolve( Error *e );
 	virtual MergeStatus AutoResolve( MergeForce forceMerge );

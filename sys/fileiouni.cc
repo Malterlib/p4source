@@ -28,7 +28,7 @@ FileIOUnicode::FillBuffer( Error *e )
 	if (trans)
 	{
 	    int cnt;
-	    cnt = FileIOBinary::Read( tbuf.Text()+tsz, tbuf.Length()-tsz, e );
+	    cnt = FileIOCompress::Read( tbuf.Text()+tsz, tbuf.Length()-tsz, e );
 	    if ( e->Test() )
 		return;
 
@@ -93,7 +93,7 @@ FileIOUnicode::FlushBuffer( Error *e )
 	    }
 	    else
 	    {
-		FileIOBinary::Write( tbuf.Text(), ts-tbuf.Text(), e );
+		FileIOCompress::Write( tbuf.Text(), ts-tbuf.Text(), e );
 		snd += iobuf.Text()-ss;
 		if (snd)
 		    memmove(iobuf.Text(), ss, snd);

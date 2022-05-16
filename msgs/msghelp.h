@@ -42,6 +42,7 @@ class MsgHelp {
 	static ErrorId HelpChanges;
 	static ErrorId HelpClient;
 	static ErrorId HelpClients;
+	static ErrorId HelpClone;
 	static ErrorId HelpCluster;
 	static ErrorId HelpConfigure;
 	static ErrorId HelpConfigurables;
@@ -62,10 +63,12 @@ class MsgHelp {
 	static ErrorId HelpDiff2;
 	static ErrorId HelpDirs;
 	static ErrorId HelpDiskspace;
+	static ErrorId HelpDistributed;
 	static ErrorId HelpDuplicate;
+	static ErrorId HelpDvcs;
 	static ErrorId HelpEdit;
 	static ErrorId HelpExport;
-	static ErrorId HelpDistributed;
+	static ErrorId HelpFetch;
 	static ErrorId HelpFiles;
 	static ErrorId HelpFilelog;
 	static ErrorId HelpFix;
@@ -79,6 +82,7 @@ class MsgHelp {
 	static ErrorId HelpHelp;
 	static ErrorId HelpIndex;
 	static ErrorId HelpInfo;
+	static ErrorId HelpInit;
 	static ErrorId HelpInteg;
 	static ErrorId HelpInteg3;
 	static ErrorId HelpInteged;
@@ -98,6 +102,7 @@ class MsgHelp {
 	static ErrorId HelpLegal;
 	static ErrorId HelpLdap;
 	static ErrorId HelpLdaps;
+	static ErrorId HelpLdapSync;
 	static ErrorId HelpLicense;
 	static ErrorId HelpList;
 	static ErrorId HelpLock;
@@ -128,7 +133,10 @@ class MsgHelp {
 	static ErrorId HelpProxy;
 	static ErrorId HelpPrune;
 	static ErrorId HelpPull;
+	static ErrorId HelpPush;
 	static ErrorId HelpReload;
+	static ErrorId HelpRemote;
+	static ErrorId HelpRemotes;
 	static ErrorId HelpRename;
 	static ErrorId HelpRenameUser;
 	static ErrorId HelpReconcile;
@@ -137,6 +145,8 @@ class MsgHelp {
 	static ErrorId HelpResolve;
 	static ErrorId HelpResolved;
 	static ErrorId HelpRestore;
+	static ErrorId HelpResubmit;
+	static ErrorId HelpResubmitShort;
 	static ErrorId HelpRetype;
 	static ErrorId HelpRevert;
 	static ErrorId HelpReview;
@@ -155,6 +165,7 @@ class MsgHelp {
 	static ErrorId HelpStreamintro;
 	static ErrorId HelpStreams;
 	static ErrorId HelpSubmit;
+	static ErrorId HelpSwitch;
 	static ErrorId HelpSync;
 	static ErrorId HelpTag;
 	static ErrorId HelpTickets;
@@ -165,10 +176,13 @@ class MsgHelp {
 	static ErrorId HelpUnload;
 	static ErrorId HelpUnlock;
 	static ErrorId HelpUnshelve;
+	static ErrorId HelpUnsubmit;
+	static ErrorId HelpUnzip;
 	static ErrorId HelpUser;
 	static ErrorId HelpUsers;
 	static ErrorId HelpVerify;
 	static ErrorId HelpWhere;
+	static ErrorId HelpZip;
 	static ErrorId HelpReplicate;
 
 	static ErrorId ResolveUserHelp;

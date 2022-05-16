@@ -271,6 +271,9 @@ FileSys::CheckType( int scan )
 		    }
 		}
 	    }
+	    if( rettype == FST_UNICODE &&
+		!p4tunable.Get( P4TUNE_FILESYS_DETECTUNICODE ) )
+		rettype = FST_TEXT;
 	    if( execbits )
 		rettype |= FST_M_EXEC;
 	    return BestFiletype( (FileSysType)rettype );

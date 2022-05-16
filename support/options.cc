@@ -255,8 +255,6 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionSourceFile,
 	"output-flags",       Options::OutputFlags,  'O', ':',
 	                      &MsgSupp::OptionOutputFlags,
-	"show-flags",         Options::ShowFlags,    's', ':',
-	                      &MsgSupp::OptionShowFlags,
 	"resolve-flags",      Options::ResolveFlags, 'A', ':',
 	                      &MsgSupp::OptionResolveFlags,
 	"accept-flags",       Options::AcceptFlags,  'a', ':',
@@ -447,6 +445,16 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionTest,
 	"active",             Options::Active,       'A', 0,
 	                      &MsgSupp::OptionActive,
+	"groups",             Options::GroupMode,    'g', 0,
+	                      &MsgSupp::OptionGroupMode,
+	"create",             Options::Create,       'c', 0,
+	                      &MsgSupp::OptionCreate,
+	"list",               Options::List,         'l', 0,
+	                      &MsgSupp::OptionList,
+	"mainline",           Options::Mainline,     'm', 0,
+	                      &MsgSupp::OptionMainline,
+	"movechanges",        Options::MoveChanges,  'r', 0,
+	                      &MsgSupp::OptionMoveChanges,
 	"replication-status", Options::ReplicationStatus, 'J', 0,
 	                      &MsgSupp::OptionReplicationStatus,
 
@@ -460,6 +468,8 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionTo,
 	"parallel",           Options::Parallel,     0, ':',
 	                      &MsgSupp::OptionParallel,
+	"parallel",           Options::ParallelSubmit,     0, ':',
+	                      &MsgSupp::OptionParallelSubmit,
 	"pid-file",           Options::PidFile,     0, '?',
 	                      &MsgSupp::OptionPidFile,
 	"noretransfer",       Options::NoRetransfer, 0, '#',
@@ -473,6 +483,8 @@ Options::OptionInfo Options::list[] = {
 	"bypass-exclusive-lock",
 	                      Options::BypassExclusiveLock, 0, 0,
 	                      &MsgSupp::OptionBypassExlusiveLock,
+	"retain-lbr-revisions",  Options::RetainLbrRevisions, 0, 0,
+	                      &MsgSupp::OptionRetainLbrRevisions,
 
 	0, 0, 0, 0, 0
 } ;

@@ -19,12 +19,21 @@
 # include "filesys.h"
 # include "fileio.h"
 
+# include <msgsupp.h>
+
 void
 FileIOBuffer::Open( FileOpenMode mode, Error *e )
 {
 	// Start w/ binary open
 
-	FileIOBinary::Open( mode, e );
+	if( ( GetType() & FST_C_MASK ) == FST_C_GUNZIP )
+	{
+	    // We can't handle gunzip stuff at the level below...
+	    e->Set( MsgSupp::Deflate );
+	    return;
+	}
+
+	FileIOCompress::Open( mode, e );
 
 	// Clear send/receive buffers
 
@@ -37,7 +46,7 @@ FileIOBuffer::FlushBuffer( Error *e )
 #if defined( USE_EBCDIC ) && defined( NO_EBCDIC_FILES )
     	__etoa_l( iobuf.Text(), iobuf.Length() );
 #endif
-	FileIOBinary::Write( iobuf.Text(), snd, e );
+	FileIOCompress::Write( iobuf.Text(), snd, e );
 	snd = 0;
 }
 
@@ -60,7 +69,7 @@ FileIOBuffer::Close( Error *e )
 
 	// finish with binary close
 
-	FileIOBinary::Close( e );
+	FileIOCompress::Close( e );
 }
 
 void
@@ -143,7 +152,7 @@ FileIOBuffer::Write( const char *buf, int len, Error *e )
 void
 FileIOBuffer::FillBuffer( Error *e )
 {
-	rcv = FileIOBinary::Read( iobuf.Text(), iobuf.Length(), e );
+	rcv = FileIOCompress::Read( iobuf.Text(), iobuf.Length(), e );
 #if defined( USE_EBCDIC ) && defined( NO_EBCDIC_FILES )
 	if( rcv > 0 )
 	    __atoe_l( iobuf.Text(), rcv );
@@ -253,7 +262,7 @@ FileIOBuffer::Seek( offL_t pos, Error *e )
 	    FlushBuffer( e );
 
 	if( !e->Test() )
-	    FileIOBinary::Seek( pos, e );
+	    FileIOCompress::Seek( pos, e );
 
 	// Clear send/receive buffers
 

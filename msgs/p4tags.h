@@ -106,6 +106,7 @@ struct P4Tag {
 	static const char v_changeType[];
 	static const char v_charset[];
 	static const char v_clientAddress[];
+	static const char v_clientCase[];
 	static const char v_clientCwd[];
 	static const char v_clientFile[];
 	static const char v_clientHost[];
@@ -165,6 +166,7 @@ struct P4Tag {
 	static const char v_host[];
 	static const char v_how[];
 	static const char v_ignore[];
+	static const char v_initroot[];
 	static const char v_isgroup[];
 	static const char v_journalcopyFlags[];
 	static const char v_job[];
@@ -271,6 +273,7 @@ struct P4Tag {
 	static const char v_server2[];
 	static const char v_serverID[];
 	static const char v_serverAddress[];
+	static const char v_serverCluster[];
 	static const char v_serverDescription[];
 	static const char v_serverDate[];
 	static const char v_serverEncryption[];
@@ -463,6 +466,7 @@ struct P4Tag {
 	static const char z_jnlnum[];
 	static const char z_jnloffst[];
 	static const char z_p4port[];
+	static const char z_p4target[];
 	static const char z_pid[];
 	static const char z_serverid[];
 	static const char z_zkhostport[];

@@ -50,7 +50,6 @@ class MsgSupp {
 	static ErrorId MagicHeader;
 
 	static ErrorId RegexError;
-	static ErrorId NotImplemented;
 
 	static ErrorId OptionChange;
 	static ErrorId OptionPort;
@@ -259,6 +258,7 @@ class MsgSupp {
 	static ErrorId OptionTaskStatus;
 	static ErrorId OptionAllUsers;
 	static ErrorId OptionParallel;
+	static ErrorId OptionParallelSubmit;
 	static ErrorId OptionPromote;
 	static ErrorId OptionInputFile;
 	static ErrorId OptionPidFile;
@@ -269,7 +269,13 @@ class MsgSupp {
 	static ErrorId OptionDurableOnly;
 	static ErrorId OptionNonAcknowledging;
 	static ErrorId OptionReplicationStatus;
+	static ErrorId OptionGroupMode;
 	static ErrorId OptionBypassExlusiveLock;
+	static ErrorId OptionCreate;
+	static ErrorId OptionList;
+	static ErrorId OptionMainline;
+	static ErrorId OptionMoveChanges;
+	static ErrorId OptionRetainLbrRevisions;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

@@ -541,6 +541,64 @@ DateTimeHighPrecision::Nanos() const
 }
 
 void
+DateTimeHighPrecision::FmtElapsed(
+	StrBuf &buf,
+	const DateTimeHighPrecision t2 ) const
+{
+	int elapsedSeconds, elapsedNanos;
+
+	if( t2.seconds == seconds )
+	{
+	    elapsedSeconds = 0;
+	    elapsedNanos = t2.nanos - nanos;
+	}
+	else if( t2.nanos > nanos )
+	{
+	    elapsedSeconds = t2.seconds - seconds;
+	    elapsedNanos = t2.nanos - nanos;
+	}
+	else
+	{
+	    elapsedSeconds = t2.seconds - seconds - 1;
+	    elapsedNanos = ( 1000000000L + t2.nanos ) - nanos;
+	}
+
+	buf.Alloc( DTHighPrecisionBufSize );
+	if( elapsedSeconds )
+	    sprintf( buf.Text(), "%ds", elapsedSeconds );
+	else
+	    sprintf( buf.Text(), "%dms", elapsedNanos / 1000000 );
+	buf.SetLength();
+}
+
+P4INT64
+DateTimeHighPrecision::ElapsedNanos( const DateTimeHighPrecision &t2 )
+{
+	int elapsedSeconds, elapsedNanos;
+
+	if( t2.seconds == seconds )
+	{
+	    elapsedSeconds = 0;
+	    elapsedNanos = t2.nanos - nanos;
+	}
+	else if( t2.nanos > nanos )
+	{
+	    elapsedSeconds = t2.seconds - seconds;
+	    elapsedNanos = t2.nanos - nanos;
+	}
+	else
+	{
+	    elapsedSeconds = t2.seconds - seconds - 1;
+	    elapsedNanos = ( 1000000000L + t2.nanos ) - nanos;
+	}
+
+	P4INT64 result = ( ((P4INT64)elapsedSeconds) * 1000000000L ) +
+	                 elapsedNanos;
+
+	return result;
+}
+
+void
 DateTimeHighPrecision::Fmt( char *buf ) const
 {
 	struct tm *tm = localtime( &seconds );

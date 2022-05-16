@@ -10,6 +10,7 @@ enum P4TunableName {
 	P4TUNE_DB_ISALIVE,
 	P4TUNE_DB_JNLACK_SHARED,
 	P4TUNE_DB_MONITOR_SHARED,
+	P4TUNE_DB_PAGE_MIGRATE,
 	P4TUNE_DB_PEEKING,
 	P4TUNE_DB_PEEKING_USEMAXLOCK,
 	P4TUNE_DB_REORG_DISABLE,
@@ -78,6 +79,7 @@ enum P4TunableName {
 	P4TUNE_FILESYS_BINARYSCAN,		// see filecheck.cc
 	P4TUNE_FILESYS_BUFSIZE,			// see filesys.h
 	P4TUNE_FILESYS_CACHEHINT,		// see filesys.cc
+	P4TUNE_FILESYS_DETECTUNICODE,		// see filesys.cc
 	P4TUNE_FILESYS_MAKETMP,
 	P4TUNE_FILESYS_MAXMAP,			// see readfile.cc
 	P4TUNE_FILESYS_MAXSYMLINK,		// see fileiosym.cc
@@ -88,6 +90,7 @@ enum P4TunableName {
 	P4TUNE_LBR_AUTOCOMPRESS,		// see submit
 	P4TUNE_LBR_BUFSIZE,			// see lbr.h
 	P4TUNE_LBR_PROXY_CASE,			// see pxclient.cc
+	P4TUNE_LBR_RCS_EXISTCHECK,		// see usersubmit.cc
 	P4TUNE_LBR_RCS_MAXLEN,			// see lbrkeyed.cc
 	P4TUNE_LBR_RETRY_MAX,			// see lbrstatus.cc
 	P4TUNE_LBR_STAT_INTERVAL,		// see pxclient.cc and lbrstatus.cc
@@ -115,7 +118,6 @@ enum P4TunableName {
 	P4TUNE_PROXY_MONITOR_LEVEL,		// see pxmonitor.cc
 	P4TUNE_RCS_MAXINSERT,
 	P4TUNE_RCS_NOFSYNC,			// see rcsvfile.cc
-	P4TUNE_RPC_DELIVER_DUPLEX,		// See userfiles.cc,usersync.cc
 	P4TUNE_RPC_HIMARK,
 	P4TUNE_RPC_LOWMARK,
 	P4TUNE_RPL_CHECKSUM_AUTO,
@@ -123,7 +125,6 @@ enum P4TunableName {
 	P4TUNE_RPL_CHECKSUM_TABLE,
 	P4TUNE_RPL_COMPRESS,			// See server / rpl.cc
 	P4TUNE_RPL_COUNTER_HOOK,		// See server / userpull.cc
-	P4TUNE_RPL_GROUPED,			// See server / rmtservice.cc
 	P4TUNE_RPL_JNL_BATCH_SIZE,		// See server / rpl.cc
 	P4TUNE_RPL_JNLWAIT_ADJUST,		// See server / rhservice.cc
 	P4TUNE_RPL_JNLWAIT_INTERVAL,		// See server / rhservice.cc
@@ -142,6 +143,9 @@ enum P4TunableName {
 	P4TUNE_SERVER_FILECHARSET,
 	P4TUNE_SERVER_LOCKS_ARCHIVE,		// see userarchive.cc
 	P4TUNE_SERVER_LOCKS_SYNC,		// see usersync.cc
+	P4TUNE_SERVER_ALLOWFETCH,		// DVCS feature enabling
+	P4TUNE_SERVER_ALLOWPUSH,		// DVCS feature enabling
+	P4TUNE_SERVER_ALLOWREWRITE,		// DVCS feature enabling
 	P4TUNE_SERVER_MAXCOMMANDS,		// see rhmain.cc
 	P4TUNE_FILETYPE_BYPASSLOCK,		// see useropen.cc
 	P4TUNE_FILETYPE_MAXTEXTSIZE,		// set useropen.cc
@@ -163,10 +167,7 @@ enum P4TunableName {
 	P4TUNE_CMD_MEMORY_PROCFREE,		// see shhandler.cc
 	P4TUNE_CMD_MEMORY_LIMIT,		// see shhandler.cc
 	P4TUNE_CMD_MEMORY_FLUSHPOOL,		// see shhandler.cc
-	P4TUNE_CMD_MEMORY_LISTPOOL,		// see shhandler.cc
-	P4TUNE_CMD_MEMORY_LISTPOOL2,		// see shhandler.cc
-	P4TUNE_CMD_MEMORY_LISTALL,		// see shhandler.cc
-	P4TUNE_CMD_MEMORY_LISTALL2,		// see shhandler.cc
+	P4TUNE_CMD_MEMORY_LISTPOOLS,		// see shhandler.cc
 	P4TUNE_CMD_MEMORY_CHKPT,		// see shhandler.cc
 	// ^^ Smart Heap tunables must be a continuous group ^^
 	P4TUNE_SYS_MEMORY_STACKSIZE,

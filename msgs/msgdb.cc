@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgDb error code is: 92
+ * Current high value for a MsgDb error code is: 93
  */
 
 # include <error.h>
@@ -118,6 +118,7 @@ ErrorId MsgDb::TreeAlreadyUpgraded     = { ErrorOf( ES_DB, 87, E_FATAL, EV_FAULT
 ErrorId MsgDb::TreeInternal	       = { ErrorOf( ES_DB, 71, E_FATAL, EV_FAULT, 0 ), "Internal BTree system failure!" } ;//NOTRANS
 ErrorId MsgDb::TreeNewerVersion	       = { ErrorOf( ES_DB, 91, E_FATAL, EV_FAULT, 1 ), "BTree %file% from a newer server version" } ;
 ErrorId MsgDb::TreeOlderVersion	       = { ErrorOf( ES_DB, 92, E_FATAL, EV_FAULT, 1 ), "BTree %file% from an older server version - 2013.2 or earlier" } ;
+ErrorId MsgDb::DoNotBlameTheDb         = { ErrorOf( ES_DB, 93, E_FATAL, EV_FAULT, 0 ), "Error object passed to database already set with an error" } ;
 
 ErrorId MsgDb::MapCheckFail	       = { ErrorOf( ES_DB, 72, E_FAILED, EV_TOOBIG, 0 ), "%'MapCheck'% rejected too many rows." } ;
 

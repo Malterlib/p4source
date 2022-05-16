@@ -181,6 +181,10 @@ extern int errno;
 # endif // NEED_DBGBREAK
 # endif // OS_NT
 
+// Smart Heap instrumentation.
+# ifdef MEM_DEBUG
+# define NEED_SMARTHEAP
+# endif
 # ifdef NEED_SMARTHEAP
 # if defined( USE_SMARTHEAP )
 # ifdef OS_NT

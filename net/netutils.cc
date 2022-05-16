@@ -18,6 +18,7 @@
 # include <ctype.h>
 # include "strbuf.h"
 # include "netport.h"
+# include "netipaddr.h"
 # include "netutils.h"
 # include "netsupport.h"
 # include "debug.h"
@@ -607,6 +608,33 @@ NetUtils::IsIpV6Address( const char *str, bool /* allowPrefix */ )
 	}
 
 	return (numColons >= 2) && (numDots == 0 || numDots == 3);
+}
+
+/*
+ * Simple function to check whether an IP is loopback, as defined by
+ * the IANA as:
+ *    IPv4 = 127.0.0.1/8
+ *    IPv6 = ::1
+ *
+ * IPv6 mapped IPv4 loopback addresses that theoretically are valid,
+ * but it's unlikely that we'll ever encounter them in the wild.
+ */
+bool
+NetUtils::IsLocalAddress( const char *addr )
+{
+	static const NetIPAddr localV4(StrRef("127.0.0.1"), 8);
+	static const NetIPAddr localV6(StrRef("::1"), 128);
+	static const NetIPAddr localMapped(StrRef("::ffff:127.0.0.1"), 104); // 80 + 16 + 8
+
+	const NetIPAddr tgtAddr(StrRef(addr), 0);
+
+	if( tgtAddr.IsTypeV4() )
+	    return tgtAddr.Match(localV4);
+
+	if( tgtAddr.IsTypeV6() )
+	    return tgtAddr.Match(localV6) || tgtAddr.Match(localMapped);
+
+	return false;
 }
 
 // return a printable address

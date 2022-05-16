@@ -158,6 +158,12 @@ ClientMerge2::CopyDigest( StrPtr *digest, Error *e )
 	hasDigests = 1;
 }
 
+void
+ClientMerge2::SetTheirModTime( StrPtr *modTime )
+{
+	theirs->ModTime( modTime );
+}
+
 MergeStatus
 ClientMerge2::AutoResolve( MergeForce force )
 {

@@ -27,6 +27,15 @@ class MsgOs {
 	static ErrorId EmptyFork;
 	static ErrorId NameTooLong;
 
+	static ErrorId ZipExists;
+	static ErrorId ZipOpenEntryFailed;
+	static ErrorId ZipCloseEntryFailed;
+	static ErrorId ZipWriteFailed;
+	static ErrorId ZipMissing;
+	static ErrorId ZipNoEntry;
+	static ErrorId ZipOpenEntry;
+	static ErrorId ZipReadFailed;
+
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 
 	// still sending these.

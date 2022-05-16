@@ -61,6 +61,16 @@ static ErrorId trustNotSSL = { ErrorOf( 0, 0, E_INFO, 0, 0),
 	"Only SSL connections require trust"
 };
 
+int 
+clientTrustHelp( Error *e )
+{
+	ClientUser cuser;
+	e->Set( trustHelp );
+	cuser.Message( e );
+	e->Clear();
+	return 0;
+}
+
 inline void
 OutputBuffer( Client *c, const StrPtr &b )
 {

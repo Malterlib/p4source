@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSpec error code is: 16
+ * Current high value for a MsgSpec error code is: 17
  */
 
 # include <error.h>
@@ -92,7 +92,7 @@ ErrorId MsgSpec::SpecStream = { ErrorOf( ES_SPEC, 14, E_INFO, EV_NONE, 0 ),
 "#  %'Description'%:  A short description of the stream (optional).\n" 
 "#  %'Options'%:      Stream Options:\n" 
 "#                       %'allsubmit/ownersubmit [un]locked'%\n"
-"#                       %'[no]toparent [no]fromparent'%\n"
+"#                       %'[no]toparent [no]fromparent mergedown/mergeany'%\n"
 "#  %'Paths'%:        Identify paths in the stream and how they are to be\n" 
 "#                generated in resulting clients of this stream.\n"
 "#                Path types are %'share/isolate/import/import+/exclude'%.\n"
@@ -230,6 +230,12 @@ ErrorId MsgSpec::SpecGroup = { ErrorOf( ES_SPEC, 6, E_INFO, EV_NONE, 0  ),
 "#               A time (in seconds, unless '%'unlimited'%' or '%'unset'%')\n"
 "#               which determines how long a '%'p4 password'%'\n"
 "#               password remains valid (default is unset).\n"
+"#  %'LdapConfig'%:  The LDAP configuration to use when populating the group's\n"
+"#               user list from an LDAP query. See '%'p4 help ldap'%'.\n"
+"#  %'LdapSearchQuery'%:\n"
+"#               The LDAP query used to identify the members of the group.\n"
+"#  %'LdapUserAttribute'%:\n"
+"#               The LDAP attribute that represents the user's username.\n"
 "#  %'Subgroups'%:   Other groups automatically included in this group.\n"
 "#  %'Owners'%:      Users allowed to change this group without requiring super\n"
 "#               access permission.\n"
@@ -295,6 +301,10 @@ ErrorId MsgSpec::SpecServer = { ErrorOf( ES_SPEC, 15, E_INFO, EV_NONE, 0  ),
 "#  %'Type'%:        The server type: %'server'%/%'broker'%/%'proxy'%.\n"
 "#  %'Name'%:        The %'P4NAME'% used by this server (optional).\n"
 "#  %'Address'%:     The %'P4PORT'% used by this server (optional).\n"
+"#  %'ExternalAddress'%:\n"
+"#               For an edge server, this optional field contains its\n"
+"#               external address for connections from the commit server.\n"
+"#               This field is required for distributed parallel submit.\n"
 "#  %'Description'%: A short description of the server (optional).\n"
 "#  %'Services'%:    Services provided by this server.\n"
 "#               One of the following (grouped by server type):\n"
@@ -312,6 +322,7 @@ ErrorId MsgSpec::SpecServer = { ErrorOf( ES_SPEC, 15, E_INFO, EV_NONE, 0  ),
 "#               %'workspace-server'%: node in data center installation\n"
 "#               %'standby'%: read-only replica server which uses %'journalcopy'%\n"
 "#               %'forwarding-standby'%: forwarding-replica which uses %'journalcopy'%\n"
+"#               %'local'%: personal server created by %'init'%\n"
 "#        Type %''broker''%:\n"
 "#               %'broker'%: %'p4broker'% process\n"
 "#               %'workspace-router'%: Routing %'broker'% in data center installation\n"
@@ -449,5 +460,21 @@ ErrorId MsgSpec::SpecEditSpec = { ErrorOf( ES_SPEC, 12, E_INFO, EV_NONE, 0  ),
 "#  Updating this form can be dangerous!\n"
 "#  To update the job spec, see '%'p4 help jobspec'%' for proper directions.\n"
 "#  Otherwise, see '%'p4 help spec'%'.\n" };
+
+ErrorId MsgSpec::SpecRemote = { ErrorOf( ES_SPEC, 17, E_INFO, EV_NONE, 0  ), 
+"# A %'Perforce Remote'% Specification.\n"
+"#\n"
+"#  %'RemoteID'%:    The remote identifier.\n"
+"#  %'Address'%:     The %'P4PORT'% used by the remote server.\n"
+"#  %'Owner'%:       The user who created this remote.\n"
+"#  %'Options'%:     Remote options: %'[un]locked, [no]compress'%.\n"
+"#  %'Update'%:      The date this specification was last modified.\n"
+"#  %'Access'%:      The date of the last '%'push/fetch'%' on this remote.\n"
+"#  %'Description'%: A short description of the remote server (optional).\n"
+"#  %'LastFetch'%:   The last changelist that was fetched.\n"
+"#  %'LastPush'%:    The last changelist that was pushed.\n"
+"#  %'DepotMap'%:    Lines to map local files to remote files.\n"
+"#\n"
+"#                   See 'p4 help remote' for detailed information.\n" };
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 

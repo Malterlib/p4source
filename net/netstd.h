@@ -22,13 +22,7 @@ class NetTcpSelector;
 class NetStdioEndPoint : public NetEndPoint {
 
     public:
-			NetStdioEndPoint( Error *e )
-			{
-				s = -1;
-			        rc = 0;
-			        isAccepted = false;
-			}
-
+			NetStdioEndPoint( bool separateFDs, Error *e );
 			~NetStdioEndPoint();
 
 	StrPtr		*GetHost() { return 0; }
@@ -48,6 +42,7 @@ class NetStdioEndPoint : public NetEndPoint {
     private:
 
 	int		s;
+	bool		soloFD;
 	StrBuf		addr;
 	RunCommand	*rc;
 
@@ -59,6 +54,7 @@ class NetStdioTransport : public NetTransport {
 			NetStdioTransport( int r, int s, bool isAccept );
 			~NetStdioTransport();
 
+	bool		HasAddress() { return false; }
 	StrPtr	*	GetAddress( int f );
 
 	StrPtr	*	GetPeerAddress( int f );
@@ -72,13 +68,7 @@ class NetStdioTransport : public NetTransport {
 
 	void		Close();
 
-//	No select() call for NT pipe.  (this will need a lot of native glue).
-//
-# if defined (OS_NT)
-	void		SetBreak( KeepAlive *b ) { breakCallback = 0; }
-# else
 	void		SetBreak( KeepAlive *b ) { breakCallback = b; }
-# endif
 
 	int		GetSendBuffering() { return 2048; }
 	int		GetRecvBuffering() { return 2048; }

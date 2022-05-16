@@ -8,7 +8,10 @@ P4Library $(SUPPORTLIB) :
 	inffast.c
 	inflate.c
 	inftrees.c
+	ioapi.c
 	trees.c
+	unzip.c
+	zip.c
 	zutil.c 
 	;
 

@@ -59,6 +59,8 @@ clientReceiveFiles( Client *client, Error *e )
 	StrPtr *threads = client->GetVar( P4Tag::v_peer, e );
 	StrPtr *blockCount = client->GetVar( P4Tag::v_blockCount );
 	StrPtr *blockSize = client->GetVar( P4Tag::v_scanSize );
+	StrPtr *clientSend = client->GetVar( "clientSend" );
+	StrPtr *confirm = client->GetVar( P4Tag::v_confirm );
 
 	if( e->Test() )
 	{
@@ -95,6 +97,10 @@ clientReceiveFiles( Client *client, Error *e )
 	        tc[i].args.AddArg( "-s" );
 	        tc[i].args.AddArg( *blockSize );
 	    }
+	    if( clientSend )
+	    {
+		tc[i].args.AddArg( "-r" );
+	    }
 	    //StrBuf x;
 	    //p4debug.printf("Argv: %s\n", tc[i].args.Text( x ) );
 
@@ -112,10 +118,17 @@ clientReceiveFiles( Client *client, Error *e )
 		return;
 	    }
 	}
+
+	int errSet = 0;
 	for( int i = 0; i < nThreads; i++ )
 	{
 		//p4debug.printf("Waiting for child %d\n", i);
-	    tc[ i ].cmd.WaitChild();
+	    int status = tc[ i ].cmd.WaitChild();
+	    if( status )
+		++errSet;
 	}
 	delete []tc;
+
+	if( errSet && confirm )
+	    client->Confirm( confirm );
 }

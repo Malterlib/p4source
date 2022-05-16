@@ -133,7 +133,7 @@ class Client : public Rpc {
     public:
 	// caller's main interface
 
-			Client();
+			Client( Enviro * = 0 );
 			~Client();
 
 	void		SetTrans( int output, int content = -2,
@@ -169,7 +169,7 @@ class Client : public Rpc {
 	void		SetVersion( const StrPtr *c );
 
 	void		SetPassword( const StrPtr *c )
-	    { password.Set( c ); ticketKey.Clear(); authenticated = 0; }
+	    { password.Set( c ); password2.Set( c ); ticketKey.Clear(); authenticated = 0; }
 
 	void		SetUser( const StrPtr *c ) 
 			{ user.Set( c ); authenticated = 0; }
@@ -206,6 +206,8 @@ class Client : public Rpc {
 
 	void		SetEnviroFile( const char *c );
 
+	void		SetInitRoot( const char *c ) { initRoot.Set( c ); }
+
 	void		SetServerID( const char *c )
 	                { serverID.Set( c ); }
 
@@ -236,6 +238,7 @@ class Client : public Rpc {
 	const StrPtr	&GetLoginSSO();
 	const StrPtr	&GetSyncTrigger();
 	const StrPtr	&GetIgnoreFile();
+	const StrPtr	&GetInitRoot();
 	const StrPtr	&GetBuild() { return buildInfo; }
 	const StrPtr	&GetExecutable() { return exeName; }
 
@@ -303,6 +306,11 @@ class Client : public Rpc {
 
         int             IsUnicode() { return is_unicode; }
 
+	void		SetSyncTime( int t ) { syncTime = t; }
+	int		GetSyncTime()        { return syncTime; }
+
+	int		ServerDVCS() { return protocolServer >= 39; }
+
     public:
 	// Old closure stuff, only used by scc api and to be retired
 
@@ -350,6 +358,7 @@ class Client : public Rpc {
 	StrBuf		ignorefile;	// ignore filename
 	StrBuf		exeName;
 	StrBuf		charsetVar;
+	StrBuf		initRoot;
 	StrRef		buildInfo;
 
 	Enviro		*enviro;	// environment vars
@@ -357,6 +366,8 @@ class Client : public Rpc {
 	int      	ignoreList;	// environment vars to ignore
 	int		is_unicode;	// talking in unicode mode
 	int		hostprotoset;
+	int		syncTime;
+	int		ownEnviro;
 
 	StrNum		protocolBuf;	// for our GetProtocol
 

@@ -68,6 +68,12 @@ public:
 	WantIPv6() const;
 
 	bool
+	MayJSH() const;
+
+	bool
+	MustJSH() const;
+
+	bool
 	MayRSH() const;
 
 	bool
@@ -142,6 +148,7 @@ private:
 	enum PrefixType
 	{
 	    PT_NONE,
+	    PT_JSH,	// java flavor of rsh
 	    PT_RSH,
 	    PT_TCP,
 	    PT_TCP4,

@@ -24,6 +24,7 @@
 
 # include <stdhdrs.h>
 # include <strbuf.h>
+# include <strops.h>
 # include <error.h>
 # include <errornum.h>
 # include <msgsupp.h>
@@ -73,6 +74,7 @@ const static char *const envVars[] = {
 	"P4FTPTEMPLATE",
 	"P4HOST",
 	"P4IGNORE",
+	"P4INITROOT",
 	"P4JOURNAL",
 	"P4LANGUAGE",
 	"P4LOG",
@@ -806,14 +808,14 @@ Enviro::ReadItemPlatform( ItemType type, const char *var, EnviroItem * a )
 void
 Enviro::Set( const char *var, const char *value, Error *e )
 {
-	if ( !var || !strcasecmp( var, p4passwd ) || !HasCFPreferences() )
+	if ( !var || !strcasecmp( var, p4passwd ) )
 	    return;
 
 	// Make sure symbol tab is there
 
 	Setup();
 
-	if( !SetEnviro( var, value, e ) )
+	if( !SetEnviro( var, value, e ) || !HasCFPreferences() )
 	    return;
 
 	// Get from preferences
@@ -1212,7 +1214,25 @@ Enviro::ReadConfig( FileSys *f, Error *e, int checkSyntax, Enviro::ItemType ty )
 	    // Set as config'ed
 
 	    EnviroItem *a = GetItem( var.Text() );
-	    a->value.Set( equals + 1 );
+	    StrRef cnfdir( "$configdir" );
+	    if( configFile.Length() && line.Contains( cnfdir ) )
+	    {
+		// if value is $configdir then use real config dir
+		PathSys *p = PathSys::Create();
+
+		p->Set( configFile );
+		p->ToParent();
+
+		StrBuf t;
+
+		StrOps::Replace( t, StrRef( equals+1 ), cnfdir, *p );
+
+		a->value.Set( t );
+
+		delete p;
+	    }
+	    else
+		a->value.Set( equals + 1 );
 	    a->type = ty;
 	}
 }
@@ -1403,7 +1423,7 @@ Enviro::SetEnviro( const char *var, const char *value, Error *e )
 	// client up the directory tree, looking for setFile
 
 	FileSys *f = FileSys::Create( FileSysType( FST_TEXT|FST_L_CRLF ) );
-	FileSys *newf = FileSys::Create( FileSysType( FST_TEXT|FST_L_CRLF ) );
+	FileSys *newf = FileSys::Create( FileSysType( FST_TEXT ) );
 
 # if defined(OS_NT)
 	if( charset )

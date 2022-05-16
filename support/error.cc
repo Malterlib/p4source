@@ -61,6 +61,36 @@ Error::operator =( const Error &s )
 }
 
 /*
+ * Error::Merge() - Merge one Error struct into another
+ */
+
+Error &
+Error::Merge( const Error &source )
+{
+	/* If source error more severe than mine, save severity & generic */
+
+	if( source.severity >= severity )
+	{
+	    severity = source.severity;
+	    genericCode = source.genericCode;
+	}
+
+	if( !ep )
+	{
+	    // just copy the error private from the source
+	    ep = new ErrorPrivate;
+	    *ep = *source.ep;
+	}
+	else
+	{
+	    // need to merge the error privates
+	    ep->Merge( source.ep );
+	}
+
+	return *this;
+}
+
+/*
  * Error::Set() - add an error message into an Error struct
  */
 
@@ -320,6 +350,54 @@ ErrorPrivate::operator =( const ErrorPrivate &s )
 
 	if ( s.walk )
 	    walk = ids[errorCount-1].fmt + (s.walk - s.ids[errorCount-1].fmt);
+}
+
+void
+ErrorPrivate::Merge( const ErrorPrivate *ep )
+{
+	if( ep == this || ep->errorCount == 0 )
+	    return;
+
+	int	i;
+	int	mergeCount = ep->errorCount;
+
+	if( errorCount + mergeCount > ErrorMax )
+	    mergeCount = ErrorMax - errorCount;
+
+	for( i = 0; i < mergeCount; ++i )
+	    ids[ errorCount + i ] = ep->ids[ i ];
+
+	// errorDict.CopyVars( *ep->whichDict );
+	// we can't use copy because we want to merge
+	StrRef var, val;
+	for( i = 0; ep->whichDict->GetVar( i, var, val ); i++ )
+	    errorDict.SetVar( var, val );
+
+	whichDict = &errorDict;
+
+	errorCount += mergeCount;
+
+	if( ep->fmtSource != isConst )
+	{
+	    StrBuf newfmt;
+
+	    for( i = 0; i < errorCount; i++ )
+	    {
+		newfmt.Append( ids[i].fmt );
+		newfmt.Extend( 0 );
+	    }
+
+	    fmtbuf.Set( newfmt );
+	    char *p = fmtbuf.Text();
+
+	    for( i = 0; i < errorCount; i++ )
+	    {
+		ids[i].fmt = p;
+		p += strlen( p ) + 1;
+	    }
+
+	    fmtSource = isFmtBuf;
+	}
 }
 
 /*

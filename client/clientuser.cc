@@ -38,6 +38,7 @@
 # include <charcvt.h>
 
 # include <msgclient.h>
+# include <msgserver.h>
 
 # ifdef OS_MACOSX
 # include <CoreFoundation/CoreFoundation.h>
@@ -294,12 +295,24 @@ ClientUser::ErrorPause( char *errBuf, Error *e )
 	StrBuf buf;
 	OutputError( errBuf );
 	Prompt( StrRef( "Hit return to continue..." ), buf, 0, e );
+
+	if( editFile.Length() > 0 )
+	{
+	    FileSys *f = File( FST_UNICODE );
+	    f->Set( editFile );
+	    f->Unlink( e );
+	    delete f;
+	    editFile.Clear();
+	}
 }
 
 void
 ClientUser::Edit( FileSys *f1, Error *e )
 {
 	Edit( f1, enviro, e );
+
+	editFile.Set( f1->Name() );
+	f1->ClearDeleteOnClose();
 }
 
 void
@@ -774,17 +787,44 @@ ClientUser::Resolve( ClientResolveA *r, int preview, Error *e )
 void
 ClientUser::Message( Error *err )
 {
+	int keepfile = 0;
+
 	if( err->IsInfo() )
 	{
 	    // Info
 	    StrBuf buf;
 	    err->Fmt( buf, EF_PLAIN );
 	    OutputInfo( (char)err->GetGeneric() + '0', buf.Text() );
+
+	    if( err->CheckId( MsgServer::SpecNotCorrect ) )
+		keepfile = 1;
 	}
 	else
 	{
 	    // warn, failed, fatal
 	    HandleError( err );
+	    
+	    // report file name left
+	    if( !err->CheckId( MsgServer::ErrorInSpec ) )
+		keepfile = 1;
+	}
+
+	if( editFile.Length() > 0 )
+	{
+	    if( keepfile )
+	    {
+		Error other;
+		other.Set( MsgClient::FileKept ) << editFile.Text();
+		HandleError( &other );
+	    }
+	    else
+	    {
+		FileSys *f = File( FST_UNICODE );
+		f->Set( editFile );
+		f->Unlink( err );
+		delete f;
+	    }
+	    editFile.Clear();
 	}
 }
 

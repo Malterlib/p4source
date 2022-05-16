@@ -57,6 +57,8 @@ class ErrorPrivate {
 
 	void		Dump();
 
+	void		Merge( const ErrorPrivate * );
+
     public:
 
 	/* Embedded variables and their values */

@@ -28,7 +28,7 @@ class SHHandler {
 
 	void SetTunable( int index, unsigned int *value );
 
-	int SetTunable( const StrPtr &name, StrBuf *value );
+	int SetTunable( StrBuf &name, StrBuf &value );
 
 	void UnsetTunable( int index );
 
@@ -40,30 +40,18 @@ class SHHandler {
 
 	void ReportLeakage( int ckpt1, int ckpt2 );
 
-	void ListPool( const char *tag,
-			int ckpt,
-			int show_unused,
-			unsigned int detail )
-	{
-		ListPool( (MEM_POOL)1, tag, ckpt, show_unused, detail );
-
-	}
+	void ListAllPools( const char *tag,
+			    unsigned int detail );
 
     private:
 
-	void ListAllPools( const char *tag,
-			    int ckpt,
-			    int show_unused,
-			    unsigned int detail );
+	MEM_BOOL ValidatePool( MEM_POOL pool );
 
 	void ListPool( MEM_POOL pool,
 			const char *tag,
-			int ckpt,
-			int show_unused,
 			unsigned int detail );
 
 	void ListEntry( const MEM_POOL_ENTRY *entry,
-			int ckpt,
 			int show_unused );
 
 	MEM_SIZET FlushPool( MEM_POOL pool );

@@ -277,15 +277,20 @@ MarshalDict::GetChar( char c )
 INLINE int
 PythonDict::Get( StrBuf &var, StrBuf &val )
 {
-	if( !GetChar( 's' ) ) return 0;
-	StrOps::UnpackString( s, var );
+	if( !GetChar('s') && !GetChar('u') )
+		// Return if input is neither a string nor an Unicode
+		// string (Python 3.x uses Unicode strings by default).
+		return 0;
 
-	if( !GetChar( 's' ) ) return 0;
+	StrOps::UnpackString( s, var ); // bytes in 'u' strings are always 
+	                                // UTF-8 encoded.
+	
+	if( !GetChar('s') && !GetChar('u') )
+		return 0;
 	StrOps::UnpackString( s, val );
 
 	return 1;
 }
-
 
 /*
  * Prepare a Python Marhsalled dictionary for writing. Just involves

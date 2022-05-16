@@ -167,7 +167,6 @@ class Options
 			FollowInteg    , // annotate -I
 			SourceFile     , // -s on copy, integrate, merge,
 			                 // interchanges, populate
-			ShowFlags      , // diff -s<flags>
 			ResolveFlags   , // resolve -A<flags>
 			AcceptFlags    , // resolve -a<flags>
 			IntegFlags     , // integrate -R<flags>
@@ -262,6 +261,11 @@ class Options
 			Promote        , // shelve -p
 			Test           , // ldap -t, ldaps -t
 			Active         , // ldaps -A
+			GroupMode      , // ldapsync -g
+			Create         , // switch -c
+			List           , // switch -l
+			Mainline       , // switch -m
+			MoveChanges    , // switch -r
 			ReplicationStatus, // servers --replication-status, servers -J
 
 		// options which have only long-form option names go here:
@@ -272,6 +276,7 @@ class Options
 	                From           , // renameuser --from
 	                To             , // renameuser --to
 	                Parallel       , // sync --parallel
+	                ParallelSubmit , // submit --parallel
 	                InputFile      , // reload --input-file
 	                PidFile        , // p4d --pid-file
 	                NoRetransfer   , // submit --noretransfer
@@ -279,6 +284,7 @@ class Options
 			DurableOnly    , // journalcopy --durable-only
 			NonAcknowledging, // journalcopy --non-acknowledging
 			BypassExclusiveLock, // open --bypass-exclusive-lock
+			RetainLbrRevisions, // unzip --retain-lbr-revisions
 
 			UnusedLastOption
 	} ;

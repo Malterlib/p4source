@@ -18,7 +18,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgClient error code is: 42
+ * Current high value for a MsgClient error code is: 44
  */
 
 # include <error.h>
@@ -64,6 +64,9 @@ ErrorId MsgClient::DigestMisMatch      = { ErrorOf( ES_CLIENT, 37, E_FAILED, EV_
 ErrorId MsgClient::NotUnderPath        = { ErrorOf( ES_CLIENT, 38, E_FAILED, EV_CLIENT, 2 ), "File %clientFile% is not inside permitted filesystem path %clientPath%" } ;
 ErrorId MsgClient::LineTooLong         = { ErrorOf( ES_CLIENT, 39, E_FAILED, EV_CLIENT, 1 ), "Command line too long. Maximum length is %maxLineLen%. This length can be increased by setting filesys.bufsize in P4CONFIG or using -v." };
 ErrorId MsgClient::UnknownCharset      = { ErrorOf( ES_CLIENT, 42, E_FATAL, EV_CLIENT, 1 ), "Unknown P4CHARSET %charset%." };
+ErrorId MsgClient::FileKept	       = { ErrorOf( ES_CLIENT, 43, E_FAILED, EV_CLIENT, 1 ), "Edited File %file% kept due to errors." } ;
+ErrorId MsgClient::LockCheckFail       = { ErrorOf( ES_CLIENT, 44, E_FAILED, EV_CLIENT, 0 ), "File locking check failed, Perforce server can not run." } ;
+
 
 // ErrorId graveyard: retired/deprecated ErrorIds.
 

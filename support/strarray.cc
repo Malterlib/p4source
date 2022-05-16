@@ -86,6 +86,65 @@ StrArray::Sort( int caseFolding )
 	array->Sort();
 }
 
+int
+StrArray::Search( const StrBuf *key )
+{
+	// Ye old binary search.
+	// "Binary search routines are never written right the first time
+	// around" - Robert G Sheldon.
+	// This one has been fixed _3_ times since it was written.
+
+	// Search until we converge on the first record >= the key.
+	// Zero based indexing; 'hi' is one beyond the last valid record.
+
+	int lo = 0;
+	int hi = Count();
+
+	for(;;)
+	{
+	    int index = ( lo + hi ) / 2;
+
+	    // lo <= hi
+	    // if index == hi then lo == hi
+	    // if index == lo then hi == lo or hi == lo + 1
+
+	    // Return if we've converged.
+
+	    if( lo == hi )
+		return index;
+
+	    int cmp = array->Compare( key, Get( index ) );
+
+	    // If cmp == 0 we treat it as cmp < 0 -- we're positioning
+	    // before the first matching record.
+
+	    // If cmp > 0 && index == lo we're converging one past this
+	    // current record.  Set lo = hi so that we'll return index = hi.
+
+	    if( cmp <= 0 )
+		hi = index;
+	    else if( index != lo )
+		lo = index;
+	    else
+		lo = hi;
+	}
+}
+
+const StrBuf *
+StrArray::Find( const StrBuf *key )
+{
+	// Handy wrapper for Search() for when you just expect one record.
+	// Return one matching record if found, otherwise return 0.
+
+	int index = Search( key );
+	const StrBuf *r = Get( index );
+
+	if( r && array->Compare( key, r ) )
+	    return 0;
+
+	return r;
+}
+
 /*
  * StrPtrArray -- an array of StrPtrs
  */

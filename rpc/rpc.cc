@@ -384,14 +384,16 @@ Rpc::Connect( Error *e )
 void
 Rpc::GetEncryptionType( StrBuf &value )
 { 
-	transport->GetEncryptionType( value );
+	if( transport )
+	    transport->GetEncryptionType( value );
 }
 
 
 void
 Rpc::GetPeerFingerprint( StrBuf &value )
 {
-	transport->GetPeerFingerprint( value );
+	if( transport )
+	    transport->GetPeerFingerprint( value );
 }
 
 void
@@ -502,6 +504,12 @@ StrPtr *
 Rpc::GetAddress( int raf_flags )
 {
 	return transport ? transport->GetAddress( raf_flags ) : 0;
+}
+
+bool
+Rpc::HasAddress()
+{
+	return transport ? transport->HasAddress() : false;
 }
 
 StrPtr *
@@ -647,6 +655,19 @@ Rpc::InvokeDuplex( const char *opName )
 	// This data makes a loop: meter it, so we know to dispatch for it.
 
 	int sz = InvokeOne( opName );
+	duplexFrecv += sz;
+	duplexFsend += sz;
+	Dispatch( DfDuplex, service->dispatcher );
+}
+
+void
+Rpc::InvokeDuplexPlus( const char *opName, int extra )
+{
+	// This data makes a loop: meter it, so we know to dispatch for it.
+	// We know the return will have some extra content, supply that 
+	// so we can add it in to better estimate the return
+
+	int sz = InvokeOne( opName ) + extra;
 	duplexFrecv += sz;
 	duplexFsend += sz;
 	Dispatch( DfDuplex, service->dispatcher );

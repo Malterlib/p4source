@@ -316,3 +316,34 @@ FileSys::RmDir( const StrPtr &path, Error *e )
 
 	delete p;
 }
+
+void
+FileSys::PurgeDir( const char *dir, Error *e )
+{
+	FileSys *f = FileSys::Create( FST_BINARY );
+	f->Set( dir );
+
+	StrArray *a = f->ScanDir( e );
+
+	PathSys *p = PathSys::Create();
+
+	for( int i = 0; i < a->Count(); i++ )
+	{
+	    p->SetLocal( StrRef( dir ), *a->Get(i) );
+	    f->Set( *p );
+
+	    int stat = f->Stat();
+
+	    if( stat & FSF_DIRECTORY )
+	        PurgeDir( f->Name(), e );
+	    else
+	        f->Unlink( e );
+	}
+
+	delete p;
+	delete a;
+
+	f->Set( dir );
+	rmdir( f->Name() );
+	delete f;
+}

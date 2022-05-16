@@ -38,6 +38,7 @@ P4Library $(SUPPORTLIB) :
 	stdhdrs.cc
 	threading.cc
 	timer.cc
+	zipfile.cc
 	;
 
 if $(OS) = MACOSX

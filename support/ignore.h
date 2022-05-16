@@ -15,13 +15,19 @@ class Ignore {
 			Ignore();
 			~Ignore();
 
-	int		Reject( const StrPtr &path, const StrPtr &ignoreName );
+	int		Reject( const StrPtr &path, const StrPtr &ignoreName )
+			{ return Reject( path, ignoreName, (char *)NULL ); }
+
+	int		Reject( const StrPtr &path, const StrPtr &ignoreName,
+			        const char *configName );
 	int		RejectCheck( const StrPtr &path );
 
     private:
+	void		InsertDefaults( const char *configName );
 	void		Insert( StrArray *subList, const char *ignore, 
 			        const char *cwd );
 
 	StrArray	*ignoreList;
 	StrBuf		dirDepth;
+	StrBuf		foundDepth;
 };

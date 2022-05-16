@@ -35,30 +35,78 @@ Ignore::~Ignore()
 }
 
 int
-Ignore::Reject( const StrPtr &path, const StrPtr &ignoreName )
+Ignore::Reject( 
+	const StrPtr &path, 
+	const StrPtr &ignoreName,
+	const char *configName )
 {
+	// If we don't have an ignore file, we can just load up the defaults
+	// and test against those. If we've already loaded them, lets not do
+	// it again and use the existing list instead.
+	
 	if( !strcmp( ignoreName.Text(), "unset" ) )
-	    return 0;
+	{
+	    if( !ignoreList )
+	        ignoreList = new StrArray;
+
+	    if( !ignoreList->Count() )
+	        InsertDefaults( configName );
+
+	    return RejectCheck( path );
+	}
 
 	PathSys *p = PathSys::Create();
 	p->Set( path );
 	p->ToParent();
 
-	// bail early if we are at the same directory depth, we can use
-	// the previous reject list
-	
-	if( ignoreList && dirDepth.Length() && !dirDepth.Compare( *p ) )
-	{
-	    delete p;
-	    return RejectCheck( path );
-	}
+	StrBuf saveDepth;
 
+	// Try real hard not to regenerate the ignorelist, this
+	// optimization uses the current directory depth and the
+	// last found ignorefile depth to reduce the search for
+	// config files.
+
+	if( ignoreList && dirDepth.Length() )
+	{
+	    if( !dirDepth.SCompare( *p ) )
+	    {
+	        // matching depth bail early
+
+	        delete p;
+	        return RejectCheck( path );
+	    }
+	    else if( !dirDepth.SCompareN( *p ) )
+	    {
+	        // descending directories can be shortcut.
+
+	        saveDepth << dirDepth;
+	    }
+	    else if( !p->SCompareN( dirDepth ) &&
+	             foundDepth.Length() && !foundDepth.SCompareN( *p ) )
+	    {
+	        // ascending directories can be shortcut.
+
+	        dirDepth.Set( *p );
+	        delete p;
+	        return RejectCheck( path );
+	    }
+	}
+	
 	StrBuf line;
 	Error e;
 
 	dirDepth.Set( *p );
-	delete ignoreList;
-	ignoreList = new StrArray;
+
+	// No descending optimization, remove list we will recreate it
+
+	if( !saveDepth.Length() )
+	{
+	    delete ignoreList;
+	    ignoreList = new StrArray;
+	}
+	
+	if( !ignoreList->Count() )
+	    InsertDefaults( configName );
 
 	PathSys *q = PathSys::Create();
 	FileSys *f = FileSys::Create( FileSysType( FST_TEXT|FST_L_CRLF ) );
@@ -66,7 +114,15 @@ Ignore::Reject( const StrPtr &path, const StrPtr &ignoreName )
 	// starting from the directory in which the argument supplied file
 	// lives,  walk up the tree collecting ignore files as we go
 
+	int found = 0;
+
 	do {
+	    if( saveDepth.Length() && !saveDepth.SCompare( *p ) )
+	    {
+	        delete p;
+	        return RejectCheck( path );
+	    }
+
 	    e.Clear();
 	    StrArray *subList = new StrArray();
 
@@ -80,6 +136,21 @@ Ignore::Reject( const StrPtr &path, const StrPtr &ignoreName )
 	        delete subList;
 	        continue;
 	    }
+
+	    // Found ignore file, clear any optimization, reuse foundDepth
+
+	    if( saveDepth.Length() )
+	    {
+	        delete ignoreList;
+	        ignoreList = new StrArray;
+	        InsertDefaults( configName );
+	        saveDepth.Clear();
+	    }
+
+	    // Set foundDepth
+
+	    if( !found++ )
+	        foundDepth.Set( *p );
 
 	    while( f->ReadLine( &line, &e ) )
 	    {
@@ -124,6 +195,30 @@ Ignore::Reject( const StrPtr &path, const StrPtr &ignoreName )
 	}
 
 	return RejectCheck( path );
+}
+
+void
+Ignore::InsertDefaults( const char *configName )
+{
+	// Always add in .p4root and P4CONFIG to the top of new lists
+
+	if( DEBUG_MATCH || DEBUG_LIST )
+	    ignoreList->Put()->Set( StrRef( "#FILE - defaults" ) );
+
+	StrBuf line;
+	line << ELLIPSE << SLASH << ".p4root";
+	ignoreList->Put()->Set( line );
+	line << SLASH << ELLIPSE;
+	ignoreList->Put()->Set( line );
+
+	if( configName )
+	{
+	    line.Clear();
+	    line << ELLIPSE << SLASH << configName;
+	    ignoreList->Put()->Set( line );
+	    line << SLASH << ELLIPSE;
+	    ignoreList->Put()->Set( line );
+	}
 }
 
 void

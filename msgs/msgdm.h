@@ -75,6 +75,7 @@ class MsgDm {
 	static ErrorId Unicode;
 
 	static ErrorId ParallelOptions;
+	static ErrorId ParSubOptions;
 	static ErrorId ParallelNotEnabled;
 	static ErrorId DepotMissing;
 	static ErrorId UnloadDepotMissing;
@@ -310,6 +311,7 @@ class MsgDm {
 	static ErrorId NotStreamReady;
 	static ErrorId MissingStream;
 	static ErrorId InvalidStreamFmt;
+	static ErrorId StreamNotRelative;
 	static ErrorId StreamIncompatibleP;
 	static ErrorId StreamIncompatibleC;
 	static ErrorId StreamOwnerUpdate;
@@ -324,6 +326,12 @@ class MsgDm {
 
 	static ErrorId DepotsData;
 	static ErrorId DepotsDataExtra;
+
+	static ErrorId RemoteSave;
+	static ErrorId RemoteNoChange;
+	static ErrorId RemoteDelete;
+	static ErrorId NoSuchRemote;
+	static ErrorId RemotesData;
 
 	static ErrorId ServerSave;
 	static ErrorId ServerNoChange;
@@ -393,6 +401,8 @@ class MsgDm {
 	static ErrorId GroupUpdated;
 	static ErrorId GroupNotOwner;
 	static ErrorId GroupExists;
+	static ErrorId GroupLdapIncomplete;
+	static ErrorId GroupLdapNoOwner;
 
 	static ErrorId GroupsData;
 	static ErrorId GroupsDataVerbose;
@@ -496,6 +506,7 @@ class MsgDm {
 	static ErrorId OpenUpToDate;
 	static ErrorId OpenCantExists;
 	static ErrorId OpenCantDeleted;
+	static ErrorId OpenCantMissing;
 	static ErrorId OpenSuccess;
 	static ErrorId OpenMustResolve;
 	static ErrorId OpenIsLocked;
@@ -514,6 +525,7 @@ class MsgDm {
 	static ErrorId OpenExclOther;
 	static ErrorId OpenAttrRO;
 	static ErrorId OpenHasResolve;
+	static ErrorId OpenWarnReaddMoved;
 
 	static ErrorId PopulateDesc;
 	static ErrorId PopulateTargetExists;
@@ -524,6 +536,7 @@ class MsgDm {
 	static ErrorId ReconcileBadName;
 	static ErrorId ReconcileNeedForce;
 	static ErrorId StatusSuccess;
+	static ErrorId StatusOpened;
 
 	static ErrorId OpenedData;
 	static ErrorId OpenedOther;
@@ -676,6 +689,11 @@ class MsgDm {
 	static ErrorId SyncNotSafeReplace;
 	static ErrorId SyncIndexOutOfBounds;
 
+	static ErrorId TangentBadSource;
+	static ErrorId TangentBlockedDepot;
+	static ErrorId TangentBranchedFile;
+	static ErrorId TangentMovedFile;
+
 	static ErrorId TraitCleared;
 	static ErrorId TraitNotSet;
 	static ErrorId TraitSet;
@@ -746,6 +764,7 @@ class MsgDm {
 	static ErrorId ExOPENCHANGE;
 	static ErrorId ExOPENCLIENT;
 	static ErrorId ExOPENNOTEDIT;
+	static ErrorId ExOPENNOTEDITADD;
 	static ErrorId ExOPENDFLT;
 	static ErrorId ExRESOLVED;
 	static ErrorId ExTORESOLVE;
@@ -788,6 +807,8 @@ class MsgDm {
 
 	static ErrorId AdminSpecData;
 	static ErrorId AdminPasswordData;
+	static ErrorId AdminSetLdapUserData;
+	static ErrorId AdminSetLdapUserNoSuper;
 
 	static ErrorId NotUnderRoot;
 	static ErrorId NotUnderClient;
@@ -812,6 +833,51 @@ class MsgDm {
 	static ErrorId NoSuchResource;
 
 	static ErrorId ServersJnlAckData;
+
+	static ErrorId NoSharedRevision;
+	static ErrorId NoSharedHistory;
+	static ErrorId ImportNoPermission;
+	static ErrorId ImportNoDepot;
+	static ErrorId ImportDepotReadOnly;
+	static ErrorId UnrecognizedRevision;
+	static ErrorId NoLazySource;
+	static ErrorId ZipIntegMismatch;
+	static ErrorId ZipBranchDidntMap;
+	static ErrorId RevisionAlreadyPresent;
+	static ErrorId SharedActionMismatch;
+	static ErrorId SharedDigestMismatch;
+	static ErrorId ImportedChange;
+	static ErrorId ImportedFile;
+	static ErrorId ImportedIntegration;
+	static ErrorId ImportSkippedChange;
+	static ErrorId ImportSkippedFile;
+	static ErrorId ImportSkippedInteg;
+	static ErrorId ImportDanglingInteg;
+	static ErrorId InvalidZipFormat;
+	static ErrorId UnzipCouldntLock;
+	static ErrorId UnzipNoSuchArchive;
+	static ErrorId UnzipIsTaskStream;
+	static ErrorId UnzipIsLocked;
+	static ErrorId UnzipChangePresent;
+	static ErrorId UnzipRevisionPresent;
+	static ErrorId UnzipIntegrationPresent;
+	static ErrorId UnzipArchiveUnknown;
+	static ErrorId ResubmitNoFiles;
+	static ErrorId ResubmitStreamClassic;
+	static ErrorId ResubmitMultiStream;
+	static ErrorId UnsubmittedChange;
+	static ErrorId UnsubmittedRenamed;
+	static ErrorId UnsubmitNotHead;
+	static ErrorId UnsubmitNoTraits;
+	static ErrorId UnsubmitOpened;
+	static ErrorId UnsubmitArchived;
+	static ErrorId UnsubmitTaskStream;
+	static ErrorId UnsubmitNotSubmitted;
+	static ErrorId UnsubmitWrongUser;
+	static ErrorId UnsubmitWrongClient;
+	static ErrorId UnsubmitIntegrated;
+	static ErrorId UnsubmitNoInteg;
+	static ErrorId UnsubmitNoChanges;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

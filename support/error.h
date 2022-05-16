@@ -124,6 +124,7 @@ class Error {
 			~Error();
 
 	void 		operator =( const Error &source );
+	Error &		Merge( const Error &source );
 
 	void		Clear() { severity = E_EMPTY; }
 	const ErrorId  *MapError( const struct ErrorIdMap map[] );

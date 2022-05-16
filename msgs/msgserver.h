@@ -33,6 +33,8 @@ class MsgServer {
 	static ErrorId ExtraIDUsage;
 	static ErrorId ServerIDAlreadySet;
 	static ErrorId ServerID;
+	static ErrorId ServerServicesType;
+	static ErrorId ExtraServicesUsage;
 	static ErrorId NoServerID;
 	static ErrorId DomainIsLocal;
 	static ErrorId MetaDumpFailed;
@@ -147,6 +149,8 @@ class MsgServer {
 	static ErrorId Quiescing;
 	static ErrorId QuiesceFailed;
 	static ErrorId ReDowngrade;
+	static ErrorId Initialized;
+	static ErrorId AlreadyInitialized;
 
 	static ErrorId PropertyAdd;
 	static ErrorId PropertyDelete;
@@ -220,6 +224,7 @@ class MsgServer {
 	static ErrorId ShelveBegin;
 	static ErrorId NoDefaultShelve;
 	static ErrorId UnshelveNotOwner;
+	static ErrorId ShelveUnsubmitted;
 	static ErrorId ShelveAborted;
 	static ErrorId NoShelve;
 	static ErrorId NoShelveDelete;
@@ -244,6 +249,8 @@ class MsgServer {
 	static ErrorId SubmitComplete;
 	static ErrorId SubmitBegin;
 	static ErrorId SubmitRenamed;
+	static ErrorId SubmitNoParallelThreads;
+	static ErrorId SubmitNoParallelTarget;
 
 	static ErrorId PopulateComplete;
 
@@ -289,6 +296,7 @@ class MsgServer {
 	static ErrorId UseAdminDBSigs;
 	static ErrorId UseAdminImport;
 	static ErrorId UseAdminResetPassword;
+	static ErrorId UseAdminSetLdapUsers;
 	static ErrorId UseAnnotate;
 	static ErrorId UseArchive;
 	static ErrorId UseBranch;
@@ -341,6 +349,7 @@ class MsgServer {
 	static ErrorId UseDomainClients;
 	static ErrorId UseDup;
 	static ErrorId UseExport;
+	static ErrorId UseFetch;
 	static ErrorId UseFilelog;
 	static ErrorId UseFiles;
 	static ErrorId UseFix;
@@ -387,6 +396,7 @@ class MsgServer {
 	static ErrorId UseLdapi;
 	static ErrorId UseLdapt;
 	static ErrorId UseLdaps;
+	static ErrorId UseLdapSync;
 	static ErrorId UseLdapsa;
 	static ErrorId UseLdapst;
 	static ErrorId UseLicense;
@@ -426,14 +436,21 @@ class MsgServer {
 	static ErrorId UsePrune;
 	static ErrorId UsePull;
 	static ErrorId UsePurge;
+	static ErrorId UsePush;
 	static ErrorId UseRelease;
 	static ErrorId UseReload;
 	static ErrorId UseReconcile;
+	static ErrorId UseRemote;
+	static ErrorId UseRemoteo;
+	static ErrorId UseRemoted;
+	static ErrorId UseRemotei;
+	static ErrorId UseRemotes;
 	static ErrorId UseRenameUser;
 	static ErrorId UseReopen;
 	static ErrorId UseResolve;
 	static ErrorId UseResolved;
 	static ErrorId UseRestore;
+	static ErrorId UseResubmit;
 	static ErrorId UseRetype;
 	static ErrorId UseReview;
 	static ErrorId UseReviews;
@@ -463,6 +480,8 @@ class MsgServer {
 	static ErrorId UseSubmitc;
 	static ErrorId UseSubmitd;
 	static ErrorId UseSubmite;
+	static ErrorId UseSwitch;
+	static ErrorId UseSwitch2;
 	static ErrorId UseSync;
 	static ErrorId UseSyncp;
 	static ErrorId UseSyncs;
@@ -475,6 +494,8 @@ class MsgServer {
 	static ErrorId UseUnload;
 	static ErrorId UseUnlock;
 	static ErrorId UseUnshelve;
+	static ErrorId UseUnsubmit;
+	static ErrorId UseUnzip;
 	static ErrorId UseUser;
 	static ErrorId UseUsero;
 	static ErrorId UseUserd;
@@ -482,6 +503,7 @@ class MsgServer {
 	static ErrorId UseUsers;
 	static ErrorId UseVerify;
 	static ErrorId UseWhere;
+	static ErrorId UseZip;
 	static ErrorId NotAsService;
 	static ErrorId UseProxy;
 	static ErrorId UseProxyInfo;
@@ -493,6 +515,7 @@ class MsgServer {
 	static ErrorId ProxyDelivered;
 	static ErrorId RmtAuthFailed;
 	static ErrorId ServiceNotProvided;
+	static ErrorId IncompatibleServers;
 	static ErrorId ReplicaRestricted;
 	static ErrorId RequiresJournaling;
 	static ErrorId ReplicaNoUpgrade;
@@ -515,12 +538,15 @@ class MsgServer {
 	static ErrorId ClientTooOld;
 	static ErrorId NoTicketSupport;
 	static ErrorId CommandCancelled;
+	static ErrorId CommandCancelledByClient;
 	static ErrorId AdminNoSpecDepot;
 	static ErrorId AdminNoSuchSpec;
 	static ErrorId AdminPasswordNoSuchUser;
 	static ErrorId AdminPasswordNoPasswords;
+	static ErrorId AdminLdapNoneSet;
 	static ErrorId ImportReport;
 	static ErrorId AdminReplicaCkp;
+	static ErrorId NoReplicaJnlControl;
 	static ErrorId AdminNothingLocked;
 	static ErrorId AdminNothingLogged;
 	static ErrorId NoUserLogs;
@@ -639,6 +665,7 @@ class MsgServer {
 	static ErrorId LdapErrorSetOpt;
 	static ErrorId LdapSearchFailed;
 	static ErrorId LdapTestConfig;
+	static ErrorId LdapNoEmptyPasswd;
 	static ErrorId LdapUserNotFound;
 	static ErrorId LdapGroupNotFound;
 	static ErrorId LdapMissingCAFile;
@@ -646,6 +673,53 @@ class MsgServer {
 	static ErrorId LdapReadCAErr1;
 	static ErrorId LdapReadCAErr2;
 	static ErrorId LdapReadCAErr3;
+	static ErrorId LdapSyncGrpUserAdd;
+	static ErrorId LdapSyncGrpUserDel;
+	static ErrorId LdapSyncGrpNoChange;
+	static ErrorId LdapSyncNoLdapConf;
+	static ErrorId LdapSyncGrpBadConf;
+	static ErrorId LdapSyncGrpNotFound;
+	static ErrorId LdapMustBeEnabled;
+
+	static ErrorId SwitchBranchData;
+	static ErrorId SwitchBranchDataMatch;
+	static ErrorId SwitchFilesOpen;
+	static ErrorId SwitchBranchExists;
+	static ErrorId SwitchNeedsStreamClient;
+	static ErrorId SwitchNeedsInit;
+	static ErrorId SwitchNotEmpty;
+	static ErrorId SwitchFilesUnresolved;
+
+	static ErrorId PushPerformance;
+	static ErrorId ResubmitPrompt;
+	static ErrorId ConflictingChange;
+	static ErrorId CannotResubmitOpened;
+	static ErrorId CannotResubmitNotUnshelved;
+	static ErrorId CannotResubmitChange;
+	static ErrorId ResolveUnsubmitted;
+	static ErrorId RemoteMappingInvalid;
+	static ErrorId UnsubmittedChanges;
+	static ErrorId CurrentUnsubmitted;
+	static ErrorId InvalidResubmitChoice;
+	static ErrorId ResubmitHalted;
+	static ErrorId RemoteClientExists;
+	static ErrorId FetchPushPreview;
+	static ErrorId PushSucceeded;
+	static ErrorId FetchSucceeded;
+	static ErrorId DVCSNotConfigured;
+	static ErrorId UseFetchInstead;
+	static ErrorId PushHadConflict;
+	static ErrorId FetchHadConflict;
+	static ErrorId PushDidNothing;
+	static ErrorId FetchDidNothing;
+	static ErrorId FetchDidUnsubmit;
+	static ErrorId FetchDidTangent;
+	static ErrorId FetchNeedsResubmit;
+	static ErrorId PushCryptoError;
+	static ErrorId FetchCryptoError;
+	static ErrorId CannotFetchOpened;
+	static ErrorId ResolveThenResume;
+	static ErrorId BadLocation;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

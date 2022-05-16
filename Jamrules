@@ -1728,8 +1728,6 @@
 	# MkDistArchive file : directory ; calls appropriate action based on file extension
 	# MakeP4ObjCdist file ; Create Objective C API package
 	# MakeP4DTGdist file ; Create p4dtg package
-	# MakeP4ThumbDist file ; Create p4thumb package
-	# MakeP4Vdist ; create p4v.tgz on unix systems or P4V.dmg on macosx
 
 	rule FRegexpQuote
 	{
@@ -1902,8 +1900,9 @@
 
 	rule P4Main
 	{
-		Main $(<) : $(>) ;
-		Strip $(<) ;
+		Main    $(<) : $(>) ;
+		LinkSSL $(<) ;
+		Strip   $(<) ;
 
 		# Things get a little messy with supc++/stdc++ depending on the
 		# compiler front end used for linking.
@@ -1961,6 +1960,92 @@
 	actions quietly P4NoBuild
 	{
 		echo Set $(>) to force build of $(<).
+	}
+
+	rule Lex
+	{
+		# Some places don't have lex or flex
+		on $(<) if $(LEX)
+		{
+			# In most cases we generate and check in a copy of the
+			# generated file, because most operating systems lack a working
+			# lexer.  Here we check to see if that source is fact present,
+			# and if it is, force the lexer to overwrite it directly.  This
+			# has the advantage that parallel builds will not stomp on each
+			# others' temporary output files (usually "lex.yy.c" the
+			# current working directory).
+
+			local _exist = [ FDirEntries $(SEARCH_SOURCE) : $(<:G=) ] ;
+
+			if $(_exist) = $(<:G=)
+			{
+				SEARCH on  $(>) = $(SEARCH_SOURCE) ;
+				MakeLocate $(<) : $(SEARCH_SOURCE) ;
+
+				local output    = $(SEARCH_SOURCE) $(<:G=) ;
+				# flex does not permit a space between -o and filename
+				OnTargetVarAppend $(<) : LEX : -o$(output:J=/) ;
+				Depends $(<) : $(>) ;
+			}
+			else
+			{
+				# Traditional Jambase behavior
+				LexMv   $(<) : $(>) ;
+				Depends $(<) : $(>) ;
+				MakeLocate $(<) : $(LOCATE_SOURCE) ;
+				Clean clean : $(<) ;
+			}
+		}
+	}
+
+	rule Yacc
+	{
+		local _h   = $(<:BS=.h) ;
+		local _dst = $(<) $(_h) ;
+
+		# Some places don't have a yacc.
+		on $(<) if $(YACC)
+		{
+			# In most cases we generate and check in a copy of the
+			# generated files, because most operating systems lack a
+			# working parser generator.  Here we check to see if those
+			# sources are in fact present, and if they are, force the
+			# parser generator to overwrite them directly.  This has the
+			# advantage that parallel builds will not stomp on each others'
+			# temporary output files (usually "y.tab.c" and "y.tab.h" in
+			# the current working directory).
+
+			local _exist = [ FDirEntries $(SEARCH_SOURCE) : $(_dst:G=) ] ;
+
+			if $(_exist) = $(_dst:G=)
+			{
+				SEARCH on  $(>)    = $(SEARCH_SOURCE) ;
+				MakeLocate $(_dst) : $(SEARCH_SOURCE) ;
+
+				local output       = $(SEARCH_SOURCE) $(<:G=) ;
+				OnTargetVarAppend $(<) : YACCFLAGS : -o $(output:J=/) ;
+
+				Depends $(_dst) : $(>) ;
+				Yacc1   $(_dst) : $(>) ;
+			}
+			else
+			{
+				# Traditional Jambase behavior
+				MakeLocate $(_dst) : $(LOCATE_SOURCE) ;
+
+				Depends $(_dst) : $(>) ;
+				Yacc1   $(_dst) : $(>) ;
+				YaccMv  $(_dst) : $(>) ;
+				Clean clean : $(_dst) ;
+			}
+		}
+
+		# make sure someone includes $(_h) else it will be
+		# a deadly independent target
+		Includes $(<) : $(_h) ;
+
+		# Handle #includes in .y file
+		HDRRULE on $(>) = YaccHdr ;
 	}
 
 	rule LinkLibraries
@@ -2474,6 +2559,7 @@
 		CopyRec p4dtg-dist : $(bugz_docdir) patch.bugzilla-3.4    : $(P4DTG) sdk bugz patch.bugzilla-3.4 ;
 		CopyRec p4dtg-dist : $(bugz_docdir) patch.bugzilla-3.6.2  : $(P4DTG) sdk bugz patch.bugzilla-3.6.2 ;
 		CopyRec p4dtg-dist : $(bugz_docdir) patch.bugzilla-4.0    : $(P4DTG) sdk bugz patch.bugzilla-4.0 ;
+		CopyRec p4dtg-dist : $(bugz_docdir) patch.bugzilla-4.4    : $(P4DTG) sdk bugz patch.bugzilla-4.4 ;
 		CopyRec p4dtg-dist : $(bugz_docdir) README.txt            : $(P4DTG) sdk bugz README.txt ;
 		CopyRec p4dtg-dist : $(bugz_docdir) README.p4dti.txt      : $(P4DTG) sdk bugz README.p4dti.txt ;
 		CopyRec p4dtg-dist : $(bugz_docdir) mk_dtgdtissue.pl      : $(P4DTG) sdk bugz mk_dtgdtissue.pl ;
@@ -2552,411 +2638,6 @@
 		Depends $(<) : p4dtg-dist ;
 		Depends all : $(<) ;
 		MkDistArchive $(<) : $(dirname) ;
-	}
-
-	rule MakeP4ThumbDist
-	{
-		local topdir ;
-
-		if $(OS) = NT
-		{
-			# Hopefully this is temporary, to be replaced with a proper installer.
-			topdir = p4thumb ;
-
-			local bindir = $(EXEC) $(topdir) ;
-			local libdir = $(EXEC) $(topdir) ;
-			local rscdir = $(EXEC) $(topdir) ;
-
-			MakeLocate $(topdir) : $(EXEC) ;
-			Depends p4thumb-dist : $(topdir) ;
-
-			CopyRec p4thumb-dist : $(bindir) p4thumb.exe      : p4thumb.exe ;
-			CopyRec p4thumb-dist : $(bindir) vcredist_x86.exe : $(EXEC_LIB) vcredist_x86.exe ;
-			CopyRec p4thumb-dist : $(bindir) assistant.exe    : $(EXEC_LIB) assistant.exe ;
-			CopyRec p4thumb-dist : $(libdir) plugins          : $(EXEC_LIB) qt4 plugins : : *.dll ;
-			CopyRec p4thumb-dist : $(rscdir) p4thumbnotes.txt : $(AllP4) p4-doc user p4thumbnotes.txt ;
-
-			CopyRec p4thumb-dist : $(rscdir) translations     : $(EXEC_LIB) qt4 translations ;
-			for _f in p4thumb_$(QtLanguages).qm
-			{
-				CopyRec p4thumb-dist : $(rscdir) translations $(_f) : $(_f) ;
-			}
-
-			local Qtdlls = [ FDirEntries $(EXEC_LIB) : *4.dll ] ;
-			local _dll ;
-			for _dll in $(Qtdlls)
-			{
-				CopyRec p4thumb-dist : $(libdir) $(_dll) : $(EXEC_LIB) $(_dll) ;
-			}
-
-			MakeQtConf p4thumb-dist : $(bindir) ;
-		}
-		else
-		{
-			local release_info = $(RELEASE[1-2]) $(PATCHLEVEL) $(RELEASE[3-]) ;
-			topdir = p4thumb-$(release_info:J=.) ;
-
-			local bindir = $(EXEC) $(topdir) bin ;
-			local libdir = $(EXEC) $(topdir) lib p4v ;
-			local rscdir = $(EXEC) $(topdir) lib p4v P4VResources ;
-
-			MakeLocate $(topdir) : $(EXEC) ;
-			Depends p4thumb-dist : $(topdir) ;
-
-			CopyRec p4thumb-dist : $(bindir) p4thumb.bin : p4thumb ;
-			CopyRec p4thumb-dist : $(bindir) p4thumb     : $(AllP4) p4-qt apps p4v p4vwrapper.sh ;
-			CopyRec p4thumb-dist : $(libdir) qt4         : $(EXEC_LIB) qt4 ;
-
-			CopyRec p4thumb-dist : $(rscdir) translations     : $(EXEC_LIB) qt4 translations ;
-			for _f in p4thumb_$(QtLanguages).qm
-			{
-				CopyRec p4thumb-dist : $(rscdir) translations $(_f) : $(_f) ;
-			}
-
-			MakeQtConf p4thumb-dist : $(bindir) ;
-
-			STRIP on [ FDirName $(bindir) p4thumb.bin ] = $(STRIP) -x ;
-			Strip1 [ FDirName $(bindir) p4thumb.bin ] ;
-		}
-
-		LOCATE on $(<) = $(EXEC) ;
-		Depends $(<) : p4thumb-dist ;
-		Depends all : $(<) ;
-		MkDistArchive $(<) : $(topdir) ;
-	}
-
-	rule MakeP4Vdist
-	{
-		if $(OS) = MACOSX
-		{
-			MakeP4Vdist_macosx $(<) ;
-		}
-		else if $(UNIX)
-		{
-			MakeP4Vdist_unix $(<) ;
-		}
-		# TODO: Add switch for NT to build installer
-	}
-
-	rule MakeP4Vdist_unix
-	{
-		local release_info = $(RELEASE[1-2]) $(PATCHLEVEL) $(RELEASE[3-]) ;
-		local topdir  = p4v-$(release_info:J=.) ;
-		local bindir  = $(EXEC) $(topdir) bin ;
-		local libdir  = $(EXEC) $(topdir) lib p4v ;
-		local rscdir  = $(EXEC) $(topdir) lib p4v P4VResources ;
-		local helpsrc = $(AllP4) p4-doc help ;
-		local _f ;
-
-		MakeLocate $(topdir) : $(EXEC) ;
-		Depends p4v-dist : $(topdir) ;
-
-		## Copy in the qt-based commands with shell wrapper
-		local qtcmd = p4v p4merge p4admin ; #p4sandbox-config p4vc ;
-		for _f in $(qtcmd)
-		{
-			CopyRec p4v-dist : $(bindir) $(_f).bin : $(_f) ;
-			CopyRec p4v-dist : $(bindir) $(_f)     : $(AllP4) p4-qt apps p4v p4vwrapper.sh ;
-
-			# Make sure they're all at least stripped of local symbols
-			_f = [ FDirName $(bindir) $(_f).bin ] ;
-			STRIP on $(_f) = $(STRIP) -x ;
-			Strip1 $(_f) ;
-
-		}
-
-		## Offline broker and server components.
-		local p4ddir = $(EXEC) ;
-		if $(TYPE_DYNAMIC) { p4ddir += .. ; }
-		CopyRec p4v-dist : $(rscdir) p4d  : $(p4ddir) p4d ;
-		CopyRec p4v-dist : $(rscdir) p4ob : p4ob ;
-
-		_f = [ FDirName $(rscdir) p4ob ] ;
-		STRIP on $(_f) = $(STRIP) -x ;
-		Strip1 $(_f) ;
-
-		## Assistant executable
-		CopyRec p4v-dist : $(bindir) assistant    : $(EXEC_LIB) assistant_dyn ;
-
-		# Libraries, plugins, qt standard translation catalogs
-		CopyRec p4v-dist : $(libdir) qt4 lib      : $(EXEC_LIB) qt4 lib ;
-		CopyRec p4v-dist : $(libdir) qt4 plugins  : $(EXEC_LIB) qt4 plugins ;
-		CopyRec p4v-dist : $(rscdir) translations : $(EXEC_LIB) qt4 translations ;
-
-		## Image resources
-		CopyRec p4v-dist : $(rscdir) images.rcc          : images.rcc ;
-		# job034811 - people use these for shortcut icons
-		CopyRec p4v-dist : $(rscdir) icons               : $(helpsrc) icons ;
-
-		## Documentation
-		for _f in $(QtLanguages)
-		{
-			# FIXME (noahf): This is almost ready but needs some runtime (nfs locking) debugging
-			# For now we are just copying pre-built collections below.
-			#QtHelpGen           : $(helpsrc) p4v-html-pure $(_f) p4vhelp_$(_f).qhp  ;
-			#QtHelpCollectionGen : $(helpsrc) p4v-html-pure $(_f) p4vhelp_$(_f).qhcp ;
-			#
-			#QtHelpGen           : $(helpsrc) p4merge $(_f) p4mergehelp_$(_f).qhp  ;
-			#QtHelpCollectionGen : $(helpsrc) p4merge $(_f) p4mergehelp_$(_f).qhcp ;
-			#
-			#QtHelpGen           : $(helpsrc) p4admin-html-pure $(_f) p4adminhelp_$(_f).qhp ;
-			#QtHelpCollectionGen : $(helpsrc) p4admin-html-pure $(_f) p4adminhelp_$(_f).qhcp ;
-
-
-			CopyRec p4v-dist : $(rscdir) p4vhelp p4vhelp_$(_f).qhc : $(helpsrc) p4v-html-pure $(_f) p4vhelp_$(_f).qhc ;
-			CopyRec p4v-dist : $(rscdir) p4vhelp p4vhelp_$(_f).qch : $(helpsrc) p4v-html-pure $(_f) p4vhelp_$(_f).qch ;
-
-			CopyRec p4v-dist : $(rscdir) p4mergehelp p4mergehelp_$(_f).qhc : $(helpsrc) p4merge $(_f) p4mergehelp_$(_f).qhc ;
-			CopyRec p4v-dist : $(rscdir) p4mergehelp p4mergehelp_$(_f).qch : $(helpsrc) p4merge $(_f) p4mergehelp_$(_f).qch ;
-
-			CopyRec p4v-dist : $(rscdir) p4adminhelp p4adminhelp_$(_f).qhc : $(helpsrc) p4admin-html-pure $(_f) p4adminhelp_$(_f).qhc ;
-			CopyRec p4v-dist : $(rscdir) p4adminhelp p4adminhelp_$(_f).qch : $(helpsrc) p4admin-html-pure $(_f) p4adminhelp_$(_f).qch ;
-
-		}
-		CopyRec p4v-dist : $(rscdir) p4vhelp p4v-gs.pdf    : $(AllP4) p4-doc manuals p4v-gs p4v-gs.pdf ;
-		CopyRec p4v-dist : $(rscdir) p4vhelp p4v-gs_ja.pdf : $(AllP4) p4-doc manuals p4v-gs p4v-gs_ja.pdf ;
-
-
-		## Translation files
-
-		for _f in $(qtcmd)_$(QtLanguages).qm
-		{
-			CopyRec p4v-dist : $(rscdir) translations $(_f) : $(_f) ;
-		}
-		CopyRec p4v-dist : $(rscdir) translations msg_ja.txt : $(AllP4) p4-offline translations msg_ja.txt ;
-
-		## Example files
-
-		local examples = basic_p4vdefaults.xml
-		                 basic_p4vfeatures.xml
-		                 p4vdefaults.xml
-		                 p4vfeatures.xml ;
-		for _f in $(examples)
-		{
-			CopyRec p4v-dist : $(rscdir) examples $(_f) : $(AllP4) p4-qt doc $(_f) ;
-		}
-
-		MakeQtConf p4v-dist : $(bindir) ;
-
-		LOCATE on $(<) = $(EXEC) ;
-		Depends $(<) : p4v-dist ;
-		Depends all : $(<) ;
-		MkDistArchive $(<) : $(topdir) ;
-	}
-
-	rule MakeP4Vdist_macosx
-	{
-		local apps = p4v p4merge p4admin ; #p4sandbox-config ;
-		local Contents Resources ;
-		local _f ;
-
-		LOCATE on $(<) = $(EXEC) ;
-		Depends $(<) : p4v-dist ;
-		Depends p4v-dist : $(apps) ;
-
-		# For each app, do the following:
-		#   * Copy in frameworks and plugins
-		#   * Copy in common image resources.
-		#   * Generate qt.conf
-		#   * Fix dylib references in exe and install VersionCheck wrapper
-		local app ;
-		for app in $(apps)
-		{
-			Contents  = $(EXEC) $(app).app Contents ;
-			Resources = $(Contents) Resources ;
-
-			CopyRec p4v-dist : $(Contents)  Frameworks   : $(EXEC_LIB) Frameworks ;
-			CopyRec p4v-dist : $(Contents)  PlugIns      : $(EXEC_LIB) PlugIns ;
-			CopyRec p4v-dist : $(Resources) translations : $(EXEC_LIB) translations ;
-			CopyRec p4v-dist : $(Resources) images.rcc   : images.rcc ;
-			CopyRec p4v-dist : $(Resources) empty.lproj  : /dev/null ;
-
-			# Translation files
-			for _f in $(app)_$(QtLanguages).qm
-			{
-				CopyRec p4v-dist : $(Resources) translations $(_f) : $(_f) ;
-			}
-
-			MakeQtConf p4v-dist : $(Resources) ;
-
-			local _real = [ FDirName $(Contents) MacOS $(app) ] ;
-			# Must use the same grist here as in QtMacPackage.
-			_real = $(_real:G=$(app)) ;
-			_real = $(_real).real ;
-
-			Depends p4v-dist : $(_real) ;
-			Depends $(_real) : $(app) ;
-			MacP4VdyldFixup $(_real) : $(app) ;
-		}
-
-		#
-		# app-specific prep for p4v.app
-		#
-		Resources = $(EXEC) p4v.app Contents Resources ;
-
-		MacP4Vassistant p4v-dist : $(Resources) : $(AllP4) p4-qt apps p4v img p4v_help.icns ;
-		for _f in $(QtLanguages)
-		{
-			CopyRec p4v-dist : $(Resources) Help p4vhelp_$(_f).qhc : $(AllP4) p4-doc help p4v-html-pure $(_f) p4vhelp_$(_f).qhc ;
-			CopyRec p4v-dist : $(Resources) Help p4vhelp_$(_f).qch : $(AllP4) p4-doc help p4v-html-pure $(_f) p4vhelp_$(_f).qch ;
-		}
-		CopyRec p4v-dist : $(Resources) Help p4v-gs.pdf    : $(AllP4) p4-doc manuals p4v-gs p4v-gs.pdf ;
-		CopyRec p4v-dist : $(Resources) Help p4v-gs_ja.pdf : $(AllP4) p4-doc manuals p4v-gs p4v-gs_ja.pdf ;
-
-		# Offline broker and p4d components
-		CopyRec p4v-dist : $(Resources) p4d  : [ MakeP4Vdist_macosx_compute_p4d_directory ] p4d ;
-		CopyRec p4v-dist : $(Resources) p4ob : p4ob ;
-		CopyRec p4v-dist : $(Resources) translations msg_ja.txt : $(AllP4) p4-offline translations msg_ja.txt ;
-
-		# command-line dispatcher
-        #CopyRec p4v-dist : $(EXEC) p4v.app Contents MacOS p4vc.real : p4vc ;
-		# Translation files
-		#for _f in p4vc_$(QtLanguages).qm
-		#{
-		#	CopyRec p4v-dist : $(Resources) translations $(_f) : $(_f) ;
-		#}
-
-		local examples = basic_p4vdefaults.xml
-		                 basic_p4vfeatures.xml
-		                 p4vdefaults.xml
-		                 p4vfeatures.xml ;
-		for _f in $(examples)
-		{
-			CopyRec p4v-dist : $(Resources) examples $(_f) : $(AllP4) p4-qt doc $(_f) ;
-		}
-
-		#
-		# app-specific prep for p4merge.app
-		#
-		Resources = $(EXEC) p4merge.app Contents Resources ;
-
-		MacP4Vassistant p4v-dist : $(Resources) : $(AllP4) p4-qt apps p4merge img p4_merge_help.icns ;
-		for _f in $(QtLanguages)
-		{
-			CopyRec p4v-dist : $(Resources) Help p4mergehelp_$(_f).qhc : $(AllP4) p4-doc help p4merge $(_f) p4mergehelp_$(_f).qhc ;
-			CopyRec p4v-dist : $(Resources) Help p4mergehelp_$(_f).qch : $(AllP4) p4-doc help p4merge $(_f) p4mergehelp_$(_f).qch ;
-		}
-		CopyRec p4v-dist : $(Resources) launchp4merge           : p4merge_mac_shim ;
-
-		#
-		# app-specific prep for p4admin.app
-		#
-		Resources = $(EXEC) p4admin.app Contents Resources ;
-
-		# TODO: p4admin assistant may need its own icon; check with dev
-		MacP4Vassistant p4v-dist : $(Resources) : $(AllP4) p4-qt apps p4v img p4v_help.icns ;
-		for _f in $(QtLanguages)
-		{
-			CopyRec p4v-dist : $(Resources) Help p4adminhelp_$(_f).qhc : $(AllP4) p4-doc help p4admin-html-pure $(_f) p4adminhelp_$(_f).qhc ;
-			CopyRec p4v-dist : $(Resources) Help p4adminhelp_$(_f).qch : $(AllP4) p4-doc help p4admin-html-pure $(_f) p4adminhelp_$(_f).qch ;
-		}
-
-		#CopyRec p4v-dist : $(EXEC) .. p4vc : $(AllP4) p4-qt apps p4vc p4vc.mac ;
-		buildDMG $(<) : $(EXEC:G=dir)/$(apps:S=.app) ; #$(EXEC)/../p4vc ;
-	}
-
-	rule MakeP4Vdist_macosx_compute_p4d_directory
-	{
-		# Finding the server executable for the offline component of p4v on
-		# the mac is slightly nasty because we build with OS=MACOSX for the
-		# Qt components, and OS=DARWIN for the server component.
-		#
-		# Furthermore, we have to keep a map of the corresponding OSVER
-		# numbers between OSX and Darwin.  And, we want to use the nightly
-		# builds of the server if we are making a nightly build.
-
-		local _darwin_osver ;
-		switch $(OSVER)
-		{
-		case 104 : _darwin_osver =  80 ;
-		case 105 : _darwin_osver =  90 ;
-		case 106 : _darwin_osver = 100 ;
-		}
-
-		local _platform = darwin $(_darwin_osver) $(OSPLAT:L) ;
-		local _path = $(AllP4) p4-bin bin.$(_platform:J="") $(BUILD) ;
-		return $(_path) ;
-	}
-
-	rule MacP4Vassistant
-	{
-		# Install the assistant into app's resources directory.
-		# The assistant comes straight from the TrollTech distribution for
-		# now, though someday we may make our own branded version.
-
-		local target    = $(1) ;
-		local Resources = [ FDirName $(2) ] ;
-		local icons     = [ FDirName $(3) ] ;
-
-		local assistant_tar = assistant_dyn.tar ;
-		LOCATE on $(assistant_tar) = $(EXEC_LIB) ;
-
-		local dst = <$(Resources)>Assistant.app ;
-		MakeLocate $(dst) : $(Resources) ;
-		Depends $(target) : $(dst) ;
-
-		ASSISTANT_ICONS on $(dst) = $(icons) ;
-		MacP4Vassistant_install $(dst) : $(assistant_tar) ;
-
-		local asst_Resources = $(Resources) Assistant.app Contents Resources ;
-
-		MakeQtConf $(dst) : $(asst_Resources) ;
-		CopyRec $(target) : $(asst_Resources)  translations : $(EXEC_LIB) translations ;
-	}
-
-	# Untar the assistant tar file and copy our custom icon into the assistant.
-	actions MacP4Vassistant_install
-	{
-		tar -xpvf $(>) -C $(<:P)
-		cp $(ASSISTANT_ICONS) $(<)/Contents/Resources/assistant.icns
-	}
-
-	# The copying of SystemVersionCheck ideally should be a separate
-	# rule/action, but it's difficult to get Jam to replace one file
-	# with another except incidentally, and here we are kind of moving
-	# (and modifying) the original target, so here is as good a place
-	# as any to do it.
-	actions MacP4VdyldFixup
-	{
-		$(CP) -p "$(>)" "$(<)" || exit 1
-		otool -X -L "$(<)" \
-		  | sed -n \
-		        -e '/@executable_path/d' \
-		        -e 's/ *(compat.*//' \
-		        -e 's/^[ 	]*//' \
-		        -e '/^\//!p' \
-		  | while read dep ; do
-		      toprel=`echo "$dep" \
-		               | sed -e 's=.*/\([^/]*.framework/\)=\1=' \
-		                     -e 's=^/.*/=='`
-		      new=@executable_path/../Frameworks/$toprel
-		      install_name_tool -change "$dep" "$new" "$(<)"
-		    done
-		$(CP) $(EXEC_LIBEXEC)/SystemVersionCheck "$(>)"
-	}
-
-	actions buildDMG
-	{
-		$(AllP4)/tools/scripts/buildDMG.pl \
-			-debug \
-			-compressionLevel 9 \
-			-buildDir $(EXEC) \
-			-dmgName $(<:B) \
-			-volName $(<:B) \
-			$(>)
-	}
-
-	rule MakeQtConf
-	{
-		local target = $(1) ;
-		local dir    = [ FDirName $(2:G=) ] ;
-
-		local qtconf = <$(dir)>qt.conf ;
-		MakeLocate $(qtconf) : $(dir) ;
-		Depends $(target) : $(qtconf) ;
-		MakeQtConf1 $(qtconf) ;
-		MODE on $(qtconf) = $(FILEMODE) ;
-		Chmod $(qtconf) ;
 	}
 
 	actions MkTarArchive
@@ -5372,38 +5053,6 @@ if $(VMS)
 	}
 }
 
-#
-# MakeQtConf
-#
-if $(OS) = MACOSX
-{
-	actions MakeQtConf1
-	{
-		echo "[paths]" > $(<)
-		echo "plugins      = PlugIns" >> $(<)
-		echo "translations = Resources/translations" >> $(<)
-	}
-}
-else if $(UNIX)
-{
-	actions MakeQtConf1
-	{
-		echo "[paths]" > $(<)
-		echo "plugins      = ../lib/p4v/qt4/plugins" >> $(<)
-		echo "translations = ../lib/p4v/P4VResources/translations" >> $(<)
-	}
-}
-else if $(NT)
-{
-	actions MakeQtConf1
-	{
-		echo "[paths]" > $(<)
-		echo "plugins      = plugins" >> $(<)
-		echo "translations = translations" >> $(<)
-	}
-}
-
-
 #################################################
 #
 # Section 13.  Useful miscellanea
@@ -5421,30 +5070,5 @@ else if $(NT)
 	{
 		exit I was told to use P4APIDIR"="$(P4APIDIR) but it does not exist. ;
 	}
-
-	# Tell the user where the top of the code tree is.
-	#
-	# For example if you were in say, some arbitrary working directory
-	# deeply under p4-qt/..., how could you easily get back to the
-	# p4-bin directory?
-	#
-	# 	$ alias topdir='jam locate-topdir 2>&1 | sed -ne "/^TOPDIR=/s///p"'
-	# 	$ cd `topdir`/p4-bin
-	#
-	# This is probably more useful for scripts, however.
-
-	rule LocateTopDir
-	{
-		local loc = [ FSubDirPath AllP4 ] ;
-		NOTFILE $(loc:G=locate) ;
-		EchoLocate $(<) : $(loc:G=locate) ;
-	}
-
-	actions EchoLocate
-	{
-		echo "TOPDIR=$(>:G=:E=.)" ;
-	}
-
-	LocateTopDir locate-topdir ;
 
 # end of Jamrules

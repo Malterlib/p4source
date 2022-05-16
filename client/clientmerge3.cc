@@ -309,6 +309,12 @@ ClientMerge3::Chmod( const char *perms, Error *e )
 	yours->Chmod2( perms, e ); 
 }
 
+void
+ClientMerge3::SetTheirModTime( StrPtr *modTime )
+{
+	theirs->ModTime( modTime );
+}
+
 MergeStatus
 ClientMerge3::AutoResolve( MergeForce force )
 {

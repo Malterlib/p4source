@@ -101,6 +101,7 @@ class MsgDb {
 	static ErrorId ValidationFoundProblems;
 	static ErrorId TreeNewerVersion;
 	static ErrorId TreeOlderVersion;
+	static ErrorId DoNotBlameTheDb;
 
 	static ErrorId MapCheckFail;
 

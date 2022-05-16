@@ -113,7 +113,8 @@ Client::GetClientPath()
 	    return clientPath;
 	else if( c = enviro->Get( "P4CLIENTPATH" ) )
 	    clientPath = c;
-
+	else if( ServerDVCS() )
+	    return GetInitRoot();
 	return clientPath;
 }
 
@@ -200,8 +201,7 @@ Client::GetOs()
 const StrPtr &
 Client::GetPassword()
 {
-	if( password.Length() &&
-		( ticketKey.Length() == 0 || ticketKey == serverID ) )
+	if( password.Length() && ticketKey == serverID )
 	    return password;
 
 	// A 2007.2 server will send the serverID to use as the ticket key.
@@ -258,15 +258,20 @@ Client::GetPassword()
 	    // If server security level is >= 2,  then don't get the
 	    // password from the registry.
 
-	    if( protocolSecurity < 2 || !enviro->FromRegistry( "P4PASSWD") )
+	    if( protocolSecurity < 2 || !enviro->FromRegistry( "P4PASSWD" ) )
 	    {
 	        // Store P4PASSWD as a backup (password2) if we already
-	        // found a ticket.
+	        // found a ticket but not if a password was already set.
 
 	        if( password.Length() )
-	            password2 = c;
+		{
+		    if( !password2.Length() )
+			password2 = c;
+		}
 	        else
+		{
 	            password = c;
+		}
 	    }
 	}
 
@@ -452,6 +457,17 @@ const StrPtr &
 Client::GetConfig()
 {
 	return enviro->GetConfig();
+}
+
+const StrPtr &
+Client::GetInitRoot()
+{
+	char *c;
+
+	if( !initRoot.Length() && ( c = enviro->Get( "P4INITROOT" ) ) )
+	    initRoot.Set( c );
+	
+	return initRoot;
 }
 
 /*

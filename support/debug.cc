@@ -102,12 +102,6 @@ MT_STATIC P4DebugConfig *p4debughelp;
 #  define SHSUBP	0
 # endif
 
-# ifdef OS_NTX86
-# define MAX_SHARED_MONITOR	4096
-# else
-# define MAX_SHARED_MONITOR	32768
-# endif
-
 P4Tunable::tunable P4Tunable::list[] = {
 
 	// P4Debug's collection
@@ -137,6 +131,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"cluster",      0, -1, -1, 10, 1, 1, 0,
 	"zk",           0, -1, -1, 10, 1, 1, 0,
 	"ldap",         0, -1, -1, 10, 1, 1, 0,
+	"dvcs",         0, -1, -1, 10, 1, 1, 0,
 
 	// P4Tunable's collection
 	//
@@ -145,7 +140,8 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"cluster.journal.shared",0,	0,	0,	1,	1,	1, 0,
 	"db.isalive",		0,	R10K,	1,	RBIG,	1,	R1K, 0,
 	"db.jnlack.shared",	0,	16,	0,	2048,	1,	B1K, 0,
-	"db.monitor.shared",	0,	256, 0, MAX_SHARED_MONITOR, 1, B1K, 0,
+	"db.monitor.shared",	0,	256,	0,	4096,	1,	B1K, 0,
+	"db.page.migrate",	0,	0,	0,	80,	1,	1, 0,
 	"db.peeking",		0,	2,	0,	3,	1,	1, 0,
 	"db.peeking.usemaxlock",0,	0,	0,	1,	1,	1, 0,
 	"db.reorg.disable",	0,	0,	0,	1,	1,	1, 0,
@@ -214,6 +210,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"filesys.binaryscan",	0,	B64K,	0,	BBIG,	1,	B1K, 0,
 	"filesys.bufsize",	0,	B4K,	B4K,	B10M,	1,	B1K, 0,
 	"filesys.cachehint",	0,	0,	0,	1,	1,	1, 0,
+	"filesys.detectunicode",0,	1,	0,	1,	1,	1, 0,
 	"filesys.maketmp",	0,	10,	1,	RBIG,	1,	R1K, 0,
 	"filesys.maxmap",	0,	B1G,	0,	BBIG,	1,	B1K, 0,
 	"filesys.maxsymlink",	0,	B1K,	1,	BBIG,	1,	B1K, 0,
@@ -224,6 +221,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"lbr.autocompress",	0,	0,	0,	1,	1,	1, 0,
 	"lbr.bufsize",		0,	B4K,	1,	BBIG,	1,	B1K, 0,
 	"lbr.proxy.case",	0,	1,	1,	3,	1,	1, 0,
+	"lbr.rcs.existcheck",	0,	1,	0,	1,	1,	1, 0,
 	"lbr.rcs.maxlen",	0,	B10M,	0,	BBIG,	1,	1, 0,
 	"lbr.retry.max",	0,	R50K,	1,	BBIG,	1,	R1K, 0,
 	"lbr.stat.interval",	0,	0,	0,	999,	1,	1, 0,
@@ -251,7 +249,6 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"proxy.monitor.level",	0,	0,	0,	3,	1,	1, 0,
 	"rcs.maxinsert",	0,	R1G,	1,	RBIG,	1,	R1K, 0,
 	"rcs.nofsync",		0,	0,	0,	1,	1,	1, 0,
-	"rpc.deliver.duplex",	0,	1,	0,	1,	1,	1, 0,
 	"rpc.himark",		0,	2000,	2000,	BBIG,	1,	B1K, 0,
 	"rpc.lowmark",		0,	700,	700,	BBIG,	1,	B1K, 0,
 	"rpl.checksum.auto",	0,	0,	0,	3,	1,	1, 0,
@@ -259,7 +256,6 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"rpl.checksum.table",	0,	0,	0,	2,	1,	1, 0,
 	"rpl.compress",		0,	0,	0,	3,	1,	1, 0,
 	"rpl.counter.hook",	0,	1,	0,	1,	1,	1, 0,
-	"rpl.grouped",		0,	0,	0,	1,	1,	1, 0,
 	"rpl.jnl.batch.size",	0,	R100M,	0,	RBIG,	1,	R1K, 0,
 	"rpl.jnlwait.adjust",	0,	25,	0,	RBIG,	1,	R1K, 0,
 	"rpl.jnlwait.interval",	0,	50,	50,	RBIG,	1,	R1K, 0,
@@ -278,6 +274,9 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"server.filecharset",	0,	0,	0,	1,	1,	1, 0,
 	"server.locks.archive",	0,	1,	0,	1,	1,	1, 0,
 	"server.locks.sync",	0,	0,	0,	1,	1,	1, 0,
+	"server.allowfetch",	0,	0,	0,	3,	1,	1, 0,
+	"server.allowpush",	0,	0,	0,	3,	1,	1, 0,
+	"server.allowrewrite",	0,	0,	0,	1,	1,	1, 0,
 	"server.maxcommands", 	0,	0,	0,	RBIG,	1,	R1K, 0,
 	"filetype.bypasslock",	0,	0,	0,	1,	1,	1, 0,
 	"filetype.maxtextsize",	0,	B10M,	0,	RBIG,	1,	R1K, 0,
@@ -299,10 +298,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"cmd.memory.procfree",	0,	0,	0,	BBIG,	1,	B1K, 0,
 	"cmd.memory.limit",	0,	0,	0,	BBIG,	1,	B1K, 0, 
 	"cmd.memory.flushpool",	0,	0,	0,	BBIG,	1,	B1K, 0, 
-	"cmd.memory.listpool",	0,	0,	0,	BBIG,	1,	B1K, 0, 
-	"cmd.memory.listpool2",	0,	0,	0,	BBIG,	1,	B1K, 0, 
-	"cmd.memory.listall",	0,	0,	0,	BBIG,	1,	B1K, 0, 
-	"cmd.memory.listall2",	0,	0,	0,	BBIG,	1,	B1K, 0, 
+	"cmd.memory.listpools",	0,	0,	0,	BBIG,	1,	B1K, 0, 
 	"cmd.memory.chkpt",	0,	0,	0,	BBIG,	1,	B1K, 0, 
 	// ^^ Smart Heap tunables must be a continuous group ^^
 	"sys.memory.stacksize", 0,      0,      0,      B16K,   1,      B1K, 0, 

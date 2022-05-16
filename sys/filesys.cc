@@ -72,8 +72,11 @@ FileSys::Create( FileSysType t )
 		break;
 
 	case FST_BINARY:
+	    if( t & FST_C_MASK )
+		f = new FileIOCompress;
+	    else
 		f = new FileIOBinary;
-		break;
+	    break;
 
 	case FST_RESOURCE:
 		f = new FileIOResource;
@@ -95,14 +98,6 @@ FileSys::Create( FileSysType t )
 		f = new FileIOAppend;
 		break;
 
-	case FST_GZIP:
-		f = new FileIOGzip;
-		break;
-
-	case FST_GUNZIP:
-		f = new FileIOGunzip;
-		break;
-	
 	case FST_UTF16:
 		f = new FileIOUTF16( lt );
 		break;
@@ -311,19 +306,6 @@ FileSys::Seek( offL_t offset, Error * )
 {
 }
 
-int
-FileSys::Readlink( StrBuf &linkPath, Error *e )
-{
-	linkPath.Clear();
-	return EINVAL;
-}
-
-int
-FileSys::Writelink( const StrPtr &linkPath, Error *e )
-{
-	return EINVAL;
-}
-
 offL_t
 FileSys::Tell()
 {
@@ -344,9 +326,24 @@ static int ContainsTraversal( const char *p )
 {
 	while( p && *p )
 	{
-	    if( p[0] == '.' && p[1] == '.' )
+	    if( p[0] == '.' && p[1] == '.' &&
+		( p[2] == '\0' || p[2] == '/'
+# ifdef OS_NT
+		|| p[2] == '\\'
+# endif
+		    ) )
 	        return 1;
-	    p++;
+	    do {
+		if( *++p == '/'
+# ifdef OS_NT
+		    || *p == '\\'
+# endif
+		    )
+		{
+		    ++p;
+		    break;
+		}
+	    } while( *p != '\0' );
 	}
 	return 0;
 }

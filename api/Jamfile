@@ -24,8 +24,8 @@ P4Api p4api :
 	$(P4SSLLIB)  
 
 	charcvt.h
-    charman.h
-    charset.h
+	charman.h
+	charset.h
 	clientapi.h
 	clientmerge.h
 	clientprog.h
@@ -46,15 +46,20 @@ P4Api p4api :
 	ident.h
 	ignore.h
 	keepalive.h
-    macfile.h
+	macfile.h
 	mapapi.h
-    md5.h
+	md5.h
 	msgclient.h
+	msgdb.h
+	msgdm.h
+	msgos.h
+	msgrpc.h
 	msgserver.h
-    netbuffer.h
+	msgsupp.h
+	netbuffer.h
 	netconnect.h
 	netportparser.h
-    ntmangle.h
+	ntmangle.h
 	ntservice.h
 	options.h
 	p4tags.h
@@ -68,11 +73,12 @@ P4Api p4api :
 	strdict.h
 	strops.h
 	strtable.h
-    strxml.h
+	strxml.h
 	threading.h
-    validate.h
+	ticket.h
+	validate.h
 	vararray.h
-    web822.h
+	web822.h
 
 	clientuser.cc
 	p4api.cc
@@ -80,7 +86,7 @@ P4Api p4api :
 
 # Just to make sure the API builds
 
-Main p4api : p4api.cc ;
+P4Main p4api : p4api.cc ;
 LinkLibraries p4api : $(CLIENTLIB) $(RPCLIB) $(SUPPORTLIB) ;
 
-LinkSSL p4api ;
+

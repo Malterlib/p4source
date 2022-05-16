@@ -49,6 +49,7 @@
 # include <keepalive.h>
 # include "netportparser.h"
 # include "netaddrinfo.h"
+# include "netutils.h"
 # include "netconnect.h"
 # include "netstd.h"
 # include "netdebug.h"
@@ -59,8 +60,25 @@
  * NetStdioEndPoint
  */
 
+NetStdioEndPoint::NetStdioEndPoint( bool separateFDs, Error *e )
+: soloFD(!separateFDs)
+{
+	s = -1;
+	rc = 0;
+	isAccepted = false;
+
+	// WSAStartup()
+	if( int err = NetUtils::InitNetwork() )
+	{
+	    StrNum errnum( err );
+	    e->Net( "Network initialization failure", errnum.Text() );
+	}
+}
+
 NetStdioEndPoint::~NetStdioEndPoint()
 {
+	// WSACleanup()
+	NetUtils::CleanupNetwork();
 	delete rc;
 }
 
@@ -78,7 +96,8 @@ NetStdioEndPoint::Listen( Error *e )
 
 # ifdef HAVE_SOCKETPAIR
 	// redirect stdout to stderr for debugging
-	dup2( 2, 1 );
+	if( soloFD )	// don't merge FDs for java
+	    dup2( 2, 1 );
 # endif
 }
 
@@ -108,7 +127,7 @@ NetStdioEndPoint::Accept( Error *e )
 {
 # ifdef HAVE_SOCKETPAIR
 	// talk both ways via stdin
-	return new NetStdioTransport( 0, 0, true );
+	return new NetStdioTransport( 0, (soloFD ? 0 : 1), true );
 # else
 	// separate stdin/stdout
 # ifdef OS_NT
@@ -136,9 +155,10 @@ NetStdioEndPoint::Connect( Error *e )
 	// XXX RunCommand is dynamically allocated
 	// to work around linux 2.5 24x86 compiler bug.
 	// See job019111
-	
+
 	rc = new RunCommand;
-	rc->RunChild( args, RCO_SOLO_FD|RCO_P4_RPC, p, e );
+	int	opts = soloFD ? RCO_SOLO_FD|RCO_P4_RPC : RCO_P4_RPC;
+	rc->RunChild( args, opts, p, e );
 
 	if( e->Test() )
 	    return 0;
@@ -217,7 +237,7 @@ NetStdioTransport::Send( const char *buffer, int length, Error *e )
 
 	if( write( t, buffer, length ) != length )
 	{
-	    e->Net( "write", "socket stdio" );
+	    e->Sys( "write", "socket stdio" );
 	    e->Set( MsgRpc::TcpSend );
 	}
 }
@@ -228,6 +248,35 @@ NetStdioTransport::Receive( char *buffer, int length, Error *e )
 	if( breakCallback )
 	    for(;;)
 	{
+
+#ifdef OS_NT
+
+	    DWORD readable = 1;
+
+	    // 500 is .5 seconds.
+
+	    const int tv = 500;
+
+	    bool res = PeekNamedPipe( (HANDLE)_get_osfhandle( r ),
+	                              NULL, 0, NULL, &readable, NULL );
+	    if( res && !readable )
+	        Sleep( tv );
+
+	    if( !res )
+	    {
+	        DWORD dwError = GetLastError();
+
+	        if( dwError != ERROR_BROKEN_PIPE &&
+	            dwError != ERROR_PIPE_NOT_CONNECTED &&
+	            dwError != ERROR_INVALID_HANDLE )
+	        {
+	            e->Sys( "PeekNamedPipe", "stdio" );
+	            return 0;
+	        }
+	    }
+
+#else
+
 	    int readable = 1;
 	    int writable = 0;
 
@@ -240,6 +289,8 @@ NetStdioTransport::Receive( char *buffer, int length, Error *e )
 		e->Sys( "select", "socket stdio" );
 		return 0;
 	    }
+
+#endif
 
 	    // Before checking for data do the callback isalive test.
 	    // If the user defined IsAlive() call returns a zero
@@ -259,7 +310,7 @@ NetStdioTransport::Receive( char *buffer, int length, Error *e )
 
 	if( l < 0 )
 	{
-	    e->Net( "read", "socket stdio" );
+	    e->Sys( "read", "socket stdio" );
 	    e->Set( MsgRpc::TcpRecv );
 	}
 
@@ -274,7 +325,9 @@ NetStdioTransport::Receive( char *buffer, int length, Error *e )
 int
 NetStdioTransport::IsAlive()
 {
-	return 1;
+	DWORD readable = 1;
+	return PeekNamedPipe( (HANDLE)_get_osfhandle( r ),
+	                      NULL, 0, NULL, &readable, NULL ) ? 1 : 0;
 }
 
 # else

@@ -42,7 +42,7 @@ Ident p4api_ident = {
 		         ID_Y "/" ID_M "/" ID_D
 };
 
-Client::Client() : Rpc( &service )
+Client::Client( Enviro *e ) : Rpc( &service )
 {
 	// Use the builtin ClientMerger until SetMerger is called.
 
@@ -55,18 +55,29 @@ Client::Client() : Rpc( &service )
 	unknownUnicode = 1;
 	content_charset = 0;
         output_charset = 0;
-	enviro = new Enviro;
 	ignore = new Ignore;
 	lowerTag = upperTag = 0;
 	authenticated = 0;
 	ignoreList = 0;
 	pubKeyChecked = 0;
 	hostprotoset = 0;
+	syncTime = 0;
 
 	protocolXfiles = -1;
 	protocolNocase = 0;
 	protocolSecurity = 0;
 	protocolUnicode = 0;
+
+	if( e )
+	{
+	    enviro = e;
+	    ownEnviro = 0;
+	}
+	else
+	{
+	    enviro = new Enviro;
+	    ownEnviro = 1;
+	}
 
 	/*
 	 * If P4CONFIG is set, we'll need to load the environment
@@ -89,7 +100,8 @@ Client::Client() : Rpc( &service )
 Client::~Client()
 {
 	CleanupTrans();
-	delete enviro;
+	if( ownEnviro )
+	    delete enviro;
 	delete ignore;
 }
 
@@ -121,6 +133,12 @@ Client::Init( Error *e )
 		ClientUserNULL cnull( e );
 		
 		// discover unicode server status
+
+		// if program name has not been set yet, use p4 api
+		// ident as program name
+		if( !programName.Length() )
+		    SetVar( P4Tag::v_prog, p4api_ident.GetIdent() );
+
 		Run( "discover", &cnull );
 
 		// bad command is expected when connecting to
@@ -177,8 +195,11 @@ Client::RunTag( const char *func, ClientUser *u )
 	if( !hostprotoset )
 	{
 	    hostprotoset = 1;
-	    SetProtocolDynamic( P4Tag::v_host, GetHost() );
-	    SetProtocolDynamic( P4Tag::v_port, GetPort() );
+	    if( GetInitRoot().Length() == 0 )
+	    {
+		SetProtocolDynamic( P4Tag::v_host, GetHost() );
+		SetProtocolDynamic( P4Tag::v_port, GetPort() );
+	    }
 	}
 
 	// Warning: WaitTag() calls Dispatch() which may call Invoke().
@@ -324,10 +345,14 @@ Client::GetEnv()
 	 */
 
 	const StrPtr &lang = GetLanguage();
+	const StrPtr &initroot = GetInitRoot();
 
 	translated->SetVar( P4Tag::v_client, GetClient() );
 	translated->SetVar( P4Tag::v_cwd, GetCwd() );
-	SetVar( P4Tag::v_host, GetHost() );
+	if( initroot.Length() )
+	    translated->SetVar( P4Tag::v_initroot, initroot );
+	else
+	    SetVar( P4Tag::v_host, GetHost() );
 	if( lang.Length() ) translated->SetVar( P4Tag::v_language, lang );
 	SetVar( P4Tag::v_os, GetOs() );
 	translated->SetVar( P4Tag::v_user, GetUser() );
@@ -347,6 +372,8 @@ Client::GetEnv()
             if (cs != 0)
                 SetVar( P4Tag::v_charset, cs );
         }
+
+	SetVar( P4Tag::v_clientCase, StrBuf::CaseUsage() );
 
 	int i = GetUi()->ProgressIndicator();
 	if( i )

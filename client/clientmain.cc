@@ -123,6 +123,9 @@ int clientMerger( int argc, char **argv, Error *e );
 static int clientSet( int argc, char **argv, Options &, Error *e );
 static int clientTickets( int argc, char **argv, Options &, Error *e );
 int clientReplicate( int argc, char **argv, Options & );
+int clientInit( int argc, char **argv, Options &, int, Error *e );
+int clientInitHelp( int, Error *e );
+int clientTrustHelp( Error *e );
 int jtail( int, char **, Options &, Options &, const char * );
 extern int commandChaining;
 
@@ -167,9 +170,6 @@ setVarsAndArgs( Client &client, int argc, char **argv, Options &opts)
 	for( int i = 0; s = opts.GetValue( 'z', i ); i++ )
 	    client.SetVarV( s->Text() );
 
-	// Set the client program name
-	client.SetVar( P4Tag::v_prog, "p4" );
-	
 	// Set the version used in server log and monitor output
 	StrBuf v;
 	v << ID_REL "/" << ID_OS << "/" << ID_PATCH;
@@ -194,6 +194,7 @@ clientMain( int argc, char **argv, int &uidebug, Error *e )
 {
 	int result;
 	int restarted = 0;
+	P4DebugConfig debugHelper;
 
 	/* Arg processing */
 
@@ -207,6 +208,7 @@ clientMain( int argc, char **argv, int &uidebug, Error *e )
 	                   Options::Help, Options::Port, Options::Password,
 	                   Options::CmdCharset, Options::Retries,
 	                   Options::Quiet, Options::Progress,
+	                   Options::MessageType, Options::Directory,
 	                   Options::Variable, Options::Xargs, 0 };
 	opts.ParseLong( argc, argv,
 	        "?b:c:C:d:eE:F:GRhH:M:p:P:l:L:qQ:r#sIu:v:Vx:z:Z:", 
@@ -239,6 +241,9 @@ clientMain( int argc, char **argv, int &uidebug, Error *e )
 	if( opts[ 's' ] || opts[ 'e' ] )
 	    ++uidebug;
 
+	if( p4debug.GetLevel( DT_TIME ) >= 1 )
+	    debugHelper.Install();
+
 	// If we recognize the command (merge3, set), do it now */
 
 	if( argc && !strcmp( argv[0], "merge3" ) )
@@ -253,9 +258,26 @@ clientMain( int argc, char **argv, int &uidebug, Error *e )
 	{
 	    return clientTickets( argc - 1, argv + 1, opts, e );
 	}
+	else if( argc && !strcmp( argv[0], "init" ) )
+	{
+	    return clientInit( argc - 1, argv + 1, opts, 0, e );
+	}
+	else if( argc && !strcmp( argv[0], "clone" ) )
+	{
+	    return clientInit( argc - 1, argv + 1, opts, 1, e );
+	}
 	else if( argc && !strcmp( argv[0], "replicate" ) )
 	{
 	    return clientReplicate( argc - 1, argv + 1, opts );
+	}
+	else if( argc > 1 && !strcmp( argv[0], "help" ) )
+	{
+	    if( !strcmp( argv[1], "clone" ) )
+	        return clientInitHelp( 1, e );
+	    else if( !strcmp( argv[1], "init" ) )
+	        return clientInitHelp( 0, e );
+	    else if( !strcmp( argv[1], "trust" ) )
+	        return clientTrustHelp( e );
 	}
 
 	// Misc -E environment updates
@@ -387,6 +409,9 @@ clientMain( int argc, char **argv, int &uidebug, Error *e )
 
 	client.SetProtocol( P4Tag::v_api, "99999" );
 	client.SetProtocol( P4Tag::v_enableStreams );
+
+	// Set the client program name
+	client.SetProg( "p4" );
 
     restart:
 

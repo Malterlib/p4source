@@ -23,6 +23,8 @@
  *	FileIOApple - apple double format or native on Macintosh
  */
 
+class Gzip;
+
 class FileIO : public FileSys {
 
     public:
@@ -39,13 +41,10 @@ class FileIO : public FileSys {
 	virtual void	ChmodTime( int modTime, Error *e );
 	virtual void	Unlink( Error *e );
 	virtual void	Rename( FileSys *target, Error *e );
-	// No NT implementation of Readlink, will return error
-	virtual int	Readlink( StrBuf &linkPath, Error *e );
-	// No NT implementation of Readlink, will return error
-	virtual int	Writelink( const StrPtr &linkPath, Error *e );
-
 
 # ifdef OS_NT
+	// Currently only implements hidden file handling on NT
+	virtual void	SetAttribute( FileSysAttr attrs, Error *e );
 	static wchar_t	*UnicodeName( StrBuf *fname, int lfn );
 # endif
 
@@ -82,7 +81,24 @@ class FileIOBinary : public FileIO {
 
 } ;
 
-class FileIOBuffer : public FileIOBinary {
+class FileIOCompress : public FileIOBinary {
+    public:
+	FileIOCompress() : gzip( NULL ), gzbuf( NULL ) { compMode = FIOC_PASS; }
+	virtual	~FileIOCompress();
+
+	virtual void	Open( FileOpenMode mode, Error *e );
+	virtual void	Write( const char *buf, int len, Error *e );
+	virtual int	Read( char *buf, int len, Error *e );
+	virtual void	Close( Error *e );
+	virtual void	Seek( offL_t offset, Error *e );
+
+    private:
+	enum { FIOC_PASS, FIOC_GZIP, FIOC_GUNZIP } compMode;
+	Gzip		*gzip;
+	StrFixed	*gzbuf;
+} ;
+
+class FileIOBuffer : public FileIOCompress {
 
     public:
 			FileIOBuffer( LineType lineType ) : 
@@ -162,42 +178,6 @@ class FileIOAppend : public FileIOBuffer {
 	// Locks, renames, and removes write on UNIX.
 
 	virtual void	Rename( FileSys *target, Error *e );
-
-} ;
-
-class Gzip;
-
-class FileIOGzip : public FileIOBinary {
-
-    public:
-			FileIOGzip() : gzip(0), iobuf( BufferSize() ) {}
-			~FileIOGzip();
-
-	virtual void	Open( FileOpenMode mode, Error *e );
-	virtual void	Write( const char *buf, int len, Error *e );
-	virtual int	Read( char *buf, int len, Error *e );
-	virtual void	Close( Error *e );
-
-    private:
-	Gzip		*gzip;
-	StrFixed	iobuf;
-
-} ;
-
-class FileIOGunzip : public FileIOBinary {
-
-    public:
-			FileIOGunzip() : gzip(0), iobuf( BufferSize() ) {}
-			~FileIOGunzip();
-
-	virtual void	Open( FileOpenMode mode, Error *e );
-	virtual void	Write( const char *buf, int len, Error *e );
-	virtual int	Read( char *buf, int len, Error *e );
-	virtual void	Close( Error *e );
-
-    private:
-	Gzip		*gzip;
-	StrFixed	iobuf;
 
 } ;
 

@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSupp error code is: 256
+ * Current high value for a MsgSupp error code is: 261
  */
 
 # include <error.h>
@@ -68,7 +68,6 @@ ErrorId MsgSupp::InflateInit           = { ErrorOf( ES_SUPP, 20, E_FATAL, EV_FAU
 ErrorId MsgSupp::MagicHeader           = { ErrorOf( ES_SUPP, 21, E_FATAL, EV_FAULT, 0 ), "Gzip magic header wrong!" } ; //NOTRANS
 	
 ErrorId MsgSupp::RegexError             = { ErrorOf( ES_SUPP, 30, E_FAILED, EV_USAGE, 1 ), "Regular expression error: %text%" } ;
-ErrorId MsgSupp::NotImplemented         = { ErrorOf( ES_SUPP, 30, E_FATAL, EV_FAULT, 1 ), "Functionality not implemented on %os%" } ; //NOTRANS
 
 ErrorId MsgSupp::OptionChange          = { ErrorOf( ES_SUPP, 37, E_INFO, EV_NONE, 0 ), "%'--change (-c)'%: specifies the changelist to use for the command." } ;
 ErrorId MsgSupp::OptionPort            = { ErrorOf( ES_SUPP, 38, E_INFO, EV_NONE, 0 ), "%'--port (-p)'%: specifies the network address of the server." } ;
@@ -180,7 +179,6 @@ ErrorId MsgSupp::OptionFollowBranch    = { ErrorOf( ES_SUPP, 143, E_INFO, EV_NON
 ErrorId MsgSupp::OptionFollowInteg     = { ErrorOf( ES_SUPP, 144, E_INFO, EV_NONE, 0 ), "%'--follow-integ (-I)'%: include all integrations into the file." } ;
 ErrorId MsgSupp::OptionSourceFile      = { ErrorOf( ES_SUPP, 145, E_INFO, EV_NONE, 0 ), "%'--source-file (-s)'%: treat fromFile as the source and both sides of the branch view as the target." } ;
 ErrorId MsgSupp::OptionOutputFlags     = { ErrorOf( ES_SUPP, 146, E_INFO, EV_NONE, 0 ), "%'--output-flags (-O)'%: specifies codes controlling the command output." } ;
-ErrorId MsgSupp::OptionShowFlags       = { ErrorOf( ES_SUPP, 147, E_INFO, EV_NONE, 0 ), "%'--show-flags (-s)'%: lists the files that satisfy the condition." } ;
 ErrorId MsgSupp::OptionResolveFlags    = { ErrorOf( ES_SUPP, 148, E_INFO, EV_NONE, 0 ), "%'--resolve-flags (-A)'%: controls which types of resolves are performed." } ;
 ErrorId MsgSupp::OptionAcceptFlags     = { ErrorOf( ES_SUPP, 149, E_INFO, EV_NONE, 0 ), "%'--accept-flags (-a)'%: specifies the level of automatic resolves accepted." } ;
 ErrorId MsgSupp::OptionIntegFlags      = { ErrorOf( ES_SUPP, 150, E_INFO, EV_NONE, 0 ), "%'--integ-flags (-R)'%: specifies how integrate should schedule resolves." } ;
@@ -276,10 +274,11 @@ ErrorId MsgSupp::OptionEnvironment     = { ErrorOf( ES_SUPP, 239, E_INFO, EV_NON
 ErrorId MsgSupp::OptionTaskStatus      = { ErrorOf( ES_SUPP, 240, E_INFO, EV_NONE, 0 ), "%'--status (-s)'%: displays only commands that match the status." } ;
 ErrorId MsgSupp::OptionAllUsers        = { ErrorOf( ES_SUPP, 241, E_INFO, EV_NONE, 0 ), "%'--all-users (-A)'%: specifies the command applies to all users." } ;
 ErrorId MsgSupp::OptionParallel        = { ErrorOf( ES_SUPP, 242, E_INFO, EV_NONE, 0 ), "%'--parallel=threads=N,batch=N,batchsize=N,min=N,minsize=N'%: specify file transfer parallelism." } ;
+ErrorId MsgSupp::OptionParallelSubmit        = { ErrorOf( ES_SUPP, 35, E_INFO, EV_NONE, 0 ), "%'--parallel=threads=N,batch=N,min=N'%: specify file transfer parallelism." } ;
 ErrorId MsgSupp::OptionPromote         = { ErrorOf( ES_SUPP, 243, E_INFO, EV_NONE, 0 ), "%'--promote (-p)'%: specifies to promote the shelf to the Commit Server." } ;
 ErrorId MsgSupp::OptionInputFile       = { ErrorOf( ES_SUPP, 245, E_INFO, EV_NONE, 0 ), "%'--input-file'%: specifies the name of the input file." } ;
 ErrorId MsgSupp::OptionPidFile         = { ErrorOf( ES_SUPP, 246, E_INFO, EV_NONE, 0 ), "%'--pid-file'%: specifies the name of the PID file." } ;
-ErrorId MsgSupp::OptionLocalJournal    = { ErrorOf( ES_SUPP, 247, E_INFO, EV_NONE, 0 ), "%'--local-journal specifies that the pull command should read journal records from a local journal file rather than from the target server." } ;
+ErrorId MsgSupp::OptionLocalJournal    = { ErrorOf( ES_SUPP, 247, E_INFO, EV_NONE, 0 ), "%'--local-journal'%: specifies that the pull command should read journal records from a local journal file rather than from the target server." } ;
 ErrorId MsgSupp::OptionTest            = { ErrorOf( ES_SUPP, 248, E_INFO, EV_NONE, 0 ), "%'--test (-t)'%: specifies a user to test against the LDAP configuration." } ;
 ErrorId MsgSupp::OptionActive          = { ErrorOf( ES_SUPP, 249, E_INFO, EV_NONE, 0 ), "%'--active (-A)'%: only list the active LDAP configurations." } ;
 ErrorId MsgSupp::OptionNoRetransfer    = { ErrorOf( ES_SUPP, 250, E_INFO, EV_NONE, 0 ), "%'--noretransfer'%: override submit.noretransfer configurable behavior." } ;
@@ -287,8 +286,13 @@ ErrorId MsgSupp::OptionForceNoRetransfer    = { ErrorOf( ES_SUPP, 251, E_INFO, E
 ErrorId MsgSupp::OptionDurableOnly     = { ErrorOf( ES_SUPP, 252, E_INFO, EV_NONE, 0 ), "%'--durable-only'%: deliver only durable journal records." } ;
 ErrorId MsgSupp::OptionNonAcknowledging= { ErrorOf( ES_SUPP, 253, E_INFO, EV_NONE, 0 ), "%'--non-acknowledging'%: this request does not acknowledge previous journal records." } ;
 ErrorId MsgSupp::OptionReplicationStatus= { ErrorOf( ES_SUPP, 254, E_INFO, EV_NONE, 0 ), "%'--replication-status (-J)'%: show the replication status of the server and of its replicas." } ;
+ErrorId MsgSupp::OptionGroupMode       = { ErrorOf( ES_SUPP, 255, E_INFO, EV_NONE, 0 ), "%'--groups (-g)'%: updated Perforce group users with LDAP group members." } ;
 ErrorId MsgSupp::OptionBypassExlusiveLock = { ErrorOf( ES_SUPP, 256, E_INFO, EV_NONE, 0 ), "%'--bypass-exclusive-lock'%: allow command on (+l) filetype even if already exclusively opened." } ;
-
+ErrorId MsgSupp::OptionRetainLbrRevisions = { ErrorOf( ES_SUPP, 261, E_INFO, EV_NONE, 0 ), "%'--retain-lbr-revisions'%: don't rename library archive files with the renamed changelist number." } ;
+ErrorId MsgSupp::OptionCreate             = { ErrorOf( ES_SUPP, 257, E_INFO, EV_NONE, 0 ), "%'--create (-c)'%: Create a new stream and populate it with files from the current stream. (dvcs only)" } ;
+ErrorId MsgSupp::OptionList               = { ErrorOf( ES_SUPP, 258, E_INFO, EV_NONE, 0 ), "%'--list (-l)'%: list all the streams available to your client." } ;
+ErrorId MsgSupp::OptionMainline           = { ErrorOf( ES_SUPP, 259, E_INFO, EV_NONE, 0 ), "%'--mainline (-m)'%: Create this stream as an empty mainline (no parent)." } ;
+ErrorId MsgSupp::OptionMoveChanges        = { ErrorOf( ES_SUPP, 260, E_INFO, EV_NONE, 0 ), "%'--movechanges (-r)'%: Move open files to the stream you are switching to, instead of shelving and reverting them." } ;
 // ErrorId graveyard'%: retired/deprecated ErrorIds.
 
 ErrorId MsgSupp::ZCLoadLibFailed       = { ErrorOf( ES_SUPP, 24, E_WARN, EV_ADMIN, 0 ), "Perforce failed to load zeroconf dynamic libraries." } ; // DEPRECATED ZeroConf NOTRANS
@@ -297,3 +301,4 @@ ErrorId MsgSupp::ZCRequireName         = { ErrorOf( ES_SUPP, 26, E_FAILED, EV_US
 ErrorId MsgSupp::ZCNameConflict        = { ErrorOf( ES_SUPP, 27, E_FATAL, EV_ADMIN, 3 ), "*** WARNING duplicate of '%name%' at '%host%:%port%' ***" } ; // DEPRECATED ZeroConf NOTRANS
 ErrorId MsgSupp::ZCRegistryFailed      = { ErrorOf( ES_SUPP, 28, E_WARN, EV_ADMIN, 1 ), "Perforce could not register with zeroconf: error is %err%" } ; // DEPRECATED ZeroConf NOTRANS
 ErrorId MsgSupp::ZCBrowseFailed        = { ErrorOf( ES_SUPP, 29, E_WARN, EV_ADMIN, 2 ), "Perforce could not browse zeroconf/%implementation%: error is %err%" } ; // DEPRECATED ZeroConf NOTRANS
+ErrorId MsgSupp::OptionShowFlags       = { ErrorOf( ES_SUPP, 147, E_INFO, EV_NONE, 0 ), "%'--show-flags (-s)'%: lists the files that satisfy the condition." } ; // NEVER USED NOTRANS

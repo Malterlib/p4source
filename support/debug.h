@@ -34,6 +34,7 @@ enum P4DebugType {
 	DT_CLUSTER,	// Cluster related
 	DT_ZK,		// p4zk related
 	DT_LDAP,	// LDAP related
+	DT_DVCS,	// DVCS related
 	DT_LAST
 }  ;
 

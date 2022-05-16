@@ -47,11 +47,11 @@ NetEndPoint::Create( const char *addr, Error *e )
 
 	// Load up protocol.
 
-	if( ppaddr.MustRSH() )
+	if( ppaddr.MustRSH() || ppaddr.MustJSH() )
 	{
 	    // Explicit rsh:cmd
 
-	    endPoint = new NetStdioEndPoint( e );
+	    endPoint = new NetStdioEndPoint( ppaddr.MustJSH(), e );
 	    endPoint->ppaddr = ppaddr;
 	}
 	else if( ppaddr.MustSSL() )
@@ -66,7 +66,6 @@ NetEndPoint::Create( const char *addr, Error *e )
 	    // TODO: add an error/warning message
 	    e->Set( MsgRpc::TcpPeerSsl );
 	    return NULL;
-
 # endif
 	    endPoint->ppaddr = ppaddr;
 	}

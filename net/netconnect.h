@@ -121,6 +121,7 @@ class NetTransport : public KeepAlive {
 	virtual void    ClientMismatch( Error *e );
 	virtual void	DoHandshake( Error * /* e */) {} // default: do nothing
 
+	virtual bool	HasAddress() = 0;
 	virtual StrPtr *GetAddress( int raf_flags ) = 0;
 	virtual StrPtr *GetPeerAddress( int raf_flags ) = 0;
 	virtual int	GetPortNum()

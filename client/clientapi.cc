@@ -80,6 +80,7 @@ void 	ClientApi::DefineUser( const char *c, Error *e ) { client->DefineUser( c, 
 
 const StrPtr & ClientApi::GetCharset() { return client->GetCharset(); }
 const StrPtr & ClientApi::GetClient() { return client->GetClient(); }
+const StrPtr & ClientApi::GetClientNoHost() { return client->GetClientNoHost(); }
 const StrPtr & ClientApi::GetCwd() { return client->GetCwd(); }
 const StrPtr & ClientApi::GetHost() { return client->GetHost(); }
 const StrPtr & ClientApi::GetIgnoreFile() { return client->GetIgnoreFile(); }

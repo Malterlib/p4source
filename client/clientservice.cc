@@ -311,6 +311,10 @@ clientOpenFile( Client *client, Error *e )
 	StrPtr *diffFlags = client->GetVar( P4Tag::v_diffFlags );
 	StrPtr *digest = client->GetVar( P4Tag::v_digest );
 
+	// clear syncTime
+
+	client->SetSyncTime( 0 );
+
 	if( e->Test() )
 	{
 	    if( !e->IsFatal() )
@@ -573,6 +577,15 @@ clientCloseFile( Client *client, Error *e )
 	if( f->file )
 	    f->file->Close( e );
 
+	// Stat file and record syncTime
+
+	if( f->file )
+	{
+	    int modTime = f->file->GetModTime();
+	    if( modTime ) client->SetSyncTime( modTime );
+	             else client->SetSyncTime( f->file->StatModTime() );
+	}
+
 	if( !e->Test() && !f->IsError() && f->serverDigest.Length() && commit )
 	{
 	    StrBuf clientDigest;
@@ -716,6 +729,10 @@ clientDeleteFile( Client *client, Error *e )
 	StrPtr *noclobber = client->GetVar( P4Tag::v_noclobber );
 	StrPtr *clientHandle = client->GetVar( P4Tag::v_handle );
 	StrPtr *rmdir = client->GetVar( P4Tag::v_rmdir );
+
+	// clear syncTime
+
+	client->SetSyncTime( 0 );
 
 	if( e->Test() && !e->IsFatal() )
 	{
@@ -1055,7 +1072,8 @@ clientCheckFile( Client *client, Error *e )
 	if( ignore )
 	{
 	    if( client->GetIgnore()->Reject( *clientPath, 
-	                                     client->GetIgnoreFile() ) )
+	        client->GetIgnoreFile(), 
+	        client->GetEnviro()->Get( "P4CONFIG" ) ) )
 	    {
 	        Error msg;
 	        msg.Set( MsgClient::CheckFileCant )
@@ -1098,7 +1116,8 @@ clientCheckFile( Client *client, Error *e )
 	    {
 		status = "missing";
 	    } 
-	    else if ( ( !( statVal & FSF_SYMLINK ) && ( f->IsSymlink() ) ) 
+	    else if ( ( !( statVal & FSF_SYMLINK ) && ( f->IsSymlink() )
+						   && f->SymlinksSupported() )
 	  	    || ( ( statVal & FSF_SYMLINK ) && !( f->IsSymlink() ) ) ) 
 	    {
 	        ; /* do nothing */
@@ -1381,6 +1400,7 @@ clientOpenMerge( Client *client, Error *e )
 	StrPtr *diffFlags = client->GetVar( P4Tag::v_diffFlags );
 	StrPtr *noBase = client->GetVar( P4Tag::v_noBase );
 	StrPtr *digest = client->GetVar( P4Tag::v_digest );
+	StrPtr *modTime = client->GetVar( P4Tag::v_time );
 
 	FileSys *s = ClientSvc::File( client, e ); // For P4CLIENTPATH verification
 
@@ -1438,6 +1458,9 @@ clientOpenMerge( Client *client, Error *e )
 
 	if( client->protocolServer >= 16 && digest )
 	    merge->CopyDigest( digest, e );
+
+	if( modTime )
+	    merge->SetTheirModTime( modTime );
 
 	// Create handle
 	// If that fails, we have to toss the integrator
@@ -1926,7 +1949,7 @@ clientEditData( Client *client, Error *e )
 	f->MakeGlobalTemp();
 
 	if( confirm )
-	    f->Perms( FPM_RW );
+	    f->Perms( FPM_RWO );
 
 	/* Set different translators between write/read */
 	f->Translator( client->fromTransDialog );
@@ -2522,7 +2545,20 @@ clientAck( Client *client, Error *e )
 	// Ack confirm if no handle or handle shows success.
 
 	if( handle && client->handles.AnyErrors( handle ) )
+	{
 	    confirm = decline;
+	}
+	else
+	{
+	    // no errors, if syncTime is set, send it
+
+	    if( client->GetSyncTime() )
+	        client->SetVar( "syncTime", client->GetSyncTime() );
+	}
+
+	// clear syncTime
+
+	client->SetSyncTime( 0 );
 
 	if( confirm )
 	    client->Confirm( confirm );
@@ -2608,7 +2644,7 @@ clientCrypto( Client *client, Error *e )
 	// send 2 passwords (token,token2) if both ticket and P4PASSWD
 	// are set (2007.2).
 
-	int max = password2.Length() ? 2 : 1;
+	int max = password2.Length() && password != password2 ? 2 : 1;
 
 	for( int i = 0; i < max; ++i )
 	{

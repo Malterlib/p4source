@@ -32,6 +32,7 @@
 # include <error.h>
 # include <debug.h>
 
+# include "readfile.h"
 # include "rcsdebug.h"
 # include "rcsarch.h"
 # include "rcsrev.h"

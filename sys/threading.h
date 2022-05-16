@@ -142,6 +142,7 @@ class Threading {
 
 	static int	GetThreadCount()
 	                { return current ? current->GetThreadCount() : -1; }
+	static void	LaunchCurrentThread( Thread *t ) { if( current ) current->Launch( t ); }
 
     private:
 

@@ -931,6 +931,35 @@ nt_chmod( StrPtr *fname, int m, int dounicode, int lfn )
 }
 
 static int
+ntw_setattr( StrPtr *fname, int m, int lfn )
+{
+	const wchar_t *wname;
+	int ret;
+
+	wname = nt_wname( fname, lfn, NULL );
+	if( !wname )
+	    return -1;
+
+	ret = SetFileAttributesW( wname, m ) ? 1 : 0 ;
+	nt_free_wname( wname );
+	return ret;
+}
+
+static int
+nt_setattr( StrPtr *fname, int m, int dounicode, int lfn )
+{
+	// Allow unicode to fall through.
+	if( dounicode || lfn )
+	{
+	    int ret;
+	    if ((ret = ntw_setattr( fname, m, lfn )) >= 0 || lfn )
+		return ret;
+	}
+
+	return SetFileAttributesA( fname->Text(), m ) ? 1 : 0 ;
+}
+
+static int
 ntw_rename( StrPtr *fname, StrPtr *nname, int lfn )
 {
 	const wchar_t *wname;
@@ -1531,6 +1560,24 @@ FileIO::Chmod( FilePerm perms, Error *e )
 
 	if( e )
 	    e->Sys( "chmod", Name() );
+}
+
+void
+FileIO::SetAttribute( FileSysAttr attrs, Error *e )
+{
+	int flags = 0;
+
+	if( ( attrs & FSA_HIDDEN ) == FSA_HIDDEN )
+	    flags |= FILE_ATTRIBUTE_HIDDEN;
+
+
+	if( nt_setattr( Path(), flags, DOUNICODE, LFN ) >= 0 )
+	    return;
+
+	// Can be called with e==0 to ignore error.
+
+	if( e )
+	    e->Sys( "SetFileAttribute", Name() );
 }
 
 void

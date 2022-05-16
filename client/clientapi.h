@@ -98,13 +98,13 @@
  *
  *	ClientApi::SetProg() - set the name of the application program,
  *		this will show up in 'p4 monitor' and server log output.
- *		Must be called after Init() it order to take affect.
+ *		Should be called before Init().
  *
  *	ClientApi::SetVersion() - sets the version string of the application.
  *		If not called, the version defaults to protocolClient. This
  *		will be appended to the program name in 'p4 monitor' and 
- *		server log output. Like SetProg(), it must be called after
- *		Init() to take effect.
+ *		server log output.  It should be called after Init() and
+ *		before each call to Run().
  *
  *	ClientApi::SetTicketFile() - set the location of the users ticketfile,
  *		must be the full pathname to the file and not a directory.

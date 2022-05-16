@@ -63,7 +63,7 @@ InitPRNG()
 	DateTimeHighPrecision	dthp;
 	dthp.Now();
 
-	SRANDOM( (dthp.Seconds() * dthp.Nanos()) ^ Pid().GetID() );
+	SRANDOM( (dthp.Seconds() + dthp.Nanos()) ^ Pid().GetID() );
 }
 
 /*
@@ -104,7 +104,9 @@ Randomize(
 
 	for( int i = 0; i < count; ++i )
 	{
-	    buffer[i] = GetRandomInt() & 0xFF;
+	    unsigned int when = GetRandomInt();
+
+	    buffer[i] = ((when | (when >> 8)) ^ ((when >> 16) | (when >> 24))) & 0xFF;
 	}
 }
 
@@ -182,7 +184,7 @@ UUID::operator=(
 {
 	if( this != &rhs ) {
 	    for( int i = 0; i < kDataSize; ++i )
-		m_uuid[i] = rhs.m_uuid[i];
+	        m_uuid[i] = rhs.m_uuid[i];
 	}
 
 	return *this;
@@ -202,7 +204,7 @@ UUID::operator==(
 	for( int i = 0; i < kDataSize; ++i )
 	{
 	    if( m_uuid[i] != rhs.m_uuid[i] )
-	    	return false;
+	        return false;
 	}
 
 	return true;
@@ -227,7 +229,7 @@ UUID::IsNil() const
 	for( int i = 0; i < kDataSize; ++i )
 	{
 	    if( m_uuid[i] )
-	    	return false;
+	        return false;
 	}
 
 	return true;

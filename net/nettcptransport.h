@@ -43,6 +43,7 @@ class NetTcpTransport : public NetTransport {
 	void		ClientMismatch( Error *e );
 	int		SendOrReceive( NetIoPtrs &io, Error *se, Error *re );
 
+	bool		HasAddress() { return true; }
 	StrPtr	*	GetAddress( int raf_flags )
 			{
 			    GetAddress( t, raf_flags, myAddr );

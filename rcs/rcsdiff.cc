@@ -26,6 +26,7 @@
 
 # include <diff.h>
 
+# include "readfile.h"
 # include "rcsdebug.h"
 # include "rcsarch.h"
 # include "rcsco.h"

@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgOs error code is: 12
+ * Current high value for a MsgOs error code is: 20
  */
 
 # include <error.h>
@@ -49,5 +49,14 @@ ErrorId MsgOs::NoSuch                  = { ErrorOf( ES_OS, 7, E_FATAL, EV_FAULT,
 ErrorId MsgOs::EmptyFork               = { ErrorOf( ES_OS, 8, E_FAILED, EV_CLIENT, 1 ), "Resource fork for %file% from server is empty." } ;
 
 ErrorId MsgOs::NameTooLong             = { ErrorOf( ES_OS, 12, E_FAILED, EV_FAULT, 3 ), "Filename '%filename%' is length %actual% which exceeds the internal length limit of %maxlen%." } ;
+
+ErrorId MsgOs::ZipExists               = { ErrorOf( ES_OS, 13, E_FAILED, EV_FAULT, 1 ), "Output zip file %file% already exists." } ;
+ErrorId MsgOs::ZipOpenEntryFailed      = { ErrorOf( ES_OS, 14, E_FAILED, EV_FAULT, 2 ), "Error %errorcode% creating new entry %entry% in zip" } ;
+ErrorId MsgOs::ZipCloseEntryFailed     = { ErrorOf( ES_OS, 15, E_FAILED, EV_FAULT, 1 ), "Error %errorcode% closing entry in zip" } ;
+ErrorId MsgOs::ZipWriteFailed          = { ErrorOf( ES_OS, 16, E_FAILED, EV_FAULT, 2 ), "Error %errorcode% writing buffer of length %len% in zip" } ;
+ErrorId MsgOs::ZipMissing              = { ErrorOf( ES_OS, 17, E_FAILED, EV_FAULT, 1 ), "Input zip file %file% is missing." } ;
+ErrorId MsgOs::ZipNoEntry              = { ErrorOf( ES_OS, 18, E_FAILED, EV_FAULT, 2 ), "Error %errorcode% locating entry %entry% in zip." } ;
+ErrorId MsgOs::ZipOpenEntry            = { ErrorOf( ES_OS, 19, E_FAILED, EV_FAULT, 2 ), "Error %errorcode% opening entry %entry% in zip." } ;
+ErrorId MsgOs::ZipReadFailed           = { ErrorOf( ES_OS, 20, E_FAILED, EV_FAULT, 2 ), "Error %errorcode% reading buffer of length %len% from zip." } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 

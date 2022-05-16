@@ -493,6 +493,10 @@ class StrBuf : public StrPtr {
 	void	Compress( StrPtr *s );
 	void	UnCompress( StrPtr *s );
 
+	// trailing-string compression
+	int	EncodeTail( StrPtr &s, const char *replaceBytes );
+	int	DecodeTail( StrPtr &s, const char *replaceBytes );
+
 	// string << -- append string/number
 
 	StrBuf& operator <<( const char *s )
