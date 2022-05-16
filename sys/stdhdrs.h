@@ -224,7 +224,9 @@ extern int errno;
 # endif // NEED_DBGBREAK
 # endif // OS_NT
 
+#ifndef DMalterlib
 # include "malloc_override.h"
+#endif
 
 # ifdef MEM_DEBUG
 #   ifdef USE_MIMALLOC
@@ -522,7 +524,7 @@ extern "C" int socketpair(int, int, int, int*);
 # endif
 # endif
 
-# ifdef NEED_SYSLOG || defined( NEED_ALL )
+# if defined(NEED_SYSLOG) || defined( NEED_ALL )
 #  if defined( __unix__ )
 #   define HAVE_SYSLOG
 #   include <syslog.h>

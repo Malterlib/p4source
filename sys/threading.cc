@@ -337,7 +337,7 @@ class MultiThreader : public Threader {
 	    delete t;
 
 # ifdef USE_SSL
-# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+# if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(OPENSSL_IS_BORINGSSL)
 	    OPENSSL_thread_stop();
 # endif
 # endif // USE_SSL

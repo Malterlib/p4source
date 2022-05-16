@@ -220,7 +220,7 @@ clientReconcileEdit( Client *client, Error *e )
 	    if( digestType )
 	    {
 		StrBuf localDigest;
-		FileDigestType digType;
+		FileDigestType digType = FS_DIGEST_UNKNOWN;
 		if( !digestType->Compare( StrRef( P4Tag::v_digestTypeMD5 ) ) )
 		    digType = FS_DIGEST_MD5;
 		else if( !digestType->Compare(
