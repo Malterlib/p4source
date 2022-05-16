@@ -949,6 +949,10 @@ Rpc::Dispatch( DispatchFlag flag, RpcDispatcher *dispatcher )
 		    recvBuffer = new RpcRecvBuffer;
 
 		DispatchOne( dispatcher, flag == DfContain );
+
+	        // pack and potentially resize buffer
+	        if( transport && p4tunable.Get( P4TUNE_NET_AUTOTUNE ) )
+	            transport->ResizeBuffer();
 	    }
 	    else break;
 	}

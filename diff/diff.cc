@@ -130,11 +130,15 @@ Diff::SetOutput( const char *fout, Error *e )
 	// If wfopen() fails, we intentionally fall through.
 	if( !( out = fopen( fout, "wb" ) ) )
 	{
+#ifdef OS_NT
 	errorout:
+#endif
 	    e->Sys( "write", fout );
 	    return;
 	}
+#ifdef OS_NT
 done:
+#endif
 
 #ifdef OS_NT
 	SetHandleInformation( (HANDLE)_get_osfhandle( fileno(out) ), 

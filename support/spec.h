@@ -141,7 +141,8 @@ enum SpecOpt {
 	SDO_REQUIRED,	// required, user updatable, default provided
 	SDO_ONCE,	// required, not updatable, set once after creation 
 	SDO_ALWAYS,	// required, not updatable, set after every update
-	SDO_KEY		// required, not updatable, set once before creation
+	SDO_KEY,	// required, not updatable, set once before creation
+	SDO_EMPTY,	// Like SDO_REQUIRED but allows empty
 } ;
 
 enum SpecFmt {
@@ -228,7 +229,8 @@ class SpecElem {
 	// Opt access
 
 	int	IsRequired() { return opt == SDO_REQUIRED
-				|| opt == SDO_KEY; }
+				|| opt == SDO_KEY
+				|| opt == SDO_EMPTY; }
 
 	int	IsReadOnly() { return opt == SDO_ONCE
 				|| opt == SDO_ALWAYS
@@ -237,7 +239,10 @@ class SpecElem {
 	int	NeedsDefault() { return opt == SDO_DEFAULT 
 				|| opt == SDO_ALWAYS
 				|| opt == SDO_ONCE 
-				|| opt == SDO_KEY; }
+				|| opt == SDO_KEY
+				|| opt == SDO_EMPTY; }
+
+	int	AllowEmpty() { return opt == SDO_EMPTY; }
 
 	// Preset access
 

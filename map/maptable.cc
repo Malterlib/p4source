@@ -376,12 +376,12 @@ sortcmpstreamslhs( const void *a1, const void *a2 )
 	// skip type values on the start of the RHS
 	if( ( c1 = str1[ 0 ] ) == '%' || isdigit( c1 ) )
 	{
-	    while( ( c1 = str1[ i ] ) != '/' )
+	    while( str1[ i ] && ( c1 = str1[ i ] ) != '/' )
 	        i++;
 	}
 	if( ( c2 = str2[ 0 ] ) == '%' || isdigit( c2 ) )
 	{
-	    while( ( c2 = str2[ j ] ) != '/' )
+	    while( str2[ j ] && ( c2 = str2[ j ] ) != '/' )
 	        j++;
 	}
 

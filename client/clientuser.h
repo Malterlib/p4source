@@ -181,8 +181,8 @@ class ClientUser {
 	virtual int	CanAutoLoginPrompt();
 	virtual int	IsOutputTaggedWithErrorLevel();
 	
-	// ClientTransfer allows the threading behavor of parrallel sync/submit
-	// to be overridden my the client application. The ClientTransfer will
+	// ClientTransfer allows the threading behavor of parallel sync/submit
+	// to be overridden by the client application. The ClientTransfer will
 	// be deleted with the the ClientUser.
 	virtual void	SetTransfer( ClientTransfer* t );
 	virtual ClientTransfer*	GetTransfer() { return transfer; }

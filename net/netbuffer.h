@@ -135,6 +135,7 @@ class NetBuffer : public NetTransport {
 	int		Fill( Error *re, Error *se );
 
 	void		SetBufferSizes( int recvSize, int sendSize );
+	void		ResizeBuffer();
 
 	void		SendCompression( Error *e );
 	void		RecvCompression( Error *e );

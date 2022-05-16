@@ -154,6 +154,7 @@ class MsgDm {
 	static ErrorId UserOrGroup;
 	static ErrorId CantChangeUser;
 	static ErrorId CantChangeUserAuth;
+	static ErrorId CantChangeOwnDetails;
 	static ErrorId CantChangeUserType;
 	static ErrorId Passwd982;
 	static ErrorId NoClearText;
@@ -966,6 +967,7 @@ class MsgDm {
 	static ErrorId LogFormatInvalid;
 	static ErrorId LogNumericInvalid;
 	static ErrorId LogEventsUnmatched;
+	static ErrorId AutoResolve;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

@@ -107,6 +107,11 @@ void MapApi::Insert( const StrPtr& l, const StrPtr& r, MapType t )
 	ambiguous = 1;
 }
 
+void MapApi::SetCaseSensitivity( MapCase mode )
+{
+	table->SetCaseSensitivity( mode );
+}
+
 int MapApi::Translate( const StrPtr& from, StrBuf& to, MapDir d )
 {
 	MapTableT dir = ( d == MapRightLeft ? RHS : LHS );

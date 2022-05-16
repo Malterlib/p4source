@@ -138,6 +138,7 @@ class MsgServer {
 	static ErrorId NoSvcUserinSrvSpec;
 	static ErrorId WrongSvcUserinSrvSpec;
 	static ErrorId SvcUserNeedsAuth;
+	static ErrorId NoHostlessTickets;
 	static ErrorId NoSuppASflag;
 	static ErrorId NoSuppVflag;
 	static ErrorId SubmitFailed;
@@ -344,6 +345,7 @@ class MsgServer {
 	static ErrorId MonitorDisabled;
 	static ErrorId MonitorBadId;
 	static ErrorId MonitorNoLockinfo;
+	static ErrorId NoMonitorForCommand;
 	static ErrorId TooManyCommands;
 
 	static ErrorId IstatInvalid;

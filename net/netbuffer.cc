@@ -32,8 +32,8 @@ NetBuffer::NetBuffer( NetTransport *t )
 	int size = p4tunable.Get( P4TUNE_NET_BUFSIZE );
 	int rcvsize = p4tunable.Get( P4TUNE_NET_RCVBUFSIZE );
 
-	recvBuf.Alloc( rcvsize );
-	sendBuf.Alloc( size );
+	recvBuf.BlockAlloc( rcvsize );
+	sendBuf.BlockAlloc( size );
 
 	ResetRecv();
 	ResetSend();
@@ -67,10 +67,10 @@ NetBuffer::SetBufferSizes( int recvSize, int sendSize )
 	// Note we only increase sizes.
 
 	if( recvSize > recvBuf.Length() )
-	    recvBuf.Alloc( recvSize - recvBuf.Length() );
+	    recvBuf.BlockAlloc( recvSize - recvBuf.Length() );
 
 	if( sendSize > sendBuf.Length() )
-	    sendBuf.Alloc( sendSize - sendBuf.Length() );
+	    sendBuf.BlockAlloc( sendSize - sendBuf.Length() );
 
 	// Now fix up pointers
 
@@ -81,6 +81,48 @@ NetBuffer::SetBufferSizes( int recvSize, int sendSize )
 	ioPtrs.recvPtr 	+= recvDone + recvReady;
 	ioPtrs.sendPtr 	+= sendDone;
 	ioPtrs.sendEnd 	+= sendDone + sendReady;
+}
+
+void
+NetBuffer::ResizeBuffer()
+{
+	// Try packing first, if we succeed don't bother resizing just yet
+
+	if( RecvDone() )
+	{
+	    PackRecv();
+	    return;
+	}
+
+	if( !p4tunable.Get( P4TUNE_NET_AUTOTUNE ) )
+	    return;
+
+	if( RecvRoom() > p4tunable.Get( P4TUNE_NET_RCVBUFLOWMARK ) )
+	    return;
+
+	int growSize  = p4tunable.Get( P4TUNE_NET_RCVBUFSIZE );
+	int maxSize   = p4tunable.Get( P4TUNE_NET_RCVBUFMAXSIZE );
+
+	if( ( recvBuf.Length() + growSize ) > maxSize )
+	    growSize = maxSize - recvBuf.Length();
+
+	if( growSize < 1 )
+	    return;
+
+	// Remember offsets
+	int recvDone = RecvDone();
+	int recvReady = RecvReady();
+
+	// Increase buffer size
+	recvBuf.BlockAlloc( growSize );
+
+	// Fix up pointers
+	ResetRecv();
+	recvPtr += recvDone;
+	ioPtrs.recvPtr  += recvDone + recvReady;
+
+	if( DEBUG_INFO )
+	    p4debug.printf( "NetBuffer grow to %d\n", recvBuf.Length() );
 }
 
 void
@@ -290,7 +332,7 @@ NetBuffer::Send( const char *buffer, int length, Error *re, Error *se )
 		ioPtrs.sendPtr = (char *)buffer;
 		ioPtrs.sendEnd = (char *)buffer + length;
 
-		PackRecv();
+		ResizeBuffer();
 
 		if( !transport->SendOrReceive( ioPtrs, se, re ) )
 		{
@@ -310,7 +352,7 @@ NetBuffer::Send( const char *buffer, int length, Error *re, Error *se )
 
 	    if( SendReady() >= sendLimit )
 	    {
-		PackRecv();
+		ResizeBuffer();
 
 		if( !transport->SendOrReceive( ioPtrs, se, re ) )
 		    return;
@@ -363,7 +405,7 @@ NetBuffer::Fill( Error *re, Error *se )
 {
 	DEBUGPRINT( DEBUG_BUFFER, "NetBuffer fill" );
 
-	PackRecv();
+	ResizeBuffer();
 	if( !RecvRoom() )
 	    return 0;
 

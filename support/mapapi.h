@@ -5,6 +5,7 @@ class StrArray;
 
 enum MapType { MapInclude, MapExclude, MapOverlay, MapOneToMany };
 enum MapDir  { MapLeftRight, MapRightLeft };
+enum MapCase { Sensitive, Insensitive };
 
 class MapApi
 {
@@ -22,6 +23,7 @@ public:
 	void Clear();
 	void Insert( const StrPtr& lr,                 MapType t = MapInclude );
 	void Insert( const StrPtr& l, const StrPtr& r, MapType t = MapInclude );
+	void SetCaseSensitivity( MapCase mode );
 
 	//Functions for doing interesting things with the mapping.
 	int Translate( const StrPtr& from, StrBuf& to, MapDir d = MapLeftRight );

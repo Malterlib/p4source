@@ -1540,7 +1540,6 @@ StrOps::EncodeNonPrintable( const StrPtr &i, StrBuf &o, int maskp, int cmdSafe)
 	o.Clear();
 
 	char *p = i.Text();
-	const char *f;
 	char *s;
 
 	while( *p )

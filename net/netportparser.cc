@@ -227,8 +227,8 @@ NetPortParser::NetPortParser(
 , mHost(rhs.mHost)
 , mPort(rhs.mPort)
 , mHostPort(rhs.mHostPort)
-, mPrefix(rhs.mPrefix)
 , mPortColon(rhs.mPortColon)
+, mPrefix(rhs.mPrefix)
 , mExtraTransports(rhs.mExtraTransports)
 {
 } // copy ctor

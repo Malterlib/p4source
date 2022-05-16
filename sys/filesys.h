@@ -163,7 +163,8 @@ enum FileSysAttr {
 enum FileOpenMode {
 	FOM_READ,		// open for reading
 	FOM_WRITE,		// open for writing
-	FOM_RW			// open for write, but don't trunc, allow read
+	FOM_RW,			// open for write, but don't trunc, allow read
+	FOM_UWRITE		// open for untranslated writing
 } ;
 
 enum FilePerm {

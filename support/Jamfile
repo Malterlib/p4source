@@ -1,7 +1,7 @@
 SubDir P4 support ;
 
-SubDirHdrs $(P4) dbsupp ;
 SubDirHdrs $(P4) i18n ;
+SubDirHdrs $(P4) map ;
 SubDirC++Flags -I$(SSLINCDIR) ;
 
 # Permit #include from boost (for StrongUUID).

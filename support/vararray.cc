@@ -88,6 +88,19 @@ VarArray::WillGrow( int interval )
 	return( 0 );
 }
 
+void *
+VarArray::Replace( int i, void *newValue )
+{
+	void *old = 0;
+	if ( i >= 0 && i < numElems )
+	{
+	    old = elems[i];
+	    elems[i] = newValue;
+	}
+	return old;
+}
+
+
 /*
  * VVarArray::Diff()
  * VVarArray::Intersect()

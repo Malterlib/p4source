@@ -407,6 +407,7 @@ struct P4Tag {
 	static const char v_fixStatus[];	// p4 change
 	static const char v_force[];		// p4 submit
 	static const char v_getFlag[];
+	static const char v_haveGRec[];		// p4 sync graph
 	static const char v_haveRec[];		// p4 sync
 	static const char v_ignoreIsEdit[];	// p4 resolve
 	static const char v_index[];
@@ -447,6 +448,7 @@ struct P4Tag {
 	static const char v_value[];		// p4 index
 	static const char v_workRec[];
 	static const char v_workRec2[];
+	static const char v_workGRec[];
 	static const char v_yourDepotRec[];	// p4 resolve
 	static const char v_zksEntity[];	// zks socket write flock
 

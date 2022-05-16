@@ -21,14 +21,18 @@ const char *const MapChar::mapCharNames[] = {
 int
 MapChar::operator -( char oc ) 
 {
-	return caseMode == 0 ? c - oc
-	     : caseMode == 1 ? c == oc ? 0 : tolowerq( c ) - tolowerq( oc )
-	                     : StrPtr::SCompare( c, oc );
+	return caseMode == -1 ? StrPtr::SCompare( c, oc )
+	     : caseMode == 0  ? c - oc
+	     : caseMode == 1  ? c == oc ? 0 : tolowerq( c ) - tolowerq( oc )
+	                      : StrPtr::SCompare( c, oc );
 }
 
 int
 MapChar::operator ==( char oc ) 
 {
+	if( caseMode == -1 )
+	    return StrPtr::SEqual( c, oc );
+
 	if( caseMode == 0 || caseMode == 1 )
 	{
 	    switch( c^oc ) 

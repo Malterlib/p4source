@@ -11,8 +11,9 @@
 class MsgHelp {
 
     public:
-
+	
 	static ErrorId NoHelp;
+	static ErrorId NoGraphHelp;
 	static ErrorId HelpPerforce;
 	static ErrorId HelpUsage;
 	static ErrorId HelpSimple;
@@ -166,6 +167,7 @@ class MsgHelp {
 	static ErrorId HelpRevokePermission;
 	static ErrorId HelpTunables;
 	static ErrorId HelpShowPermission;
+	static ErrorId HelpShowPermissions;
 	static ErrorId HelpSearch;
 	static ErrorId HelpServer;
 	static ErrorId HelpServerid;
@@ -208,9 +210,12 @@ class MsgHelp {
 	static ErrorId HelpGraphAdministration;
 	static ErrorId HelpGraphAdd;
 	static ErrorId HelpGraphClient;
+	static ErrorId HelpGraphCherryPick;
 	static ErrorId HelpGraphDelete;
 	static ErrorId HelpGraphDescribe;
 	static ErrorId HelpGraphDiff;
+	static ErrorId HelpGraphDiff2;
+	static ErrorId HelpGraphDirs;
 	static ErrorId HelpGraphEdit;
 	static ErrorId HelpGraphFilelog;
 	static ErrorId HelpGraphFiles;
@@ -219,17 +224,30 @@ class MsgHelp {
 	static ErrorId HelpGraphLock;
 	static ErrorId HelpGraphLog;
 	static ErrorId HelpGraphMerge;
+	static ErrorId HelpGraphOpened;
+	static ErrorId HelpGraphRebase;
 	static ErrorId HelpGraphReconcile;
+	static ErrorId HelpGraphRevert;
 	static ErrorId HelpGraphSubmit;
 	static ErrorId HelpGraphSwitch;
 	static ErrorId HelpGraphSync;
 	static ErrorId HelpGraphTag;
+	static ErrorId HelpGraphTags;
 	static ErrorId HelpGraphReceivePack;
 	static ErrorId HelpGraphShowRef;
 	static ErrorId HelpGraphRefHist;
 	static ErrorId HelpGraphPackObjects;
 	static ErrorId HelpGraphSubmodule;
 	static ErrorId HelpGraphLsTree;
+	static ErrorId HelpGraphCatFile;
+	static ErrorId HelpGraphUnlock;
+	static ErrorId HelpGraphPrint;
+	static ErrorId HelpGraphResolve;
+	static ErrorId HelpGraphRevList;
+	static ErrorId HelpGraphLfsPush;
+	static ErrorId HelpGraphLfsFetch;
+	static ErrorId HelpGraphLfsStat;
+	static ErrorId HelpGraphVerify;
 
 	static ErrorId Help2FA;
 

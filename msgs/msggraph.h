@@ -23,12 +23,16 @@ class MsgGraph {
 	static ErrorId UseDiff2;
 	static ErrorId UseDirs;
 	static ErrorId UseFilelog;
+	static ErrorId FollowDeletedWildcard;
 	static ErrorId UseFiles;
 	static ErrorId UseFstat;
 	static ErrorId UseLock;
 	static ErrorId UseLog;
 	static ErrorId UseShowRef;
 	static ErrorId UseMerge;
+	static ErrorId UseMerge2;
+	static ErrorId UseRebase;
+	static ErrorId UseCherryPick;
 	static ErrorId UseOpen;
 	static ErrorId UseReconcile;
 	static ErrorId UseRefHist;
@@ -51,6 +55,7 @@ class MsgGraph {
 	static ErrorId UsePermissionG;
 	static ErrorId UsePermissionR;
 	static ErrorId UsePermissionS;
+	static ErrorId UsePermissions;
 	static ErrorId UsePermissionC;
 	static ErrorId UsePermNoRef;
 	static ErrorId UsePermNeedRef;
@@ -62,12 +67,14 @@ class MsgGraph {
 	static ErrorId UseResolved;
 	static ErrorId UseSwitch;
 	static ErrorId UseTag;
+	static ErrorId UseTags;
 	static ErrorId UseUnlock;
 	static ErrorId ReferenceData;
 	static ErrorId ReferenceHistory;
 	static ErrorId ReferenceDataShort;
 	static ErrorId ReferenceDataMatch;
 	static ErrorId ReferenceHeadShort;
+	static ErrorId ReferenceDataEmpty;
 	static ErrorId ReferenceHaveShort;
 	static ErrorId RepoDefaultBranch;
 	static ErrorId FileLogData;
@@ -127,6 +134,7 @@ class MsgGraph {
 	static ErrorId RcvRefSyntax;
 	static ErrorId RcvFileName;
 	static ErrorId NotFastForward;
+	static ErrorId NotFastForward2;
 	static ErrorId NotAGraphDepot;
 	static ErrorId UnknownRepo;
 	static ErrorId IllegalRefChar;
@@ -148,7 +156,7 @@ class MsgGraph {
 	static ErrorId LFSShaMismatch;
 	static ErrorId LFSAlreadyPresent;
 	static ErrorId AtomicPushFailed;
-	static ErrorId TriggerWarnMessage;
+	static ErrorId TriggerErrorMessage;
 	static ErrorId UseRepo;
 	static ErrorId UseRepoo;
 	static ErrorId UseRepoi;
@@ -187,6 +195,8 @@ class MsgGraph {
 	static ErrorId PubKeyDeleteAction;
 	static ErrorId PubKeyNotExist;
 	static ErrorId PubKeyNeedsForce;
+	static ErrorId PubKeySKeyOpt1;
+	static ErrorId PubKeySKeyOpt2;
 	static ErrorId BlobVerified;
 	static ErrorId BlobDamaged;
 	static ErrorId LFSBlobVerified;
@@ -244,6 +254,7 @@ class MsgGraph {
 	static ErrorId BranchNotFound;
 	static ErrorId ManyReposUseAll;
 	static ErrorId MergeComplete;
+	static ErrorId CherryPickComplete;
 	static ErrorId NoChangeFixes;
 	static ErrorId UnsupportedFileType;
 	static ErrorId ChangeViewBranch;
@@ -284,6 +295,50 @@ class MsgGraph {
 	static ErrorId RepoSwitchChanged;
 	static ErrorId RepoAlreadyOnBranch;
 	static ErrorId RepoSwitchMissing;
+	static ErrorId BlobNotFoundRepo;
+	static ErrorId FilelogMessage; 
+	static ErrorId MergeOfMessage; 
+	static ErrorId DescribeDiff;
+	static ErrorId HeadChanged;
+	static ErrorId SubmitCompleteWithRepo;
+	static ErrorId LbrPackCacheRequiresServerLocks;
+	static ErrorId Rebased;
+	static ErrorId RebasedNoop;
+	static ErrorId CherryPicked;
+	static ErrorId CherryPickedNoop;
+	static ErrorId RefUpdated;
+	static ErrorId BadMergeMode;
+	static ErrorId BadSource;
+	static ErrorId BadTarget;
+	static ErrorId BadAtRev;
+	static ErrorId NoMergeRequired;
+	static ErrorId EditedWasDelete;
+	static ErrorId AlreadyDeleted;
+	static ErrorId FileSpecific;
+	static ErrorId FileSpecificData;
+	static ErrorId OpenMustResolve;
+	static ErrorId SyncResolve;
+	static ErrorId RebaseDefaultBranchForce;
+
+	static ErrorId NoPermOnRefRepo;
+	static ErrorId NoSuchRepoGrantPerm ;
+	static ErrorId NoSuchUserGrantPerm ;
+	static ErrorId NoSuchGroupGrantPerm ;
+	static ErrorId IdWildPerm;
+
+	static ErrorId DescribeHeader;
+	static ErrorId CommitFileShort;
+	static ErrorId SHANotFound;
+	static ErrorId RepoHasCommit;
+	static ErrorId RepoHasOpened;
+	static ErrorId BranchNotMerged;
+	static ErrorId DefBranchForceDel;
+	static ErrorId Resolve3WayText;
+	static ErrorId SubmitBadState;
+	static ErrorId SubmitBadStateFiles;
+	static ErrorId MergeOutOfView;
+	static ErrorId HaveSpecificNoRev;
+	static ErrorId NotOnReplica;
 
 	// Retired ErrorIds. We need to keep these so that clients
 	// built with newer apis can commnunicate with older servers

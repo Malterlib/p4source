@@ -22,6 +22,7 @@ SubInclude P4 i18n ;
 SubInclude P4 jsmn ;
 SubInclude P4 lbr ;
 SubInclude P4 lbrobj ;
+SubInclude P4 map ;
 SubInclude P4 msgs ;
 SubInclude P4 net ;
 SubInclude P4 proxy ;

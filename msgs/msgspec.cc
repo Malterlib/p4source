@@ -514,7 +514,10 @@ ErrorId MsgSpec::SpecUser = { ErrorOf( ES_SPEC, 10, E_INFO, EV_NONE, 0  ),
 "#  %'JobView'%:     Selects jobs for inclusion during changelist creation.\n"
 "#  %'Password'%:    If set, user must have matching %'$P4PASSWD'% on client.\n"
 "#  %'AuthMethod'%:  '%'perforce'%' if using standard authentication or '%'ldap'%' if\n"
-"#               this user should use native %'LDAP'% authentication.\n"
+"#               this user should use native %'LDAP'% authentication.  The '+2fa'\n"
+"#               modifier can be added to the AuthMethod, requiring the user to\n"
+"#               perform second factor authentication in addition to password\n"
+"#               authentication. For example: '%'perforce+2fa'%'.\n"
 "#  %'Reviews'%:     Listing of depot files to be reviewed by user.\n" };
 
 ErrorId MsgSpec::SpecJob = { ErrorOf( ES_SPEC, 11, E_INFO, EV_NONE, 0  ),
@@ -562,8 +565,8 @@ ErrorId MsgSpec::SpecRepo = { ErrorOf( ES_SPEC, 18, E_INFO, EV_NONE, 0  ),
 "#  %'Pushed'%:      The date of the last '%'push'%' to this repo.\n"
 "#  %'Options'%:     Repo options:\n"
 "#                       %'[no]lfs'%\n"
-"#  %'Description'%: A short description of the remote server (optional).\n"
-"#  %'MirroredFrom'%:  Upstream URL that this repo is mirrored (readonly) from.\n"
+"#  %'Description'%: A short description of the repo (optional).\n"
+"#  %'MirroredFrom'%:  Upstream URL this read-only repo is mirrored from.\n"
 "#  %'DefaultBranch'%: The default branch to clone (eg, \"refs/heads/trunk\" or\n"
 "#                 \"trunk\"); it must begin with \"refs/\" if git is to use it.\n"
 "#\n"

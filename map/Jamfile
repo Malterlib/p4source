@@ -1,8 +1,6 @@
-SubDir P4 dbsupp ;
+SubDir P4 map ;
 
 SubDirHdrs $(P4) i18n ;
-SubDirHdrs $(P4) db ;
-SubDirHdrs $(P4) dm ;
 
 P4Library $(SUPPORTLIB) :
 	mapchar.cc
@@ -12,5 +10,3 @@ P4Library $(SUPPORTLIB) :
 	mapstring.cc
 	maptable.cc
 	;
-
-

@@ -7,6 +7,7 @@
 class StrPtr;
 class StrBuf;
 class ErrorLog;
+class Error;
 
 enum P4DebugType {
 	DT_DB,		// DbOpen
@@ -48,15 +49,24 @@ class P4Tunable {
 	void		SetTLocal( const char *set );
 	void		Unset( const char *set );
 	int		Get( int t ) const;
-    	int		GetLevel( const char *n ) const;
-    	int		GetIndex( const char *n ) const;
+	int		GetLevel( const char *n ) const;
+	int		GetIndex( const char *n ) const;
 	const char	*GetName( int t ) const { return list[t].name; }
 	int		IsSet( int t ) const { return list[t].isSet; }
 	int		IsSet( const char * n ) const;
 	int		IsKnown( const char * n );
 	int		IsNumeric( const char * n );
+	void		IsValid( const char * n, const char * v, Error *e );
 	void		Unbuffer();
 	void		UnsetAll();
+
+	/*
+	 * The intended use for this method, which only sets the active
+	 * value for a tunable, is to set a specific value that will be used
+	 * at a lower layer and the value cannot otherwise be passed into the
+	 * lower layer. The need to use this method should be rare.
+	 */
+	void		SetActive( int t, int v );
 
     protected:
 

@@ -1440,7 +1440,7 @@ clientCheckFileGraph( Client *client, Error *e )
 	    return;
 	int statVal = f->Stat();
 
-	if( !( statVal & FSF_EXISTS ) )
+	if( !( statVal & (FSF_SYMLINK|FSF_EXISTS) ) )
 	{
 	    status = "missing";
 	} 
@@ -2017,6 +2017,23 @@ clientSendFile( Client *client, Error *e )
 	        client->SetVar( P4Tag::v_status, "same" );
 	        client->SetVar( P4Tag::v_sha, &localDigest );
 	        client->Confirm( confirm );
+	        // We differ from classic here as
+	        // with 'submitunchanged' in the submitoptions set we
+	        // don't send a digest.
+	        if( !e->Test() && perms && revertUnchanged )
+	        {
+	            if( depotTime && ( f->Stat() & FSF_WRITEABLE ) )
+	            {
+	                // Refresh modtime from depot rev, the same
+	                // way clientChmodFile() does
+
+	                f->ModTime( depotTime );
+	                f->ChmodTime( e );
+	            }
+
+	            if( !e->Test() )
+	                f->Chmod2( perms->Text(), e );
+	        }
 	        delete f;
 	        return;
 	    }
@@ -2991,11 +3008,14 @@ clientCrypto( Client *client, Error *e )
 	if( pxAuth )
 	    client->SetVar( P4Tag::v_caddr, *ipAddr );
 
-	if( !password.Length() && !pxAuth )
+	if( !password.Length() )
 	{
 	    client->SetVar( P4Tag::v_token, &result );
-	    client->Invoke( confirm->Text() );
-	    return;
+	    if( !pxAuth )
+	    {
+	        client->Invoke( confirm->Text() );
+	        return;
+	    }
 	}
 
 	// send 2 passwords (token,token2) if both ticket and P4PASSWD

@@ -33,9 +33,9 @@ static ErrorId intervalneeded = { ErrorOf( 0, 0, E_FATAL, 0, 0 ),
 
 class ClientUserJournal : public ClientUser {
     public:
-	ClientUserJournal() : outfd(-1), journalno(0), sequence(0), rc(NULL),
+	ClientUserJournal() : outfd(-1), journalno(0), sequence(0),
 			      errorseen(0), dataseen(0), rotateseen(0),
-			      restartOnError(0), savedjournal(NULL) {}
+			      restartOnError(0), rc(NULL), savedjournal(NULL) {}
 
 	~ClientUserJournal() { delete rc; delete savedjournal; }
 

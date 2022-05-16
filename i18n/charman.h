@@ -40,6 +40,7 @@
 class CharStep {
 public:
 	CharStep( char * p ) : ptr(p) {}
+	virtual ~CharStep() {}
 
 	virtual char *Next();
 	char *Next( int );

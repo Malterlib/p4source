@@ -1357,7 +1357,7 @@ clientIgnores( int argc, char **argv, Options &global_opts, Error *e )
 	    {
 	        f->Set( argv++[0] );
 	        path.Set( f->Path() );
-	        p->SetCanon( cwd, path );
+	        p->SetLocal( cwd, path );
 	        path.Set( p->Text() );
 	    }
 	    else

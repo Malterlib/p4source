@@ -112,9 +112,9 @@ unsigned long sCompileVersion =  OPENSSL_VERSION_NUMBER;
 unsigned long sVersion1_0_0 =  0x1000000f;
 const char *sVerStr1_0_0 = "1.0.0";
 # ifdef OS_NT
-static HANDLE *mutexArray = NULL;
+static HANDLE mutexArray[ CRYPTO_NUM_LOCKS ];
 # else
-static pthread_mutex_t *mutexArray = NULL;
+static pthread_mutex_t mutexArray[ CRYPTO_NUM_LOCKS ];
 # endif
 
 typedef struct {
@@ -385,10 +385,6 @@ NetSslTransport::CreateAndInitializeSslContext(const char *conntypename)
     }
 
     return ctxp;
-
-fail:
-    delete ctxp;
-    return NULL;
 }
 
 /**
@@ -627,8 +623,6 @@ fail:
 void
 NetSslTransport::DoHandshake( Error *e )
 {
-	int sslRetval;
-
 	if(ssl)
 	    return;
 
@@ -986,10 +980,6 @@ NetSslTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 
 	int  readable = 0;
 	int  writable = 0;
-
-	/* flags set by check_availability(  ) that poll for I/O status */
-	bool can_read = false;
-	bool can_write = false;
 
 	/* flags to mark all the combinations of why we're blocking */
 	bool read_waiton_write = false;
@@ -1394,7 +1384,6 @@ end:
 void
 NetSslTransport::Close( void )
 {
-	int ret;
 	if( t < 0 )
 	    return;
 
@@ -1648,23 +1637,7 @@ static void DynDestroyFunction(
 
 static int InitLockCallbacks( Error *e )
 {
-	int i;
-	int numlocks = CRYPTO_num_locks();
-
-	/* static locks area */
-# ifdef OS_NT
-	mutexArray = (HANDLE *) malloc( CRYPTO_num_locks() * sizeof(HANDLE) );
-# else
-	mutexArray = (pthread_mutex_t *) malloc( CRYPTO_num_locks() * sizeof(pthread_mutex_t) );
-# endif // OS_NT
-
-	if( mutexArray == NULL )
-	{
-	    e->Set(MsgRpc::Operat) << "malloc";
-	    return -1;
-	}
-
-	for ( i = 0; i < numlocks; i++ )
+	for ( int i = 0; i < CRYPTO_num_locks(); i++ )
 	{
 # ifdef OS_NT
 	    mutexArray[i] = CreateMutex( NULL, FALSE, NULL );
@@ -1688,16 +1661,8 @@ static int InitLockCallbacks( Error *e )
  *
  * @return    0
  */
-static int ShudownLockCallbacks( void )
+static int ShutdownLockCallbacks( void )
 {
-    int i;
-    int numlocks = CRYPTO_num_locks();
-
-    if( mutexArray == NULL )
-    {
-	return (0);
-    }
-
     CRYPTO_set_dynlock_create_callback( NULL );
     CRYPTO_set_dynlock_lock_callback( NULL );
     CRYPTO_set_dynlock_destroy_callback( NULL );
@@ -1705,7 +1670,7 @@ static int ShudownLockCallbacks( void )
     CRYPTO_set_locking_callback( NULL );
     CRYPTO_set_id_callback( NULL );
 
-    for ( i = 0; i < numlocks; i++ )
+    for ( int i = 0; i < CRYPTO_num_locks(); i++ )
     {
 # ifdef OS_NT
 	CloseHandle( mutexArray[i] );

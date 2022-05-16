@@ -141,6 +141,8 @@ SpecData::SetLine( SpecElem *sd, int x, const StrPtr *val, Error *e )
 	else
 	{
 	    tVal.wv[0] = val->Text();
+	    // Need to terminate list.
+	    tVal.wv[1] = 0;
 	}
 
 	Set( sd, x, tVal.wv, e );

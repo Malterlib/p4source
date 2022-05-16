@@ -134,6 +134,7 @@ clientReconcileEdit( Client *client, Error *e )
 	client->NewHandler();
 	StrPtr *clientType = client->GetVar( P4Tag::v_type );
 	StrPtr *digest = client->GetVar( P4Tag::v_digest );
+	StrPtr *digestType = client->GetVar( P4Tag::v_digestType );
 	StrPtr *confirm = client->GetVar( P4Tag::v_confirm, e );
 	StrPtr *fileSize = client->GetVar( P4Tag::v_fileSize );
 	StrPtr *submitTime = client->GetVar( P4Tag::v_time );
@@ -193,7 +194,28 @@ clientReconcileEdit( Client *client, Error *e )
 	else if( digest )
 	{
 	    recHandle->pathArray->Put()->Set( f->Name() );
-	    if( !checkSize || checkSize == f->GetSize() )
+	    if( digestType )
+	    {
+		StrBuf localDigest;
+		FileDigestType digType;
+		if( !digestType->Compare( StrRef( P4Tag::v_digestTypeMD5 ) ) )
+		    digType = FS_DIGEST_MD5;
+		else if( !digestType->Compare(
+				    StrRef( P4Tag::v_digestTypeGitText ) ) )
+		    digType = FS_DIGEST_GIT_TEXT_SHA1;
+		else if( !digestType->Compare(
+				    StrRef( P4Tag::v_digestTypeGitBinary ) ) )
+		    digType = FS_DIGEST_GIT_BINARY_SHA1;
+		else if( !digestType->Compare(
+				    StrRef( P4Tag::v_digestTypeSHA256 ) ) )
+		    digType = FS_DIGEST_SHA256;
+
+		f->ComputeDigest( digType, &localDigest, e );
+		if( !e->Test() && !localDigest.XCompare( *digest ) )
+		    status = "same";
+
+	    } 
+	    else if( !checkSize || checkSize == f->GetSize() )
 	    {
 		StrBuf localDigest;
 		f->Translator( ClientSvc::XCharset( client, FromClient ) );
@@ -418,7 +440,6 @@ clientTraverseShort( Client *client, StrPtr *cwd, const char *dir, int traverse,
 	    p->SetLocal( StrRef( dir ), fName );
 	    f->Set( *p );
 	    int checkFile = 0;
-	    StrPtr *ddir;
 
 	    if( client != client->translated )
 	    {
@@ -1135,9 +1156,6 @@ clientCloseMatch( Client *client, ClientFile *f1, Error *e )
 	    e->Set( MsgSupp::NoParm ) << "clientCloseMatch";
 	    return;
 	}
-
-	StrPtr *matchFile = 0;
-	StrPtr *matchIndex = 0;
 
 	StrPtr *fname;
 	FileSys *f2 = 0;

@@ -96,7 +96,7 @@ FileSys::Create( FileSysType t )
 		break;
 
 	case FST_ATEXT:
-		f = new FileIOAppend;
+		f = new FileIOAppend( lt );
 		break;
 
 	case FST_UTF8:

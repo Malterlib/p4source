@@ -414,17 +414,17 @@ NetTcpTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 
 	    int tv = -1;
 	    if( ( readable && breakCallback ) || maxwait )
-		{
+	    {
 	        tv = 500;
-			if( breakCallback )
-			{
-				tv = breakCallback->PollMs();
-				if( tv < 1 )
-					tv = 500;
-			}
-			if( tv < 1 )	// in case of overflow, be sane
-				tv = 500;
-		}
+	        if( breakCallback )
+	        {
+	            tv = breakCallback->PollMs();
+	            if( tv < 1 )
+	                tv = 500;
+	        }
+	        if( tv < 1 ) // in case of overflow, be sane
+	            tv = 500;
+	    }
 
 	    if( ( dataReady = selector->Select( readable, writable, tv ) ) < 0 )
 	    {
@@ -435,9 +435,9 @@ NetTcpTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	    if( !dataReady && maxwait && waitTime.Time() >= maxwait )
 	    {
 	        lastRead = 0;
-			re->Set( MsgRpc::MaxWait ) <<
-				( doRead ? "receive" : "send" ) << ( maxwait / 1000 );
-			return 0;
+	        re->Set( MsgRpc::MaxWait ) <<
+	            ( doRead ? "receive" : "send" ) << ( maxwait / 1000 );
+	        return 0;
 	    }
 
 	    // Before checking for data do the callback isalive test.
@@ -454,11 +454,11 @@ NetTcpTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	    if( !writable && !readable )
 	        continue;
 
-		if( autotune && readable && writable )
-		{
-			doGoAround = 1;
-			writable = 0;
-		}
+	    if( autotune && readable && writable )
+	    {
+	        doGoAround = 1;
+	        writable = 0;
+	    }
 
 	    // Write what we can; read what we can
 
@@ -468,28 +468,32 @@ NetTcpTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	        int l = write( t, io.sendPtr, io.sendEnd - io.sendPtr );
 
 	        if( l > 0 )
-	            TRANSPORT_PRINTF( DEBUG_TRANS, "NetTcpTransport send %d bytes", l );
+	            TRANSPORT_PRINTF( DEBUG_TRANS, 
+	                "NetTcpTransport send %d bytes", l );
 
 	        if( l > 0 )
 	        {
 	            lastRead = 0;
 	            io.sendPtr += l;
-				if( autotune && !readable )
-					return 1;
-				retCode = 1;
+	            if( autotune && !readable )
+	                return 1;
+	            retCode = 1;
 	        }
 
 	        if( l < 0 )
 	        {
 # ifdef OS_NT
-		    int	errornum = WSAGetLastError();
-		    // don't use switch, because some of these values might be the same
-		    if( (errornum == WSAEWOULDBLOCK) || (errornum == WSATRY_AGAIN) || (errornum == WSAEINTR) )
-			continue;
+	            int	errornum = WSAGetLastError();
+
+	            // don't use switch, values might be the same
+                    if( ( errornum == WSAEWOULDBLOCK ) || 
+	                ( errornum == WSATRY_AGAIN ) || 
+	                ( errornum == WSAEINTR) ) continue;
 # else
-		    // don't use switch, because some of these values might be the same
-		    if( (errno == EWOULDBLOCK) || (errno == EAGAIN) || (errno == EINTR) )
-			continue;
+	            // don't use switch, values might be the same
+	            if( ( errno == EWOULDBLOCK ) || 
+	                ( errno == EAGAIN ) || 
+	                ( errno == EINTR ) ) continue;
 # endif // OS_NT
 
 	            se->Net( "write", "socket" );
@@ -502,42 +506,45 @@ NetTcpTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	        int l = read( t, io.recvPtr, io.recvEnd - io.recvPtr );
 
 	        if( l > 0 )
-	            TRANSPORT_PRINTF( DEBUG_TRANS, "NetTcpTransport recv %d bytes", l );
+	            TRANSPORT_PRINTF( DEBUG_TRANS, 
+	                "NetTcpTransport recv %d bytes", l );
 
 	        if( l > 0 )
 	        {
-		    /*
-		     * probably we'll never be able to read the FIN if there
-		     * isn't data waiting already
-		     */
+	            /*
+	             * probably we'll never be able to read the FIN if there
+	             * isn't data waiting already
+	             */
 	            lastRead = (wasReadError ? selector->Peek() : 1);
 	            io.recvPtr += l;
-				if( doGoAround )
-				{
-					readable = 0;
-					doGoAround = 0;
-					goto goAround;
-				}
-				retCode = 1;
+                    if( doGoAround )
+	            {
+	                readable = 0;
+	                doGoAround = 0;
+	                goto goAround;
+	            }
+	            retCode = 1;
 	        }
 
 	        if( l < 0 )
 	        {
-				if( doGoAround )
-				{
-					readable = 0;
-					doGoAround = 0;
-					goto goAround;
-				}
+	            if( doGoAround )
+	            {
+	                readable = 0;
+	                doGoAround = 0;
+	                goto goAround;
+	            }
 # ifdef OS_NT
-		    int	errornum = WSAGetLastError();
-		    // don't use switch, because some of these values might be the same
-		    if( (errornum == WSAEWOULDBLOCK) || (errornum == WSATRY_AGAIN) || (errornum == WSAEINTR) )
-			continue;
+	            int errornum = WSAGetLastError();
+	            // don't use switch, values might be the same
+	            if( ( errornum == WSAEWOULDBLOCK ) || 
+	                ( errornum == WSATRY_AGAIN ) || 
+	                ( errornum == WSAEINTR ) ) continue;
 # else
-		    // don't use switch, because some of these values might be the same
-		    if( (errno == EWOULDBLOCK) || (errno == EAGAIN) || (errno == EINTR) )
-			continue;
+		    // don't use switch, values might be the same
+		    if( ( errno == EWOULDBLOCK ) || 
+	                ( errno == EAGAIN ) || 
+	                ( errno == EINTR ) ) continue;
 # endif // OS_NT
 
 	            re->Net( "read", "socket" );

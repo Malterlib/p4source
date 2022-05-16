@@ -47,7 +47,7 @@ ErrorId MsgClientLocal::trustHelp = { ErrorOf( ES_HELP, 0, E_INFO, EV_NONE, 0 ),
 "\n"
 "	The -n flag will cause prompts to be automatically refused.\n"
 "\n"
-"	The -d flag will remove an existing trusted fingerprint of a connection.\n"
+"	The -d flag will remove an existing trusted fingerprint.\n"
 "\n"
 "	The -f flag will force the replacement of a mismatched fingerprint.\n"
 "\n"

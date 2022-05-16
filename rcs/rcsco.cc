@@ -523,7 +523,8 @@ RcsAtStrip(
 
 	for(;;)
 	{
-	    char *a;
+	    char *a, *src;
+	    int llen;
 
 	    /* We now point to the 2nd @ - the first one has already */
 	    /* been copied.  If we're at the end of the string, we'll */
@@ -538,10 +539,21 @@ RcsAtStrip(
 	    ++atIn;	/* hope that 2nd char is an @ */
 	    --len;
 
-	    a = (char *)memccpy( atOut, atIn, '@', buf + len - atOut );
+	    // replace a call to:
+	    // a = (char *)memccpy( atOut, atIn, '@', buf + len - atOut );
+	    llen = buf + len - atOut;
+	    src = atIn;
+	    a = atOut;
+	    bool foundat = false;
+	    while( llen-- > 0 )
+	        if( ( *a++ = *src++ ) == '@' )
+	        {
+	            foundat = true;
+	            break;
+	        }
 
-	    if( !a )
-		break;
+	    if( !foundat )
+	        break;
 
 	    atIn += a - atOut;
 	    atOut = a;

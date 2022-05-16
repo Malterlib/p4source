@@ -403,8 +403,6 @@ ClientUserColor::OutputAnsiStream( const char *text, FILE *stream )
 {
 	fflush( stream );
 
-	short oldColors = 0;
-	void *hConsole = 0;
 	const char *p;
 
 	// We already know whether we can render colors or not, but we still
@@ -508,7 +506,6 @@ ClientUserColor::GetColors()
 	    char *s = 0, *e, *q, *p, *r = 0;
 	    StrBuf var1, val1, val2, patten;
 	    StrBufDict tmpColors;
-	    bool ingroup = false;
 
 	    /*
 	     * Colors come in three types.

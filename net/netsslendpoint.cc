@@ -139,7 +139,7 @@ NetSslEndPoint::Accept( KeepAlive *, Error *e )
 	TYPE_SOCKLEN       lpeer;
 	struct sockaddr_storage
 	                   peer;
-	int                t, err;
+	int                t;
 
 	TRANSPORT_PRINTF( SSLDEBUG_TRANS, "NetSslEndpoint accept on %d", s );
 
@@ -197,7 +197,6 @@ NetTransport *
 NetSslEndPoint::Connect( Error *e )
 {
 	int                t;
-	long               sslRetval = 0;
 	NetSslTransport *  sslTransport = NULL;
 
 	// Set up addresses

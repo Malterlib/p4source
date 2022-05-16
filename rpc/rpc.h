@@ -143,7 +143,7 @@ class RpcService {
 
     public:
 			RpcService();
-			~RpcService();
+			virtual ~RpcService();
 
 	void		SetEndpoint( const char *addr, Error *e );
 	void		Dispatcher( const RpcDispatch *dispatch );

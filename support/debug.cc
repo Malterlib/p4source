@@ -22,6 +22,8 @@
 # include <pid.h>
 # include <datetime.h>
 
+#include <msgsupp.h>
+
 # include "debug.h"
 
 P4Debug p4debug;
@@ -42,6 +44,7 @@ MT_STATIC P4DebugConfig *p4debughelp;
 # define B2M 1024*2048
 # define B4M 1024*4096
 # define B10M 10*1024*1024
+# define B100M 100*1024*1024
 # define B256M 256*1024*1024
 # define B1G 1024*1024*1024
 # define BBIG 2147483647 /* (2^31-1) */
@@ -181,6 +184,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"dm.grep.maxlinelength",0,	B4K,	128,	B16K,	1,	B1K, 0,
 	"dm.grep.maxrevs",	0,	R10K,	0,	RBIG,	1,	R1K, 0,
 	"dm.grep.maxcontext",	0,	R1K,	0,	B16K,	1,	R1K, 0,
+	"dm.info.hide",		0,	0,	0,	1,	1,	1,   0,
 	"dm.integ.engine",	0,	3,	0,	3,	1,	1,   0,
 	"dm.integ.maxact",	0,	R100K,	1,	RBIG,	1,	R1K, 0,
 	"dm.integ.tweaks",	0,	0,	0,	256,	1,	1,   0,
@@ -213,6 +217,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"dm.subprotects.grant.admin", 0, 1,	0,	1,	1,	1, 0,
 	"dm.user.accessupdate",	0,	300,	1,	RBIG,	1,	1, 0,
 	"dm.user.accessforce",	0,	3600,	1,	RBIG,	1,	1, 0,
+	"dm.user.allowselfupdate", 0,	1,	0,	1,	1,	1, 0,
 	"dm.user.insecurelogin",0,	0,	0,	1,	1,	1, 0,
 	"dm.user.loginattempts",0,	3,	0,	10000,	1,	1, 0,
 	"dm.user.noautocreate", 0,	0,	0,	2,	1,	1, 0,
@@ -271,6 +276,8 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"net.parallel.submit.batch",0,	0,	1,	RBIG,	1,	R1K, 0,
 	"net.parallel.submit.min",0,	0,	2,	RBIG,	1,	R1K, 0,
 	"net.parallel.sync.svrthreads",0,0,	2,	RBIG,	1,	1, 0,
+	"net.rcvbuflowmark",	0,	0,	0,	B32K,	1,	B1K, 0,
+	"net.rcvbufmaxsize",	0,	B100M,	1,	B1G,	1,	B1K, 0,
 	"net.rcvbufsize",	0,	B1M,	1,	BBIG,	1,	B1K, 0,
 	"net.reuseport",	0,	0,	0,	1,	1,	1, 0,
 	"net.rfc3484",		0,	0,	0,	1,	1,	1, 0,
@@ -301,6 +308,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"rpl.jnlwait.max",	0,	1000,	100,	RBIG,	1,	R1K, 0,
 	"rpl.journal.ack",	0,	0,	0,	B1M,	1,	1, 0,
 	"rpl.journal.ack.min",	0,	0,	0,	B1M,	1,	1, 0,
+	"rpl.journalcopy.location", 0,	0,	0,	1,	1,	1, 0,
 	"rpl.labels.global",	0,	0,	0,	1,	1,	1, 0,
 	"rpl.replay.userrp",	0,	0,	0,	1,	1,	1, 0,
 	"rpl.verify.cache",	0,	0,	0,	1,	1,	1, 0,
@@ -364,6 +372,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"auth.autologinprompt", 0,	1,	0,	1,	1,	1, 0,
 	"rpl.submit.nocopy",	0,	0,	0,	1,	1,	1, 0,
 	"auth.2fa.persist",	0,	1,	0,	2,	1,	1, 0,
+	"auth.tickets.nounlocked",0,	0,	0,	2,	1,	1, 0,
 
 	0, 0, 0, 0, 0, 0, 0, 0
 
@@ -589,6 +598,26 @@ P4Tunable::SetTLocal( const char *set )
 	}
 }
 
+void
+P4Tunable::SetActive( int t, int v )
+{
+	/*
+	 * Set the active value for a tunable without normalizing against the
+	 * tunable's 'minVal', 'maxVal', or 'modVal' defintions, nor altering
+	 * the tunable's 'isSet' or 'original' attributes.
+	 *
+	 * The need to use this method should be rare. Its intended use
+	 * is to set a tunable to a specific value that will be used at a
+	 * lower layer and the value cannot otherwise be passed into the
+	 * lower layer.
+	 *
+	 * The correctness of the value for the tunable is the
+	 * responsibility of the caller!
+	 */
+
+	list[t].value = v;
+}
+
 int
 P4Tunable::IsNumeric( const char *p )
 {
@@ -632,6 +661,52 @@ P4Tunable::IsNumeric( const char *p )
 	}
 
 	return !(*p);
+}
+
+void
+P4Tunable::IsValid( const char *n, const char *v, Error *e )
+{
+	int i = GetIndex( n );
+	if( i == DT_LAST )
+	{
+	    e->Set( MsgSupp::UnknownTunable ) << n;
+	    return;
+	}
+	
+	long val = 0;
+	int negative = 0;
+
+	// Atoi()
+
+	if( *v == '-' )
+	{
+	    negative = 1;
+	    v++;
+	}
+
+	while( *v && isdigit( *v ) )
+	{
+	    val = val * 10 + *v - '0';
+	    v++;
+	}
+
+	if( negative )
+	    val = -val;
+
+	// k = *1000, m = *1000,000
+
+	if( *v == 'k' || *v == 'K' )
+	    val *= list[i].k, ++v;
+
+	if( *v == 'm' || *v == 'M' )
+	    val *= list[i].k * list[i].k;
+
+	// Min or max
+
+	if( val < list[i].minVal )
+	    e->Set(MsgSupp::TunableValueTooLow) << n << StrNum(list[i].minVal);
+	if( !e->Test() && val > list[i].maxVal )
+	    e->Set(MsgSupp::TunableValueTooHigh) << n <<StrNum(list[i].maxVal);
 }
 
 void

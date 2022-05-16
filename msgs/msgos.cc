@@ -35,12 +35,9 @@ ErrorId MsgOs::SysUn                   = { ErrorOf( ES_OS, 2, E_FAILED, EV_FAULT
 ErrorId MsgOs::SysUn2                  = { ErrorOf( ES_OS, 10, E_FAILED, EV_FAULT, 3 ), "%operation2%: %arg2%: unknown errno %errno2%" } ;  // like SysUn but different parm names
 ErrorId MsgOs::ChmodBetrayal           = { ErrorOf( ES_OS, 11, E_FATAL, EV_FAULT, 4 ), "File mode modification failed! File %oldname% was successfully renamed to %newname% but the file permissions were not correctly changed to read-only. The current permissions are %perms% and the file inode number is %inode%." } ;
 
-# ifdef OS_NT
-
+// Windows specific
 ErrorId MsgOs::Net                     = { ErrorOf( ES_OS, 3, E_FAILED, EV_COMM, 3 ), "%operation%: %arg%: %errmsg%" } ;
 ErrorId MsgOs::NetUn                   = { ErrorOf( ES_OS, 4, E_FAILED, EV_COMM, 3 ), "%operation%: %arg%: unknown network error %errno%" } ;
-
-# endif                         
 
 ErrorId MsgOs::TooMany                 = { ErrorOf( ES_OS, 5, E_FATAL, EV_FAULT, 1 ), "%handle%: too many handles!" } ;
 ErrorId MsgOs::Deleted                 = { ErrorOf( ES_OS, 6, E_FATAL, EV_FAULT, 1 ), "%handle%: deleted handled!" } ;

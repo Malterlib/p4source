@@ -19,6 +19,8 @@
  *	VarArray::Edit(i) - return a editable pointer to slot i in the array
  *	VarArray::Move(i,j) - move element i to j
  *	VarArray::Remove(i) - remove element i
+ *	VarArray::Replace(i, j) - replace the item at index i with j.
+ *	                          Return old value at index i.
  *	VarArray::Put(v) - set a new slot to v
  *	VarArray::WillGrow(i) - returns size of new vararray if it
  *	                        would have to grow in the next i rows.
@@ -36,7 +38,7 @@
  */
 
 class VarArray {
-	
+
     public:
 
 			VarArray();
@@ -53,6 +55,7 @@ class VarArray {
 	void *		Put( void *v ) { return *New() = v; }
 	void		SetCount( int i ) { numElems = i; }
 	int		WillGrow( int interval );
+	void *          Replace( int i, void *newValue );
 
 	void 		Exchange( int i, int j )
 	    		{ 

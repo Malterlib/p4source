@@ -539,7 +539,6 @@ NetUtils::IsIpV4Address( const char *str, bool allowPrefix )
 {
 	int numDots = 0;
 	int numColons = 0;
-	bool seenPort = false;
 
 	for( const char *cp = str; *cp; cp++ )
 	{

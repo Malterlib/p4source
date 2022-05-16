@@ -18,7 +18,7 @@
 #include "validate.h"
 
 CharSetCvtUTF8UTF8::CharSetCvtUTF8UTF8( int dir, int f )
-    : validator( NULL ), flags( f )
+    : flags( f ), validator( NULL )
 {
 	// do not validate from the server
 	if( ( direction = dir ) == -1 && ( flags & UTF8_VALID_CHECK ) )

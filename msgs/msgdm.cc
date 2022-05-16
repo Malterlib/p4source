@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgDm error code is: 962
+ * Current high value for a MsgDm error code is: 963
  */
 
 # include <error.h>
@@ -180,6 +180,7 @@ ErrorId MsgDm::InvalidEscape           = { ErrorOf( ES_DM, 433, E_FAILED, EV_USA
 ErrorId MsgDm::UserOrGroup             = { ErrorOf( ES_DM, 83, E_FAILED, EV_USAGE, 1 ), "Indicator must be 'user' or 'group', not '%value%'." } ;
 ErrorId MsgDm::CantChangeUser          = { ErrorOf( ES_DM, 84, E_FAILED, EV_USAGE, 1 ), "User name can't be changed from '%user%'." } ;
 ErrorId MsgDm::CantChangeUserAuth      = { ErrorOf( ES_DM, 802, E_FAILED, EV_USAGE, 0 ), "User's authentication method can't be changed; use -f to force switch." } ;
+ErrorId MsgDm::CantChangeOwnDetails    = { ErrorOf( ES_DM, 963, E_FAILED, EV_USAGE, 0 ), "User's full name and email address can't be changed; use -f to force update." } ;
 ErrorId MsgDm::CantChangeUserType      = { ErrorOf( ES_DM, 577, E_FAILED, EV_USAGE, 0 ), "User type can't be changed." } ;
 ErrorId MsgDm::Passwd982               = { ErrorOf( ES_DM, 85, E_FAILED, EV_UPGRADE, 0 ), "You need a 98.2 or newer client to set a password." } ;
 ErrorId MsgDm::NoClearText             = { ErrorOf( ES_DM, 419, E_FAILED, EV_USAGE, 0 ), "Passwords can only be set by 'p4 passwd' at this security level." } ;

@@ -457,6 +457,8 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionUserMode,
 	"create",             Options::UserModeCreate, 'c', 0,
 	                      &MsgSupp::OptionUserModeCreate,
+	"create-strict",      Options::UserModeCreateStrict, 'C', 0,
+	                      &MsgSupp::OptionUserModeCreate,
 	"update",             Options::UserModeUpdate, 'U', 0,
 	                      &MsgSupp::OptionUserModeUpdate,
 	"delete",             Options::UserModeDelete, 'd', 0,
@@ -485,6 +487,20 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionRename,
 	"retry",              Options::Retry, 'R', 0,
 	                      &MsgSupp::OptionRetry,
+	"type",               Options::StorageType,  'T', ':',
+	                      &MsgSupp::OptionStorageType,
+	"user",               Options::ByUser, 'u', ':',
+	                      &MsgSupp::OptionByUser,
+	"owner",              Options::ByOwner, 'O', ':',
+	                      &MsgSupp::OptionByOwner,
+	"repo",               Options::RepoName2, 'n', ':',
+	                      &MsgSupp::OptionRepoName2,
+	"depot",              Options::Depot2, 'd', ':',
+	                      &MsgSupp::OptionDepot2,
+	"reference",          Options::Reference, 'r', ':',
+	                      &MsgSupp::OptionReference,
+	"permission",         Options::Perm, 'p', ':',
+	                      &MsgSupp::OptionPerm,
 
 	// Options below this line have no short-form equivalent:
 
@@ -529,9 +545,7 @@ Options::OptionInfo Options::list[] = {
 	"aliases",            Options::Aliases, 0, ':',
 	                      &MsgSupp::OptionAliases,
 	"field",              Options::Field, 0, ':',
-                              &MsgSupp::OptionField,
-	"type",               Options::StorageType,  'T', ':',
-	                      &MsgSupp::OptionStorageType,
+	                      &MsgSupp::OptionField,
 	"atomic",             Options::AtomicPush, 0, 0,
 	                      &MsgSupp::OptionAtomicPush,
 	"client-type",        Options::ClientType,   0, ':',
@@ -574,10 +588,6 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionRepoName,
 	"target",             Options::TargetBranch, 0, ':',
 	                      &MsgSupp::OptionTargetBranch,
-	"user",               Options::ByUser, 'u', ':',
-	                      &MsgSupp::OptionByUser,
-	"owner",               Options::ByOwner, 'O', ':',
-	                      &MsgSupp::OptionByOwner,
 	"squash",             Options::Squash, 0, 0,
 	                      &MsgSupp::OptionSquash,
 	"allow-empty",        Options::AllowEmpty, 0, 0,
@@ -585,6 +595,8 @@ Options::OptionInfo Options::list[] = {
 	"create-index",       Options::CreateIndex, 0, 0,
 	                      &MsgSupp::OptionCreateIndex,
 	"drop-index",         Options::DropIndex, 0, 0,
+	                      &MsgSupp::OptionDropIndex,
+	"first-parent",       Options::FirstParent, 0, 0,
 	                      &MsgSupp::OptionDropIndex,
 	0, 0, 0, 0, 0
 } ;
@@ -870,6 +882,191 @@ Options::ParseLong( int &argc, StrPtr *&argv, const char *opts,
 	                break;
 	            }
 	        }
+	    }
+	}
+}
+
+void
+Options::ParseTest( int &argc, StrPtr *&argv, const char *opts, 
+		const int *longOpts, Error *e )
+{
+	int argi = argc;
+	for( ; argi; argi--, argv[argc - argi] )
+	{
+	    char *arg;
+	    char *av = argv[argc - argi].Text();
+
+	    if( av[0] != '-' || !av[1] )
+		break;
+
+	    if( av[1] == '-' )
+	    {
+	        // Long-form option (--force, --change, --user, etc.)
+
+	        const char *opt_s = &av[2];
+	        const char *opt_e = opt_s;
+		StrBuf optName, optMsg;
+
+		while( *opt_e && *opt_e != '=' )
+	            opt_e++;
+
+		optName.Set( opt_s, ( opt_e - opt_s ) );
+	        optMsg << "-" << optName;
+
+		int i, l;
+	        int matches = 0;
+	        for( l = 0; longOpts[ l ]; l++ )
+	        {
+		    for( i = 0; list[i].name; i++ )
+	            {
+	                if( list[i].optionCode == longOpts[l] )
+	                {
+	                    matches = !strcmp( optName.Text(), list[i].name );
+	                    break;
+		        }
+		    }
+	            if( matches )
+	                break;
+	        }
+
+		if( !matches )
+		    continue;
+
+		if( optc == N_OPTS )
+		{
+		    e->Set( MsgSupp::TooMany );
+		    return;
+		}
+
+		if( ! ( flags[ optc ] = list[i].shortForm ) )
+		        flags[ optc ] = list[i].optionCode;
+
+		flags2[ optc ] = 0;
+
+		switch( list[i].valueType )
+		{
+		default:
+		    if( *opt_e == '=' )
+		    {
+			e->Set( MsgSupp::ExtraArg );
+			continue;
+		    }
+		    vals[ optc++ ] = "true";
+		    continue;
+		case '?':
+		    if( *opt_e == '=' )
+			vals[ optc++ ] = &opt_e[1];
+	            else
+	                vals[ optc++ ] = StrRef::Null();
+	            break;
+		case ':':
+		case '#':
+		    // : is --option=value or --option value
+		    // # is --option=N or --option N, N >= 0
+
+		    if( *opt_e == '=' )
+		    {
+			vals[ optc++ ] = &opt_e[1];
+		    }
+		    else if( --argc )
+		    {
+			vals[ optc++ ] = *++argv;
+		    }
+		    else
+		    {
+			e->Set( MsgSupp::NeedsArg ) << optMsg;
+			continue;
+		    }
+
+		    if( list[i].valueType == '#' && 
+	                (!vals[ optc - 1 ].IsNumeric() ||
+			  vals[ optc - 1 ].Atoi64() < 0 ) )
+		    {
+			e->Set( MsgSupp::NeedsNonNegArg ) << optMsg;
+			continue;
+		    }
+		    break;
+		}
+	        continue;
+	    }
+
+	    // Short-form option (-c, -p, -i, etc.)
+
+	    for( arg = &av[1]; *arg; arg++ )
+	    {
+		const char *f;
+
+		for( f = opts; *f; f++ )
+		    if( *f == *arg )
+			break;
+
+		if( !*f )
+		    continue;
+
+		if( optc == N_OPTS )
+		{
+		    e->Set( MsgSupp::TooMany );
+		    return;
+		}
+
+		flags[ optc ] = *f;
+		flags2[ optc ] = 0;
+
+		switch( f[1] )
+		{
+		default:
+		    // a : -a 
+		    vals[ optc++ ] = "true";
+		    continue;
+
+		case '.':
+		    // a. : -avalue
+		    vals[ optc++ ] = &arg[1];
+		    break;
+
+		case '+':
+		    // a+ : -axvalue or -ax value
+
+		    if( !( flags2[ optc ] = *++arg ) )
+		    {
+			StrRef a( f, 1 );
+			e->Set( MsgSupp::Needs2Arg ) << a;
+			continue;
+		    }
+
+		    // fall thru
+
+		case ':':
+		case '#':
+		    // a: : -avalue or -a value
+		    // a# : -aN or -a N, N >= 0
+
+		    if( arg[1] )
+		    {
+			vals[ optc++ ] = &arg[1];
+		    }
+		    else if( --argc )
+		    {
+			vals[ optc++ ] = *++argv;
+		    }
+		    else
+		    {
+			StrRef a( f, 1 );
+			e->Set( MsgSupp::NeedsArg ) << a;
+			continue;
+		    }
+
+		    if( f[1] == '#' && 
+	                (!vals[ optc - 1 ].IsNumeric() ||
+			  vals[ optc - 1 ].Atoi64() < 0 ) )
+		    {
+			StrRef a( f, 1 );
+			e->Set( MsgSupp::NeedsNonNegArg ) << a;
+			continue;
+		    }
+		}
+
+		break;
 	    }
 	}
 }

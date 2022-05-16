@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSupp error code is: 318
+ * Current high value for a MsgSupp error code is: 324
  */
 
 # include <error.h>
@@ -66,8 +66,12 @@ ErrorId MsgSupp::DeflateInit           = { ErrorOf( ES_SUPP, 18, E_FATAL, EV_FAU
 ErrorId MsgSupp::Inflate               = { ErrorOf( ES_SUPP, 19, E_FATAL, EV_FAULT, 0 ), "Inflate failed!" } ; //NOTRANS
 ErrorId MsgSupp::InflateInit           = { ErrorOf( ES_SUPP, 20, E_FATAL, EV_FAULT, 0 ), "InflateInit failed!" } ; //NOTRANS
 ErrorId MsgSupp::MagicHeader           = { ErrorOf( ES_SUPP, 21, E_FATAL, EV_FAULT, 0 ), "Gzip magic header wrong!" } ; //NOTRANS
-	
-ErrorId MsgSupp::RegexError             = { ErrorOf( ES_SUPP, 30, E_FAILED, EV_USAGE, 1 ), "Regular expression error: %text%" } ;
+
+ErrorId MsgSupp::RegexError            = { ErrorOf( ES_SUPP, 30, E_FAILED, EV_USAGE, 1 ), "Regular expression error: %text%" } ;
+
+ErrorId MsgSupp::UnknownTunable        = { ErrorOf( ES_SUPP, 319, E_FAILED, EV_USAGE, 1 ), "Unknown configurable: %conf%" } ;
+ErrorId MsgSupp::TunableValueTooLow    = { ErrorOf( ES_SUPP, 320, E_FAILED, EV_USAGE, 2 ), "Configurable '%config%' cannot be set to a value less than '%minVal%'." } ;
+ErrorId MsgSupp::TunableValueTooHigh   = { ErrorOf( ES_SUPP, 321, E_FAILED, EV_USAGE, 2 ), "Configurable '%config%' cannot be set to a value greater than '%maxVal%'." } ;
 
 ErrorId MsgSupp::OptionChange          = { ErrorOf( ES_SUPP, 37, E_INFO, EV_NONE, 0 ), "%'--change (-c)'%: specifies the changelist to use for the command." } ;
 ErrorId MsgSupp::OptionPort            = { ErrorOf( ES_SUPP, 38, E_INFO, EV_NONE, 0 ), "%'--port (-p)'%: specifies the network address of the server." } ;
@@ -171,6 +175,7 @@ ErrorId MsgSupp::OptionReverse         = { ErrorOf( ES_SUPP, 133, E_INFO, EV_NON
 ErrorId MsgSupp::OptionWipe            = { ErrorOf( ES_SUPP, 134, E_INFO, EV_NONE, 0 ), "%'--erase (-w)'%: removes the object from the client machine." } ;
 ErrorId MsgSupp::OptionUnchanged       = { ErrorOf( ES_SUPP, 135, E_INFO, EV_NONE, 0 ), "%'--unchanged (-a)'%: specifies that only unchanged files are affected." } ;
 ErrorId MsgSupp::OptionDepot           = { ErrorOf( ES_SUPP, 136, E_INFO, EV_NONE, 0 ), "%'--depot (-D)'%: specifies the depot name." } ;
+ErrorId MsgSupp::OptionDepot2          = { ErrorOf( ES_SUPP, 324, E_INFO, EV_NONE, 0 ), "%'--depot (-d)'%: specifies the depot name." } ;
 ErrorId MsgSupp::OptionKeepHead        = { ErrorOf( ES_SUPP, 137, E_INFO, EV_NONE, 0 ), "%'--keep-head (-h)'%: specifies the head revision is not to be processed." } ;
 ErrorId MsgSupp::OptionPurge           = { ErrorOf( ES_SUPP, 138, E_INFO, EV_NONE, 0 ), "%'--purge (-p)'%: specifies that the revisions are to be purged." } ;
 ErrorId MsgSupp::OptionForceText       = { ErrorOf( ES_SUPP, 139, E_INFO, EV_NONE, 0 ), "%'--force-text (-t)'%: specifies that text revisions are to be processed." } ;
@@ -291,6 +296,7 @@ ErrorId MsgSupp::OptionReplicationStatus = { ErrorOf( ES_SUPP, 254, E_INFO, EV_N
 ErrorId MsgSupp::OptionGroupMode       = { ErrorOf( ES_SUPP, 255, E_INFO, EV_NONE, 0 ), "%'--groups (-g)'%: updates Perforce group users with LDAP group members." } ;
 ErrorId MsgSupp::OptionUserMode        = { ErrorOf( ES_SUPP, 285, E_INFO, EV_NONE, 0 ), "%'--users (-u)'%: updates Perforce users from LDAP user." } ;
 ErrorId MsgSupp::OptionUserModeCreate  = { ErrorOf( ES_SUPP, 286, E_INFO, EV_NONE, 0 ), "%'--create (-c)'%: creates new users found in LDAP." } ;
+ErrorId MsgSupp::OptionUserModeCreateStrict = { ErrorOf( ES_SUPP, 322, E_INFO, EV_NONE, 0 ), "%'--create-strict (-C)'%: creates new users found in LDAP, only if they would have access." } ;
 ErrorId MsgSupp::OptionUserModeUpdate  = { ErrorOf( ES_SUPP, 287, E_INFO, EV_NONE, 0 ), "%'--update (-U)'%: updates existing users found in LDAP." } ;
 ErrorId MsgSupp::OptionUserModeDelete  = { ErrorOf( ES_SUPP, 288, E_INFO, EV_NONE, 0 ), "%'--delete (-d)'%: deletes users not found in LDAP." } ;
 ErrorId MsgSupp::OptionBypassExlusiveLock = { ErrorOf( ES_SUPP, 256, E_INFO, EV_NONE, 0 ), "%'--bypass-exclusive-lock'%: allow command on (+l) filetype even if already exclusively opened." } ;
@@ -344,6 +350,10 @@ ErrorId MsgSupp::OptionAllowEmpty         = { ErrorOf( ES_SUPP, 308, E_INFO, EV_
 ErrorId MsgSupp::OptionAdded              = { ErrorOf( ES_SUPP, 309, E_INFO, EV_NONE, 0 ), "%'--added (-a)'%: display content of added files." } ;
 ErrorId MsgSupp::OptionCreateIndex        = { ErrorOf( ES_SUPP, 310, E_INFO, EV_NONE, 0 ), "%'--create-index'%: create repo index for direct file history access." } ;
 ErrorId MsgSupp::OptionDropIndex          = { ErrorOf( ES_SUPP, 311, E_INFO, EV_NONE, 0 ), "%'--drop-index'%: drop repo index." } ;
+ErrorId MsgSupp::OptionRepoName2          = { ErrorOf( ES_SUPP, 323, E_INFO, EV_NONE, 0 ), "%'--repo (-n)'%: specifies the repo." } ;
+ErrorId MsgSupp::OptionRetry              = { ErrorOf( ES_SUPP, 318, E_INFO, EV_NONE, 0 ), "%'--retry (-R)'%: retry transfer of files that failed to transfer." } ;
+ErrorId MsgSupp::OptionReference          = { ErrorOf( ES_SUPP, 325, E_INFO, EV_NONE, 0 ), "%'--reference (-r)'%: specifies the reference." } ;
+ErrorId MsgSupp::OptionPerm               = { ErrorOf( ES_SUPP, 326, E_INFO, EV_NONE, 0 ), "%'--permission (-p)'%: specifies the permission." } ;
 
 ErrorId MsgSupp::JsmnBadType              = { ErrorOf( ES_SUPP, 312, E_FAILED, EV_CONFIG, 3 ), "JSON error: token not expected type. Token number %index% Expected type %expected% Observed type %observed%." } ;
 ErrorId MsgSupp::JsmnBadParent            = { ErrorOf( ES_SUPP, 313, E_FAILED, EV_CONFIG, 3 ), "JSON error: token does not have the expected parent. Token number %index% Expected parent index %expected% Observed parent index %observed%." } ;
@@ -351,7 +361,6 @@ ErrorId MsgSupp::JsmnBadMem               = { ErrorOf( ES_SUPP, 314, E_FAILED, E
 ErrorId MsgSupp::JsmnBadSyn               = { ErrorOf( ES_SUPP, 315, E_FAILED, EV_CONFIG, 0 ), "JSON error: parse failed, bad syntax." } ;
 ErrorId MsgSupp::JsmnTooFew               = { ErrorOf( ES_SUPP, 316, E_FAILED, EV_CONFIG, 0 ), "JSON error: parse failed, missing tokens." } ;
 ErrorId MsgSupp::JsmnKeyNotFound          = { ErrorOf( ES_SUPP, 317, E_FAILED, EV_CONFIG, 2 ), "JSON error: not found key name \"%tname%\" in token at index %index%." } ;
-ErrorId MsgSupp::OptionRetry              = { ErrorOf( ES_SUPP, 318, E_INFO, EV_NONE, 0 ), "%'--retry (-R)'%: retry transfer of files that failed to transfer." } ;
 
 // ErrorId graveyard'%: retired/deprecated ErrorIds.
 

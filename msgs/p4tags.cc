@@ -391,6 +391,7 @@ const char P4Tag::v_fixStatus[] = "fixStatus";
 const char P4Tag::v_force[] = "force";
 const char P4Tag::v_getFlag[] = "getFlag";
 const char P4Tag::v_haveRec[] = "haveRec";
+const char P4Tag::v_haveGRec[] = "haveGRec";
 const char P4Tag::v_ignoreIsEdit[] = "ignoreIsEdit";
 const char P4Tag::v_index[] = "index";
 const char P4Tag::v_integRec[] = "integRec";
@@ -430,6 +431,7 @@ const char P4Tag::v_unloadInterval[] = "unloadInterval";
 const char P4Tag::v_value[] = "value";
 const char P4Tag::v_workRec[] = "workRec";
 const char P4Tag::v_workRec2[] = "workRec2";
+const char P4Tag::v_workGRec[] = "workGRec";
 const char P4Tag::v_yourDepotRec[] = "yourDepotRec";
 const char P4Tag::v_zksEntity[] = "zksEntity";
 

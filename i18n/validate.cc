@@ -29,7 +29,8 @@ CharSetUTF8Valid::Reset()
 /*
  * What do these bits mean?
  *
- * 0x40	Valid single byte code
+ * 0x40 First byte of a multi-byte sequence, which includes trivial
+ *        multi-byte sequences of length one (i.e. only this byte)
  * 0x80 Part of a multi byte sequence
  * 0x08 UTF-16 surrogate
  * 0x07 count of following bytes

@@ -72,12 +72,11 @@ InitPRNG()
 	dthp.Now();
 
 #ifdef USE_OPENSSL_RAND
-	long long	seed[5];
+	long long	seed[3];
 
 	seed[0] = (long long) dthp.Seconds();
 	seed[1] = (long long) dthp.Nanos();
 	seed[2] = (long long) Pid().GetID();
-	// leave the other 2 uninitialized; use stack values instead
 
 	RAND_seed( seed, sizeof(seed) );
 #else // USE_OPENSSL_RAND
@@ -159,7 +158,8 @@ WeakUUID::WeakUUID()
 	    inited = true;
 	}
 #endif // USE_OPENSSL_RAND || !OS_NT
-
+	// for valgrind.
+	memset( begin(), 0, kDataSize );
 	Randomize( begin(), kDataSize );
 
 	// set variant in octet #7, which is array index 8 (indices count backwards)

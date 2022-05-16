@@ -50,7 +50,7 @@ int global_umask = -1;
 # define O_BINARY 0
 # endif
 
-const FileIOBinary::OpenMode FileIOBinary::openModes[3] = {
+const FileIOBinary::OpenMode FileIOBinary::openModes[4] = {
 	"open for read",
 		O_RDONLY|O_BINARY,
 		O_RDONLY|O_BINARY,
@@ -62,6 +62,10 @@ const FileIOBinary::OpenMode FileIOBinary::openModes[3] = {
 	"open for read/write",
 		O_RDWR|O_CREAT|O_BINARY,
 		O_RDWR|O_CREAT|O_APPEND,
+		1,
+	"open for untranslated write",
+		O_WRONLY|O_CREAT|O_TRUNC|O_BINARY,
+		O_WRONLY|O_CREAT|O_APPEND|O_BINARY,
 		1
 } ;
 

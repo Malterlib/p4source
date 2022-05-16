@@ -73,7 +73,7 @@ Spec::Find( int code, Error *e )
 	    SpecElem *de = (SpecElem *)elems->Get(i);
 
 	    if( de->code == code )
-		return de;
+	        return de;
 	}
 
 	if( e )
@@ -90,7 +90,7 @@ Spec::Find( const StrPtr &tag, Error *e )
 	    SpecElem *de = (SpecElem *)elems->Get(i);
 
 	    if( !de->tag.CCompare( tag ) )
-		return de;
+	        return de;
 	}
 
 	if( e )
@@ -190,64 +190,72 @@ Spec::Parse( const char *buf, SpecData *data, Error *e, int validate )
 	        break;
 
 	    SpecElem *de;
-	    
+
 	    // Look up tag in Spec Definition.
 
 	    if( !( de = Find( tag, e ) ) )
-		break;
+	        break;
+
+	    // Count the values
+	    int vcount = 0;
 
 	    // Read each value: either a block of text or individual line.
 
 	    while( !e->Test() )
 	    {
-		// Create a space for the text.
+	        // Create a space for the text.
 
-		r = parser.GetToken( de->IsText(), &value, e );
+	        r = parser.GetToken( de->IsText(), &value, e );
 
 	        if( r == SR_COMMENT )
 	        {
-		    data->SetComment( de, counts[ de->index ]++, &value, 0, e );
+	            data->SetComment( de, counts[ de->index ]++, &value, 0, e );
 	            continue;
 	        }
 
 	        if( r == SR_COMMENT_NL )
 	        {
-		    data->SetComment( de, counts[ de->index ]++, &value, 1, e );
+	            data->SetComment( de, counts[ de->index ]++, &value, 1, e );
 	            continue;
 	        }
 
-		if( r != SR_VALUE )
-		    break;
+	        if( r != SR_VALUE )
+	            break;
 
-		// Prevent duplicate tags...
+	        vcount++;
 
-		if( counts[ de->index ] && !de->IsList() )
-		{
-		    e->Set( MsgDb::Field2Many ) << de->tag;
-		    break;
-		}
+	        // Prevent duplicate tags...
 
-		// Check against limited values
+	        if( counts[ de->index ] && !de->IsList() )
+	        {
+	            e->Set( MsgDb::Field2Many ) << de->tag;
+	            break;
+	        }
 
-		if( validate && !de->CheckValue( value ) )
-		{
-		    e->Set( MsgDb::FieldBadVal ) << de->tag << de->values;
-		    break;
-		}
+	        // Check against limited values
 
-		// Call SpecData to actually dispose of the data
-		// XXX No word count check!
+	        if( validate && !de->CheckValue( value ) )
+	        {
+	            e->Set( MsgDb::FieldBadVal ) << de->tag << de->values;
+	            break;
+	        }
 
-		data->SetLine( de, counts[ de->index ]++, &value, e );
+	        // Call SpecData to actually dispose of the data
+	        // XXX No word count check!
 
-		// Only one text block per tag
+	        data->SetLine( de, counts[ de->index ]++, &value, e );
 
-		if( de->IsText() )
-		    break;
+	        // Only one text block per tag
+
+	        if( de->IsText() )
+	            break;
 	    }
 
+	    if( !vcount && de->IsList() && de->AllowEmpty() )
+	        counts[ de->index ]++;
+
 	    if( e->Test() || r == SR_EOS )
-		break;
+	        break;
 	}
 
 	if( e->Test() )
@@ -261,10 +269,10 @@ Spec::Parse( const char *buf, SpecData *data, Error *e, int validate )
 	    SpecElem *de;
 
 	    for( i = 0; de = (SpecElem *)elems->Get(i); i++ )
-		if( de->IsRequired() && !counts[ de->index ] )
+	        if( de->IsRequired() && !counts[ de->index ] )
 	    {
-		e->Set( MsgDb::FieldMissing ) << de->tag;
-		break;
+	        e->Set( MsgDb::FieldMissing ) << de->tag;
+	        break;
 	    }
 	}
 }
@@ -292,13 +300,14 @@ Spec::Format( SpecData *data, StrBuf *s )
 	    // Special case for DEFAULT: we'll display a blank entry
 	    // for the user (we don't put in the default value, tho).
 
-	    if( !( v = data->GetLine( d, 0, &c ) ) && d->opt != SDO_DEFAULT )
-		continue;
+	    if( !( v = data->GetLine( d, 0, &c ) ) &&
+	        !( d->opt == SDO_DEFAULT || d->opt == SDO_EMPTY ) )
+	        continue;
 
 	    // Blanks between sections
 
 	    if( s->Length() )
-		*s << "\n";
+	        *s << "\n";
 
 	    // Output format depends on type
 
@@ -311,56 +320,56 @@ Spec::Format( SpecData *data, StrBuf *s )
 	    case SDT_LINE:	// single line of text (arbitrary words)
 	    case SDT_DATE:	// SDT_LINE that is a date
 
-		// Tag: value
+	        // Tag: value
 
-		*s << d->tag << ":";
-		if( v ) *s << "\t" << v;
-		if( c ) *s << "\t# " << c;
-		*s << "\n";
-		break;
+	        *s << d->tag << ":";
+	        if( v ) *s << "\t" << v;
+	        if( c ) *s << "\t# " << c;
+	        *s << "\n";
+	        break;
 
 	    case SDT_WLIST:	// multiple lines, N words
 	    case SDT_LLIST:	// multiple lines of text (arbitrary words)
 
-		// Tag:\n\tvalue1\n\tvalue2...
+	        // Tag:\n\tvalue1\n\tvalue2...
 
-		*s << d->tag << ":\n";
+	        *s << d->tag << ":\n";
 
-		while( v )
-		{
-		    // 2016.2 Handle comments:  
-		    // Comments can be
-		    // (1) Single line ( v->Length() == 0 )
-		    // (2) Appended ( v->Length() > 0 && fmt:C )
+	        while( v )
+	        {
+	            // 2016.2 Handle comments:  
+	            // Comments can be
+	            // (1) Single line ( v->Length() == 0 )
+	            // (2) Appended ( v->Length() > 0 && fmt:C )
 
-		    while( v && !c && !v->Length() )
-		        v = data->GetLine( d, ++j, &c );
-		    if( !v )
-		        break;
+	            while( v && !c && !v->Length() )
+	                v = data->GetLine( d, ++j, &c );
+	            if( !v )
+	                break;
 
-		    *s << "\t" << v;
+	            *s << "\t" << v;
 
-		    if( c && v->Length() && ( d->fmt == SDF_COMMENT ) )
-		        *s << "\t##" << c;
-		    else if( c && v->Length() ) 
-		        *s << "\t# " << c;
-		    else if( c ) 
-		        *s << "##" << c;
+	            if( c && v->Length() && ( d->fmt == SDF_COMMENT ) )
+	                *s << "\t##" << c;
+	            else if( c && v->Length() ) 
+	                *s << "\t# " << c;
+	            else if( c ) 
+	                *s << "##" << c;
 
-		    *s << "\n";
+	            *s << "\n";
 
-		    v = data->GetLine( d, ++j, &c );
-		}
-		break;
+	            v = data->GetLine( d, ++j, &c );
+	        }
+	        break;
 
 	    case SDT_TEXT:	// block of text,
 	    case SDT_BULK:	// SDT_TEXT not indexed
 
-		// Tag:\n\tblock
+	        // Tag:\n\tblock
 
-		*s << d->tag << ":\n";
-		if( v ) StrOps::Indent( *s, *v );
-		break;
+	        *s << d->tag << ":\n";
+	        if( v ) StrOps::Indent( *s, *v );
+	        break;
 	    }
 	}
 }
@@ -383,13 +392,13 @@ Spec::Format( SpecData *data, StrDict *dict )
 
 	    if( d->IsList() )
 	    {
-		for( j = 0; v = data->GetLine( d, j, &c ); j++ ) 
-		    dict->SetVar( d->tag, j, *v );
+	        for( j = 0; v = data->GetLine( d, j, &c ); j++ ) 
+	            dict->SetVar( d->tag, j, *v );
 	    }
 	    else
 	    {
-		if( v = data->GetLine( d, 0, &c ) )
-		    dict->SetVar( d->tag, *v );
+	        if( v = data->GetLine( d, 0, &c ) )
+	            dict->SetVar( d->tag, *v );
 	    }
 	}
 }

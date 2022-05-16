@@ -730,7 +730,6 @@ void
 ServerHelper::WriteConfig( Error *e )
 {
 	FileSys *fsys = FileSys::Create( FST_TEXT );
-	char *s = 0;
 
 	fsys->Set( config );
 
@@ -987,7 +986,6 @@ ServerHelper::PostInit( ClientUser *ui )
 	// Initialize depot, build mainline streams
 	// Use the first map entry to create the first mainline
 
-	int index = 0;
 	int initDone = 0;
 	int argsCount;
 	StrBuf filePath;

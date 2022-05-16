@@ -1016,7 +1016,6 @@ CharSetCvtUTF8toCp::Cvt(const char **sourcestart, const char *sourceend,
 		    newv = MapThru(v, toMap, toMapSize, 0xfffd);
 		    if (newv != 0xfffd)
 		    {
-		    emitit:		    
 			if (newv > 0xff)
 			{
 			    if (2 + *targetstart >= targetend)

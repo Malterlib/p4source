@@ -18,6 +18,7 @@ extern void DumpError( Error &e, const char *func );
 # define DEBUG_FUNCTION	( p4debug.GetLevel( DT_RPC ) >= 2 )
 # define DEBUG_VARS	( p4debug.GetLevel( DT_RPC ) >= 3 )
 # define DEBUG_FLOW	( p4debug.GetLevel( DT_RPC ) >= 5 )
+# define DEBUG_LOUD	( p4debug.GetLevel( DT_RPC ) >= 9 )
 
 // Server debugging levels
 # define DEBUG_SVR_ERROR	( p4debug.GetLevel( DT_SERVER ) >= 1 )

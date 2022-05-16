@@ -80,7 +80,7 @@ class FileIOBinary : public FileIO {
 		int bflags;	// binary mode
 		int aflags;	// append text mode
 		int standard;
-	} openModes[3];
+	} openModes[4];
 
 } ;
 
@@ -178,7 +178,10 @@ class FileIOAppend : public FileIOBuffer {
 
     public:
 
-	FileIOAppend() : FileIOBuffer( LineTypeLocal ) {} ;
+	                FileIOAppend( LineType lineType ) :
+	                    FileIOBuffer( lineType )
+	                {} ;
+
 	virtual         ~FileIOAppend();
 
 	virtual void    Close( Error *e );

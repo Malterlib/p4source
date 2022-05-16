@@ -55,6 +55,7 @@ MapHalf::operator =( const StrPtr &newHalf )
 	// Save the string; passed outwards by MapTable::Strings
 
 	Set( newHalf );
+	delete []mapChar;
 	mapChar = new MapChar[ l ];
 
 	// Compile into internal form.
@@ -365,9 +366,12 @@ MapHalf::Match2( const StrPtr &from, MapParams &params )
 	// Check non-wildcard tail.  Handles '....gif' efficiently.
 
 	if( isWild )
-	    for( input = from.End(), mc = mapEnd; mc > mapTail; )
-		if( *--mc - *--input )
-		    return 0;
+	{
+	    char *ll = from.Text(); // lower limit of input
+	    for( input = from.End(), mc = mapEnd; mc > mapTail && input > ll; )
+	        if( *--mc - *--input )
+	            return 0;
+	}
 
 	// Full match after initial fixed string.
 
@@ -1037,6 +1041,18 @@ MapHalf::HasEmbWild( StrPtr &h, int ignore )
 	    }
 	    else    // alphanumeric,slash,dot,percent: non-wild path chars
 	    {
+	        // for job050063 - check for no further paths, ellipsis, wilds,
+	        // so we might assume remaining chars are a file-extension.
+
+	        if( !strchr( p, '/' )  && !strchr( p, '*') && 
+	            !strstr( p, "...") )
+	        {
+	            if( p4debug.GetLevel( DT_VIEWGEN ) >= 1 )
+	                p4debug.printf( "Stream Path embedded wild:[%s]\n", \
+	                    hPtr );
+	            break;
+	        }
+
 	        if( ( prevwild && !ignore ) || ( ignore && prevwild > 1 ) )
 	            return 1;
 	    }

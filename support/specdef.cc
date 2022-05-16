@@ -37,8 +37,9 @@ const char *const SpecOpts[] = {
 	"default",	// SDO_DEFAULT
 	"required",	// SDO_REQUIRED
 	"once",		// SDO_ONCE
-	"always",	// SDO_ALWAYS	
-	"key",		// SDO_KEY	
+	"always",	// SDO_ALWAYS
+	"key",		// SDO_KEY
+	"empty",	// SDO_KEY
 	0
 } ;
 
@@ -177,7 +178,7 @@ SpecElem::Encode( StrBuf *s, int c )
 	if( type != SDT_WORD )
 	    *s << ";type:" << SpecTypes[ type ];
 
-	if( opt != SDO_OPTIONAL && opt != SDO_KEY )
+	if( opt != SDO_OPTIONAL && opt != SDO_KEY && opt != SDO_EMPTY )
 	    *s << ";opt:" << SpecOpts[ opt ];
 
 	if( fmt != SDF_NORMAL )
@@ -197,6 +198,9 @@ SpecElem::Encode( StrBuf *s, int c )
 
 	if( IsReadOnly() )
 	    *s << ";ro";
+
+	if( AllowEmpty() )
+	    *s << ";z";
 
 	if( seq )
 	    *s << ";seq:" << seq;
@@ -220,6 +224,10 @@ SpecElem::Decode( StrRef *s, Error *e )
 
 	int isReadOnly = 0;
 	int isRequired = 0;
+
+	// other pseudo options
+
+	int allowEmpty = 0;
 
 	// w = beginning, y = end, b = char after first ;
 
@@ -258,6 +266,7 @@ SpecElem::Decode( StrRef *s, Error *e )
 	    else if( !strcmp( w, "seq" ) ) seq = atoi( q );
 	    else if( !strcmp( w, "fmt" ) ) SetFmt( q, 0 );
 	    else if( !strcmp( w, "open" ) ) SetOpen( q, e );
+	    else if( !strcmp( w, "z" ) ) allowEmpty = 1;
 
 	    // OK if we don't recognise code!
 	}
@@ -272,18 +281,23 @@ SpecElem::Decode( StrRef *s, Error *e )
 	 * that ro;rq maps to SDO_KEY, just so that IsReadOnly() and
 	 * IsRequired() can return true.
 	 *
-	 * ro rq                IsReadOnly() IsRequired()
-	 * 0  0 -> SDO_OPTIONAL     0           0       
-	 * 0  1 -> SDO_REQUIRED     0           1
-	 * x  x -> SDO_ONCE         1           0
-	 * 1  0 -> SDO_ALWAYS       1           0
-	 * 1  1 -> SDO_KEY          1           1
+	 * ro rq z               IsReadOnly() IsRequired()
+	 * 0  0  x -> SDO_OPTIONAL     0           0       
+	 * 0  1  x -> SDO_REQUIRED     0           1
+	 * x  x  x -> SDO_ONCE         1           0
+	 * 1  0  x -> SDO_ALWAYS       1           0
+	 * 1  1  x -> SDO_KEY          1           1
+	 * x  x  1 -> SDO_EMPTY        0           1
 	 *
 	 * For (b), where pre-2003.1 servers mistakenly encoded ro;rq 
 	 * as SDO_REQUIRED, we combine that with ro to make it SDO_KEY.
 	 */
 
-	if( opt == SDO_OPTIONAL )
+	if( allowEmpty )
+	{
+	    opt = SDO_EMPTY;
+	}
+	else if( opt == SDO_OPTIONAL )
 	{
 	    if( isRequired && isReadOnly ) opt = SDO_KEY;
 	    else if( isRequired ) opt = SDO_REQUIRED;

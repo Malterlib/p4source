@@ -10,7 +10,7 @@
 # include <progress.h>
 
 ClientProgressText::ClientProgressText( int ty )
-    : typeOfProgress( ty ), total( 0 ), cnt( 0 ), backup( 0 )
+    : cnt( 0 ), total( 0 ), typeOfProgress( ty ), backup( 0 )
 {
 }
 

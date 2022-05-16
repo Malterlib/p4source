@@ -292,22 +292,44 @@ FileSys::ComputeDigest( FileDigestType digType, StrBuf *digest, Error *e )
 	    Close( e );
 	    if( e->Test() )
 	        return;
+
+	    /*
+	     * For symlink, the whole content is contained in buf
+	     * (no symlink will ever be greater than 4096 characters)
+	     */
+
+	    if( type == FST_SYMLINK )
+            {
+                buf.SetLength( fileSize );
+                if( buf.EndsWith( "\n", 1 )  )
+                    fileSize--;
+            }
+
+
+
 	    StrNum fSizeFmt( fileSize );
 	    sha1Digester.Update( StrRef( "blob " ) );
 	    sha1Digester.Update( fSizeFmt );
 	    sha1Digester.Update( StrRef( "\0", 1 ) );
 
-	    Open( FOM_READ, e );
-	    while( !e->Test() )
+	    if( type == FST_SYMLINK )
 	    {
-	        int l = Read( buf.Text(), buf.Length(), e );
-
-	        if( !l || e->Test() )
-		    break;
-
-	        sha1Digester.Update( StrRef( buf.Text(), l ) );
+		sha1Digester.Update( StrRef( buf.Text(), fileSize ) );
 	    }
-	    Close( e );
+	    else
+	    {
+		Open( FOM_READ, e );
+		while( !e->Test() )
+		{
+		    int l = Read( buf.Text(), buf.Length(), e );
+
+		    if( !l || e->Test() )
+			break;
+
+		    sha1Digester.Update( StrRef( buf.Text(), l ) );
+		}
+		Close( e );
+	    }
 
 	    sha1Digester.Final( sha1 );
 
@@ -317,7 +339,6 @@ FileSys::ComputeDigest( FileDigestType digType, StrBuf *digest, Error *e )
 	{
 	    Sha1         sha1;
 	    Sha1Digester sha1Digester;
-	    int          l;
 	    StrFixed     buf( 4096 );
 	    StrNum fSizeFmt( GetSize() );
 
@@ -345,8 +366,6 @@ FileSys::ComputeDigest( FileDigestType digType, StrBuf *digest, Error *e )
 	{
 	    Sha256         sha256;
 	    Sha256Digester sha256Digester;
-
-	    int l;
 	    StrFixed buf( 4096 );
 
 	    Open( FOM_READ, e );

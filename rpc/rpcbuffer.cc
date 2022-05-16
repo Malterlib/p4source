@@ -14,6 +14,7 @@
 # include <strbuf.h>
 # include <strdict.h>
 # include <strarray.h>
+# include <strops.h>
 # include <strtable.h>
 # include <error.h>
 # include <p4tags.h>
@@ -86,8 +87,21 @@ RpcRecvBuffer::Parse( Error *e )
 
 	    // Tracing 
 
-	    DEBUGPRINTF( DEBUG_VARS, "RpcRecvBuffer %s = %s", var.Text(),
-		    val.Length() < 110 ? val.Text() : "<big>" );
+	    if( DEBUG_LOUD && val.Length() >= 110 )
+	    {
+		StrBuf tmp;
+		StrBuf tmp2;
+		// First truncate then encode non printable
+		tmp.Set( val.Text(), 40 );
+		StrOps::EncodeNonPrintable( tmp, tmp2 );
+		tmp.Reset();
+		tmp << "<truncated> " << tmp2;
+		DEBUGPRINTF( DEBUG_LOUD, "RpcRecvBuffer %s %s", var.Text(),
+			tmp.Text() );
+	    }
+	    else 
+		DEBUGPRINTF( DEBUG_VARS, "RpcRecvBuffer %s = %s", var.Text(),
+			val.Length() < 110 ? val.Text() : "<big>" );
 
 	}
 }
@@ -117,8 +131,21 @@ RpcSendBuffer::SetVar( const StrPtr &var, const StrPtr &value )
 
 	// Tracing 
 
-	DEBUGPRINTF( DEBUG_VARS, "RpcSendBuffer %s = %s", var.Text(),
-		value.Length() < 110 ? value.Text() : "<big>" );
+	if( DEBUG_LOUD && value.Length() >= 110 )
+	{
+	    StrBuf tmp;
+	    StrBuf tmp2;
+	    // First truncate then encode non printable
+	    tmp.Set( value.Text(), 40 );
+	    StrOps::EncodeNonPrintable( tmp, tmp2 );
+	    tmp.Reset();
+	    tmp << "<truncated> " << tmp2;
+	    DEBUGPRINTF( DEBUG_LOUD, "RpcSendBuffer %s = %s", var.Text(),
+		    tmp.Text() );
+	}
+	else 
+	    DEBUGPRINTF( DEBUG_VARS, "RpcSendBuffer %s = %s", var.Text(),
+		    value.Length() < 110 ? value.Text() : "<big>" );
 }
 
 void

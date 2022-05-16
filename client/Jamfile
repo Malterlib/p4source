@@ -1,10 +1,10 @@
 SubDir P4 client ;
 
 SubDirHdrs $(P4) diff ;
-SubDirHdrs $(P4) rpc ;
-SubDirHdrs $(P4) net ;
 SubDirHdrs $(P4) i18n ;
-SubDirHdrs $(P4) dbsupp ;
+SubDirHdrs $(P4) map ;
+SubDirHdrs $(P4) net ;
+SubDirHdrs $(P4) rpc ;
 
 Ident clientmain.cc client.cc clientinit.cc serverhelper.cc ;
 

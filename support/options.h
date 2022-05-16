@@ -42,7 +42,8 @@ struct ErrorId;
 class Options
 {
     public:
-	                Options() { optc = 0; }
+			Options() { optc = 0; }
+	void		Reset() { optc = 0; }
 
 	enum Opt {
 
@@ -268,6 +269,7 @@ class Options
 	                GroupMode      , // ldapsync -g
 	                UserMode       , // ldapsync -u
 	                UserModeCreate , // ldapsync -u -c
+	                UserModeCreateStrict, // ldapsync -u -C
 	                UserModeUpdate , // ldapsync -u -U
 	                UserModeDelete , // ldapsync -u -d
 	                Create         , // switch -c
@@ -280,7 +282,14 @@ class Options
 	                Tab            , // annotate -T
 	                Rename         , // move -r
 	                DoAdded        , // describe -a 
-			Retry          , // pull -R
+	                Retry          , // pull -R
+	                StorageType    , // --type
+	                ByUser         , // --user username
+	                ByOwner        , // --owner username
+	                RepoName2      , // --repo -n
+	                Depot2         , // --depot -d
+	                Reference      , // --reference -r
+	                Perm           , // --permission -p
 
 	        // options which have only long-form option names go here:
 
@@ -307,7 +316,6 @@ class Options
 	                P4UserUser     , // --me
 	                Aliases        , // --aliases
 	                Field          , // --field
-	                StorageType    , // --type
 	                AtomicPush     , // receive-pack --atomic
 	                ClientType     , // clients --client-type=graph
 	                Color          , // --color
@@ -330,12 +338,11 @@ class Options
 			MustExist      , // --exists
 			RepoName       , // --repo (for merge)
 			TargetBranch   , // --target branch (for merge)
-			ByUser         , // --user username
-			ByOwner        , // --owner username
 			Squash         , // --squash
 			AllowEmpty     , // --allow-empty
 			CreateIndex    , // --create-index (on a repo)
 			DropIndex      , // --drop-index (from a repo)
+			FirstParent    , // --first-parent (filelog)
 
 	                UnusedLastOption
 	} ;
@@ -353,6 +360,9 @@ class Options
 	void		ParseLong( int &argc, StrPtr *&argv, const char *opts, 
 			           const int *longOpts,
 			           int flag, const ErrorId &usage, Error *e );
+
+	void		ParseTest( int &argc, StrPtr *&argv, const char *opts, 
+			           const int *longOpts, Error *e );
 
 	StrPtr *	operator [](int opt) 
 			{ return GetValue( opt, 0, 0 ); }

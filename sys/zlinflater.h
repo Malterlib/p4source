@@ -20,6 +20,7 @@ class ZLibInflater
 	virtual int		Read( unsigned char *, int, int &, Error *e );
 	virtual void		Seek( offL_t pos, Error *e ) = 0;
 	virtual unsigned char	*GetBaseAddress() { return 0; }
+	virtual offL_t          GetMappedSize() { return (offL_t) 0; }
 
     protected:
 
@@ -88,6 +89,7 @@ class ZLMemInflater : public ZLibInflater
 	void			Seek( offL_t pos, Error *e );
 
 	unsigned char		*GetBaseAddress() { return maddr; }
+	offL_t                  GetMappedSize() { return size; }
 
     private:
 

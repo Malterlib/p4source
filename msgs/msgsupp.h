@@ -50,6 +50,10 @@ class MsgSupp {
 	static ErrorId MagicHeader;
 
 	static ErrorId RegexError;
+	
+	static ErrorId UnknownTunable;
+	static ErrorId TunableValueTooLow;
+	static ErrorId TunableValueTooHigh;
 
 	static ErrorId OptionChange;
 	static ErrorId OptionPort;
@@ -154,6 +158,7 @@ class MsgSupp {
 	static ErrorId OptionWipe;
 	static ErrorId OptionUnchanged;
 	static ErrorId OptionDepot;
+	static ErrorId OptionDepot2;
 	static ErrorId OptionDepotType;
 	static ErrorId OptionClientType;
 	static ErrorId OptionKeepHead;
@@ -277,6 +282,7 @@ class MsgSupp {
 	static ErrorId OptionGroupMode;
 	static ErrorId OptionUserMode;
 	static ErrorId OptionUserModeCreate;
+	static ErrorId OptionUserModeCreateStrict;
 	static ErrorId OptionUserModeUpdate;
 	static ErrorId OptionUserModeDelete;
 	static ErrorId OptionBypassExlusiveLock;
@@ -325,7 +331,10 @@ class MsgSupp {
 	static ErrorId OptionAllowEmpty;
 	static ErrorId OptionCreateIndex;
 	static ErrorId OptionDropIndex;
+	static ErrorId OptionRepoName2;
 	static ErrorId OptionRetry;
+	static ErrorId OptionReference;
+	static ErrorId OptionPerm;
 
 	static ErrorId TooManyLockTrys;
 

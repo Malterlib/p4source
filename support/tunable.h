@@ -48,6 +48,7 @@ enum P4TunableName {
 	P4TUNE_DM_GREP_MAXLINELENGTH,
 	P4TUNE_DM_GREP_MAXREVS,
 	P4TUNE_DM_GREP_MAXCONTEXT,
+	P4TUNE_DM_INFO_HIDE,
 	P4TUNE_DM_INTEG_ENGINE,
 	P4TUNE_DM_INTEG_MAXACT,
 	P4TUNE_DM_INTEG_TWEAKS,
@@ -80,6 +81,7 @@ enum P4TunableName {
 	P4TUNE_DM_SUBPROTECTS_GRANT_ADMIN,
 	P4TUNE_DM_USER_ACCESSUPDATE,		// see dmauser.cc
 	P4TUNE_DM_USER_ACCESSFORCE,		// see dmauser.cc
+	P4TUNE_DM_USER_ALLOWSELFUPDATE,		// see dmsuser.cc
 	P4TUNE_DM_USER_INSECURELOGIN,		// see userlogin.cc
 	P4TUNE_DM_USER_LOGINATTEMPTS,		// see dmauser.cc
 	P4TUNE_DM_USER_NOAUTOCREATE,		// see dmauser.cc
@@ -138,6 +140,8 @@ enum P4TunableName {
 	P4TUNE_NET_PARALLEL_SUBMIT_BATCH,	// see usersubmit.cc
 	P4TUNE_NET_PARALLEL_SUBMIT_MIN,		// see usersubmit.cc
 	P4TUNE_NET_PARALLEL_SYNC_SVRTHREADS,	// see usersync.cc
+	P4TUNE_NET_RCVBUFLOWMARK,		// see netbuffer.cc
+	P4TUNE_NET_RCVBUFMAXSIZE,		// see netbuffer.cc
 	P4TUNE_NET_RCVBUFSIZE,			// see netbuffer.h
 	P4TUNE_NET_REUSEPORT,			// see nettcpendpoint.cc
 	P4TUNE_NET_RFC3484,			// see nettcpendpoint.cc
@@ -168,6 +172,7 @@ enum P4TunableName {
 	P4TUNE_RPL_JNLWAIT_MAX,			// See server / rhservice.cc
 	P4TUNE_RPL_JOURNAL_ACK,			// See server / rmtservice.cc
 	P4TUNE_RPL_JOURNAL_ACK_MIN,		// See server / rmtservice.cc
+	P4TUNE_RPL_JOURNALCOPY_LOCATION,	// See server / rpl.cc
 	P4TUNE_RPL_LABELS_GLOBAL,		// See userlabel/userlabsync
 	P4TUNE_RPL_REPLAY_USERRP,		// See server / rpl.cc
 	P4TUNE_RPL_VERIFY_CACHE,		// See rhservice.cc
@@ -230,6 +235,7 @@ enum P4TunableName {
 	P4TUNE_AUTH_AUTOLOGIN,			// see rhservice.cc
 	P4TUNE_RPL_SUBMIT_NOCOPY,		// see usersubmit.cc
 	P4TUNE_AUTH_2FA_PERSIST,		// see login2.cc
+	P4TUNE_AUTH_TICKETS_NOUNLOCKED,		// see login.cc
 
 	P4TUNE_LAST
 
