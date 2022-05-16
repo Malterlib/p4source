@@ -127,6 +127,7 @@ class MsgSupp {
 	static ErrorId OptionFileCharset;
 	static ErrorId OptionVirtual;
 	static ErrorId OptionGenerate;
+	static ErrorId OptionConfigure;
 	static ErrorId OptionUsage;
 	static ErrorId OptionTags;
 	static ErrorId OptionFilter;
@@ -283,6 +284,15 @@ class MsgSupp {
 	static ErrorId OptionGlobalLock;
 	static ErrorId OptionEnableDVCSTriggers;
 	static ErrorId OptionUsers;
+	static ErrorId OptionConvertAdminComments;
+	static ErrorId OptionRemoteSpec;
+	static ErrorId OptionP4UserUser;
+	static ErrorId OptionAliases;
+	static ErrorId OptionField;
+	static ErrorId OptionTab;
+	static ErrorId OptionForceDelete;
+	static ErrorId OptionLicenseInfo;
+
 	static ErrorId TooManyLockTrys;
 
 	// Retired ErrorIds. We need to keep these so that clients 

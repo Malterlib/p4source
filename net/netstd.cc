@@ -125,7 +125,7 @@ NetStdioEndPoint::Unlisten()
  */
 
 NetTransport *
-NetStdioEndPoint::Accept( Error *e )
+NetStdioEndPoint::Accept( KeepAlive *, Error *e )
 {
 # ifdef HAVE_SOCKETPAIR
 	// talk both ways via stdin

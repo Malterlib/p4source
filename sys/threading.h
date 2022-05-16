@@ -75,7 +75,8 @@
 enum ThreadMode {
 	TmbSingle,	// just single threading
 	TmbMulti,	// multi threading (fork, threads)
-	TmbDaemon	// fork, then forking multi threading (UNIX)
+	TmbDaemon,	// fork, then forking multi threading (UNIX)
+	TmbThreads	// multi threading (pthreads, threads)
 } ;
 
 class Thread {
@@ -151,3 +152,4 @@ class Threading {
 	static Threader *current;
 
 } ;
+

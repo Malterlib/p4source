@@ -134,6 +134,7 @@ class MapStrings;
 class MapTree;
 class MapHalf;
 class StrBuf;
+class MapItemArray;
 
 enum MapTableT { 
 	LHS, 		// do operation on left-hand-side strings
@@ -146,6 +147,11 @@ enum MapFlag {
 	MfRemap,	// +map
 	MfHavemap,	// $map
 	MfChangemap,	// @map
+	MfAndmap,	// &map
+			// empty
+			// empty
+			// empty
+			// empty
 	MfStream1 = 10,	// Stream, Paths 
 	MfStream2 = 11,	// Stream, Remapped
 	MfStream3 = 12,	// Stream, Ignored 
@@ -156,21 +162,25 @@ enum MapFlag {
 } ;
 
 class MapTable {
-    
+
     public:
 
-        		MapTable();
-        		~MapTable();
+			MapTable();
+			~MapTable();
 
-        MapTable& operator=( MapTable &f );
+	MapTable& operator=( MapTable &f );
 
 	int		Better( MapTable &other, MapTableT direction );
-        MapItem *     	Check( MapTableT direction, const StrPtr &from );
+	MapItem *	Check( MapTableT direction, const StrPtr &from );
 	void		Clear();
 	int		Count() { return count; }
 	void		Disambiguate();
-        void		Dump( const char *trace, int fmt=0 );
-        void    	Insert( const StrPtr &l, 
+	void		Dump( const char *trace, int fmt=0 );
+	void		DumpTree( MapTableT dir, const char *trace );
+	void		Insert( const StrPtr &l, 
+			    const StrPtr &r = StrRef::Null(), 
+			    MapFlag f = MfMap );
+	void		Insert( const StrPtr &l, int slot,
 			    const StrPtr &r = StrRef::Null(), 
 			    MapFlag f = MfMap );
  
@@ -181,6 +191,7 @@ class MapTable {
 	int		JoinError() const { return joinError; }
 	int		HasOverlays() const { return hasOverlays; }
 	int		HasHavemaps() const { return hasHavemaps; }
+	int		HasAndmaps() const { return hasAndmaps; }
 	int		IsSingle() const;
 	void 		JoinOptimizer( MapTableT dir2 );
 	MapTable *	Join(  MapTableT dir1, MapTable *m2, 
@@ -192,11 +203,12 @@ class MapTable {
 	static int 	Match( MapHalf *l, const StrPtr &rhs );
 	static int	ValidDepotMap( const StrPtr &map );
 	void		Reverse();
-        MapStrings *	Strings( MapTableT dir );
-        MapTable *	StripMap( MapFlag mapFlag );
+	MapStrings *	Strings( MapTableT dir );
+	MapTable *	StripMap( MapFlag mapFlag );
 	MapTable *	Swap( MapTable *m );
-        int		CountByFlag( MapFlag mapFlag );
-        MapItem *     	Translate( MapTableT dir, const StrPtr &f, StrBuf &t );
+	int		CountByFlag( MapFlag mapFlag );
+	MapItem *	Translate( MapTableT dir, const StrPtr &f, StrBuf &t );
+	MapItemArray *	Explode( MapTableT dir, const StrPtr &f );
 	void		Validate( const StrPtr &l, const StrPtr &r, Error *e );
 	void		ValidHalf( MapTableT dir, Error *e );
 	int		GetHash();
@@ -225,10 +237,10 @@ class MapTable {
 
 	// For internal use.
 
-        void    	InsertNoDups( const StrPtr &l, const StrPtr &r, 
+	void		InsertNoDups( const StrPtr &l, const StrPtr &r, 
 				    MapFlag flag );
 
-        MapItem **	Sort( MapTableT, int streamFlag=0 );
+	MapItem **	Sort( MapTableT, int streamFlag=0 );
 
 
     private:
@@ -246,17 +258,18 @@ class MapTable {
 	// entry is the chain of mappings.
 	// trees is the pair of search trees for Match() and Translate()
 
-	int	    	count;
-        MapItem *   	entry;
+	int		count;
+	MapItem *	entry;
 	MapTree *	trees;
 
 	const ErrorId *	emptyReason;
-        int             joinError;
+	int		joinError;
 
-	// For IsEmpty/HasOverlays/HasHavemaps
+	// For IsEmpty/HasOverlays/HasHavemaps/hasAndmaps
 
 	int		hasMaps;
 	int		hasOverlays;
 	int		hasHavemaps;
+	int		hasAndmaps;
 
 } ;

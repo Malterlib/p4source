@@ -139,6 +139,9 @@ class NetBuffer : public NetTransport {
 
 	int RecvReady()	{ return ioPtrs.recvPtr - recvPtr; }
 
+	int		GetInfo( StrBuf *b )
+			{ return transport->GetInfo( b ); }
+
     private:
 
 

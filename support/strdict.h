@@ -20,8 +20,10 @@ class Error;
 class StrVarName : public StrRef {
 
     public:
-		StrVarName( const char *buf, int length )
+		StrVarName( const char *buf, p4size_t length )
 		{
+	            if( length >= sizeof( varName ) )
+	                length = sizeof( varName ) - 1;
 		    memcpy( varName, buf, length );
 		    varName[ length ] = 0;
 		    Set( varName, length );

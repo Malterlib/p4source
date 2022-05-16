@@ -6,6 +6,7 @@
 
 /*
  * -vnet=1 show listen/connect/disconnect 
+ * -vnet=2 show tcp or OS info if available 
  * -vnet=4 show details of transport operations
  * -vnet=5 show send/receive buffer contents
  *
@@ -15,6 +16,7 @@
  */
 
 # define DEBUG_CONNECT	( p4debug.GetLevel( DT_NET ) >= 1 )
+# define DEBUG_INFO	( p4debug.GetLevel( DT_NET ) >= 2 )
 # define DEBUG_TRANS	( p4debug.GetLevel( DT_NET ) >= 4 )
 # define DEBUG_BUFFER	( p4debug.GetLevel( DT_NET ) >= 5 )
 

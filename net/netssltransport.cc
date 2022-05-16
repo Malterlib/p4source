@@ -267,6 +267,15 @@ NetSslTransport::SslClientInit(Error *e)
 		return;
 	    }
 
+	    /*
+	     * Added due to job084753: Swarm is a web app that reuses processes.
+	     * For some reason in this environment the SSL error stack is not removed
+	     * when the process is reused so we need to explicitly remove any previous
+	     * state prior to setting up a new SSL Context.
+	     */
+	    ERR_remove_thread_state(NULL);
+	    // probably cannot check for error return from this call :-)
+
 	    SSL_load_error_strings();
 	    SSLCHECKERROR( e,
                        "NetSslTransport::SslClientInit SSL_load_error_strings",
@@ -302,7 +311,7 @@ NetSslTransport::SslClientInit(Error *e)
 	return;
 
 fail:
-	e->Set( MsgRpc::SslCtx );
+	e->Set( MsgRpc::SslCtx ) << "the connecting client";
 	return;
 }
 
@@ -355,6 +364,18 @@ NetSslTransport::SslServerInit(StrPtr *hostname, Error *e)
 
 	    TRANSPORT_PRINT( SSLDEBUG_FUNCTION,
 		"NetSslTransport::SslServerInit - Initializing server CTX structure." );
+
+	    /*
+	     * Added due to job084753: Swarm is a web app that reuses client processes.
+	     * See the SslClientInit code for more info.
+	     *
+	     * Adding the fix to the SslClientInit here on the server side to be
+	     * symmetric and to make sure that later we do not see a similar problem
+	     * here. (Currently, we have not seen this issue on the server side.)
+	     */
+	    ERR_remove_thread_state(NULL);
+	    // probably cannot check for error return from this call :-)
+
 	    SSL_load_error_strings();
 	    SSLCHECKERROR( e,
                        "NetSslTransport::SslServerInit SSL_load_error_strings",
@@ -434,7 +455,7 @@ NetSslTransport::SslServerInit(StrPtr *hostname, Error *e)
 	return;
 
 fail:
-	e->Set( MsgRpc::SslCtx );
+	e->Set( MsgRpc::SslCtx ) << "the accepting server";
 	return;
 }
 

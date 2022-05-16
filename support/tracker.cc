@@ -70,7 +70,7 @@ Tracker::Over( TrackerType type, P4INT64 amount )
 int
 Tracker::UsersToLevel( int users )
 {
-	if( users < 10 ) 	return 2;
+	if( users < 5 ) 	return 2;
 	else if( users < 100 ) 	return 3;
 	else if( users < 1000 ) return 4;
 	else 			return 5;

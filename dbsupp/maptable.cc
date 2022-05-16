@@ -32,10 +32,11 @@
 MapTable::MapTable()
 {
 	count = 0;
-        entry = 0;
+	entry = 0;
 	hasMaps = 0;
 	hasOverlays = 0;
 	hasHavemaps = 0;
+	hasAndmaps = 0;
 	emptyReason = 0;
 	joinError = 0;
 
@@ -79,6 +80,7 @@ MapTable::Clear()
 	hasMaps = 0;
 	hasOverlays = 0;
 	hasHavemaps = 0;
+	hasAndmaps = 0;
 
 	trees[ LHS ].Clear();
 	trees[ RHS ].Clear();
@@ -108,7 +110,7 @@ MapTable::Insert( MapTable *table, int fwd, int rev )
 void
 MapTable::Insert( const StrPtr &lhs, const StrPtr &rhs, MapFlag mapFlag )
 {
-        entry = new MapItem( entry, lhs, rhs, mapFlag, count++ );
+	entry = new MapItem( entry, lhs, rhs, mapFlag, count++ );
 
 	// For IsEmpty(), HasOverlays() and HasHavemaps()
 
@@ -117,9 +119,23 @@ MapTable::Insert( const StrPtr &lhs, const StrPtr &rhs, MapFlag mapFlag )
 
 	if( mapFlag == MfRemap || mapFlag == MfHavemap )
 	    hasOverlays = 1;
-	    
+
 	if( mapFlag == MfHavemap )
 	    hasHavemaps = 1;
+
+	if( mapFlag == MfAndmap )
+	    hasAndmaps = 1;
+
+	trees[ LHS ].Clear();
+	trees[ RHS ].Clear();
+}
+
+void
+MapTable::Insert( const StrPtr &lhs, int slot, const StrPtr &rhs,
+		  MapFlag mapFlag )
+{
+	Insert( lhs, rhs, mapFlag );
+	entry = entry->Move( slot );
 }
 
 void
@@ -149,8 +165,8 @@ MapTable::InsertNoDups(
 	        // Remap and havemaps are additive, so we can
 	        // only eliminate literal duplicates.
 
-		if( *map->Lhs() == lhs && *map->Rhs() == rhs )
-		    return;
+	        if( *map->Lhs() == lhs && *map->Rhs() == rhs )
+	            return;
 	    }
 	    else
 	    {
@@ -224,7 +240,7 @@ MapTable::Dump( const char *trace, int fmt )
 	  // dump in precedence order (most significant first)
 	    for( map = entry; map; map = map->Next() )
 	        p4debug.printf( "\t%c %s -> %s\n", 
-			" -+$"[ map->Flag() ],
+			" -+$@&    123456789"[ map->Flag() ],
 			map->Lhs()->Text(), 
 			map->Rhs()->Text() );
 	}
@@ -233,10 +249,18 @@ MapTable::Dump( const char *trace, int fmt )
 	    // dump in the order of a client view 
 	    for( int i = Count() - 1; i >= 0; i--)
 	        p4debug.printf( "\t%c %s -> %s\n",
-			" -+$      123456789"[ GetFlag( Get( i )) ],
+			" -+$@&    123456789"[ GetFlag( Get( i )) ],
 			Get( i )->Lhs()->Text( ), 
 			Get( i )->Rhs()->Text( ) );
 	}
+}
+
+void
+MapTable::DumpTree( MapTableT dir, const char *trace )
+{
+	if( !trees[ dir ].tree )
+	    MakeTree( dir );
+	trees[dir].tree->Dump( dir, trace );
 }
 
 int
@@ -614,7 +638,7 @@ MapTable::Translate(
 	const StrPtr &from,
 	StrBuf &to )
 {
-        Error e;
+	Error e;
 	if( !trees[ dir ].tree )
 	    MakeTree( dir );
 
@@ -639,6 +663,55 @@ MapTable::Translate(
 	}
 
 	return map;
+}
+
+//
+// MapTable::Explode() - map an lhs into one or more rhs's
+//
+
+MapItemArray *
+MapTable::Explode( MapTableT dir, const StrPtr &from)
+{
+	
+	MapItemArray *maps = new MapItemArray;
+	Error e;
+
+	if( !trees[ dir ].tree )
+	    MakeTree( dir );
+	
+	MapItemArray ands;
+	MapItem *map = trees[ dir ].tree
+	    ? trees[ dir ].tree->Match( dir, from, &ands )
+	    : 0;
+
+	// Expand into target string.
+	// We have to Match2 here, because the last Match2 done in
+	// MapItem::Match may not have been the last to succeed.
+
+	int i = 0;
+	int nonand = 0;
+	StrBuf to;
+	while( ( map = ands.Get( i++ ) ) )
+	{
+	    MapParams params;
+	    if( !map->Ths( dir )->Match2( from, params ) ||
+		map->Flag() == MfUnmap )
+		return maps;
+
+	    if( map->Flag() != MfAndmap && nonand++ )
+		continue;
+
+	    to.Clear();
+	    map->Ohs( dir )->Expand( from, to, params );
+
+	    if( DEBUG_TRANS )
+		p4debug.printf( "MapTrans: %s (%d) -> %s\n", 
+		    from.Text(), map->Slot(), to.Text() );
+
+	    maps->Put( map, &to );
+	}
+
+	return maps;
 }
 //
 // MapTable::Match() - just match pattern against string

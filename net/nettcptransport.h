@@ -82,6 +82,7 @@ class NetTcpTransport : public NetTransport {
 	void            SetPortParser(const NetPortParser &portParser);
 
 	int		GetFd() { return t; }
+		int		GetInfo( StrBuf * );
 
     protected:
 #ifdef OS_NT

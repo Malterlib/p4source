@@ -201,6 +201,8 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionVirtual,
 	"generate",           Options::Generate,     'g', 0,
 	                      &MsgSupp::OptionGenerate,
+	"configure",          Options::Configure,    'c', ':',
+	                      &MsgSupp::OptionConfigure,
 	"usage",              Options::Usage,        'u', 0,
 	                      &MsgSupp::OptionUsage,
 	"job",                Options::Job,          'j', ':',
@@ -465,6 +467,10 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionGlobalLock,
 	"users",              Options::Users, 'u', 0,
 	                      &MsgSupp::OptionUsers,
+	"tab",                Options::Tab, 'T', '?',
+	                      &MsgSupp::OptionTab,
+	"force-delete",       Options::ForceDelete, 'F', 0,
+	                      &MsgSupp::OptionForceDelete,
 
 	// Options below this line have no short-form equivalent:
 
@@ -499,6 +505,19 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionPullBatch,
 	"enable-dvcs-triggers", Options::EnableDVCSTriggers, 0, 0,
 	                      &MsgSupp::OptionEnableDVCSTriggers,
+	"convert-p4admin-comments",
+	                      Options::ConvertAdminComments, 0, 0,
+	                      &MsgSupp::OptionConvertAdminComments,
+	"remote",             Options::RemoteSpec, 0, ':',
+	                      &MsgSupp::OptionRemoteSpec,
+	"me",                 Options::P4UserUser, 0, 0,
+	                      &MsgSupp::OptionP4UserUser,
+	"aliases",            Options::Aliases, 0, ':',
+	                      &MsgSupp::OptionAliases,
+	"field",              Options::Field, 0, ':',
+                              &MsgSupp::OptionField,
+	"license-info",       Options::LicenseInfo, 0, 0,
+	                      &MsgSupp::OptionLicenseInfo,
 
 	0, 0, 0, 0, 0
 } ;

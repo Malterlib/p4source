@@ -148,6 +148,7 @@ class MsgDm {
 	static ErrorId LabelLocked;
 	static ErrorId LabelHasRev;
 	static ErrorId WildAdd;
+	static ErrorId WildAddFilename;
 	static ErrorId WildAddTripleDots;
 	static ErrorId InvalidEscape;
 	static ErrorId UserOrGroup;
@@ -357,6 +358,11 @@ class MsgDm {
 	static ErrorId ServerTypeMismatch;
 	static ErrorId ServerViewMap;
 	static ErrorId FiltersReplicaOnly;
+	static ErrorId ServerConfigUsage;
+	static ErrorId ServerConfigInvalidVar;
+	static ErrorId ServerConfigRO;
+	static ErrorId ServerCantConfig;
+	static ErrorId ServerSvcInvalid;
 
 	static ErrorId DescribeChange;
 	static ErrorId DescribeChangePending;
@@ -427,6 +433,8 @@ class MsgDm {
 
 	static ErrorId IntegAlreadyOpened;
 	static ErrorId IntegIntoReadOnly;
+	static ErrorId IntegIntoReadOnlyAndMap;
+	static ErrorId IntegIntoReadOnlyCMap;
 	static ErrorId IntegXOpened;
 	static ErrorId IntegBadAncestor;
 	static ErrorId IntegBadBase;
@@ -512,6 +520,8 @@ class MsgDm {
 
 	static ErrorId OpenAlready;
 	static ErrorId OpenReadOnly;
+	static ErrorId OpenReadOnlyAndMap;
+	static ErrorId OpenReadOnlyCMap;
 	static ErrorId OpenXOpened;
 	static ErrorId OpenXOpenedFailed;
 	static ErrorId OpenBadAction;
@@ -535,6 +545,7 @@ class MsgDm {
 	static ErrorId OpenWarnOpenNotStream;
 	static ErrorId OpenWarnFileNotMapped;
 	static ErrorId OpenWarnChangeMap;
+	static ErrorId OpenWarnAndmap;
 	static ErrorId OpenOtherDepot;
 	static ErrorId OpenTaskNotMapped;
 	static ErrorId OpenExclOrphaned;
@@ -576,6 +587,7 @@ class MsgDm {
 	static ErrorId ProtectsMaxData;
 	static ErrorId ProtectsEmpty;
 	static ErrorId ProtectsNoSuper;
+	static ErrorId ProtectsNotCompatible;
 
 	static ErrorId PurgeSnapData;
 	static ErrorId PurgeDeleted;
@@ -750,6 +762,7 @@ class MsgDm {
 	static ErrorId UnshelveNotTask;
 	static ErrorId UnshelveFromRemote;
 	static ErrorId UnshelveBadChangeView;
+	static ErrorId UnshelveBadAndmap;
 
 	static ErrorId UserSave;
 	static ErrorId UserNoChange;
@@ -853,6 +866,7 @@ class MsgDm {
 	static ErrorId MaxResults;
 	static ErrorId MaxScanRows;
 	static ErrorId MaxLockTime;
+	static ErrorId MaxOpenFiles;
 
 	static ErrorId AdminLockDataEx;
 	static ErrorId AdminLockDataSh;
@@ -864,6 +878,7 @@ class MsgDm {
 
 	static ErrorId LocWild;
 	static ErrorId EmbWild;
+	static ErrorId EmbEllipse;
 	static ErrorId EmbSpecChar;
 	static ErrorId PosWild;
 
@@ -922,7 +937,10 @@ class MsgDm {
 	static ErrorId ReservedClientName;
 	static ErrorId CannotChangeStorageType;
 	static ErrorId ServerLocksOrder;
+	static ErrorId CounterNoTAS;
 	static ErrorId RevChangedDuringPush;
+	static ErrorId UnknownReadonlyDir;
+	static ErrorId ShelveNotSubmittable;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

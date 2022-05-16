@@ -37,6 +37,12 @@
 # define _SOCKET_SOURCE /* for sys/types.h */
 # endif
 
+// Only partial Smart Heap instrumentation.
+//
+# ifdef MEM_DEBUG
+# undef DEFINE_NEW_MACRO
+# endif
+
 # include <stdhdrs.h>
 # include <error.h>
 # include <strbuf.h>
@@ -127,7 +133,7 @@ NetSslEndPoint::ListenCheck( Error *e )
  * @return a NetSslTransport
  */
 NetTransport *
-NetSslEndPoint::Accept( Error *e )
+NetSslEndPoint::Accept( KeepAlive *, Error *e )
 {
 	NetSslTransport *  sslTransport = NULL;
 	TYPE_SOCKLEN       lpeer;

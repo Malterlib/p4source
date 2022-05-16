@@ -608,6 +608,14 @@ NetTcpTransport::Close( void )
 	        read( t, buf, 1 );
 	}
 
+	if( DEBUG_INFO )
+	{
+		StrBuf b;
+
+		if( GetInfo( &b ) )
+			p4debug.printf( "tcp info: %s", b.Text() );
+	}
+
 	NET_CLOSE_SOCKET(t);
 }
 
@@ -690,5 +698,103 @@ void NetTcpTransport::SetPortParser(const NetPortParser &portParser)
     this->portParser = portParser;
 }
 
+int
+NetTcpTransport::GetInfo( StrBuf *b )
+{
+# ifdef TCP_INFO
+		if( !b )
+			return 0;
+# define TD( x ) *b << #x << " " << tinfo.tcpi_ ## x << "\t";
 
+		struct tcp_info tinfo;
+		socklen_t sl = sizeof tinfo;
 
+		if( getsockopt( t, IPPROTO_TCP, TCP_INFO, (void *)&tinfo, &sl ) >= 0 )
+		{
+# ifdef OS_FREEBSD
+		    b->UAppend( "options" );
+# else
+		    *b << "retransmits " << (int)tinfo.tcpi_retransmits << "\t";
+		    *b << "probes " << (int)tinfo.tcpi_probes << "\t";
+		    *b << "backoff " << (int)tinfo.tcpi_backoff << "\noptions";
+# endif
+			if( tinfo.tcpi_options & TCPI_OPT_TIMESTAMPS )
+				*b << " timestamps";
+			if( tinfo.tcpi_options & TCPI_OPT_SACK )
+				*b << " sack";
+			if( tinfo.tcpi_options & TCPI_OPT_WSCALE )
+				*b << " wscale";
+			if( tinfo.tcpi_options & TCPI_OPT_ECN )
+				*b << " ecn";
+# ifdef TCPI_OPT_ECN_SEEN
+			if( tinfo.tcpi_options & TCPI_OPT_ECN_SEEN )
+				*b << " ecn_seen";
+# endif
+# ifdef TCPI_OPT_SYN_DATA
+			if( tinfo.tcpi_options & TCPI_OPT_SYN_DATA )
+				*b << " syn_data";
+# endif
+# ifdef TCPI_OPT_TOE
+			if( tinfo.tcpi_options & TCPI_OPT_TOE )
+				*b << " toe";
+# endif
+		    *b << "\nsscale " << (int)tinfo.tcpi_snd_wscale << "\t";
+		    *b << "rscale " << (int)tinfo.tcpi_rcv_wscale << "\n";
+
+			TD( rto );
+# ifdef OS_LINUX
+			TD( ato );
+# endif
+			TD( snd_mss );
+		    *b << "rcv_mss " << tinfo.tcpi_rcv_mss << "\n";
+
+# ifdef OS_LINUX
+			TD( unacked );
+			TD( sacked );
+			TD( lost );
+			TD( retrans );
+		    *b << "fackets " << tinfo.tcpi_fackets << "\n";
+
+			TD( last_data_sent );
+# endif
+			TD( last_data_recv );
+# ifdef OS_LINUX
+			TD( last_ack_recv );
+
+			b->Extend( '\n' );
+
+			TD( pmtu );
+			TD( rcv_ssthresh );
+# endif
+			TD( rtt );
+			TD( rttvar );
+			b->Extend( '\n' );
+			TD( snd_ssthresh );
+			TD( snd_cwnd );
+# ifdef OS_LINUX
+			TD( advmss );
+			TD( reordering );
+
+			b->Extend( '\n' );
+
+			//			TD( rcv_rtt );
+			//		    p4debug.printf( "total retrans %u\n", tinfo.tcpi_total_retrans );
+# endif
+# ifdef OS_FREEBSD
+			TD( rcv_space );
+			TD( snd_wnd );
+			TD( snd_bwnd );
+			TD( snd_nxt );
+			TD( rcv_nxt );
+			b->Extend( '\n' );
+			TD( toe_tid );
+			TD( snd_rexmitpack );
+			TD( rcv_ooopack );
+			TD( snd_zerowin );
+			b->Extend( '\n' );
+# endif
+			return 1;
+		}
+# endif
+		return 0;
+}

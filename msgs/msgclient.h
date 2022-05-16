@@ -91,6 +91,25 @@ class MsgClient {
 	static ErrorId LocalRemoteMismatch;
 	static ErrorId RemoteLocalMismatch;
 
+	static ErrorId AliasTooManyEquals;
+	static ErrorId AliasMissingEquals;
+	static ErrorId AliasTooComplex;
+	static ErrorId AliasMissingCommand;
+	static ErrorId AliasArgSyntax;
+	static ErrorId AliasIOSyntax;
+	static ErrorId AliasInputMultiple;
+	static ErrorId AliasOutputMultiple;
+	static ErrorId AliasRedirection;
+	static ErrorId NoAliasesFound;
+	static ErrorId AliasNoTransform;
+	static ErrorId AliasEmptyTransform;
+	static ErrorId AliasPartial;
+	static ErrorId AliasSubstArgs;
+	static ErrorId AliasSubstInput;
+	static ErrorId AliasSubstOutput;
+	static ErrorId AliasSyntaxError;
+	static ErrorId CommandNotAliased;
+	static ErrorId AliasEmptyPattern;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

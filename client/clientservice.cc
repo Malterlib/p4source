@@ -826,7 +826,11 @@ clientDeleteFile( Client *client, Error *e )
 	// ok, now zonk the directory, ignoring errors
 
 	if( rmdir )
+	{
+	    if( *rmdir == "preserveCWD" )
+	        f->PreserveCWD();
 	    f->RmDir();
+	}
 
 	delete f;
 }
@@ -1418,7 +1422,7 @@ clientOpenMerge( Client *client, Error *e )
 	StrPtr *diffFlags = client->GetVar( P4Tag::v_diffFlags );
 	StrPtr *noBase = client->GetVar( P4Tag::v_noBase );
 	StrPtr *digest = client->GetVar( P4Tag::v_digest );
-	StrPtr *modTime = client->GetVar( P4Tag::v_time );
+	StrPtr *modTime = client->GetVar( P4Tag::v_theirTime );
 
 	FileSys *s = ClientSvc::File( client, e ); // For P4CLIENTPATH verification
 
@@ -1765,7 +1769,7 @@ clientSendFile( Client *client, Error *e )
 	    // Ignore failure to chmod file since the file may not exist
 
 	    Error te;
-	    if( !e->Test() && perms && revertUnchanged )
+	    if( perms )
 		f->Chmod2( perms->Text(), &te );
 	    delete f;
 	    return;

@@ -32,6 +32,8 @@ SubInclude P4 sys ;
 SubInclude P4 web ;
 SubInclude P4 zlib ;
 
+if $(X3) = yes { SubInclude P4 xfer3rd ; }
+
 if $(PRODUCTION) { API ?= x ; }
 
 if $(API) { SubInclude P4 api ; }

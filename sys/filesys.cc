@@ -136,6 +136,7 @@ FileSys::FileSys()
 	sizeHint = 0;
 	checksum = 0;
 	cacheHint = 0;
+	preserveCWD = 0;
 	charSet = GlobalCharSet::Get();
 	content_charSet = GlobalCharSet::Get();
 
@@ -146,6 +147,11 @@ FileSys::FileSys()
 # endif
 
 	isTemp = 0;
+
+# ifdef OS_CYGWIN
+	// cygwin 1.3.12: rmdir() exits(!) if passwd CWD.
+	preserveCWD = 1;
+# endif
 }
 
 FileSys::~FileSys()
@@ -450,6 +456,17 @@ FileSys::FileExists( const char *filepath )
 	return false;
 }
 
+// NeedMkDir - Checks if the parent directory exists
+bool
+FileSys::NeedMkDir()
+{
+	PathSys *path = PathSys::Create();
+	path->Set( Path() );
+	path->ToParent();
+	bool res = ! FileSys::FileExists( path->Text() );
+	delete path;
+	return res;
+}
 
 // Enforces P4CLIENTPATH restrictions
 int

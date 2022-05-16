@@ -12,6 +12,7 @@
 # define NEED_FORK
 # define NEED_SLEEP
 # define NEED_ERRNO
+# define NEED_THREADS
 
 # include <stdhdrs.h>
 # include <pid.h>
@@ -367,7 +368,7 @@ HandleSigChld( int flag )
 		    e.Set( E_INFO,
 	                   "Process %pid% terminated normally during server shutdown." );
 		e << pid << WTERMSIG(status);
-		AssertLog.Report( &e );
+		AssertLog.ReportNoHook( &e );
 	    }
 	}
 
@@ -633,6 +634,53 @@ class MultiThreader : public Threader
 
 # endif
 
+# ifdef HAVE_PTHREAD
+
+/*
+ * This is a minimal MultiThreader implementation based on posix threads.
+ *
+ * It is by no means complete and not suitable for use with the perforce
+ * server until it handles termination, thread count, etc.
+ *
+ * Also, the variable qualifier MT_STATIC needs to be worked on.
+ * Not all supported platforms can handle that.
+ *
+ */
+
+class PosixThreader : public Threader {
+    public:
+	PosixThreader( ThreadMode )
+	{
+	}
+
+	void Launch( Thread *t )
+	{
+		pthread_t newthread;
+
+		pthread_create( &newthread, NULL, starter, (void *)t );
+
+		pthread_detach( newthread );
+	}
+
+    private:
+
+	static void *starter( void *v )
+	{
+	    Thread *t = (Thread *)v;
+
+	    t->Run();
+
+	    delete t;
+
+	    return NULL;
+	}
+
+};
+
+# else
+typedef MultiThreader PosixThreader;
+# endif /* HAVE_PTHREAD */
+
 /*
  *
  * Threader -- generic top level threading
@@ -655,6 +703,9 @@ Threading::Threading( ThreadMode tmb, Process *p )
 	case TmbMulti:
 	case TmbDaemon:
 	    threader = new MultiThreader( tmb );
+	    break;
+	case TmbThreads:
+	    threader = new PosixThreader( tmb );
 	    break;
 	}
 

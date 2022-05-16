@@ -29,6 +29,7 @@ class MsgHelp {
 	static ErrorId HelpCommandments;
 	static ErrorId HelpCredits;
 	static ErrorId HelpAdd;
+	static ErrorId HelpAliases;
 	static ErrorId HelpAnnotate;
 	static ErrorId HelpAdmin;
 	static ErrorId HelpAdministration;
@@ -54,6 +55,7 @@ class MsgHelp {
 	static ErrorId HelpCstat;
 	static ErrorId HelpDbpack;
 	static ErrorId HelpDbschema;
+	static ErrorId HelpReshelve;
 	static ErrorId HelpDbstat;
 	static ErrorId HelpDbverify;
 	static ErrorId HelpDepot;

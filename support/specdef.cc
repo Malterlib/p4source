@@ -48,6 +48,7 @@ const char *const SpecFmts[] = {
 	"L",		// SDF_LEFT
 	"R",		// SDF_RIGHT
 	"I",		// SDF_INDENT
+	"C",		// SDF_COMMENT
 	0
 } ;
 

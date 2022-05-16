@@ -10,6 +10,7 @@
 
 # include <stdhdrs.h>
 # include <charman.h>
+# include <math.h>
 
 # include "strbuf.h"
 # include "strdict.h"
@@ -879,10 +880,10 @@ char *
 StrHuman::Itoa64( P4INT64 v, char *buffer, int f )
 {
 	static const char suffix[] = "BKMGTP";
-	static P4INT64 factor = f;
+	P4INT64 factor = f;
  
 	P4INT64 current = v;
-	P4INT64 remainder = 0;
+	int     remainder = 0;
 	const char *s = suffix;
  
 	for( ; s < suffix + 6; s++)
@@ -895,11 +896,22 @@ StrHuman::Itoa64( P4INT64 v, char *buffer, int f )
 	        current = current / factor;
 	    }
 	}
- 
+	// remainder is a percentage (0 .. 99). Now round that to the nearest
+	// 10, and if we get a 10, carry that up to increment current.
+
+# if OS_NT
+	// Visual Studio versions prior to VS2013 don't have "round"...
+	remainder = (int)floor( ( remainder / (double)10 ) + 0.5 );
+# else
+	remainder = (int)round( remainder / (double)10 );
+# endif
+
 	*--buffer = 0;
 	*--buffer = *s;
  
-	if( remainder )
+	if( remainder == 10 )
+	    current++;
+	else if( remainder )
 	{
 	    do
 	    {

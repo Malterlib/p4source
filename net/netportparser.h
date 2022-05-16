@@ -19,11 +19,21 @@ public:
 	    PPO_BOTH = PPO_TRANSPORT | PPO_PORT
 	};
 
+	struct Prefix
+	{
+	    const char    *mName;
+	    int    	  mType;
+	};
+
 	// Orthodox Canonical Form (OCF) methods
 	NetPortParser();
 
 	NetPortParser(
 	    const StrRef        &portstr);
+
+	NetPortParser(
+	    const StrRef        &portstr,
+	    const Prefix	*extraTransports);
 
 	NetPortParser(
 	    const char          *portstr);
@@ -165,13 +175,8 @@ private:
 	    PT_SSL4,
 	    PT_SSL6,
 	    PT_SSL46,
-	    PT_SSL64
-	};
-
-	struct Prefix
-	{
-	    const char    *mName;
-	    PrefixType    mType;
+	    PT_SSL64,
+	    PT_NUM_PREFIXES
 	};
 
 	StrBuf    mPortString;    // saved P4PORT (or -p) input string
@@ -182,6 +187,8 @@ private:
 	StrBuf    mZoneID;        // parsed "%zoneid", if any
 	bool      mPortColon;     // true iff there was a colon starting the port field
 	Prefix    mPrefix;        // parsed transport prefix
+	const Prefix
+		  *mExtraTransports; // extra user-supplied transport prefixes
 
 private:
 
@@ -189,5 +196,8 @@ private:
 	FindPrefix(
 	    const char    *prefix,
 	    int           len);
+
+public:
+	enum { PT_PFX_NONE = PT_NONE, PT_NUM_TRANSPORTS = PT_NUM_PREFIXES };
 };
 

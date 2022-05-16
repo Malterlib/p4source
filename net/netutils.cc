@@ -471,7 +471,7 @@ NetUtils::IsAddrUnspecified(const sockaddr *sa)
 	{
 	    const struct in_addr *iap = &(reinterpret_cast<const sockaddr_in *>(sa))->sin_addr;
 	    const p4_uint32_t *ap = reinterpret_cast<const p4_uint32_t *>(iap);
-	    return *ap == 0;
+	    return *ap == INADDR_ANY;
 	}
 	else if( sa->sa_family == AF_INET6 )
 	{
@@ -481,6 +481,36 @@ NetUtils::IsAddrUnspecified(const sockaddr *sa)
 	{
 	    return true;    // huh? I guess we'll call it unspecified
 	}
+}
+
+/*
+ * Set this address to the appropriate wildcard address.
+ * Return true iff it had a valid family.
+ * [static]
+ */
+bool
+NetUtils::SetAddrUnspecified(sockaddr *sa)
+{
+	if( sa->sa_family == AF_INET )
+	{
+	    struct in_addr *iap = &(reinterpret_cast<sockaddr_in *>(sa))->sin_addr;
+	    p4_uint32_t *ap = reinterpret_cast<p4_uint32_t *>(iap);
+	    *ap = INADDR_ANY;
+	    return true;
+	}
+	else if( sa->sa_family == AF_INET6 )
+	{
+	    struct in6_addr	*in6 = &(reinterpret_cast<sockaddr_in6 *>(sa))->sin6_addr;
+	    p4_uint32_t		*a = reinterpret_cast<p4_uint32_t *>(in6);
+	    a[0] = 0;
+	    a[1] = 0;
+	    a[2] = 0;
+	    a[3] = 0;
+
+	    return true;
+	}
+
+	return false;
 }
 
 /*

@@ -9,6 +9,8 @@ enum SpecParseReturn {
 	SR_EOS,
 	SR_TAG,
 	SR_VALUE,
+	SR_COMMENT,
+	SR_COMMENT_NL,
 	SR_DONEV
 };
 
@@ -27,6 +29,7 @@ class SpecParse {
 	SpecChar	c;
 	int		state;
 	int		savedBlankLines;
+	int		addNewLine;
 
 } ;
 

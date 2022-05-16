@@ -91,9 +91,11 @@ struct P4Tag {
 	static const char v_app[];
 	static const char v_appliedJnl[];
 	static const char v_appliedPos[];
+	static const char v_andmap[];
 	static const char v_attack[];
 	static const char v_attr[];
 	static const char v_authServer[];
+	static const char v_autoLogin[];
 	static const char v_baseName[];
 	static const char v_bits[];
 	static const char v_blockCount[];
@@ -139,8 +141,8 @@ struct P4Tag {
 	static const char v_endFromRev[];
 	static const char v_endToRev[];
 	static const char v_erev[];
+	static const char v_expandAndmaps[];
 	static const char v_externalAuth[];
-	static const char v_ldapAuth[];
 	static const char v_extraTag[];
 	static const char v_extraTagType[];
 	static const char v_fatal[];
@@ -186,6 +188,7 @@ struct P4Tag {
 	static const char v_leof_num[];
 	static const char v_leof_sequence[];
 	static const char v_ldap[];
+	static const char v_ldapAuth[];
 	static const char v_level[];
 	static const char v_lfmt[];
 	static const char v_line[];
@@ -195,6 +198,7 @@ struct P4Tag {
 	static const char v_matchBegin[];
 	static const char v_matchEnd[];
 	static const char v_maxLockTime[];
+	static const char v_maxOpenFiles[];
 	static const char v_maxResults[];
 	static const char v_maxScanRows[];
 	static const char v_mergeAuto[];
@@ -305,6 +309,7 @@ struct P4Tag {
 	static const char v_tag[];
 	static const char v_tagJnl[];
 	static const char v_theirName[];
+	static const char v_theirTime[];
 	static const char v_time[];
 	static const char v_toFile[];
 	static const char v_token[];

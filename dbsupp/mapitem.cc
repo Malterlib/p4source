@@ -49,6 +49,48 @@ MapItem::Reverse()
 }
 
 /*
+ * MapItem::Move - moves an item up the chain
+ */
+
+MapItem *
+MapItem::Move( int slot )
+{
+	MapItem *m = this;
+	MapItem *entry = m->chain;
+
+	int start = m->slot;
+
+	// This has no error state, but this is bad
+	// We can't go below 0 and we can't go back up either
+	if( start <= slot )
+	    return m;
+
+	if( slot < 0 )
+	    slot = 0;
+
+
+	MapItem *n = m->chain;
+	while( n )
+	{
+	    if( n->slot != slot )
+	    {
+	        n->slot++;
+	        n = n->chain;
+	        continue;
+	    }
+	    
+	    n->slot++;
+	    m->slot = slot;
+	    m->chain = n->chain;
+	    n->chain = m;
+	    
+	    break;
+	}
+
+	return entry;
+}
+
+/*
  * MapItem::Tree - recursively construct a trinary sort tree
  */
 
@@ -98,6 +140,8 @@ MapItem::Tree(
 	    int overlap = 0;
 	    int depthBelow = 0;
 	    int maxSlot = 0;
+	    int hasands = 0;
+	    int maxSlotNoAnds = -1;
 	    int pLength = (*start)->Ths( dir )->GetFixedLen();
 
 	    MapItem *last = 0;
@@ -116,11 +160,22 @@ MapItem::Tree(
 		t->overlap = overlap;
 		t->maxSlot = (*ri)->slot;
 		t->right = t->left = NULL;
+		t->hasands = 0;
+		t->maxSlotNoAnds = (*ri)->Flag() != MfAndmap ? (*ri)->slot : -1;
 
 		t->center = Tree( ri + 1, end, dir, *ri, depthBelow );
-
+		
 		if( maxSlot < t->maxSlot )
 		    maxSlot = t->maxSlot;
+
+		if( maxSlotNoAnds < t->maxSlotNoAnds )
+		    maxSlotNoAnds = t->maxSlotNoAnds;
+
+		if( t->hasands )
+		    hasands = 1;
+
+		if( parent && ( (*ri)->mapFlag == MfAndmap || t->hasands ) )
+		    parent->Whole( dir )->hasands = 1;
 
 		last = *ri--;
 		++depthBelow;
@@ -133,9 +188,18 @@ MapItem::Tree(
 		t = (*ri)->Whole( dir );
 
 		t->overlap = overlap;
+
 		if( maxSlot < (*ri)->slot )
 		    maxSlot = (*ri)->slot;
 		t->maxSlot = maxSlot;
+
+		if( (*ri)->Flag() != MfAndmap && maxSlotNoAnds < (*ri)->slot )
+		    maxSlotNoAnds = (*ri)->slot;
+		t->maxSlotNoAnds = maxSlotNoAnds;
+
+		hasands = ( last && last->mapFlag == MfAndmap ) ? 1 : 0;
+		t->hasands = hasands;
+
 		t->right = t->left = NULL;
 		t->center = last;
 		last = *ri--;
@@ -143,6 +207,12 @@ MapItem::Tree(
 
 	    if( parent && parent->Whole( dir )->maxSlot < maxSlot )
 		parent->Whole( dir )->maxSlot = maxSlot;
+
+	    if( parent && parent->Whole( dir )->maxSlotNoAnds < maxSlotNoAnds )
+		parent->Whole( dir )->maxSlotNoAnds = maxSlotNoAnds;
+
+	    if( parent && ( hasands || ( last && last->mapFlag == MfAndmap ) ))
+		parent->Whole( dir )->hasands = 1;
 
 	    if( depth < depthBelow )
 		depth = depthBelow;
@@ -179,6 +249,8 @@ MapItem::Tree(
 
 	t->overlap = 0;
 	t->maxSlot = (*li)->slot;
+	t->hasands = 0;
+	t->maxSlotNoAnds = (*li)->Flag() != MfAndmap ? (*li)->slot : -1;
 
 	t->left =    Tree( start, li, dir, *li, depthBelow );
 	t->center =  Tree( li + 1, ri, dir, *li, depthBelow );
@@ -203,7 +275,13 @@ MapItem::Tree(
 	    if( parent->Whole( dir )->maxSlot < t->maxSlot )
 		parent->Whole( dir )->maxSlot = t->maxSlot;
 
+	    if( parent->Whole( dir )->maxSlotNoAnds < t->maxSlotNoAnds )
+		parent->Whole( dir )->maxSlotNoAnds = t->maxSlotNoAnds;
+
 	    t->overlap = t->half.GetCommonLen( parent->Ths( dir ) );
+
+	    if( (*li)->mapFlag == MfAndmap || t->hasands )
+		parent->Whole( dir )->hasands = 1;
 	}
 
 	return *li;
@@ -238,13 +316,21 @@ MapItem::Tree(
  */
 
 MapItem *
-MapItem::Match( MapTableT dir, const StrPtr &from )
+MapItem::Match( MapTableT dir, const StrPtr &from, MapItemArray *ands )
 {
 	int coff = 0;
 	int best = -1;
+	int bestnotands = -1;
+	int ourarray = 0;
 	MapItem *map = 0;
 	MapItem *tree = this;
 	MapParams params;
+
+	if( !ands && (tree->Whole( dir )->hasands || tree->Flag() == MfAndmap))
+	{
+	    ourarray = 1;
+	    ands = new MapItemArray;
+	}
 
 	/* Decend */
 
@@ -254,9 +340,13 @@ MapItem::Match( MapTableT dir, const StrPtr &from )
 
 	    /*
 	     * No better precendence below?  Bail. 
+	     * Unless we're looking for andmaps
 	     */
 
-	    if( best > t->maxSlot )
+	    if( best > t->maxSlot &&	    // Have we already got the best?
+		!t->hasands &&		    // Are there andmaps down the tree?
+		tree->Flag() != MfAndmap && // This is an andmap?
+		bestnotands > t->maxSlotNoAnds ) // We prefer a real mapping
 		break;
 
 	    /*
@@ -280,8 +370,31 @@ MapItem::Match( MapTableT dir, const StrPtr &from )
 	     * Match?  Higher precedence?  Wildcard match?  Save. 
 	     */
 
-	    if( !r && best < tree->slot && t->half.Match2( from, params ) )
+	    if( !r &&
+		best < tree->slot &&
+		t->half.Match2( from, params ) )
+	    {
 		map = tree, best = map->slot;
+		if( ands )
+		    ands->Put( tree );
+		if( tree->Flag() != MfAndmap )
+		    bestnotands = tree->slot;
+	    }
+
+	    /*
+	     * Not higher precedence? AndMap Array? Wildcard match? Save
+	     */
+
+	    if( !r &&
+		ands &&
+		map != tree &&
+		best >= tree->slot &&
+		t->half.Match2( from, params ) )
+	    {
+		ands->Put( tree );
+		if( tree->Flag() != MfAndmap )
+		    bestnotands = tree->slot;
+	    }
 
 	    /*
 	     * Follow to appropriate child. 
@@ -291,6 +404,32 @@ MapItem::Match( MapTableT dir, const StrPtr &from )
 	    else if( r > 0 ) 	tree = t->right;
 	    else 		tree = t->center;
 	}
+
+	/*
+	 * If we were dealing with & maps, we need to make sure we either:
+	 *   1. return the highest precedence non-andmap mapping
+	 *   2. return the highest precedence andmap mapping
+	 */
+
+	if( map && ands )
+	{
+	    MapItem *m0 = 0;
+	    int i = 0;
+	    while( ( m0 = (MapItem *) ands->Get( i++ ) ) )
+		if( m0->Flag() != MfAndmap )
+		{
+		    if( m0->mapFlag == MfUnmap )
+			break; // Take the best & mapping and break
+
+		    map = m0; // Take the best non-& mapping and break
+		    break;
+		}
+		else if( i == 1 )
+		    map = m0; // Take the best & mapping; keep going
+	}
+
+	if( ourarray )
+	    delete ands;
 
 	/* 
 	 * Best mapping an unmapping?  That's no mapping.
@@ -348,6 +487,90 @@ MapPairArray::Match( MapItem *item1, MapItem *tree2 )
 }
 
 /*
+ * MapItemArray -- Slot ordered list of MapItems
+ */
+
+struct MapWrap {
+	MapItem *map;
+	StrBuf to;
+} ;
+
+MapItemArray::~MapItemArray()
+{
+	for( int i = 0; i < Count(); i++ )
+	    delete (MapWrap *) VarArray::Get( i );
+}
+
+MapItem *
+MapItemArray::Get( int i )
+{
+	MapWrap *w = (MapWrap *) VarArray::Get( i );
+	return w ? w->map : 0;
+}
+
+StrPtr *
+MapItemArray::GetTranslation( int i )
+{
+	MapWrap *w = (MapWrap *) VarArray::Get( i );
+	return w ? &w->to : 0;
+}
+
+MapItem *
+MapItemArray::Put( MapItem *item, StrPtr *trans )
+{
+	// add the item to the end of the list
+	MapWrap *wrap = new MapWrap;
+	wrap->map = item;
+	if( trans )
+	    wrap->to = *trans;
+
+	VarArray::Put( wrap );
+
+	int s = Count(); // index of item + 1
+
+	if( s <= 1 )
+	    return item; // only the item we've just added: must be sorted!
+
+	// find the index of the first item with a lower slot than item's
+	int i = 0;
+	while( Get( i )->slot > item->slot )
+	    i++;
+
+	// shuffle the pointers along so that item takes its rightful place
+	while( s-- > i + 1)
+	    Swap( s - 1, s );
+
+	return item;
+}
+
+int
+MapItemArray::PutTree( MapItem *item, MapTableT dir )
+{
+	if( !item )
+	    return 0;
+
+	Put( item );
+	int count = 1;
+	count += PutTree( item->Whole( dir )->left, dir );
+	count += PutTree( item->Whole( dir )->center, dir );
+	count += PutTree( item->Whole( dir )->right, dir );
+
+	return count;
+}
+
+void
+MapItemArray::Dump( const char *name )
+{
+	for( int i = 0; i < Count(); i++ )
+	    p4debug.printf( "%s %c%s <-> %s (slot %d)\n",
+		name,
+		" -+$@&    123456789"[Get( i )->mapFlag],
+		Get( i )->Lhs()->Text(),
+		Get( i )->Rhs()->Text(),
+		Get( i )->slot );
+}
+
+/*
 * MapItem::Dump() - dump tree, rooted at this
  */
 
@@ -363,7 +586,9 @@ MapItem::Dump( MapTableT d, const char *name, int l )
 	if( Whole( d )->left ) 
 	    Whole( d )->left->Dump( d, "<<<", l+1 );
 
-	p4debug.printf("%s%s %c%s\n", indent, name, " -+$"[ mapFlag ], Ths(d)->Text() );
+	p4debug.printf("%s%s %c%s <-> %s%s (maxslot %d (%d))\n", indent, name,
+	    " -+$@&    123456789"[ mapFlag ], Ths(d)->Text(), Ohs(d)->Text(),
+	    Whole( d )->hasands ? " (has &)" : "", Whole( d )->maxSlot, Whole( d )->maxSlotNoAnds);
 
 	if( Whole( d )->center )
 	    Whole( d )->center->Dump( d, "===", l+1 );

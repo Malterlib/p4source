@@ -11,6 +11,6 @@
 # SUPPDATE = yyyy mm dd ;
 #	Of the build.  The copyright date is derived from SUPPDATE.
 
-RELEASE = 2015 2 main ;
-PATCHLEVEL =  996270 ;
-SUPPDATE = 2015 01 30 ;
+RELEASE = 2016 1 main ;
+PATCHLEVEL =  1429894 ;
+SUPPDATE = 2015 11 01 ;

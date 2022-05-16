@@ -79,6 +79,7 @@ const char *RpcTypeNames[] = {
 	"bc: ",		//    RPC_BROKER_TO_SERVER,
 	"rauth: ",	//    RPC_RMTAUTH,
 	"sbx: ",        //    RPC_SANDBOX,
+	"x3: ",         //    RPC_X3,
 	"ukn: ",        //    RPC_UNKNOWN
 	"dmrpc: ",      //    RPC_DMRPC
 	0
@@ -157,6 +158,12 @@ RpcService::GetHost( StrPtr *peerAddress, StrBuf &hostBuf, Error *e )
 	    hostBuf.Set( ep->GetPrintableHost() );
 	delete ep;
 	return;
+}
+
+StrPtr *
+RpcService::GetListenAddress( int raf_flags )
+{
+    return endPoint ? endPoint->GetListenAddress( raf_flags ) : 0;
 }
 
 void
@@ -272,6 +279,8 @@ Rpc::Rpc( RpcService *s )
 	TrackStart();
 
 	timer = new Timer;
+
+	keep = 0;
 }
 
 Rpc::~Rpc( void )
@@ -346,7 +355,7 @@ Rpc::Connect( Error *e )
 	switch( service->openFlag )
 	{
 	case RPC_LISTEN:   
-	    t = service->endPoint->Accept( e );
+	    t = service->endPoint->Accept( keep, e );
 	    break;
 
 	case RPC_CONNECT:  
@@ -372,6 +381,9 @@ Rpc::Connect( Error *e )
 	// Pass transport onto the buffering routines.
 
 	transport = new RpcTransport( t );
+
+	if( keep )
+	    transport->SetBreak( keep );
 
 	// If rpc.himark tuned beyond net.bufsize, must tell NetBuffer.
 
@@ -622,6 +634,8 @@ Rpc::GetKeepAlive()
 void
 Rpc::SetBreak( KeepAlive *breakCallback )
 {
+	keep = breakCallback;
+
 	if( transport )
 	    transport->SetBreak( breakCallback );
 }
@@ -779,6 +793,24 @@ Rpc::InvokeOne( const char *opName )
 
 	transport->Send( sendBuffer->GetBuffer(), &re, &se );
 
+	if( se.Test() && se.CheckId( MsgRpc::TooBig ) )
+	{
+	    AssertLog.Report( &se );
+
+	    sendBuffer->Clear();
+	    StrBufDict errorDict;
+	    se.Marshall1( errorDict );
+	    se.Clear();
+
+	    int j = 0;
+	    StrRef var, val;
+	    while( errorDict.GetVar( j++, var, val ) )
+	        sendBuffer->SetVar( var, val );
+
+	    sendBuffer->SetVar( P4Tag::v_func, StrRef( "client-Message" ) );
+	    transport->Send( sendBuffer->GetBuffer(), &re, &se );
+	}
+
 	// time tracking
 	sendTime += timer->Time();
 
@@ -827,13 +859,19 @@ Rpc::Dispatch( DispatchFlag flag, RpcDispatcher *dispatcher )
 
 	if( dispatchDepth > 1 )
 	    return;
+	
+	// If we're containing this dispatch, don't increment the depth.
+	// We only do this when we know that the original dispatcher is
+	// effectivly paused, waiting for this to complete.
 
-	++dispatchDepth;
+	if( flag != DfContain )
+	    ++dispatchDepth;
 
 	RPC_DBG_PRINTF( DEBUG_FLOW,
-		">>> Dispatch(%d) %d/%d %d/%d %d",
-		dispatchDepth, duplexFsend, duplexFrecv, 
-		duplexRsend, duplexRrecv, flag );
+	        ">>> Dispatch(%d%s) %d/%d %d/%d %d",
+	        dispatchDepth, flag == DfContain ? "+" : "",
+	        duplexFsend, duplexFrecv, 
+	        duplexRsend, duplexRrecv, flag );
 
 	// Use server's recv buffer size as himark for InvokeDuplex()
 	// Use client's recv buffer size as himark for InvokeDuplexRev()
@@ -900,12 +938,13 @@ Rpc::Dispatch( DispatchFlag flag, RpcDispatcher *dispatcher )
 	    else if( flag == DfComplete ||
 		     flag == DfDuplex && duplexFrecv > hiMark ||  
 		     flag == DfFlush && duplexFrecv ||
+		     flag == DfContain && !le.Test() ||
 		     se.Test() )
 	    {
 		if( !recvBuffer )
 		    recvBuffer = new RpcRecvBuffer;
 
-		DispatchOne( dispatcher );
+		DispatchOne( dispatcher, flag == DfContain );
 	    }
 	    else break;
 	}
@@ -916,16 +955,17 @@ Rpc::Dispatch( DispatchFlag flag, RpcDispatcher *dispatcher )
 	recvBuffer = savRecvBuffer;
 
 	RPC_DBG_PRINTF( DEBUG_FLOW,
-		"<<< Dispatch(%d) %d/%d %d/%d %d",
-		dispatchDepth, duplexFsend, duplexFrecv, 
-		duplexRsend, duplexRrecv, flag );
+	        "<<< Dispatch(%d%s) %d/%d %d/%d %d",
+	        dispatchDepth, flag == DfContain ? "+" : "",
+	        duplexFsend, duplexFrecv,
+	        duplexRsend, duplexRrecv, flag );
 
-	if( !--dispatchDepth )
+	if( flag == DfContain || !--dispatchDepth )
 	    endDispatch = 0;
 }
 
 void
-Rpc::DispatchOne( RpcDispatcher *dispatcher )
+Rpc::DispatchOne( RpcDispatcher *dispatcher, bool passError )
 {
 	StrPtr *func;
 
@@ -1003,6 +1043,10 @@ Rpc::DispatchOne( RpcDispatcher *dispatcher )
 
 	(*disp->function)( this, &ue );
 
+	// Take a copy of the errors
+
+	le = ue;
+
 	// If an error occurred, we'll call the caller's errorHandle
 	// function.  If the error was fatal, we'll tack on some tracing
 	// information.
@@ -1017,6 +1061,12 @@ Rpc::DispatchOne( RpcDispatcher *dispatcher )
 	// If a user error occurred, invoke errorHandler to deal with it.
 	// In this case, the Error is acutally passed in to the dispatched 
 	// function, rather than being just an output parameter.
+
+	// The exception is if we are running as a nested Dispatch that will
+	// pass this error to its parent (then this will be done by the parent)
+
+	if( passError )
+	    return;
 
 	if( disp = dispatcher->Find( P4Tag::p_errorHandler ) )
 	{
@@ -1237,6 +1287,12 @@ Rpc::CheckKnownHost( Error *e, const StrRef & trustfile )
 		MsgRpc::HostKeyMismatch : MsgRpc::HostKeyUnknown );
 	*e << *peer;
 	*e << pubkey;
+}
+
+int
+Rpc::GetInfo( StrBuf *b )
+{
+	return transport->GetInfo( b );
 }
 
 void

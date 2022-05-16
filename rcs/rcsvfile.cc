@@ -27,6 +27,7 @@
 # include <debug.h>
 # include <tunable.h>
 # include <filesys.h>
+# include <pathsys.h>
 # include <readfile.h>
 
 # include "rcsdebug.h"
@@ -107,6 +108,25 @@ RcsVfile::RcsVfile(
 
 	    writeFile->Open( FOM_WRITE, e );
 
+	    // Work around a potential race condition that could occure if the
+	    // parent directory is removed between us checking and creating
+	    // the temp file.
+
+	    if( e->Test() && rcsFile->NeedMkDir() )
+	    {
+		e->Clear();
+
+		rcsFile->MkDir( e );
+
+		if( e->Test() )
+		{
+		    e->Set( MsgLbr::MkDir ) << rcsFile->Name();
+		    return;
+		}
+
+		writeFile->Open( FOM_WRITE, e );
+	    }
+
 	    if( e->Test() )
 	    {
 		e->Set( MsgLbr::Lock ) << rcsFile->Name();
@@ -167,6 +187,14 @@ RcsVfile::~RcsVfile()
 {
 	delete readFd;
 	delete writeFile;
+
+	// writefile was a temp file, and it's gone now, which means we can
+	// remove the archive (assuming it's empty). If the rcsFile doesn't
+	// exist then we probably deleted the file: try a RmDir to clean up.
+
+	if( ( modes & RCS_VFILE_WRITE ) && !( rcsFile->Stat() & FSF_EXISTS ) )
+	    rcsFile->RmDir();
+
 	delete rcsFile;
 	delete originalFilename;
 }

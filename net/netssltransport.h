@@ -112,7 +112,7 @@ class NetSslTransport : public NetTcpTransport
 	void            GetVersionString( StrBuf &sb, unsigned long version );
 
 	// These two endpoint method need access to the Init methods
-	friend NetTransport *NetSslEndPoint::Accept( Error *e );
+	friend NetTransport *NetSslEndPoint::Accept( KeepAlive *, Error *e );
 	friend NetTransport *NetSslEndPoint::Connect( Error *e );
 
 

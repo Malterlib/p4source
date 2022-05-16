@@ -101,7 +101,7 @@ class NetEndPoint {
 	virtual void		Unlisten() = 0;
 
 	virtual NetTransport *	Connect( Error *e ) = 0;
-	virtual NetTransport *	Accept( Error *e ) = 0;
+	virtual NetTransport *	Accept( KeepAlive *, Error *e ) = 0;
 
 	virtual int 		IsSingle() = 0;
 
@@ -152,6 +152,9 @@ class NetTransport : public KeepAlive {
 	// I&O
 
 	virtual int	SendOrReceive( NetIoPtrs &io, Error *se, Error *re );
+
+	// Report transport specfic information
+	virtual int	GetInfo( StrBuf * ) { return 0; }
 
 	// DO NOT USE -- experimental only!
 

@@ -72,6 +72,7 @@ class StrOps {
 	static void	Indent( StrBuf &o, const StrPtr &s );
 	static void	Replace( StrBuf &o, const StrPtr &i,
 				const StrPtr &s, const StrPtr &r );
+	static void	ReplaceWild( StrBuf &o, const StrPtr &i );
 	static int 	Lines( StrBuf &o, char *vec[], int maxVec );
 	static void	Lower( StrBuf &o );
 	static void	Upper( StrBuf &o );
@@ -93,10 +94,13 @@ class StrOps {
 	static void	WildToStr( const StrPtr &i, StrBuf &o );
 	static void	WildToStr( const StrPtr &i, StrBuf &o, const char *t );
 	static void	StrToWild( const StrPtr &i, StrBuf &o );
+	static void	StrToWild( const StrPtr &i, StrBuf &o, const char *t );
 	static void	WildCompat( const StrPtr &i, StrBuf &o );
 	static void	MaskNonPrintable( const StrPtr &i, StrBuf &o );
 	static void	EncodeNonPrintable( const StrPtr &i, StrBuf &o );
 	static void	DecodeNonPrintable( const StrPtr &i, StrBuf &o );
+	static unsigned int	
+			HashStringToBucket( const StrPtr &in, int buckets );
 
 	static void 	ScrunchArgs( StrBuf &out, int argc, 
 				StrPtr *argv, int targetLength,

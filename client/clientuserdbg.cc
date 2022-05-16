@@ -10,6 +10,11 @@
 # include <strops.h>
 # include <enviro.h>
 # include <error.h>
+# include <strarray.h>
+# include <strdict.h>
+# include <strtable.h>
+# include <spec.h>
+# include <options.h>
 
 # include <filesys.h>
 
@@ -114,4 +119,116 @@ ClientUserFmt::OutputStat( StrDict *dict )
 	StrOps::Expand2( out, *fmt, *dict );
 	if( out.Length() )
 	    printf( "%s\n", out.Text() );
+}
+
+/*
+ * ClientUserMunge -- user-specified munging ("--field" global opt)
+ */
+
+ClientUserMunge::ClientUserMunge( Options &opts )
+{
+	// Get the list of field substitutions from the Options.
+	
+	const StrPtr *s;
+
+	for( int i = 0 ; s = opts.GetValue( Options::Field, i ) ; i++ )
+	    fields.Put( *s );
+}
+
+void 
+ClientUserMunge::OutputStat( StrDict *dict )
+{
+	Munge( dict, &fields, this );
+}
+
+void
+ClientUserMunge::Munge( StrDict *dict, StrPtrArray *fields, ClientUser *ui )
+{
+	StrPtr *specdef = dict->GetVar( "specdef" );
+	if( !specdef )
+	    return ui->OutputError( "This command did not return a spec."
+				    "  Try 'p4 (spectype) -o'?\n" );
+
+	Error e;
+
+	// Build the spec.
+
+	Spec spec( specdef->Text(), "", &e );
+	if( e.Test() )
+	    return ui->HandleError( &e );
+
+	// Copy and modify the dict.
+
+	StrBufDict d( *dict );
+	StrBuf field, value;
+
+	for( int i = 0 ; i < fields->Count() ; i++ )
+	{
+	    const StrPtr *s = fields->Get( i );
+	    int plus = 0;
+
+	    const char *eq = s->Contains( StrRef( "=" ) );
+	    if( !eq || eq == s->Text() )
+		return ui->OutputError( "Usage: --field Field=value\n" );
+
+	    field.Set( s->Text(), eq - s->Text() );
+	    if( field.Text()[ field.Length() - 1 ] == '+' )
+	    {
+		plus = 1;
+		field.SetLength( field.Length() - 1 );
+	    }
+	    field.Terminate();
+
+	    SpecElem *elem = spec.Find( field, &e );
+	    if( !elem )
+		return ui->HandleError( &e );
+
+	    value.Clear();
+	    int x = 0;
+
+	    if( plus && !elem->IsList() )
+	    {
+		// Single entry, get existing.
+
+		if( d.GetVar( field ) )
+		    value.Append( d.GetVar( field ) );
+	    }
+	    if( elem->IsList() )
+	    {
+		// List entry, get index for last item.
+
+		for( int j = 0 ; d.GetVar( field, j ) ; j++ )
+		    x = j + 1;
+	    }
+	    if( x && !plus )
+	    {
+		// Go back and remove existing list items.
+
+		StrBuf fn;
+		StrNum y;
+		while( x )
+		{
+		    x--;
+		    fn = field;
+		    y = x;
+		    fn.Append( y.Text() );
+		    d.RemoveVar( fn );
+		}
+	    }
+
+	    value.Append( eq + 1 );
+	    
+	    if( elem->IsList() )
+		d.SetVar( field, x, value );
+	    else
+	        d.ReplaceVar( field, value );
+	}
+
+	// Format spec.
+
+	SpecDataTable data( &d );
+	StrBuf result;
+	spec.Format( &data, &result );
+
+	ui->OutputText( result.Text(), result.Length() );
 }

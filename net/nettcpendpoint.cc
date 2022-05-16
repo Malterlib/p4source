@@ -798,7 +798,7 @@ NetTcpEndPoint::IsLocalHost( const char *p4portstr, AddrType type )
 		if( DEBUG_CONNECT )
 		{
 		    p4debug.printf(
-			"NetTcpEndPoint::IsLocalHost(port=%s, family=%d, flags=0x%x) [retry]",
+			"NetTcpEndPoint::IsLocalHost(port=%s, family=%d, flags=0x%x) [retry]\n",
 		         pp.Host().Text(), ai_family, ai_flags );
 		}
 
@@ -822,7 +822,7 @@ NetTcpEndPoint::IsLocalHost( const char *p4portstr, AddrType type )
 		if( DEBUG_CONNECT )
 		{
 		    p4debug.printf(
-			"NetTcpEndPoint::IsLocalHost(port=%s, family=%d, flags=0x%x) [retry-2]",
+			"NetTcpEndPoint::IsLocalHost(port=%s, family=%d, flags=0x%x) [retry-2]\n",
 		         pp.Host().Text(), ai_family, ai_flags );
 		}
 
@@ -941,27 +941,57 @@ NetTcpEndPoint::Unlisten()
 }
 
 NetTransport *
-NetTcpEndPoint::Accept( Error *e )
+NetTcpEndPoint::Accept( KeepAlive *keep, Error *e )
 {
 	TYPE_SOCKLEN lpeer;
 	struct sockaddr_storage peer;
-	int t;
+	int t, rd, wr;
+	NetTcpSelector *selector = NULL;
 
 	TRANSPORT_PRINTF( DEBUG_CONNECT, "NetTcpEndpoint accept on %d", s );
 
 	lpeer = sizeof peer;
 
+	if( keep )
+		selector = new NetTcpSelector( s );
+	rd = wr = 0;
+
 	// Loop accepting, as it gets interrupted (by SIGCHILD) on
 	// some platforms (MachTen, but not FreeBSD).
 
-	while( ( t = accept( s, reinterpret_cast<struct sockaddr *>(&peer), &lpeer ) ) < 0 )
+	for( ;; )
 	{
-	    if( errno != EINTR )
-	    {
-	        e->Net( "accept", "socket" );
-	        e->Set( MsgRpc::TcpAccept );;
-	        return 0;
-	    }
+		if( keep )
+		{
+			if( !keep->IsAlive() )
+			{
+				e->Set( MsgRpc::Break );
+				delete selector;
+				return 0;
+			}
+			rd = 1;
+			int sr;
+			if( ( sr = selector->Select( rd, wr, 500 ) ) == 0 )
+				continue;
+			if( sr == -1 )
+			{
+				e->Sys( "select", "accept" );
+				delete selector;
+				return 0;
+			}
+		}
+
+		if( ( t = accept( s, reinterpret_cast<struct sockaddr *>(&peer), &lpeer ) ) < 0 )
+		{
+			if( errno != EINTR )
+			{
+				e->Net( "accept", "socket" );
+				e->Set( MsgRpc::TcpAccept );;
+				delete selector;
+				return 0;
+			}
+		}
+		else break;
 	}
 
 # ifdef F_SETFD
@@ -969,6 +999,8 @@ NetTcpEndPoint::Accept( Error *e )
 	// so p4web's launched processes don't get our socket
 	fcntl( t, F_SETFD, 1 );
 # endif
+
+	delete selector;
 
 	NetTcpTransport *transport = new NetTcpTransport( t, true );
 	if( transport )

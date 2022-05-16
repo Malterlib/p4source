@@ -60,6 +60,7 @@ clientReceiveFiles( Client *client, Error *e )
 	StrPtr *blockCount = client->GetVar( P4Tag::v_blockCount );
 	StrPtr *blockSize = client->GetVar( P4Tag::v_scanSize );
 	StrPtr *proxyload = client->GetVar( "proxyload" );
+	StrPtr *proxyverbose = client->GetVar( "proxyverbose" );
 	StrPtr *applicense = client->GetVar( P4Tag::v_app );
 	StrPtr *clientSend = client->GetVar( "clientSend" );
 	StrPtr *confirm = client->GetVar( P4Tag::v_confirm );
@@ -88,6 +89,8 @@ clientReceiveFiles( Client *client, Error *e )
 	    tc[i].args.AddArg( client->GetClient() );
 	    if( proxyload )
 	        tc[i].args.AddArg( "-Zproxyload" );
+	    if( proxyverbose )
+	        tc[i].args.AddArg( "-Zproxyverbose" );
 	    if( applicense )
 	    {
 	        StrBuf appArg; appArg << "-Zapp=" << applicense;

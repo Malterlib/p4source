@@ -12,12 +12,17 @@
 
 # include <stdhdrs.h>
 
+# if defined(OS_NT) && (_MSC_VER >= 1900)
+# include <vcruntime_startup.h>
+# endif
+
 # include <debug.h>
 # include <strbuf.h>
 # include <strdict.h>
 # include <strtable.h>
 # include <strarray.h>
 # include <strops.h>
+# include <splr.h>
 # include <error.h>
 # include <errornum.h>
 # include <options.h>
@@ -49,6 +54,12 @@
 # include "clientuser.h"
 # include "clientuserdbg.h"
 # include "clientusermsh.h"
+# include "clientaliases.h"
+
+# if defined(OS_NT) && (_MSC_VER >= 1900)
+extern "C" errno_t __cdecl _p4_configure_narrow_argv(_crt_argv_mode const mode);
+extern "C" errno_t __cdecl _p4_configure_wide_argv(_crt_argv_mode const mode);
+# endif
 
 /* Ident strings */
 
@@ -137,9 +148,21 @@ static char argv0[ 1024 ];
 
 /* And now main... */
 
+# if defined(OS_NT) && (_MSC_VER >= 1900)
+extern "C" int __p4_argc;
+extern "C" char** __p4_argv;
+# endif
+
 int
 main( int argc, char **argv )
 {
+# if defined(OS_NT) && (_MSC_VER >= 1900)
+	_p4_configure_narrow_argv(_crt_argv_expanded_arguments);
+
+# define argc __p4_argc
+# define argv __p4_argv
+# endif
+
 	/* Error reporting handle */
 
 	Error e;
@@ -155,6 +178,11 @@ main( int argc, char **argv )
 
 	if( uidebug )
 	    printf( "exit: %d\n", ret );
+
+# if defined(OS_NT) && (_MSC_VER >= 1900)
+# undef argc
+# undef argv
+# endif
 
 # ifdef OS_VMS
 	exit( ret );
@@ -193,33 +221,172 @@ ErrorIncludesRPCSubsystem( Error *e )
 	return 0;
 }
 
-int
-clientMain( int argc, char **argv, int &uidebug, Error *e )
-{
-	int result;
-	int restarted = 0;
-	P4DebugConfig debugHelper;
-
-	/* Arg processing */
-
-	StrPtr *s;
-
-	// Parse up options
-
-	Options opts;
-	int longOpts[] = { Options::Client, Options::Batchsize, Options::User,
+static int clientLongOpts[] = { Options::Client,
+	                   Options::Batchsize, Options::User,
 	                   Options::Host, Options::Charset,
 	                   Options::Help, Options::Port, Options::Password,
 	                   Options::CmdCharset, Options::Retries,
 	                   Options::Quiet, Options::Progress,
 	                   Options::MessageType, Options::Directory,
-	                   Options::Variable, Options::Xargs, 0 };
-	opts.ParseLong( argc, argv,
-	        "?b:c:C:d:eE:F:GRhH:M:p:P:l:L:qQ:r#sIu:v:Vx:z:Z:", 
-		longOpts, OPT_ANY, usage, e );
+	                   Options::Variable, Options::Xargs, 
+	                   Options::Aliases, Options::Field, 0 };
+
+static const char *clientOptFlags =
+	"?b:c:C:d:eE:F:GRhH:M:p:P:l:L:qQ:r#sIu:v:Vx:z:Z:"; 
+
+int
+clientMain( int argc, char **argv, int &uidebug, Error *e )
+{
+	int result;
+
+	if( ClientAliases::ProcessAliases( argc, argv, result, e ) )
+	    return result;
+
+	/* Arg processing */
+
+	// Parse up options
+
+	Options opts;
+	clientParseOptions( opts, argc, argv, e );
 
 	if( e->Test() )
 	    return 1;
+
+	return clientRunCommand( argc, argv, opts, 0, uidebug, e );
+}
+
+void
+clientParseOptions( Options &opts, int &argc, StrPtr *&argv, Error *e )
+{
+	opts.ParseLong( argc, argv, clientOptFlags, clientLongOpts,
+		OPT_ANY, usage, e );
+}
+
+void
+clientParseOptions( Options &opts, int &argc, char **&argv, Error *e )
+{
+	opts.ParseLong( argc, argv, clientOptFlags, clientLongOpts,
+		OPT_ANY, usage, e );
+}
+
+void
+clientSetVariables( Client &client, Options &opts )
+{
+	StrPtr *s;
+	if( s = opts[ 'c' ] ) client.SetClient( s );
+	if( s = opts[ 'H' ] ) client.SetHost( s );
+	if( s = opts[ 'L' ] ) client.SetLanguage( s );
+	if( s = opts[ 'd' ] ) client.SetCwd( s );
+	if( s = opts[ 'u' ] ) client.SetUser( s );
+	if( s = opts[ 'p' ] ) client.SetPort( s );
+}
+
+int
+clientPrepareEnv( Client &client, Options &opts, Enviro &enviro )
+{
+	// Misc -E environment updates
+
+	StrPtr *s;
+	StrBufDict envList;
+	StrRef var, val;
+	for ( int i = 0 ; s = opts.GetValue( 'E', i ) ; i++ )
+	    envList.SetVarV( s->Text() );
+
+	// Apply these updates before and after each Config().
+	// Before to make sure we read the right P4CONFIG, and after
+	// to make sure that -E vars override P4CONFIG vars.
+
+	// Create client rpc handle.
+
+	for ( int i = 0 ; envList.GetVar( i, var, val ) ; i++ )
+	    client.GetEnviro()->Update( var.Text(), val.Text() );
+
+	// Locale setting
+
+	// Early setting of cwd to find right P4CONFIG file...
+	if( s = opts[ 'd' ] ) client.SetCwd( s );
+	for ( int i = 0 ; envList.GetVar( i, var, val ) ; i++ )
+	    client.GetEnviro()->Update( var.Text(), val.Text() );
+
+	for ( int i = 0 ; envList.GetVar( i, var, val ) ; i++ )
+	    enviro.Update( var.Text(), val.Text() );
+
+	enviro.Config( client.GetCwd() );
+	for ( int i = 0 ; envList.GetVar( i, var, val ) ; i++ )
+	    enviro.Update( var.Text(), val.Text() );
+
+	const char *lc;
+
+	if( ( s = opts[ 'l' ] ) || ( s = opts[ 'C' ] ) )
+	{
+	    lc = s->Text();
+	}
+	else
+	{
+	    lc = enviro.Get( "P4CHARSET" );
+	}
+
+	if( lc )
+	{
+	    CharSetCvt::CharSet cs = CharSetCvt::Lookup( lc );
+
+	    if( cs == CharSetApi::CSLOOKUP_ERROR )
+	    {
+		// bad charset specification
+		BadCharset();
+		return 1;
+	    }
+	    else
+	    {
+		CharSetCvt::CharSet ws = cs;
+
+		if( ( s = opts[ 'Q' ] ) ||
+		    ( lc = enviro.Get( "P4COMMANDCHARSET" ) ) )
+		{
+		    if( s )
+			lc = s->Text();
+		    cs = CharSetCvt::Lookup( lc, &enviro );
+		    if( (int)cs == -1 )
+		    {
+			printf( "P4COMMANDCHARSET unknown\n" );
+			return 1;
+		    }
+		}
+		if( CharSetApi::Granularity( cs ) != 1 )
+		{
+		    printf( "p4 can not support a wide charset unless\n"
+			    "P4COMMANDCHARSET is set to another charset.\n"
+			    "Attempting to discover a good charset.\n" );
+		    cs = CharSetCvt::Discover( &enviro );
+		    if( cs == -1 )
+		    {
+			printf( "Could not discover a good charset.\n" );
+			return 1;
+		    }
+		}
+		client.SetTrans( cs, ws, cs, cs );
+
+		for ( int i = 0 ; envList.GetVar( i, var, val ) ; i++ )
+		     client.GetEnviro()->Update( var.Text(), val.Text() );
+	    }
+	}
+	return 0;
+}
+
+int
+clientRunCommand(
+	int argc,
+	char **argv,
+	Options &opts,
+	ClientUser *callerUI,
+	int &uidebug,
+	Error *e )
+{
+	StrPtr *s;
+	int result;
+	int restarted = 0;
+	P4DebugConfig debugHelper;
+
 
 	// Blast out message.
 
@@ -288,102 +455,14 @@ clientMain( int argc, char **argv, int &uidebug, Error *e )
 	        return clientTrustHelp( e );
 	}
 
-	// Misc -E environment updates
-
-	StrBufDict envList;
-	StrRef var, val;
-	for ( int i = 0 ; s = opts.GetValue( 'E', i ) ; i++ )
-	    envList.SetVarV( s->Text() );
-
-	// Apply these updates before and after each Config().
-	// Before to make sure we read the right P4CONFIG, and after
-	// to make sure that -E vars override P4CONFIG vars.
-
-	// Create client rpc handle.
-
 	Client client;
-	for ( int i = 0 ; envList.GetVar( i, var, val ) ; i++ )
-	    client.GetEnviro()->Update( var.Text(), val.Text() );
-
-	// Locale setting
-
-	// Early setting of cwd to find right P4CONFIG file...
-	if( s = opts[ 'd' ] ) client.SetCwd( s );
-	for ( int i = 0 ; envList.GetVar( i, var, val ) ; i++ )
-	    client.GetEnviro()->Update( var.Text(), val.Text() );
-
 	Enviro enviro;
-	for ( int i = 0 ; envList.GetVar( i, var, val ) ; i++ )
-	    enviro.Update( var.Text(), val.Text() );
-
-	const char *lc;
-
-	enviro.Config( client.GetCwd() );
-	for ( int i = 0 ; envList.GetVar( i, var, val ) ; i++ )
-	    enviro.Update( var.Text(), val.Text() );
-
-	if( ( s = opts[ 'l' ] ) || ( s = opts[ 'C' ] ) )
-	{
-	    lc = s->Text();
-	}
-	else
-	{
-	    lc = enviro.Get( "P4CHARSET" );
-	}
-
-	if( lc )
-	{
-	    CharSetCvt::CharSet cs = CharSetCvt::Lookup( lc );
-
-	    if( cs == CharSetApi::CSLOOKUP_ERROR )
-	    {
-		// bad charset specification
-		BadCharset();
-		return 1;
-	    }
-	    else
-	    {
-		CharSetCvt::CharSet ws = cs;
-
-		if( ( s = opts[ 'Q' ] ) ||
-		    ( lc = enviro.Get( "P4COMMANDCHARSET" ) ) )
-		{
-		    if( s )
-			lc = s->Text();
-		    cs = CharSetCvt::Lookup( lc, &enviro );
-		    if( (int)cs == -1 )
-		    {
-			printf( "P4COMMANDCHARSET unknown\n" );
-			return 1;
-		    }
-		}
-		if( CharSetApi::Granularity( cs ) != 1 )
-		{
-		    printf( "p4 can not support a wide charset unless\n"
-			    "P4COMMANDCHARSET is set to another charset.\n"
-			    "Attempting to discover a good charset.\n" );
-		    cs = CharSetCvt::Discover( &enviro );
-		    if( cs == -1 )
-		    {
-			printf( "Could not discover a good charset.\n" );
-			return 1;
-		    }
-		}
-		client.SetTrans( cs, ws, cs, cs );
-
-		for ( int i = 0 ; envList.GetVar( i, var, val ) ; i++ )
-		     client.GetEnviro()->Update( var.Text(), val.Text() );
-	    }
-	}
+	if( clientPrepareEnv( client, opts, enviro ) )
+	    return 1;
 
 	// Get command line overrides of user, client, cwd, port
 	
-	if( s = opts[ 'c' ] ) client.SetClient( s );
-	if( s = opts[ 'H' ] ) client.SetHost( s );
-	if( s = opts[ 'L' ] ) client.SetLanguage( s );
-	if( s = opts[ 'd' ] ) client.SetCwd( s );
-	if( s = opts[ 'u' ] ) client.SetUser( s );
-	if( s = opts[ 'p' ] ) client.SetPort( s );
+	clientSetVariables( client, opts );
 	if( s = opts[ 'P' ] )
 	{
 	    client.SetPassword( s );
@@ -404,7 +483,7 @@ clientMain( int argc, char **argv, int &uidebug, Error *e )
 
 	// -G or -R implies -Z tag -Z sendspec
 
-	if( opts[ 'G' ] || opts[ 'R' ] )
+	if( opts[ 'G' ] || opts[ 'R' ] || opts[ Options::Field ] )
 	{
 	    client.SetProtocol( P4Tag::v_tag );
 	    client.SetProtocol( P4Tag::v_specstring );
@@ -419,10 +498,13 @@ clientMain( int argc, char **argv, int &uidebug, Error *e )
 	// handle streams (i.e. don't change this).
 	// Ignore above,  unfortunately there are other api's using the
 	// magic 99999,  although there is server support to prevent this
-	// we shall enable streams here for future gratification.
+	// we shall enable streams here for older servers.
+	// The commandline client just prints to console, so the many-to-many
+	// relationship of &-maps wont break it.
 
 	client.SetProtocol( P4Tag::v_api, "99999" );
 	client.SetProtocol( P4Tag::v_enableStreams );
+	client.SetProtocol( P4Tag::v_expandAndmaps );
 
 	// Set the client program name
 	client.SetProg( "p4" );
@@ -441,12 +523,16 @@ clientMain( int argc, char **argv, int &uidebug, Error *e )
 
 	ClientUser *ui;
 
+	if( !( ui = callerUI ) ) {
+
 	if( opts[ 's' ] )
 	    ui = new ClientUserDebug;
 	else if( opts[ 'e' ] )
 	    ui = new ClientUserDebugMsg;
 	else if( opts[ 'F' ] )
 	    ui = new ClientUserFmt( opts[ 'F' ] );
+	else if( opts[ Options::Field ] )
+	    ui = new ClientUserMunge( opts );
 	else if( opts[ 'G' ] )
 	    ui = new ClientUserPython;
 	else if( opts[ 'R' ] )
@@ -458,12 +544,14 @@ clientMain( int argc, char **argv, int &uidebug, Error *e )
 	else if( ( s = opts[ 'M' ] ) && ( *s == "p" ) )
 	    ui = new ClientUserPhp;
 	else if( opts[ 'I' ] )
-	    ui = new ClientUserProgress;
+	    ui = new ClientUserProgress( 1 );
 	else
-	    ui = new ClientUser;
+	    ui = new ClientUser( 1 );
 
 	if( opts[ 'q' ] )
 	    ui->SetQuiet();
+
+	}
 
 	// Invoke operation in server:
 	//	if not -x, bundle up argv and send it on down.
@@ -474,6 +562,9 @@ clientMain( int argc, char **argv, int &uidebug, Error *e )
 	if( !( xargsName = opts[ 'x' ] ) )
 	{
 	    // Normal invocation.
+
+	    if( ui->CanAutoLoginPrompt() )
+		client.SetVarV( P4Tag::v_autoLogin );
 
 	    setVarsAndArgs( client, argc, argv, opts );
 	    client.Run( argv[0], ui );
@@ -532,9 +623,9 @@ clientMain( int argc, char **argv, int &uidebug, Error *e )
 	    xf->Close( e );
 	    delete xf;
 	}
-	else
+	else if( (*xargsName) != "<" )       
 	{
-	    // -x invocation
+	    // -x [file] invocation
 
 	    StrBuf s;
 	    FileSys *xf = FileSys::Create( FST_TEXT );
@@ -584,11 +675,38 @@ clientMain( int argc, char **argv, int &uidebug, Error *e )
 	    xf->Close( e );
 	    delete xf;
 	}
+	else                         // -x - from an alias chain
+	{
+	    StrBuf s;
+	    int eof = 0;
+	    int count = 0;
+
+	    StrBuf data;
+	    ui->InputData( &data, e );
+	    StrPtrLineReader splr( &data );
+
+	    while( !e->Test() && !client.Dropped() && !eof )
+	    {
+		if( !( eof = !splr.GetLine( &s ) ) )
+		{
+		    if( !count )
+			setVarsAndArgs( client, argc, argv, opts );
+		    client.translated->SetVar( "", &s );
+		}
+
+		if( eof ? count : ++count == batchSize )
+		{
+		    client.Run( argv[0], ui );
+		    count = 0;
+		}
+	    }
+	}
 
 	// Since we only did sync Client::Run() calls, the ui should
 	// no longer be necessary.
 
-	delete ui;
+	if( !callerUI )
+	    delete ui;
 
 	// Close and clean.
 

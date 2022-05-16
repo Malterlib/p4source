@@ -28,13 +28,15 @@
  * mapFlagGrid -- how to combine two mapFlags
  */
 
-MapFlag mapFlagGrid[4][4] = {
+MapFlag mapFlagGrid[6][6] = {
 
-		/* Map */	/* Unmap */	/* Remap */	/* Havemap */
-/* Map */	MfMap,		MfUnmap,	MfRemap,	MfHavemap,
-/* Unmap */	MfUnmap,	MfUnmap,	MfUnmap,	MfUnmap,
-/* Remap */	MfRemap,	MfUnmap,	MfRemap,	MfHavemap,
-/* Havemap */	MfHavemap,	MfUnmap,	MfHavemap,	MfHavemap,
+		/* Map */	/* Unmap */	/* Remap */	/* Havemap */	/* Changemap */	/* Andmap */
+/* Map */	MfMap,		MfUnmap,	MfRemap,	MfHavemap,	MfChangemap,	MfAndmap,
+/* Unmap */	MfUnmap,	MfUnmap,	MfUnmap,	MfUnmap,	MfUnmap,	MfUnmap,
+/* Remap */	MfRemap,	MfUnmap,	MfRemap,	MfHavemap,	MfChangemap,	MfAndmap,
+/* Havemap */	MfHavemap,	MfUnmap,	MfHavemap,	MfHavemap,	MfHavemap,	MfAndmap,
+/* Changemap */	MfChangemap,	MfUnmap,	MfChangemap,	MfHavemap,	MfChangemap,	MfAndmap,
+/* Andmap */	MfAndmap,	MfUnmap,	MfAndmap,	MfAndmap,	MfChangemap,	MfAndmap,
 
 } ;
 
@@ -306,8 +308,11 @@ MapTable::Disambiguate()
 	    // unmap to the extent that the unmap lines match lower
 	    // precedence map lines.  We do that below.
 
-	    if( j.map->Flag() == MfUnmap )
+	    switch( j.map->Flag() )
+	    {
+	    case MfUnmap:
 		continue;
+	    }
 
 	    // Look for higher precedence mappings that match (join)
 	    // this mapping, and to the extent that they overlap add 
@@ -321,8 +326,18 @@ MapTable::Disambiguate()
 		 j.map2 != j.map;
 		 j.map2 = j.map2->Next() )
 	    {
-		if( j.map2->Flag() != MfRemap && j.map2->Flag() != MfHavemap )
+		switch( j.map2->Flag() )
 		{
+		case MfRemap:
+		case MfHavemap:
+		    break;
+
+		case MfAndmap:
+		    j.map2->Lhs()->Join( j.map2->Rhs(), j );
+		    j.map2->Rhs()->Join( j.map->Rhs(), j );
+		    break;
+
+		default:
 		    j.map2->Lhs()->Join( j.map->Lhs(), j );
 		    j.map2->Rhs()->Join( j.map->Rhs(), j );
 		}

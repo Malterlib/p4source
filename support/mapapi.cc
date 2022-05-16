@@ -61,6 +61,8 @@ MapType MapApi::GetType( int i )
 		return MapExclude;
 	case MfRemap:
 		return MapOverlay;
+	case MfAndmap:
+		return MapOneToMany;
 	}
 
 	// We should never get to this point, since we should never be

@@ -51,6 +51,7 @@ class MsgLbr {
 	static ErrorId LbrOpenFail;
 	static ErrorId AlreadyOpen;
 	static ErrorId BadKeyword;
+	static ErrorId KeywordUnterminated;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

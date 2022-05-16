@@ -23,7 +23,7 @@ P4Library $(SUPPORTLIB) :
 	filesys.cc
 	filetmp.cc
 	hostenv.cc
-	lockfile.cc
+	fdutil.cc
 	pathmac.cc
 	pathnt.cc
 	pathunix.cc

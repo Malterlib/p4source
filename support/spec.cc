@@ -175,10 +175,20 @@ Spec::Parse( const char *buf, SpecData *data, Error *e, int validate )
 
 	SpecParse parser( buf );
 
-	// main loop: parse TAG & values
-
-	while( ( r = parser.GetToken( 0, &tag, e ) ) == SR_TAG )
+	for( ;; )
 	{
+	    // main loop: parse TAG & values
+
+	    r = parser.GetToken( 0, &tag, e );
+
+	    // toss comment outside of a tag
+
+	    if( r == SR_COMMENT || r == SR_COMMENT_NL )
+	        continue;
+
+	    if( r != SR_TAG )
+	        break;
+
 	    SpecElem *de;
 	    
 	    // Look up tag in Spec Definition.
@@ -193,6 +203,18 @@ Spec::Parse( const char *buf, SpecData *data, Error *e, int validate )
 		// Create a space for the text.
 
 		r = parser.GetToken( de->IsText(), &value, e );
+
+	        if( r == SR_COMMENT )
+	        {
+		    data->SetComment( de, counts[ de->index ]++, &value, 0, e );
+	            continue;
+	        }
+
+	        if( r == SR_COMMENT_NL )
+	        {
+		    data->SetComment( de, counts[ de->index ]++, &value, 1, e );
+	            continue;
+	        }
 
 		if( r != SR_VALUE )
 		    break;
@@ -306,9 +328,27 @@ Spec::Format( SpecData *data, StrBuf *s )
 
 		while( v )
 		{
+		    // 2016.2 Handle comments:  
+		    // Comments can be
+		    // (1) Single line ( v->Length() == 0 )
+		    // (2) Appended ( v->Length() > 0 && fmt:C )
+
+		    while( v && !c && !v->Length() )
+		        v = data->GetLine( d, ++j, &c );
+		    if( !v )
+		        break;
+
 		    *s << "\t" << v;
-		    if( c ) *s << "\t# " << c;
+
+		    if( c && v->Length() && ( d->fmt == SDF_COMMENT ) )
+		        *s << "\t##" << c;
+		    else if( c && v->Length() ) 
+		        *s << "\t# " << c;
+		    else if( c ) 
+		        *s << "##" << c;
+
 		    *s << "\n";
+
 		    v = data->GetLine( d, ++j, &c );
 		}
 		break;

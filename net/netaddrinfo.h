@@ -21,6 +21,12 @@
 class NetAddrInfo
 {
 public:
+	enum SockType
+	{
+	    SockTypeStream,
+	    SockTypeDatagram
+	};
+
 	NetAddrInfo(
 	    const StrPtr &hostname,
 	    const StrPtr &portname);
@@ -38,6 +44,12 @@ public:
 
 	void
 	SetHintsFlags(int flags);
+
+	SockType
+	GetHintsSockType() const;
+
+	void
+	SetHintsSockType(SockType type);
 
 	bool
 	GetInfo(Error *e);

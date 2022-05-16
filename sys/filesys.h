@@ -270,6 +270,10 @@ class FileSys {
  
 	virtual void    SetCacheHint() { cacheHint = 1; } 
 
+	// RmDir() should not erase your cwd (mainly for DVCS)
+
+	void		PreserveCWD() { preserveCWD = 1; }
+
 	// Initialize digest
 
 	virtual void	SetDigest( MD5 *m );
@@ -359,8 +363,8 @@ class FileSys {
 	void		MakeGlobalTemp();
 	virtual void	MakeLocalTemp( char *file );
 	int		IsDeleteOnClose() { return isTemp; }
-	void		SetDeleteOnClose() { isTemp = 1; }
-	void		ClearDeleteOnClose() { isTemp = 0; }
+	virtual void	SetDeleteOnClose() { isTemp = 1; }
+	virtual void	ClearDeleteOnClose() { isTemp = 0; }
 
 	// Meta operations
 
@@ -368,6 +372,7 @@ class FileSys {
 
 	virtual void	MkDir( const StrPtr &p, Error *e );
 	void		MkDir( Error *e ) { MkDir( path, e ); }
+	bool		NeedMkDir();
 
 	virtual void	PurgeDir( const char *p, Error *e );
 	virtual void	RmDir( const StrPtr &p, Error *e );
@@ -426,6 +431,7 @@ class FileSys {
 	void		TempName( char *buf );
 
 	int		isTemp;
+	int		preserveCWD;
 
 	int		charSet;
 	int		content_charSet;

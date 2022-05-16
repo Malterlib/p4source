@@ -77,6 +77,7 @@
  *	  fmt:L		left half only
  *	  fmt:R		right half only; if follows L goes on same line
  *	  fmt:I		indented
+ *	  fmt:C		appended comment (not used for p4win)
  *
  * Class Defined:
  *
@@ -147,7 +148,8 @@ enum SpecFmt {
 	SDF_NORMAL,	// no hint given
 	SDF_LEFT,  	// left half only
 	SDF_RIGHT,	// right half only; if follows LEFT goes on same line
-	SDF_INDENT	// indented
+	SDF_INDENT,	// indented
+	SDF_COMMENT	// append comment to list
 } ;
 
 enum SpecOpen {
@@ -331,6 +333,8 @@ class SpecData {
 	virtual StrPtr *GetLine( SpecElem *sd, int x, const char **cmt );
 	virtual void	SetLine( SpecElem *sd, int x, const StrPtr *val,
 				Error *e );
+	virtual void	SetComment( SpecElem *sd, int x, const StrPtr *val,
+				int nl, Error *e );
 
 	// This interface has words-oriented lines split apart.
 	// The const version casts and calls the non-const version,
@@ -340,9 +344,11 @@ class SpecData {
 
 	virtual int 	Get( SpecElem *sd, int x, const char **wv, const char **cmt );
 	virtual void	Set( SpecElem *sd, int x, const char **wv, Error *e );
+	virtual void	Comment( SpecElem *sd, int x, const char **wv, int nl, Error *e );
 
 	virtual int 	Get( SpecElem *sd, int x, char **wv, char **cmt );
 	virtual void	Set( SpecElem *sd, int x, char **wv, Error *e );
+	virtual void	Comment( SpecElem *sd, int x, char **wv, int nl, Error *e );
 
     protected:
 
@@ -359,6 +365,8 @@ class SpecDataTable : public SpecData {
 	virtual StrPtr *GetLine( SpecElem *sd, int x, const char **cmt );
 	virtual void	SetLine( SpecElem *sd, int x, const StrPtr *val,
 				Error *e );
+	virtual void	SetComment( SpecElem *sd, int x, const StrPtr *val,
+				int nl, Error *e );
 
 	StrDict *	Dict() { return table; }
 
@@ -366,6 +374,7 @@ class SpecDataTable : public SpecData {
 
 	int		privateTable;
 	StrDict		*table;
+	StrBuf		empty;
 
 } ;
 

@@ -84,6 +84,11 @@ FileSys::GetDiskSpace( DiskSpaceInfo *info, Error *e )
 	    return;
 	}
 	info->fsType->Set( fsName );
+	info->usedBytes = info->totalBytes - info->freeBytes;
+	double usage = 1.0;
+	if( info->totalBytes > 0 )
+	    usage = (double)info->usedBytes / (double)info->totalBytes;
+	info->pctUsed = (int)( usage * 100 );
 # else
 	if( !strchr( Name(), '/' ) )
 	{
@@ -106,19 +111,27 @@ FileSys::GetDiskSpace( DiskSpaceInfo *info, Error *e )
 	}
 
 	info->blockSize = df.f_frsize;
-	info->freeBytes  = (P4INT64) ( (double) df.f_frsize * df.f_bavail );
+	info->freeBytes  = (P4INT64) ( (double) df.f_frsize * df.f_bfree  );
 	info->totalBytes = (P4INT64) ( (double) df.f_frsize * df.f_blocks );
+	info->usedBytes  = info->totalBytes - info->freeBytes;
+	info->freeBytes  = (P4INT64) ( (double) df.f_frsize * df.f_bavail );
+	double usage = 1.0;
+	if( info->totalBytes > 0 )
+	    usage = (double)info->usedBytes /
+	            (double)(info->usedBytes + info->freeBytes);
+	info->pctUsed = (int)( usage * 100 );
+
+	// Note that used + free may not equal total, and also note that
+	// used/total does not match pctUsed. This is because
+	// the filesystem may also have 'reserved' space, which is
+	// available only to privileged users, and we are attemptint
+	// to return the non-privileged information, like df does.
 
 # ifdef HAVE_STATVFS_BASETYPE
 	info->fsType->Set( df.f_basetype );
 # endif
 
 # endif
-	info->usedBytes = info->totalBytes - info->freeBytes;
-	double usage = 1.0;
-	if( info->totalBytes > 0 )
-	    usage = (double)info->usedBytes / (double)info->totalBytes;
-	info->pctUsed = (int)( usage * 100 );
 
 # ifdef HAVE_STATFS
 	struct statfs sys_fs;

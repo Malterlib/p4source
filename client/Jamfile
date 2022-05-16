@@ -22,6 +22,7 @@ LinkLibraries p4 :
 
 P4Library $(CLIENTLIB) : 
 	client.cc
+	clientaliases.cc
 	clientapi.cc
 	clientenv.cc
 	clienti18n.cc

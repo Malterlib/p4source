@@ -8,6 +8,7 @@
  * strings.cc - support for StrBuf, StrPtr
  */
 
+# define CHARHASH(h, c) ( 293 * (h) + (c) );
 # define NEED_QUOTE
 
 # include <stdhdrs.h>
@@ -261,6 +262,36 @@ StrOps::Replace( StrBuf &o, const StrPtr &i, const StrPtr &s, const StrPtr &r )
 	    o.Append( start );
 }
 
+/*
+ * StrOps::ReplaceWild() - Replace '*' with '...' but sometimes
+ *                         %%1...  if previous character is '.'
+ */
+
+void
+StrOps::ReplaceWild( StrBuf &o, const StrPtr &i )
+{
+	const char *n = "123456789";
+	char	*start, *end;
+	int     j = 0;
+
+	o.Clear();
+	start = i.Text();
+	while ( end = strstr( start, "*" ) )
+	{
+	    o.Append( start, end - start );
+	    if( end > start && *(end - 1) == '.' )
+	    {
+	        o.Append( "%%" );
+	        o.Append( n + j, 1 );
+	    	if( ++j >= 9)
+	            j = 0;
+	    }
+	    o.Append( "..." );
+	    start +=  end - start + 1;
+	}
+	if ( *start )
+	    o.Append( start );
+}
 
 /*
  * StrBuf::Expand() - expand a string doing %var%, %x substitutions
@@ -605,6 +636,12 @@ void
 StrOps::StrToWild( const StrPtr &i, StrBuf &o )
 {
 	// expand %x character back to '@#*%'
+	StrToWild( i, o, "@#%*" );
+}
+
+void
+StrOps::StrToWild( const StrPtr &i, StrBuf &o, const char *t )
+{
 
 	o.Clear();
 
@@ -633,9 +670,9 @@ StrOps::StrToWild( const StrPtr &i, StrBuf &o )
 
 	        b[0] = ( XtoO( p[1] ) << 4 ) | ( XtoO( p[2] ) << 0 );
 
-	        // Only translate the @#%* wildcards
+	        // Only translate the wildcards in *t
 
-	        if( b[0] == '@' || b[0] == '#' || b[0] == '%' || b[0] == '*' )
+	        if( strchr( t, b[0] ) )
 	            o.Append( b, 1 );
 	        else
 	            o.Append( p, 3 );
@@ -1345,4 +1382,14 @@ StrOps::LFtoCRLF( const StrBuf *in, StrBuf *out )
         }
 
         out->Terminate();
+}
+
+unsigned int
+StrOps::HashStringToBucket( const StrPtr &in, int buckets )
+{
+	unsigned int tot = 0;
+	unsigned char *s = (unsigned char *)in.Text();
+	for( int i = 0; i<in.Length(); ++i )
+	    tot = CHARHASH( tot, *s++ );
+	return( tot%buckets );
 }

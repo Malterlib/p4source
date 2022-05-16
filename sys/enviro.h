@@ -38,16 +38,17 @@ class Enviro {
 			Enviro();
 			~Enviro();
 
+	// Enties at the top (lower numbers) take precedence over those below
 	enum ItemType { 
-		NEW,	// not looked up yet
-		UNSET,	// looked up and is empty
 		UPDATE,	// set via the Update call
-		ENV,	// set in environment
 		CONFIG,	// via P4CONFIG
-		ENVIRO,	// P4ENVIRO file
-		SVC,	// set in service-specific registry
-		USER,	// set in user registry
-		SYS 	// set is machine registry
+		SVC,	// set in service-specific registry (NT only)
+		ENV,	// set in environment
+		ENVIRO,	// P4ENVIRO file (set on UNIX)
+		USER,	// set in user registry (NT only) (set on NT)
+		SYS,	// set is machine registry (NT only)
+		UNSET,	// looked up and is empty
+		NEW	// not looked up yet
 	};
 
 	int		BeServer( const StrPtr *name = 0, int checkName = 0 );

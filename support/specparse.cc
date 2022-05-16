@@ -157,6 +157,7 @@ SpecParse::GetToken(
 {
 	const char *start = c.p, *end = c.p;
 	const char *eol = 0;
+	addNewLine = 0;
 
 	if( isTextBlock )
 	{
@@ -166,6 +167,11 @@ SpecParse::GetToken(
 
 	for(;;)
 	{
+	    // Start of ':', comments are single line
+
+	    if( state == stU )
+	        ++addNewLine;
+
 	    // For text blocks, skip into block mode
 
 	    if( isTextBlock && state == stU ) 
@@ -200,9 +206,21 @@ SpecParse::GetToken(
 		break;
 
 	    case aC: // comment
-		while( c.cc != cEOS && c.cc != cNL )
-		    c.Advance();
-		break;
+		if( c.cc == cEOS || c.cc == cNL )
+	            break;
+	        c.Advance();
+	        if( c.cc == cPOUND )
+	        {
+	            while( c.cc != cEOS && c.cc != cNL )
+	                c.Advance();
+	            end = c.p;
+	            value->Set( start, end - start );
+	            return addNewLine ? SR_COMMENT_NL
+	                              : SR_COMMENT;
+	        }
+	        while( c.cc != cEOS && c.cc != cNL )
+	            c.Advance();
+	        break;
 
 	    case aD: // done with values
 		return isTextBlock ? SR_VALUE : SR_DONEV;
@@ -219,6 +237,7 @@ SpecParse::GetToken(
 
 	    case aN: // add newline
 		c.Advance();
+		++addNewLine;
 		if( isTextBlock )
 		    ++savedBlankLines;
 		continue;

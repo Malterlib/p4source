@@ -144,6 +144,7 @@ class Options
 			FileCharset    , // add/edit -Q
 			Virtual        , // delete -v
 			Generate       , // server -g
+			Configure      , // server -c
 			Usage          , // license -u
 			Job            , // fixes -j
 			Increment      , // counter -i
@@ -179,6 +180,7 @@ class Options
 			UseList        , // sync -L, fstat -L
 			Safe           , // sync -s
 			Publish        , // sync -p
+			ForceDelete    , // group -F/user -F
 			IsGroup        , // groups -g
 			IsUser         , // groups -u
 			IsOwner        , // groups -o
@@ -271,6 +273,7 @@ class Options
 			ReplicationStatus, // servers --replication-status, servers -J
 	                DepotType     , // depot -t
 	                Users         , // annotate -u
+			Tab           , // annotate -T
 
 		// options which have only long-form option names go here:
 
@@ -292,6 +295,12 @@ class Options
 			JavaProtocol   , // p4d -i --java
 			PullBatch      , // pull -u --batch=N
 			EnableDVCSTriggers, // unzip --enable-dvcs-triggers
+			ConvertAdminComments, // --convert-p4admin-comments
+			RemoteSpec     , // --remote
+			P4UserUser     , // --me
+			Aliases        , // --aliases
+			Field          , // --field
+	                LicenseInfo,
 
 			UnusedLastOption
 	} ;

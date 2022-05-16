@@ -70,7 +70,7 @@ class NetTcpEndPoint : public NetEndPoint {
 	virtual void	MoreSocketSetup( int fd, AddrType type, Error *e );
 
 	NetTransport *	Connect( Error *e );
-	NetTransport *	Accept( Error *e );
+	NetTransport *	Accept( KeepAlive *, Error *e );
 
 	int		IsSingle() { return 0; }
 

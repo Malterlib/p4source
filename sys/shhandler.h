@@ -40,6 +40,8 @@ class SHHandler {
 
 	void ReportLeakage( int ckpt1, int ckpt2 );
 
+	void MemCheckAll ();
+
 	void ListAllPools( const char *tag,
 			    unsigned int detail );
 

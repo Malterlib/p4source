@@ -23,7 +23,7 @@
 # include <charset.h>
 # include <i18napi.h>
 # include <charcvt.h>
-# include <lockfile.h>
+# include <fdutil.h>
 # include <largefile.h>
 
 # include <share.h>
@@ -1251,13 +1251,33 @@ FileIO::Rename( FileSys *target, Error *e )
 void
 FileIO::Unlink( Error *e )
 {
-	// yeech - must be writable to remove
-
 	if( *Name() )
+	{
+	    // yeech - must be writable to remove
 	    nt_chmod( Path(), PERM_0666  & ~global_umask, DOUNICODE, LFN );
 
-	if( *Name() && nt_unlink( Path(), DOUNICODE, LFN ) < 0 && e )
-	    e->Sys( "unlink", Name() );
+	    if( nt_unlink( Path(), DOUNICODE, LFN ) < 0)
+	    {
+		// Special handling for momentarily busy executable file.
+		// All other errors will not invoke retries.
+		if( errno == EACCES )
+		{
+		    int renameMax  = p4tunable.Get( P4TUNE_SYS_RENAME_MAX );
+		    int renameWait = p4tunable.Get( P4TUNE_SYS_RENAME_WAIT );
+
+		    for( int i=0; i < renameMax; ++i )
+		    {
+			msleep( renameWait );
+
+			if( nt_unlink( Path(), DOUNICODE, LFN ) >= 0 )
+			    return;
+		    }
+		}
+
+		if( e && ! e->Test() )
+		    e->Sys( "unlink", Name() );
+	    }
+	}
 }
 
 // Caller must free the memory.
@@ -1364,8 +1384,8 @@ FileIO::Truncate( Error *e )
 	// then open O_TRUNC.
 	
 	int fd;
-	if( ( fd = nt_open( Path(), O_WRONLY|O_TRUNC, PERM_0666,
-				DOUNICODE, LFN ) ) >= 0 )
+	if( ( fd = checkFd( nt_open( Path(), O_WRONLY|O_TRUNC, PERM_0666,
+				DOUNICODE, LFN ) ) ) >= 0 )
 	{
 	    close( fd );
 	    return;
@@ -1728,6 +1748,10 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 	// Get bits for (binary) open
 
 	int bits = openModes[ mode ].bflags;
+	
+	// Reset the isStd flag
+
+	isStd = 0;
 
 	// Handle exclusive open (must not already exist)
 
@@ -1762,8 +1786,10 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 		fflush( stdout );
 
 	    fd = openModes[ mode ].standard;
+            checkStdio( fd );
+	    isStd = 1;
 	}
-	else if( (fd = nt_open( Path(), bits, PERM_0666, DOUNICODE, LFN )) <0 )
+	else if( (fd = checkFd( nt_open( Path(), bits, PERM_0666, DOUNICODE, LFN ) ) ) <0 )
 	{
 	    e->Sys( openModes[ mode ].modeName, Name() );
 # ifdef O_EXCL
@@ -1821,15 +1847,21 @@ FileIOAppend::Open( FileOpenMode mode, Error *e )
 	// Save mode for write, close
 
 	this->mode = mode;
+	
+	// Reset the isStd flag
+
+	isStd = 0;
 
 	// open stdin/stdout or real file
 
 	if( Name()[0] == '-' && !Name()[1] )
 	{
 	    fd = openModes[ mode ].standard;
+            checkStdio( fd );
+	    isStd = 1;
 	}
-	else if( ( fd = nt_open( Path(), openModes[ mode ].aflags,
-				PERM_0666, DOUNICODE, LFN ) ) < 0 )
+	else if( ( fd = checkFd( nt_open( Path(), openModes[ mode ].aflags,
+				PERM_0666, DOUNICODE, LFN ) ) ) < 0 )
 	{
 	    e->Sys( openModes[ mode ].modeName, Name() );
 	}

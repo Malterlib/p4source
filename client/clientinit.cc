@@ -36,8 +36,8 @@ static ErrorId cloneHelp = { ErrorOf( 0, 0, E_INFO, 0, 0),
 "\n"
 "	clone -- Clone a new personal server from a shared server\n"
 "\n"
-"	p4 [-u user][-d dir][-c client] clone [-m depth -v] -p port -r remote\n"
-"	p4 [-u user][-d dir][-c client] clone [-m depth -v] -p port -f file\n"
+"	p4 [-u user][-d dir][-c client] clone [-m depth -v -p port] -r remote\n"
+"	p4 [-u user][-d dir][-c client] clone [-m depth -v -p port] [-f] file\n"
 "\n"
 "	This command initializes a new Perforce repository in the current\n"
 "	directory (or the directory specified by the -d flag).\n"
@@ -56,7 +56,8 @@ static ErrorId cloneHelp = { ErrorOf( 0, 0, E_INFO, 0, 0),
 "	specified revisions of each file are fetched.\n"
 "\n"
 "	The -p flag specifies the address of the target server you wish\n"
-"	to clone from.\n"
+"	to clone from, overriding the value of $P4PORT in the environment\n"
+"	and the default (perforce:1666).\n"
 "\n"
 "	The -r flag specifies a remote spec installed on the remote server\n"
 "	to use as a template for the clone and stream setup. See 'p4 help\n"
@@ -136,7 +137,7 @@ static ErrorId initUsage = { ErrorOf( 0, 0, E_FAILED, 0, 0),
 };
 
 static ErrorId cloneUsage = { ErrorOf( 0, 0, E_FAILED, 0, 0),
-	"Usage: p4 [-u user][-d dir][-c client] clone -p <port> [-m depth -v][-r <remote> | -f filespec]\n"
+	"Usage: p4 [-u user][-d dir][-c client] clone [-p <port>] [-m depth -v][-r <remote> | [-f] filespec]\n"
 	"\tUse p4 clone -h for detailed help."
 };
 
@@ -384,7 +385,7 @@ clientInitClone( int ac, char **av, Options &preops, Error *e )
 
 	int longOpts[] = { Options::Help, Options::Quiet, 0 };
 
-	opts.ParseLong( ac, av, "Ahp:r:f:m#v", longOpts, OPT_NONE, cloneUsage,
+	opts.ParseLong( ac, av, "Ahp:r:f:m#v", longOpts, OPT_OPT, cloneUsage,
 	                e );
 
 	if( e->Test() )
@@ -393,9 +394,24 @@ clientInitClone( int ac, char **av, Options &preops, Error *e )
 	if( opts[ 'h' ] )
 	    return clientInitHelp( 1, e );
 
-	if( ( !opts['p'] ) ||
-	    (  opts['r'] &&  opts['f'] ) ||
-	    ( !opts['r'] && !opts['f'] ) )
+	StrPtr *remoteSpec = opts[ 'r' ];
+	StrPtr *fileSpec   = opts[ 'f' ];
+	StrBuf filePattern;
+
+	if( ( fileSpec || remoteSpec ) && ac )
+	{
+	    e->Set( cloneUsage );
+	    return 1;
+	}
+
+	if( !fileSpec && ac )
+	{
+	    filePattern.Set( av[0] );
+	    fileSpec = &filePattern;
+	}
+
+	if( (  remoteSpec &&  fileSpec ) ||
+	    ( !remoteSpec && !fileSpec ) )
 	        e->Set( cloneUsage );
 	
 	if( e->Test() )
@@ -440,10 +456,10 @@ clientInitClone( int ac, char **av, Options &preops, Error *e )
 	}
 	
 	// Get the remote, or build our own
-	if( opts['r'] )
-	    ruser.LoadRemote( port, opts['r'], &cuser, &e1 );
-	if( opts['f'] )
-	    ruser.MakeRemote( port, opts['f'], &cuser, &e1 );
+	if( remoteSpec )
+	    ruser.LoadRemote( port, remoteSpec, &cuser, &e1 );
+	if( fileSpec )
+	    ruser.MakeRemote( port, fileSpec, &cuser, &e1 );
 
 	if( ruser.GotError() )
 	{

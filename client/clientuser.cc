@@ -845,3 +845,15 @@ ClientUser::SetQuiet()
 {
 	quiet = 1;
 }
+
+int
+ClientUser::CanAutoLoginPrompt()
+{
+	// Only allow auto login prompting if:
+	
+	return autoLogin               &&     // it's enabled in the clientuser
+	    !quiet                     &&     // clientuser isn't in quiet mode
+	    isatty( fileno( stdin ) )  &&     // all STDIO pipes are tty's
+	    isatty( fileno( stdout ) ) &&
+	    isatty( fileno( stderr ) ) ? 1 : 0;
+}

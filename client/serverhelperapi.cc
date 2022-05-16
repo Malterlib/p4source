@@ -149,6 +149,13 @@ ServerHelperApi::SetDefaultStream( const StrPtr *s, Error *e )
 	server->SetDefaultStream( s, e );
 }
 
+void
+ServerHelperApi::SetDefaultStream( const char *s, Error *e )
+{
+	StrRef stream( s );
+	server->SetDefaultStream( &stream, e );
+}
+
 StrPtr
 ServerHelperApi::GetCaseFlag()
 {
@@ -192,6 +199,12 @@ ServerHelperApi::SetDvcsDir( const char *dir, Error *e )
 	}
 	else
 	    return SetDvcsDir( (StrPtr *) 0, e );
+}
+
+void
+ServerHelperApi::SetServerExecutable( const char *c )
+{
+	server->SetServerExecutable( c );
 }
 
 int
@@ -253,6 +266,12 @@ ServerHelperApi::SetDvcsDir( const StrPtr *c, Error *e )
 	return 1;
 }
 
+void
+ServerHelperApi::SetServerExecutable( const StrPtr *c )
+{
+	server->SetServerExecutable( c );
+}
+
 int
 ServerHelperApi::SetPort( const StrPtr *c, Error *e )
 {
@@ -304,6 +323,12 @@ const StrPtr &
 ServerHelperApi::GetDvcsDir()
 {
 	return server->GetDvcsDir();
+}
+
+const StrPtr &
+ServerHelperApi::GetServerExecutable()
+{
+	return server->GetServerExecutable();
 }
 
 const StrPtr &

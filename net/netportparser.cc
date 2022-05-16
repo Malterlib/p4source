@@ -165,6 +165,7 @@ NetPortParser::NetPortParser()
 , mPort("")
 , mHostPort("")
 , mPortColon(false)
+, mExtraTransports(NULL)
 {
 	mPrefix.mType = PT_NONE;
 	mPrefix.mName = "";
@@ -178,6 +179,23 @@ NetPortParser::NetPortParser(
 , mPort("")
 , mHostPort("")
 , mPortColon(false)
+, mExtraTransports(NULL)
+{
+	mPrefix.mType = PT_NONE;
+	mPrefix.mName = "";
+	Parse();
+}
+
+NetPortParser::NetPortParser(
+	const StrRef &portstr,
+	const Prefix *extraTransports)
+: mPortString(portstr)
+, mTransport("")
+, mHost("")
+, mPort("")
+, mHostPort("")
+, mPortColon(false)
+, mExtraTransports(extraTransports)
 {
 	mPrefix.mType = PT_NONE;
 	mPrefix.mName = "";
@@ -192,6 +210,7 @@ NetPortParser::NetPortParser(
 , mPort("")
 , mHostPort("")
 , mPortColon(false)
+, mExtraTransports(NULL)
 {
 	mPrefix.mType = PT_NONE;
 	mPrefix.mName = "";
@@ -210,6 +229,7 @@ NetPortParser::NetPortParser(
 , mHostPort(rhs.mHostPort)
 , mPrefix(rhs.mPrefix)
 , mPortColon(rhs.mPortColon)
+, mExtraTransports(rhs.mExtraTransports)
 {
 } // copy ctor
 
@@ -235,6 +255,7 @@ NetPortParser::operator=(
 	    mHostPort = rhs.mHostPort;
 	    mPortColon = rhs.mPortColon;
 	    mPrefix = rhs.mPrefix;
+	    mExtraTransports = rhs.mExtraTransports;
 	}
 
 	return *this;
@@ -264,6 +285,8 @@ NetPortParser::operator==(
 	if( mPortColon != rhs.mPortColon )
 	    return false;
 	if( mPrefix.mType != rhs.mPrefix.mType )
+	    return false;
+	if( mExtraTransports != rhs.mExtraTransports )
 	    return false;
 
 	return true;
@@ -575,7 +598,7 @@ NetPortParser::FindPrefix(
 	    {"ssl64",   PT_SSL64},
 	    {"",        PT_NONE}
 	};
-	static const int kNoPrefix = 12;    // index of the PT_NONE entry
+	static const int kNoPrefix = sizeof(prefixes)/sizeof(prefixes[0]) - 1;    // index of the PT_NONE entry
 
 	if( (len < 3) || (len > 5) )
 	{
@@ -588,6 +611,16 @@ NetPortParser::FindPrefix(
 	{
 	    if( strncmp(prefix, pfx->mName, len) == 0 )
 	        return pfx;
+	}
+
+	// try the user-supplied table
+	if( mExtraTransports )
+	{
+	    for( pfx = mExtraTransports; pfx->mName[0]; ++pfx )
+	    {
+		if( strncmp(prefix, pfx->mName, len) == 0 )
+		    return pfx;
+	    }
 	}
 
 	return pfx;

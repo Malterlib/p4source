@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSupp error code is: 269
+ * Current high value for a MsgSupp error code is: 284
  */
 
 # include <error.h>
@@ -145,6 +145,7 @@ ErrorId MsgSupp::OptionKeepClient      = { ErrorOf( ES_SUPP, 108, E_INFO, EV_NON
 ErrorId MsgSupp::OptionFileCharset     = { ErrorOf( ES_SUPP, 109, E_INFO, EV_NONE, 0 ), "%'--file-charset (-Q)'%: specifies a character set override for this file." } ;
 ErrorId MsgSupp::OptionVirtual         = { ErrorOf( ES_SUPP, 110, E_INFO, EV_NONE, 0 ), "%'--virtual (-v)'%: performs the action on the server without updating client data." } ;
 ErrorId MsgSupp::OptionGenerate        = { ErrorOf( ES_SUPP, 111, E_INFO, EV_NONE, 0 ), "%'--generate (-g)'%: generate a new unique value." } ;
+ErrorId MsgSupp::OptionConfigure        = { ErrorOf( ES_SUPP, 276, E_INFO, EV_NONE, 0 ), "%'--configure (-c)'%: configure edge or commit server." } ;
 ErrorId MsgSupp::OptionUsage           = { ErrorOf( ES_SUPP, 112, E_INFO, EV_NONE, 0 ), "%'--usage (-u)'%: display the current usage levels." } ;
 ErrorId MsgSupp::OptionTags            = { ErrorOf( ES_SUPP, 113, E_INFO, EV_NONE, 0 ), "%'--tags (-T)'%: specify which tags to include in the results." } ;
 ErrorId MsgSupp::OptionFilter          = { ErrorOf( ES_SUPP, 114, E_INFO, EV_NONE, 0 ), "%'--filter (-F)'%: specify filters which limit the results." } ;
@@ -300,6 +301,15 @@ ErrorId MsgSupp::OptionDepotType= { ErrorOf( ES_SUPP, 265, E_INFO, EV_NONE, 0 ),
 ErrorId MsgSupp::OptionGlobalLock= { ErrorOf( ES_SUPP, 266, E_INFO, EV_NONE, 0 ), "%'--global (-g)'%: reports or changes global locks from Edge Server" } ;
 ErrorId MsgSupp::OptionEnableDVCSTriggers = { ErrorOf( ES_SUPP, 267, E_INFO, EV_NONE, 0 ), "%'--enable-dvcs-triggers'%: fires any push-* triggers for changelists imported by this unzip command." } ;
 ErrorId MsgSupp::OptionUsers	          = { ErrorOf( ES_SUPP, 269, E_INFO, EV_NONE, 0 ), "%'--users (-u)'%: show the user who modifed the line." } ;
+ErrorId MsgSupp::OptionConvertAdminComments = { ErrorOf( ES_SUPP, 270, E_INFO, EV_NONE, 0 ), "%'--convert-p4admin-comments'%: When used with -o option converts P4Admin style comments into new ## native spec comments." } ;
+ErrorId MsgSupp::OptionRemoteSpec         = { ErrorOf( ES_SUPP, 271, E_INFO, EV_NONE, 0 ), "%'--remote'%: Specifies the remote spec to be used." } ;
+ErrorId MsgSupp::OptionP4UserUser         = { ErrorOf( ES_SUPP, 272, E_INFO, EV_NONE, 0 ), "%'--me'%: Shorthand for -u $P4USER" } ;
+ErrorId MsgSupp::OptionAliases            = { ErrorOf( ES_SUPP, 273, E_INFO, EV_NONE, 0 ), "%'--aliases'%: specifies alias-handling behavior." } ;
+ErrorId MsgSupp::OptionField		  = { ErrorOf( ES_SUPP, 274, E_INFO, EV_NONE, 0 ), "%'--field'%: Modify spec fields from the command line." } ;
+ErrorId MsgSupp::OptionTab                = { ErrorOf( ES_SUPP, 275, E_INFO, EV_NONE, 0 ), "%'--tab[=N] (-T)'%: Align output to tab stops." } ;
+ErrorId MsgSupp::OptionForceDelete                = { ErrorOf( ES_SUPP, 277, E_INFO, EV_NONE, 0 ), "%'--force-delete'%: delete entity from protects and groups." } ;
+ErrorId MsgSupp::OptionLicenseInfo        = { ErrorOf( ES_SUPP, 284, E_INFO, EV_NONE, 0 ), "%'--license-info'%: report license status information." } ;
+
 ErrorId MsgSupp::TooManyLockTrys	  = { ErrorOf( ES_SUPP, 268, E_FATAL, EV_FAULT, 1 ), "Too many trys to get lock %file%." } ;
 
 // ErrorId graveyard'%: retired/deprecated ErrorIds.

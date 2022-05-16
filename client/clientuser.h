@@ -106,8 +106,13 @@ class ClientProgress;
 class ClientUser {
 
     public:
-			ClientUser()
-			{ binaryStdout = 0; outputCharset = 0; quiet = 0; }
+			ClientUser( int autoLoginPrompt = 0 )
+			{
+			    binaryStdout = 0;
+			    outputCharset = 0;
+			    quiet = 0;
+			    autoLogin = autoLoginPrompt;
+			}
 	virtual		~ClientUser();
 
 	virtual void	InputData( StrBuf *strbuf, Error *e );
@@ -162,6 +167,7 @@ class ClientUser {
 	virtual void	SetOutputCharset( int );
 	virtual void	DisableTmpCleanup();
 	virtual void	SetQuiet();
+	virtual int	CanAutoLoginPrompt();
 
 	// Output... and Help must use 'const char' instead of 'char'
 	// The following will cause compile time errors for using 'char'
@@ -179,6 +185,7 @@ class ClientUser {
     private:
 	int		binaryStdout;	// stdout is in binary mode
 	int		quiet;		// OutputInfo does nothing.
+	int		autoLogin;	// Can this implementation autoprompt
     protected:
 	int		outputCharset;	// P4CHARSET for output
 	StrBuf		editFile;
@@ -186,6 +193,8 @@ class ClientUser {
 
 class ClientUserProgress : public ClientUser {
     public:
+			ClientUserProgress( int autoLoginPrompt = 0 ) :
+			    ClientUser( autoLoginPrompt ) {};
 	virtual ClientProgress *CreateProgress( int );
 	virtual int	ProgressIndicator();
 } ;

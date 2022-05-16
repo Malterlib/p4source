@@ -10,6 +10,7 @@
 
 # include <stdhdrs.h>
 # include <charman.h>
+# include <debug.h>
 
 # include <strbuf.h>
 # include <strdict.h>
@@ -69,6 +70,19 @@ SpecWords::Split()
 void
 SpecWords::Join( int wc )
 {
+	// To handle single line comments, there are no values
+	// returned in **words, just **cmts,  check for any null
+	// values and return a null string.
+
+	for( int i = 0; i < wc; i++ )
+	{
+	    if( !wv[i] )
+	    {
+	        *this << "";
+	        return;
+	    }
+	}
+
 	for( int i = 0; i < wc; i++ )
 	{
 	    if( i )
@@ -132,6 +146,13 @@ SpecData::SetLine( SpecElem *sd, int x, const StrPtr *val, Error *e )
 	Set( sd, x, tVal.wv, e );
 }
 
+void
+SpecData::SetComment( SpecElem *sd, int x, const StrPtr *val, int nl, Error *e )
+{
+	tVal.wv[0] = val->Text();
+	Comment( sd, x, tVal.wv, nl, e );
+}
+
 int
 SpecData::Get( SpecElem *sd, int x, const char **wv, const char **cmt )
 {
@@ -142,6 +163,12 @@ void
 SpecData::Set( SpecElem *sd, int x, const char **wv, Error *e )
 {
 	Set( sd, x, (char **)wv, e );
+}
+
+void
+SpecData::Comment( SpecElem *sd, int x, const char **wv, int nl, Error *e )
+{
+	Comment( sd, x, (char **)wv, nl, e );
 }
 
 int
@@ -158,6 +185,11 @@ SpecData::Set( SpecElem *sd, int x, char **wv, Error *e )
 	e->Set( E_FATAL, "SpecData::Set called!" );
 }
 
+void
+SpecData::Comment( SpecElem *sd, int x, char **wv, int nl, Error *e )
+{
+	// No message,  comments will be ignored.
+}
 
 /*
  * SpecDataTable -- a SpecData interface to a StrDict 
@@ -165,6 +197,7 @@ SpecData::Set( SpecElem *sd, int x, char **wv, Error *e )
 
 SpecDataTable::SpecDataTable( StrDict *dict )
 {
+	empty.Clear();
 	if( dict )
 	{
 	    table = dict;
@@ -188,10 +221,34 @@ SpecDataTable::GetLine( SpecElem *sd, int x, const char **cmt )
 {
 	*cmt = 0;
 
+	StrPtr *l, *c;
+	StrBuf cTag = sd->tag;
+	cTag << "Comment";
+
 	if( sd->IsList() )
-	    return table->GetVar( sd->tag, x );
+	    l = table->GetVar( sd->tag, x );
 	else
-	    return table->GetVar( sd->tag );
+	    l = table->GetVar( sd->tag );
+
+	if( !l )
+	    return 0;
+
+	if( sd->IsList() )
+	    c = table->GetVar( cTag, x );
+	else
+	    c = table->GetVar( cTag );
+
+	if( c && c->Length() )
+	{
+	    // We store and send the comments with the hashes, but then append
+	    // them during form formatting: got to strip the off now.
+
+	    *cmt = c->Text();
+	    while( **cmt == '#' )
+	        *cmt = *cmt + 1;
+	}
+
+	return l;
 }
 
 void
@@ -203,3 +260,17 @@ SpecDataTable::SetLine( SpecElem *sd, int x, const StrPtr *val, Error *e )
 	    table->SetVar( sd->tag, *val );
 }
 
+void
+SpecDataTable::SetComment( SpecElem *sd, int x, const StrPtr *val, int nl, Error *e )
+{
+	StrBuf name;
+	name << sd->tag << "Comment";
+
+	if( sd->IsList() )
+	{
+	    table->SetVar( name, x - (nl ? 0 : 1), *val );
+	    table->SetVar( sd->tag, x, empty );
+	}
+	else
+	    table->SetVar( name, *val );
+}

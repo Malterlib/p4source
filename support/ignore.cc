@@ -376,6 +376,9 @@ Ignore::InsertDefaults( StrArray *list, const char *configName )
 	StrArray defaultsList;
 	int l = 0;
 
+	StrBuf configDirLine;
+	configDirLine.Clear();
+
 	// Always add in .p4root and P4CONFIG to the top of new lists
 
 	if( configName )
@@ -383,6 +386,7 @@ Ignore::InsertDefaults( StrArray *list, const char *configName )
 	    StrBuf line;
 	    line << "**/" << configName;
 	    Insert( &defaultsList, line.Text(), "", ++l );
+	    configDirLine << ".../" << configName << SLASH << "...";
 	}
 
 	Insert( &defaultsList, "**/.p4root", "", ++l );
@@ -396,6 +400,9 @@ Ignore::InsertDefaults( StrArray *list, const char *configName )
 	StrBuf line;
 	for( int i = defaultsList.Count(); i > 0; --i )
 	{
+	    if( configName && *defaultsList.Get( i - 1 ) == configDirLine )
+	        continue;
+
 	    line.Set( defaultsList.Get( i - 1 ) );
 #ifdef OS_NT
 	    // On NT slash is \ but the matcher's * wildcard only uses /,
@@ -530,6 +537,12 @@ Ignore::ParseFile( FileSys *f, const char *cwd, StrArray *list )
 	    if( !line.Length() || line.Text()[0] == '#' )
 	        continue;
 
+	    if( line.Text()[0] == '\\' && line.Text()[1] == '#' )
+	    {
+	        StrBuf tmp( line.Text() + 1 );
+	        line = tmp;
+	    }
+
 #ifdef OS_NT
 	    // On NT slash is \ so we need to normalise our slashes to
 	    // avoid cross platform issues.
@@ -577,10 +590,15 @@ Ignore::RejectCheck( const StrPtr &path, int isDir, StrBuf *line )
 	StrBuf cpath( path );
 	StrOps::Sub( cpath, '\\', '/' );
 
+	// Dirs must have trailing / for matching /...
+	
+	if( isDir && !cpath.EndsWith( "/", 1 ) )
+	    cpath << "/";
+
 	// Dirs have /... tails when checking in reverse
 
 	StrBuf dpath( cpath );
-	dpath << "/...";
+	dpath << "...";
 
 	for( int i = 0; i < ignoreList->Count(); ++i )
 	{

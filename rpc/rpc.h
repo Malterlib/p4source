@@ -106,6 +106,7 @@ enum RpcType {
     RPC_BROKER_TO_SERVER,
     RPC_RMTAUTH,
     RPC_SANDBOX,
+    RPC_X3,
     RPC_UNKNOWN,
     RPC_DMRPC
 };
@@ -153,6 +154,7 @@ class RpcService {
 	virtual void	GetMyFingerprint(StrBuf &value);
 	void		GetExpiration( StrBuf &buf );
 	const StrBuf	GetMyQualifiedP4Port( StrBuf &serverSpecAddr, Error &e ) const;
+	virtual StrPtr *GetListenAddress( int raf_flags );
 
 	// Set Protocol varieties
 
@@ -219,7 +221,7 @@ class Rpc : public StrDict {
 	void		Release();
 	void		ReleaseFinal();
 
-	enum DispatchFlag { DfComplete, DfDuplex, DfFlush, DfOver };
+	enum DispatchFlag { DfComplete, DfDuplex, DfFlush, DfOver, DfContain };
 
 	void		Dispatch( DispatchFlag f, RpcDispatcher *d );
 
@@ -229,6 +231,10 @@ class Rpc : public StrDict {
 
 	void		DispatchFlush() { 
 			    Dispatch( DfFlush, service->dispatcher ); 
+			}
+
+	void		DispatchContain() { 
+			    Dispatch( DfContain, service->dispatcher ); 
 			}
 
 	void		AbortDispatch() { endDispatch = 1; };
@@ -282,6 +288,7 @@ class Rpc : public StrDict {
 
 	void		FlushTransport();
 	int		GetRecvBuffering() ;
+	Error *		GetDispatchError() { return &le; }
 
 
     public:
@@ -290,7 +297,8 @@ class Rpc : public StrDict {
 	void		SetForwarder( RpcForward *f ) { forward = f; }
 	RpcForward *	GetForwarder() { return forward; }
 
-	void		DispatchOne( RpcDispatcher *dispatcher );
+	void		DispatchOne( RpcDispatcher *dispatcher,
+			             bool passError = false );
 	void		DispatchOne() { DispatchOne( service->dispatcher ); }
 	int		DispatchDepth() { return dispatchDepth; }
 
@@ -309,6 +317,8 @@ class Rpc : public StrDict {
 	int		GetHiMarkFwd() { return rpc_hi_mark_fwd; }
 
 	RpcType		RpcTypeIs() { return GetRpcType(); }
+
+	int		GetInfo( StrBuf * );
 
     protected:
 
@@ -339,6 +349,7 @@ class Rpc : public StrDict {
 	Error		se;			// send errors
 	Error		re;			// recv errors
 	Error		ue;			// dispatch errors
+	Error		le;			// last dispatch error
 
 	int		rpc_lo_mark;
 	int		rpc_hi_mark_fwd;	// InvokeDuplex()
@@ -352,6 +363,7 @@ class Rpc : public StrDict {
 	int		recvTime;
 
 	Timer		*timer;
+	KeepAlive	*keep;
 } ;
 
 enum RpcUtilityType {

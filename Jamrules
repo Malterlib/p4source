@@ -356,7 +356,7 @@
 			# For OSX 10.7 and later, sdk lives deep under xcode.app
 			if [ FVersionCmp $(OSVER) : 107 ] >= 0 { XCODE_PREFIX ?= $(_xcode) ; }
 
-			local _v = [ MATCH ([0-9][0-9])([0-9]*)$ : $(OSVER) ] ;
+			local _v = [ MATCH ([0-9]+)([0-9])$ : $(OSVER) ] ;
 			_sdkver ?= $(_v:J=.) ;
 		}
 		if $(_sdkver) = 10.4 { _sdkver = $(_sdkver)u ; }  # "10.4u.sdk"
@@ -514,7 +514,7 @@
 
 	STRIP = strip ;
 	COMPRESS = gzip -9 ;
-	ZIP = zip -9 -r -q ;
+	ZIP ?= zip -9 -r -q ;
 
 	# symbolic flags with no user/group/other specifier will default to
 	# ANDing with the user's umask.
@@ -557,7 +557,10 @@
 	# The default, if linking with stdc++, is to dynamically link unless a specific platform overrides as static.
 	STATIC_LIBSTDC++ = no ;
 	# This really ought to be renamed LINK_WITH_STL since some operating systems use a different name.
-    LINK_WITH_STDC++ = p4d p4p p4broker p4zk p4sandbox p4sandbox_ja p4vc ;
+ 	LINK_WITH_STDC++ = p4d p4p p4broker p4broker_ja p4zk p4sandbox p4sandbox_ja p4vc ;
+
+	# Some parts of libsupp now require symbols from pthread
+	LINK_WITH_PTHREAD = p4d p4p p4broker p4broker_ja p4sandbox p4sandbox_ja p4ftpd ;
 
 	# SSL configuration:
 	# Define SSL to include netssl* source code into the libraries and executables
@@ -613,6 +616,26 @@
 	SetDefaultDirName OPENLDAPLIBDIR   : $(EXEC_LIB) ;
 	SetDefaultDirName CYRUSSASLPINCDIR : $(EXEC_INC) ;
 	SetDefaultDirName CYRUSSASLPLIBDIR : $(EXEC_LIB) ;
+
+	#
+	# X3 configuration
+	#
+	X3      ?= no ;
+	UDT     ?= no ;
+	ASPERA  ?= no ;
+	SCP     ?= no ;
+
+	# UDT configuration
+	SetDefaultDirName UDTINCDIR   : $(EXEC_INC) ;
+	SetDefaultDirName UDTLIBDIR   : $(EXEC_LIB) ;
+
+	# Aspera configuration
+	SetDefaultDirName ASPINCDIR   : $(EXEC_INC) ;
+	SetDefaultDirName ASPLIBDIR   : $(EXEC_LIB) ;
+
+	# SCP configuration
+	SetDefaultDirName SCPINCDIR   : $(EXEC_INC) ;
+	SetDefaultDirName SCPLIBDIR   : $(EXEC_LIB) ;
 
 #################################################
 #
@@ -673,6 +696,7 @@
 	SetLibName ZKSLIB	        : libzks        ;
 	SetLibName P4SHAREDLIB	    : libp4shared   ;
 	SetLibName ZKUILIB	        : libzkui       ;
+	SetLibName ASPLIB           : libasp  ;		# maybe
 
 #################################################
 #
@@ -718,6 +742,7 @@
 	              LINKFLAGS = -sym full ;
 	# _FORTIFY_SOURCE:  http://gcc.gnu.org/ml/gcc-patches/2004-09/msg02055.html
 	case FSgSSP : OPTIM     = -g -D_FORTIFY_SOURCE=2 -fstack-protector-all ;
+
 	# asan: https://code.google.com/p/address-sanitizer/wiki/AddressSanitizer
 	case asan   : OPTIM     = -g -fsanitize=address -fno-omit-frame-pointer -O1 ;
 	              LINKLIBS  = -lasan ;
@@ -868,7 +893,7 @@
 
 		LIBRARY_DEPOLYMENT_SDK = sdk10.5 ;
 
-	case DARWIN13* :
+	case DARWIN1[345]* :
 		SetCommonCompiler $(OSCOMP:E=clang) ;
 		SetOSXSdk : -mmacosx-version-min=10.5 -fwrapv ;
 
@@ -1616,6 +1641,26 @@
 		DEFINES += USE_ZMQ ;
 	}
 
+	if $(X3) = yes
+	{
+		DEFINES += USE_X3 ;
+
+		if $(UDT) = yes
+		{
+			DEFINES += USE_UDT UDT_STATIC ;
+		}
+
+		if $(ASPERA) = yes
+		{
+			DEFINES += USE_ASPERA ;
+		}
+
+		if $(SCP) = yes
+		{
+			DEFINES += USE_SCP ;
+		}
+	}
+
 	if $(UNIX)
 	{
 		# Don't fail if directory already exists.
@@ -1905,6 +1950,11 @@
 					LINK on $(<) = [ on $(<) return $(C++) ] ;
 				}
 			}
+		}
+
+		if $(<) in $(LINK_WITH_PTHREAD)
+                {
+			LinkPthread $(<) ;
 		}
 	}
 
@@ -2718,8 +2768,16 @@
 		case LINUX-*-X86*-* :
 			local _64 = "" ;
 			if $(OSPLAT) = X86_64 { _64 = 64 ; }
+			if $(SMARTHEAP_CHECKS) != 0 || $(MEM_DEBUG) = yes
+			{
+			SMARTHPLIB ?= $(EXEC_LIB)/libsmartheapCd$(_64).a
+			              $(EXEC_LIB)/libsmartheapd$(_64).a ;
+			}
+			else
+			{
 			SMARTHPLIB ?= $(EXEC_LIB)/libsmartheapC$(_64).a
 			              $(EXEC_LIB)/libsmartheap$(_64).a ;
+			}
 
 			OnTargetVarPrepend $(<) : LINKLIBS : $(SMARTHPLIB) ;
 
@@ -2802,6 +2860,73 @@
 
 		local e = [ FAppendSuffix $(<) : $(SUFEXE) ] ;
 		OnTargetVarPrepend $(e) : LINKLIBS : $(LDAPLIB) ;
+	}
+
+	#
+	# Pthread link support
+	#
+
+	rule LinkPthread
+        {
+		switch $(OS)$(OSVER:E)
+		{
+		case LINUX :
+			LINKLIBS on $(<) += -pthread ;
+		case LINUX2[46] :
+			LINKLIBS on $(<) += -pthread ;
+		case FREEBSD1* :
+			LINKLIBS on $(<) += -pthread ;
+		}
+	}
+
+	#
+	# X3 rules
+	#
+
+	rule LinkX3
+	{
+		LINK_WITH_STDC++ += $(<) ;
+
+		switch $(OS)$(OSVER:E)
+		{
+		case LINUX2[46] :
+			LINKLIBS on $(<) += -lrt -ldl -lm ;
+
+		case DARWIN* :
+			LINKLIBS on $(<) += -lstdc++ ;
+		}
+	}
+
+	rule LinkUDT
+	{
+		if $(OS) = NT {
+			local d ;
+			if $(TYPE_DEBUG)   { d   = d   ; }
+			UDTLIB ?= [ FDirName $(UDTLIBDIR) vs$(MSVSVER) udt$(d:E).lib ] ;
+		} else {
+			UDTLIB ?= [ FDirName $(UDTLIBDIR) libudt.a ] ;
+		}
+
+		local e = [ FAppendSuffix $(<) : $(SUFEXE) ] ;
+		OnTargetVarPrepend $(e) : LINKLIBS : $(UDTLIB) ;
+	}
+
+	rule LinkASP
+	{
+		if $(TYPE) != FSgSSP$(THREAD_SFX) && $(TYPE) != g$(THREAD_SFX)
+		{
+		    # short circuit all this
+		    return ;
+		}
+
+		# local e = [ FAppendSuffix $(SCPLIB) : $(SUFLIB) ] ;
+		# e = [ FDirName $(SCPLIBDIR) $(e) ] ;
+		# LINKLIBS on $(<) += $(e) ;
+	}
+
+	rule LinkSCP
+	{
+	    # nothing to do yet
 	}
 
 

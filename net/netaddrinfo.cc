@@ -51,6 +51,20 @@ NetAddrInfo::SetHintsFamily(int family)
 	m_hints.ai_family = family;
 }
 
+// get socktype
+NetAddrInfo::SockType
+NetAddrInfo::GetHintsSockType() const
+{
+	return m_hints.ai_socktype == SOCK_STREAM ? SockTypeStream : SockTypeDatagram;
+}
+
+// set socktype
+void
+NetAddrInfo::SetHintsSockType(NetAddrInfo::SockType type)
+{
+	m_hints.ai_socktype = (type == SockTypeStream ? SOCK_STREAM : SOCK_DGRAM);
+}
+
 // get hints
 int
 NetAddrInfo::GetHintsFlags() const

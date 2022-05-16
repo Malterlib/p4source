@@ -162,9 +162,6 @@ FileSys::MkDir( const StrPtr &path, Error *e )
 	if( mkdir( p->Text() ) < 0 && stat( p->Text(), &sb ) < 0 )
 	    if( errno != EEXIST )
 		e->Sys( "mkdir", p->Text() );
-# elif defined ( OS_MACOSX )
-	if( mkdir( p->Text(), PERM_0777) < 0 )
-		e->Sys( "mkdir", p->Text() );
 # else
 	if( mkdir( p->Text(), PERM_0777 ) < 0 )
 	    if( errno != EEXIST )
@@ -200,21 +197,20 @@ FileSys::RmDir( const StrPtr &path, Error *e )
 	    return;
 	}
 
-// Remove the directory.
-	// Bail on failure.
-
-# ifdef OS_CYGWIN
-	// cygwin 1.3.12: rmdir() exits(!) if passwd CWD.
-
-	char cwd[ 1024 ];
-	getcwd( cwd, sizeof( cwd ) );
-
-	if( !StrPtr::SCompare( p->Text(), cwd ) )
+	if( preserveCWD )
 	{
-	    delete p;
-	    return;
+	    char cwd[ 2048 ];
+	    getcwd( cwd, sizeof( cwd ) );
+
+	    if( !StrPtr::SCompare( p->Text(), cwd ) )
+	    {
+	        delete p;
+	        return;
+	    }
 	}
-# endif
+
+	// Remove the directory.
+	// Bail on failure.
 
 # ifdef OS_NT
 	DWORD attr;

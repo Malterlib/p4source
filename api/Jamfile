@@ -34,6 +34,7 @@ P4Api p4api :
 	datetime.h
 	debug.h
 	diff.h
+	diffmerge.h
 	echoctl.h
 	enviro.h
 	error.h
@@ -47,6 +48,8 @@ P4Api p4api :
 	ignore.h
 	keepalive.h
 	macfile.h
+	macutil.h
+	mangle.h
 	mapapi.h
 	md5.h
 	msgclient.h

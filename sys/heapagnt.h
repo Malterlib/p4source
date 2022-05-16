@@ -407,8 +407,10 @@ void MEM_FAR * MEM_ENTRY_ANSI operator new(size_t sz DBG_FORMAL);
 // Smart Heap patch required to use MEM_DEBUG, Feb 2014.
 void MEM_FAR * MEM_ENTRY_ANSI operator new[](size_t sz DBG_FORMAL);
 #else
+#ifndef OS_LINUX
 inline void MEM_FAR *operator new(size_t sz DBG_FORMAL)
    { return shi_New(sz DBG_ACTUAL); }
+#endif
 
 #ifdef SHI_ARRAY_NEW
 inline void MEM_FAR *operator new[](size_t sz DBG_FORMAL)

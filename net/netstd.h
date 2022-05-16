@@ -34,7 +34,7 @@ class NetStdioEndPoint : public NetEndPoint {
 	void		Unlisten();
 
 	NetTransport *	Connect( Error *e );
-	NetTransport *	Accept( Error *e );
+	NetTransport *	Accept( KeepAlive *, Error *e );
 
 
 	int		IsSingle() { return 1; }

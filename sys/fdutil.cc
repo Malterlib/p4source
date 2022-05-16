@@ -8,9 +8,11 @@
 # define NEED_FILE
 # define NEED_FCNTL
 # define NEED_FLOCK
+# define NEED_STAT
 
 # include <stdhdrs.h>
-# include <lockfile.h>
+# include <largefile.h>
+# include <fdutil.h>
 
 # if defined( OS_SOLARIS ) && !defined( OS_SOLARIS25 )
 # define flockL flock64
@@ -171,6 +173,70 @@ lockFile( int fd, int flag )
 # endif /* OS_NT */
 # endif /* MAC_MWPEF */
 
+}
+
+int
+checkFd( int fd )
+{
+        // If the fd > 2 then it's not stdio: continue
+
+        if( fd < 0 || fd > 2 )
+            return fd;
+
+        // Lets dup the fd to the next available
+        // Use this function to deal with more <=2 fds
+
+        int newfd = checkFd( dup( fd ) );
+
+        // Rather than straight close the old fd, lets assign it to /dev/null
+        // Use w+ so we do the right thing regardless of STDIN or STDOUT/ERR
+
+# ifdef OS_NT
+        int nulfd = openL( "nul", O_RDWR );
+# else
+        int nulfd = openL( "/dev/null", O_RDWR );
+# endif
+
+        if( nulfd < 0 || dup2( nulfd, fd ) < 0 )
+            close( fd );
+
+        if( nulfd >= 0 )
+            close( nulfd );
+
+        return newfd;
+}
+
+void
+checkStdio( int fd )
+{
+        if( fd < 0 || fd > 2 )
+        {
+            // Check them all
+            checkStdio( 0 );
+            checkStdio( 1 );
+            checkStdio( 2 );
+            return;
+        }
+    
+        // First, fstat the fd (if it doesn't exist, the claim it)
+        
+	struct statbL sb;
+        if( fstatL( fd, &sb ) < 0 ) {
+# ifdef OS_NT
+            int nulfd = openL( "nul", O_RDWR );
+# else
+            int nulfd = openL( "/dev/null", O_RDWR );
+# endif
+            if( nulfd >= 0 && nulfd != fd )
+            {
+                dup2( nulfd, fd );
+                close( nulfd );
+            }
+            return;
+        }
+        
+        // It's possible that if it exist, then it might be a file
+        // but we probably don't care about that.
 }
 
 #ifdef OS_NT

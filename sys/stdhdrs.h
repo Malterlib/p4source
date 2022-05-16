@@ -625,9 +625,22 @@ int truncate(const char *path, off_t length);
  */
 
 # ifdef OS_NT
-# define MT_STATIC static __declspec(thread)
+#   define MT_STATIC static __declspec(thread)
+# elif !defined( OS_BEOS ) && \
+       !defined( OS_AS400 ) && \
+       !defined( OS_VMS )
+#   ifdef NEED_THREADS
+#     define HAVE_PTHREAD
+#     include <pthread.h>
+#   endif
+#   if defined( OS_DARWIN ) || \
+       defined( OS_MACOSX )
+#     define MT_STATIC static
+#   else
+#     define MT_STATIC static __thread
+#   endif
 # else
-# define MT_STATIC static
+#   define MT_STATIC static
 # endif
 
 /*

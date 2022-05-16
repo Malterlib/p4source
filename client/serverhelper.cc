@@ -26,7 +26,7 @@
 
 # include <pathsys.h>
 # include <filesys.h>
-# include <lockfile.h>
+# include <fdutil.h>
 
 # include <enviro.h>
 # include <hostenv.h>
@@ -68,6 +68,7 @@ ServerHelper::ServerHelper( Error *e )
 
 	config.Set( INIT_CONFIG );
 	ignore.Set( INIT_IGNORE );
+	serverExe.Set( INIT_P4DEXE );
 
 	version.Clear();
 	prog.Set( "p4api" );
@@ -348,10 +349,7 @@ ServerHelper::LoadRemote( const StrPtr* port, const StrPtr *remote,
     ClientUser *ui, Error *e )
 {
 	if( ( state & DISCOVERED ) && !FetchAllowed() )
-	{
 	    commandError.Set( MsgClient::CloneCantFetch ) << p4port;
-	    ui->Message( &commandError );
-	}
 
 	if( !( state & DISCOVERED ) && port )
 	    p4port.Set( port );
@@ -391,7 +389,6 @@ ServerHelper::LoadRemote( const StrPtr* port, const StrPtr *remote,
 	    if( !FetchAllowed() )
 	    {
 	        commandError.Set( MsgClient::CloneCantFetch ) << p4port;
-	        ui->Message( &commandError );
 	        *e = commandError;
 	        client.Final( e );
 	        return 0;
@@ -408,7 +405,6 @@ ServerHelper::LoadRemote( const StrPtr* port, const StrPtr *remote,
 	{
 	    commandError.Set( MsgClient::CloneNeedLogin2 ) << p4user << p4port;
 	    commandError.Set( MsgClient::CloneNeedLogin1 ) << p4user << p4port;
-	    ui->Message( &commandError );
 	    *e = commandError;
 	    client.Final( e );
 	    return 0;
@@ -421,7 +417,6 @@ ServerHelper::LoadRemote( const StrPtr* port, const StrPtr *remote,
 	    {
 	        commandError.Set( MsgClient::CloneNoRemote )
 	            << p4port << remote;
-	        ui->Message( &commandError );
 	        *e = commandError;
 	    }
 	    client.Final( e );
@@ -439,7 +434,6 @@ ServerHelper::LoadRemote( const StrPtr* port, const StrPtr *remote,
 
 	if( GotError() )
 	{
-	    ui->Message( &commandError );
 	    *e = commandError;
 	    return 0;
 	}
@@ -459,7 +453,6 @@ ServerHelper::MakeRemote( const StrPtr *port, const StrPtr *filepath,
 	if( ( state & DISCOVERED ) && !FetchAllowed() )
 	{
 	    commandError.Set( MsgClient::CloneCantFetch ) << p4port;
-	    ui->Message( &commandError );
 	    *e = commandError;
 	}
 
@@ -496,7 +489,6 @@ ServerHelper::MakeRemote( const StrPtr *port, const StrPtr *filepath,
 	    if( !FetchAllowed() )
 	    {
 	        commandError.Set( MsgClient::CloneCantFetch ) << p4port;
-	        ui->Message( &commandError );
 	        *e = commandError;
 	        client.Final( e );
 	        return 0;
@@ -510,6 +502,7 @@ ServerHelper::MakeRemote( const StrPtr *port, const StrPtr *filepath,
 	StrBuf depotMap;
 	int cannotMap = 0;
 	int reMap = 0;
+	int quoteSpaces = 0;
 	const char *s = filepath->Text();
 	const char *x = s + strlen( s );
 	const char *p = strstr( s, "/..." );
@@ -531,7 +524,6 @@ ServerHelper::MakeRemote( const StrPtr *port, const StrPtr *filepath,
 	    else
 	    {
 	        commandError.Set( MsgClient::ClonePathNoMap ) << filepath;
-	        ui->Message( &commandError );
 	        *e = commandError;
 	        client.Final( e );
 	        return 0;
@@ -541,7 +533,6 @@ ServerHelper::MakeRemote( const StrPtr *port, const StrPtr *filepath,
 	else if( TooWide( s, 2, 0 ) )
 	{
 	    commandError.Set( MsgClient::ClonePathTooWide ) << filepath;
-	    ui->Message( &commandError );
 	    *e = commandError;
 	    client.Final( e );
 	    return 0;
@@ -553,11 +544,13 @@ ServerHelper::MakeRemote( const StrPtr *port, const StrPtr *filepath,
 	    commandError.Set( invalid > 1 ? MsgClient::ClonePathHasWild
 	                                  : MsgClient::ClonePathHasIllegal )
 	        << filepath;
-	    ui->Message( &commandError );
 	    *e = commandError;
 	    client.Final( e );
 	    return 0;
 	}
+	for( p = s; p < (x - 4); p++ )
+	    if( *p == ' ' )
+	        quoteSpaces = 1;
 
 	args[0] = (char *) "-s";
 	SetCommand( "login-s", ui );
@@ -568,7 +561,6 @@ ServerHelper::MakeRemote( const StrPtr *port, const StrPtr *filepath,
 	{
 	    commandError.Set( MsgClient::CloneNeedLogin2 ) << p4user << p4port;
 	    commandError.Set( MsgClient::CloneNeedLogin1 ) << p4user << p4port;
-	    ui->Message( &commandError );
 	    *e = commandError;
 	    client.Final( e );
 	    return 0;
@@ -586,6 +578,8 @@ ServerHelper::MakeRemote( const StrPtr *port, const StrPtr *filepath,
 	    depotMap << left << newPath << " " << filepath;
 	else if( cannotMap )
 	    depotMap << filepath << " " << filepath;
+	else if( quoteSpaces )
+	    depotMap << left << "/..." << " \"" << filepath << "\"";
 	else
 	    depotMap << left << "/..." << " " << filepath;
 
@@ -687,12 +681,13 @@ ServerHelper::WriteConfig( Error *e )
 	    "P4USER=" ), e );
 	fsys->Write( p4user, e );
 
-# ifdef OS_NT
-	fsys->Write( StrRef( "\nP4PORT=rsh:p4d.exe -i " ), e );
-# else
-	fsys->Write( StrRef(
-	    "\nP4PORT=rsh:/bin/sh -c \"umask 077 && exec p4d -i " ), e );
+	fsys->Write( StrRef( "\nP4PORT=rsh:" ), e );
+# ifndef OS_NT
+	fsys->Write( StrRef( "/bin/sh -c \"umask 077 && exec " ), e );
 # endif
+	fsys->Write( serverExe, e );
+	fsys->Write( StrRef( " -i " ), e );
+
 	if( debug.Length() ) { fsys->Write( StrRef( "-v" ), e );
 	                       fsys->Write( debug, e ); }
 	                else { fsys->Write( StrRef( "-J off" ), e ); }
@@ -730,7 +725,7 @@ ServerHelper::CreateLocalServer( ClientUser *ui, Error *e )
 	// Move to the .p4root directory
 	curdir->SetLocal( dir, StrRef( INIT_ROOT ) );
 
-	ra << "p4d";
+	ra << serverExe;
 
 	// Handle unicode
 	if( unicode ) ra << "-xn";
@@ -745,6 +740,7 @@ ServerHelper::CreateLocalServer( ClientUser *ui, Error *e )
 
 	// quiet
 	ra << "-q";
+	ra << "-Joff";
 
 	curdir->SetLocal( *curdir, StrRef( "file" ) );
 	fsys->Set( *curdir );
@@ -991,7 +987,7 @@ ServerHelper::FirstFetch(
 	inputData << "\nRemoteID: origin";
 	inputData << "\nAddress: " << p4port;
 	inputData << "\nOwner: " << p4user;
-	inputData << "\nOptions: unlocked nocompress";
+	inputData << "\nOptions: " << remoteOptions;
 	inputData << "\nDescription: ";
 
 	char *ptr = description.Text();
@@ -1007,6 +1003,13 @@ ServerHelper::FirstFetch(
 
 	for( i = 0; Dict()->GetVar( i, var, val ); i++ )
 	    inputData << "\t" << val.Text() << "\n";
+
+	if( ArchiveLimits()->GetCount() )
+	{
+	    inputData << "\nArchiveLimits:\n";
+	    for( i = 0; ArchiveLimits()->GetVar( i, var, val ); i++ )
+	        inputData << "\t" << val.Text() << "\n";
+	}
 
 	args[0] = ( char * ) "-i";
 
@@ -1075,9 +1078,9 @@ ServerHelper::FirstFetch(
 
 	inputData.Clear();
 
-	StrBuf map;
+	StrBuf archiveMap( "ArchiveLimits" ),map;
 	map.Set( "DepotMap" );
-	int mapCount = 0;
+	int mapCount = 0, archiveLimitsCount = 0;
 
 	for( i = 0; Dict()->GetVar( i, var, val ); i++ )
 	{
@@ -1101,6 +1104,12 @@ ServerHelper::FirstFetch(
 	    {
 		if( !mapCount++ )
 		    inputData << "DepotMap:\n";
+		inputData << "\t" << val << "\n";
+	    }
+	    else if( !archiveMap.XCompareN( var ) )
+	    {
+		if( !archiveLimitsCount++ )
+		    inputData << "ArchiveLimits:\n";
 		inputData << "\t" << val << "\n";
 	    }
 	    else
@@ -1222,7 +1231,7 @@ ServerHelper::GetStreamName( StrBuf *filePath, StrPtr &val )
 	char *p, *s;
 
 	s = buf.Text();
-	if( *s == '-' ) s++;
+	while( *s == '-' || *s == '"' ) s++;
 	p = s + 2;
 	p = strchr( p, '/' );
 
@@ -1239,18 +1248,32 @@ ServerHelper::GetStreamName( StrBuf *filePath, StrPtr &val )
 }
 
 /*
- * Gets the bit between the streamname and the first space.
+ * Gets the bit between the streamname and the first space, or the bit
+ * between the streamname and the closing quote, if the path is quoted.
  */
 const char *
 ServerHelper::Trim( StrPtr &filePath, StrPtr &val )
 {
 	StrBuf sharePath;
 
-	char *p = val.Text() + filePath.Length() + 1;
+	int quoted = 0;
+	char *p = val.Text();
+	if( *p == '"' )
+	{
+	    p++;
+	    quoted = 1;
+	}
+	p = p + filePath.Length() + 1;
 	char *e = p;
 
-	while( *e && *e != ' ' )
+	while( *e )
+	{
+	    if( !quoted && *e == ' ' )
+	        break;
+	    if( quoted && *e == '"' )
+	        break;
 	    ++e;
+	}
 
 	sharePath.Append( p, e - p );
 
@@ -1301,8 +1324,9 @@ ServerHelper::OutputStat( StrDict *varList )
 	    int count = 0;
 	    int quoted;
 	    StrRef var, val;
-	    StrBuf lhs, depot, empty, map;
+	    StrBuf lhs, depot, empty, map, archiveMap;
 	    map.Set( "DepotMap" );
+	    archiveMap.Set( "ArchiveLimits" );
 	    empty.Set( "..." );
 	    const char *p;
 
@@ -1367,9 +1391,13 @@ ServerHelper::OutputStat( StrDict *varList )
 	            remoteMap.SetVar( var, val );
 	            continue;
 	        }
+	        if( !archiveMap.XCompareN( var ) )
+	            archiveLimits.SetVar( var, val );
 
 	        if( var ==  "Description" )
 	            description << val;
+	        if( var ==  "Options" )
+	            remoteOptions << val;
 	    }
 	}
 	else if( GetCommand() == "remote-out2" )

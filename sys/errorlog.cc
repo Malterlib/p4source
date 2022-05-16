@@ -15,7 +15,7 @@
 # include <strbuf.h>
 # include <error.h>
 # include <errorlog.h>
-# include <lockfile.h>
+# include <fdutil.h>
 # include <filesys.h>
 
 /*
@@ -82,7 +82,6 @@ ErrorLog::SysLog( const Error *e, int tagged, const char *et, const char *buf )
 
 # ifdef HAVE_SYSLOG
 	// Default to LOG_DEBUG to maintain behavior from LogWrite.
-	// Calls from LogWrite will always have e == NULL.
 
 	int level = LOG_DEBUG;
 
@@ -175,10 +174,13 @@ ErrorLog::EnableCritSec()
 }
 
 void
-ErrorLog::Report( const Error *e, int tagged )
+ErrorLog::Report( const Error *e, int reportFlags )
 {
 	if( e->GetSeverity() == E_EMPTY )
 	    return;
+
+	int tagged = reportFlags & REPORT_TAGGED;
+	int hooked = reportFlags & REPORT_HOOKED;
 
 	if( !errorTag )
 	    init();
@@ -209,7 +211,7 @@ ErrorLog::Report( const Error *e, int tagged )
 	else
 	    LogWrite( buf );
 
-	if( hook )
+	if( hook && hooked )
 	    (*hook)( context, e );
 }
 
@@ -242,16 +244,41 @@ ErrorLog::LogWrite( const StrPtr &s )
 # endif
 
 	    errorFsys->Open( FOM_WRITE, &tmpe );
-
-	    // on error, do not report the error...
 	    if( !tmpe.Test() )
 	    {
 		errorFsys->Write( &s, &tmpe );
 		errorFsys->Close( &tmpe );
 	    }
-	    else
-		if( vp_critsec )
-		    SysLog( NULL, 0, NULL, s.Text() );
+	    if( tmpe.Test() )
+	    {
+		// An error was encountered when
+		// attempting to write to the log.
+
+# if defined( HAVE_SYSLOG ) || defined( HAVE_EVENT_LOG )
+
+		// Write to syslog or the event log the original
+		// message that was to be written to the log.
+		SysLog( NULL, 0, NULL, s.Text() );
+
+		// Write to syslog or the event log the error that was
+		// encountered when attempting to write to the log.
+		StrBuf buf;
+		tmpe.Fmt( &buf );
+		SysLog( &tmpe, 1, NULL, buf.Text() );
+
+# endif
+
+# ifndef OS_NT
+
+		// Write to stderr the error that was encountered when
+		// attempting to write to the log. stderr should be
+		// well-defined on platforms other than Windows.
+		ErrorLog tmpeel;
+		tmpeel.SetTag( errorTag );
+		tmpeel.Report( &tmpe );
+
+# endif
+	    }
 
 # ifdef HAVE_CRITSEC
 	    if( vp_critsec )

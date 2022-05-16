@@ -56,7 +56,7 @@ class NetSslEndPoint : public NetTcpEndPoint
 	void	    Listen( Error *e );
 	void            ListenCheck( Error *e );
 	NetTransport *  Connect( Error *e );
-	NetTransport *  Accept( Error *e );
+	NetTransport *  Accept( KeepAlive *, Error *e );
 	virtual void    GetMyFingerprint(StrBuf &value);
 	virtual void    GetExpiration( StrBuf &buf );
 

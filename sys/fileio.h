@@ -55,7 +55,7 @@ class FileIO : public FileSys {
 class FileIOBinary : public FileIO {
 
     public:
-			FileIOBinary() { fd = -1; tellpos = 0; };
+			FileIOBinary() { fd = -1; isStd = 0; tellpos = 0; };
 	virtual   	~FileIOBinary();
 
 	virtual void	Open( FileOpenMode mode, Error *e );
@@ -70,8 +70,9 @@ class FileIOBinary : public FileIO {
 	virtual void	Fsync( Error *e );
 
     protected:
-
+	
 	int		fd;
+	int		isStd;
 	offL_t		tellpos;
 
 	static const struct OpenMode {

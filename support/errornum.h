@@ -51,5 +51,6 @@ enum ErrorSubsystem {
 	ES_SPEC		= 11,	// pseudo subsystem for spec/comment messages
 	ES_FTPD		= 12,	// P4FTP server
 	ES_BROKER	= 13,	// Perforce Broker
-	ES_P4QT		= 14	// P4V and other Qt based clients
+	ES_P4QT		= 14,	// P4V and other Qt based clients
+	ES_X3SERVER	= 15	// P4X3 server
 } ;

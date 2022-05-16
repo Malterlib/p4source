@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgDm error code is: 923
+ * Current high value for a MsgDm error code is: 937
  */
 
 # include <error.h>
@@ -174,6 +174,7 @@ ErrorId MsgDm::LabelOwner              = { ErrorOf( ES_DM, 80, E_FAILED, EV_PROT
 ErrorId MsgDm::LabelLocked             = { ErrorOf( ES_DM, 81, E_FAILED, EV_PROTECT, 1 ), "Can't modify locked label '%label%'.\nUse 'label' to change label options." } ;
 ErrorId MsgDm::LabelHasRev             = { ErrorOf( ES_DM, 438, E_FAILED, EV_NOTYET, 1 ), "Label '%label%' has a Revision field and must remain empty." };
 ErrorId MsgDm::WildAdd                 = { ErrorOf( ES_DM, 82, E_FAILED, EV_USAGE, 0 ), "Can't add filenames with wildcards [@#%*] in them.\nUse -f option to force add." } ;
+ErrorId MsgDm::WildAddFilename         = { ErrorOf( ES_DM, 921, E_FAILED, EV_USAGE, 1 ), "The file named '%filename%' contains wildcards [@#%*]." } ;
 ErrorId MsgDm::WildAddTripleDots       = { ErrorOf( ES_DM, 637, E_FAILED, EV_USAGE, 0 ), "Can't add filenames containing the ellipsis wildcard (...)." } ;
 ErrorId MsgDm::InvalidEscape           = { ErrorOf( ES_DM, 433, E_FAILED, EV_USAGE, 0 ), "Target file has illegal escape sequence [%xx]." } ;
 ErrorId MsgDm::UserOrGroup             = { ErrorOf( ES_DM, 83, E_FAILED, EV_USAGE, 1 ), "Indicator must be 'user' or 'group', not '%value%'." } ;
@@ -270,12 +271,12 @@ ErrorId MsgDm::SameTag                 = { ErrorOf( ES_DM, 413, E_FAILED, EV_USA
 ErrorId MsgDm::NoDefault               = { ErrorOf( ES_DM, 117, E_FAILED, EV_USAGE, 2 ), "Field '%field%' needs a preset value to be type '%opt%'." } ;
 ErrorId MsgDm::SemiInDefault           = { ErrorOf( ES_DM, 118, E_FAILED, EV_USAGE, 1 ), "Default for '%field%' can't have ;'s in it." } ;
                                
-ErrorId MsgDm::LicensedClients         = { ErrorOf( ES_DM, 119, E_INFO, EV_ADMIN, 2 ), "License count: %count% clients used of %max% licensed." } ;
-ErrorId MsgDm::LicensedUsers           = { ErrorOf( ES_DM, 120, E_INFO, EV_ADMIN, 2 ), "License count: %count% users used of %max% licensed." } ;
+ErrorId MsgDm::LicensedClients         = { ErrorOf( ES_DM, 119, E_INFO, EV_ADMIN, 2 ), "License count: %count% clients used of %max% licensed.\n" } ;
+ErrorId MsgDm::LicensedUsers           = { ErrorOf( ES_DM, 120, E_INFO, EV_ADMIN, 2 ), "License count: %count% users used of %max% licensed.\n" } ;
 ErrorId MsgDm::TryDelClient            = { ErrorOf( ES_DM, 121, E_INFO, EV_ADMIN, 0 ), "Try deleting old clients with '%'client -d'%'." } ;
 ErrorId MsgDm::TryDelUser              = { ErrorOf( ES_DM, 122, E_INFO, EV_ADMIN, 0 ), "Try deleting old users with '%'user -d'%'." } ;
 ErrorId MsgDm::TooManyRoots            = { ErrorOf( ES_DM, 123, E_FAILED, EV_USAGE, 0 ), "Too many client root alternatives -- only 2 allowed." } ;
-ErrorId MsgDm::TryEvalLicense          = { ErrorOf( ES_DM, 470, E_INFO, EV_ADMIN, 0 ), "\nAdditional users/clients may be obtained for\nevaluation purposes by visiting...\n\nhttp://www.perforce.com/eval\n" } ;
+ErrorId MsgDm::TryEvalLicense          = { ErrorOf( ES_DM, 470, E_INFO, EV_ADMIN, 0 ), "For additional licenses, contact Perforce Sales at sales@perforce.com." } ;
 
 ErrorId MsgDm::AnnotateTooBig	       = { ErrorOf( ES_DM, 572, E_FAILED, EV_TOOBIG, 1 ), "File size exceeds %'dm.annotate.maxsize'% (%maxSize% bytes)." } ;
 
@@ -385,7 +386,11 @@ ErrorId MsgDm::ServersData             = { ErrorOf( ES_DM, 665, E_INFO, EV_NONE,
 ErrorId MsgDm::ServerTypeMismatch      = { ErrorOf( ES_DM, 719, E_FAILED, EV_CONTEXT, 0 ), "Server type is not appropriate for specified server services." } ;
 ErrorId MsgDm::ServerViewMap           = { ErrorOf( ES_DM, 745, E_FAILED, EV_CONTEXT, 0 ), "This type of view mapping may not be provided for this server." } ;
 ErrorId MsgDm::FiltersReplicaOnly      = { ErrorOf( ES_DM, 746, E_FAILED, EV_CONTEXT, 0 ), "Data Filters should be specified only for replica servers." } ;
-
+ErrorId MsgDm::ServerConfigUsage      = { ErrorOf( ES_DM, 931, E_FAILED, EV_CONTEXT, 0 ), "Invalid DistributedConfig syntax: must use 'var=value'" } ;
+ErrorId MsgDm::ServerConfigInvalidVar      = { ErrorOf( ES_DM, 932, E_FAILED, EV_CONTEXT, 1 ), "Configuration variable '%name%' cannot be set from here." } ;
+ErrorId MsgDm::ServerConfigRO      = { ErrorOf( ES_DM, 933, E_FAILED, EV_CONTEXT, 2 ), "Configuration variable '%name%' must be set to '%value%'." } ;
+ErrorId MsgDm::ServerCantConfig      = { ErrorOf( ES_DM, 934, E_FAILED, EV_CONTEXT, 0 ), "%'DistributedConfig'% can only be set with %'-c'% option." } ;
+ErrorId MsgDm::ServerSvcInvalid      = { ErrorOf( ES_DM, 935, E_FAILED, EV_CONTEXT, 2 ), "Configuration for '%services%' cannot be set on server that uses '%existingSvc%' Services." } ;
 ErrorId MsgDm::DescribeChange          = { ErrorOf( ES_DM, 215, E_INFO, EV_NONE, 5 ), "%change% by %user%@%client% on %date%%description%" } ;
 ErrorId MsgDm::DescribeChangePending   = { ErrorOf( ES_DM, 216, E_INFO, EV_NONE, 5 ), "%change% by %user%@%client% on %date% *pending*%description%" } ;
 ErrorId MsgDm::DescribeData            = { ErrorOf( ES_DM, 217, E_INFO, EV_USAGE, 3 ), "%depotFile%%depotRev% %action%" } ;
@@ -455,6 +460,8 @@ ErrorId MsgDm::HaveData                = { ErrorOf( ES_DM, 247, E_INFO, EV_NONE,
                                
 ErrorId MsgDm::IntegAlreadyOpened      = { ErrorOf( ES_DM, 250, E_INFO, EV_NONE, 2 ), "%depotFile% - can't %action% (already opened on this client)" } ;
 ErrorId MsgDm::IntegIntoReadOnly       = { ErrorOf( ES_DM, 251, E_INFO, EV_NONE, 2 ), "%depotFile% - can only %action% into file in a local depot" } ;
+ErrorId MsgDm::IntegIntoReadOnlyAndMap = { ErrorOf( ES_DM, 926, E_INFO, EV_NONE, 2 ), "%clientFile% - can't %action% into file that is additionally mapped in client's View" } ;
+ErrorId MsgDm::IntegIntoReadOnlyCMap   = { ErrorOf( ES_DM, 927, E_INFO, EV_NONE, 2 ), "%clientFile% - can't %action% into file that is restricted by client's ChangeView mapping" } ;
 ErrorId MsgDm::IntegXOpened            = { ErrorOf( ES_DM, 252, E_INFO, EV_NONE, 2 ), "%depotFile% - can't %action% exclusive file already opened" } ;
 ErrorId MsgDm::IntegBadAncestor        = { ErrorOf( ES_DM, 253, E_INFO, EV_NONE, 5 ), "%depotFile% - can't %action% from %fromFile%%fromRev% without %'-d'% or %flag% flag" } ;
 
@@ -542,6 +549,8 @@ ErrorId MsgDm::MoveNeedForce           = { ErrorOf( ES_DM, 530, E_INFO, EV_NONE,
                                
 ErrorId MsgDm::OpenAlready             = { ErrorOf( ES_DM, 284, E_INFO, EV_NONE, 2 ), "%depotFile% - can't %action% (already opened on this client)" } ;
 ErrorId MsgDm::OpenReadOnly            = { ErrorOf( ES_DM, 285, E_INFO, EV_NONE, 2 ), "%depotFile% - can only %action% file in a local depot" } ;
+ErrorId MsgDm::OpenReadOnlyAndMap      = { ErrorOf( ES_DM, 930, E_INFO, EV_NONE, 2 ), "%clientFile% - can't %action% file that is additionally mapped in client's View" } ;
+ErrorId MsgDm::OpenReadOnlyCMap        = { ErrorOf( ES_DM, 925, E_INFO, EV_NONE, 2 ), "%clientFile% - can't %action% file that is restricted by client's ChangeView mapping" } ;
 ErrorId MsgDm::OpenXOpened             = { ErrorOf( ES_DM, 286, E_INFO, EV_NONE, 2 ), "%depotFile% - can't %action% exclusive file already opened" } ;
 ErrorId MsgDm::OpenXOpenedFailed       = { ErrorOf( ES_DM, 777, E_FAILED, EV_NONE, 2 ), "%depotFile% - can't %action% exclusive file already opened" } ;
 ErrorId MsgDm::OpenBadAction           = { ErrorOf( ES_DM, 287, E_INFO, EV_NONE, 3 ), "%depotFile% - can't %action% (already opened for %badAction%)" } ;
@@ -564,7 +573,8 @@ ErrorId MsgDm::OpenWarnMoved           = { ErrorOf( ES_DM, 493, E_INFO, EV_USAGE
 ErrorId MsgDm::OpenWarnOpenStream      = { ErrorOf( ES_DM, 553, E_INFO, EV_USAGE, 1 ), "%depotFile% - warning: cannot submit from non-stream client" } ;
 ErrorId MsgDm::OpenWarnOpenNotStream   = { ErrorOf( ES_DM, 554, E_INFO, EV_USAGE, 2 ), "%depotFile% - warning: cannot submit from stream %stream% client" } ;
 ErrorId MsgDm::OpenWarnFileNotMapped   = { ErrorOf( ES_DM, 570, E_INFO, EV_USAGE, 2 ), "%depotFile% - warning: file not mapped in stream %stream% client" } ;
-ErrorId MsgDm::OpenWarnChangeMap       = { ErrorOf( ES_DM, 799, E_INFO, EV_USAGE, 2 ), "%depotFile% - warning: cannot submit file locked [to %change% ]by client's ChangeView mapping" } ;
+ErrorId MsgDm::OpenWarnChangeMap       = { ErrorOf( ES_DM, 799, E_INFO, EV_USAGE, 2 ), "%depotFile% - warning: cannot submit file that is restricted [to %change% ]by client's ChangeView mapping" } ;
+ErrorId MsgDm::OpenWarnAndmap          = { ErrorOf( ES_DM, 929, E_INFO, EV_USAGE, 2 ), "%clientFile% - warning: cannot submit file that is additionally mapped in client's View" } ;
 ErrorId MsgDm::OpenOtherDepot          = { ErrorOf( ES_DM, 724, E_FAILED, EV_NONE, 3 ), "%clientFile% - can't open %depotFile% (already opened as %depotFile2%)" } ;
 ErrorId MsgDm::OpenTaskNotMapped       = { ErrorOf( ES_DM, 752, E_INFO, EV_NONE, 2 ), "%clientFile% - can't open %depotFile% (not mapped in client), must sync first." } ;
 ErrorId MsgDm::OpenHasResolve          = { ErrorOf( ES_DM, 815, E_FAILED, EV_ILLEGAL, 2 ), "%clientFile% - can't %action% file with pending integrations." } ;
@@ -600,6 +610,7 @@ ErrorId MsgDm::ProtectsData            = { ErrorOf( ES_DM, 440, E_INFO, EV_NONE,
 ErrorId MsgDm::ProtectsMaxData         = { ErrorOf( ES_DM, 452, E_INFO, EV_NONE, 1 ), "%perm%" };
 ErrorId MsgDm::ProtectsEmpty           = { ErrorOf( ES_DM, 456, E_FAILED, EV_ADMIN, 0 ), "Protections table is empty." } ;
 ErrorId MsgDm::ProtectsNoSuper         = { ErrorOf( ES_DM, 469, E_FAILED, EV_ADMIN, 0 ), "Can't delete last valid 'super' entry from protections table." } ;
+ErrorId MsgDm::ProtectsNotCompatible   = { ErrorOf( ES_DM, 587, E_FAILED, EV_ADMIN, 0 ), "Helix P4Admin tool not compatible with '##' comments in protection table.\nIf you wish to continue using Helix P4Admin to administer the protection table please remove all '##' comments." } ;
 
 ErrorId MsgDm::PurgeSnapData           = { ErrorOf( ES_DM, 308, E_INFO, EV_NONE, 4 ), "%depotFile%%depotRev% - copy from %lbrFile% %lbrRev%" } ;
 ErrorId MsgDm::PurgeDeleted            = { ErrorOf( ES_DM, 309, E_INFO, EV_NONE, 6 ), "Deleted [%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ][and added %synInteg% integration ]record(s)." } ;
@@ -693,6 +704,7 @@ ErrorId MsgDm::StreamVsDomains          = { ErrorOf( ES_DM, 506, E_FATAL, EV_FAU
 ErrorId MsgDm::StreamVsTemplate          = { ErrorOf( ES_DM, 816, E_FATAL, EV_FAULT, 1 ), "Stream and template table out of sync for stream %stream%!" } ; // NOTRANS
 ErrorId MsgDm::LocWild                  = { ErrorOf( ES_DM, 514, E_FAILED, EV_USAGE, 2 ), "%loc% wildcards (*, ...) not allowed in path: '%path%'." } ;
 ErrorId MsgDm::EmbWild                  = { ErrorOf( ES_DM, 543, E_FAILED, EV_USAGE, 1 ), "Embedded wildcards (*, ...) not allowed in '%path%'." } ;
+ErrorId MsgDm::EmbEllipse               = { ErrorOf( ES_DM, 924, E_FAILED, EV_USAGE, 1 ), "Embedded wildcards (...) not allowed in '%path%'." } ;
 ErrorId MsgDm::EmbSpecChar              = { ErrorOf( ES_DM, 700, E_FAILED, EV_USAGE, 1 ), "Embedded special characters (*, %%, #, @) not allowed in '%path%'." } ;
 ErrorId MsgDm::PosWild                  = { ErrorOf( ES_DM, 515, E_FAILED, EV_USAGE, 1 ), "Positional wildcards (%%%%x) not allowed in path: '%path%'." } ;
 
@@ -775,7 +787,8 @@ ErrorId MsgDm::UnshelveIsLocked        = { ErrorOf( ES_DM, 513, E_FAILED, EV_USA
 ErrorId MsgDm::UnshelveResolve           = { ErrorOf( ES_DM, 621, E_INFO, EV_USAGE, 3 ), "%depotFile% - must %'resolve'% %fromFile%%rev% before submitting" } ;
 ErrorId MsgDm::UnshelveNotTask         = { ErrorOf( ES_DM, 744, E_FAILED, EV_USAGE, 2 ), "%depotFile% - can't unshelve for %action%, task stream client required." } ;
 ErrorId MsgDm::UnshelveFromRemote      = { ErrorOf( ES_DM, 797, E_INFO, EV_NONE, 2 ), "%depotFile% - can't unshelve from remote server (already opened for %badAction%)" } ;
-ErrorId MsgDm::UnshelveBadChangeView   = { ErrorOf( ES_DM, 820, E_FAILED, EV_NOTYET, 2 ), "%depotFile% - can't unshelve from revision at change %change% (excluded by client's ChangeView)" } ;
+ErrorId MsgDm::UnshelveBadChangeView   = { ErrorOf( ES_DM, 820, E_FAILED, EV_NOTYET, 2 ), "%depotFile% - can't unshelve from revision at change %change% (restricted by client's ChangeView)" } ;
+ErrorId MsgDm::UnshelveBadAndmap       = { ErrorOf( ES_DM, 928, E_FAILED, EV_NOTYET, 2 ), "%clientFile% - can't unshelve from revision at change %change% (additionally mapped in client's View)" } ;
 
 ErrorId MsgDm::UserSave                = { ErrorOf( ES_DM, 356, E_INFO, EV_NONE, 1 ), "User %user% saved." } ;
 ErrorId MsgDm::UserNoChange            = { ErrorOf( ES_DM, 357, E_INFO, EV_NONE, 1 ), "User %user% not changed." } ;
@@ -880,6 +893,7 @@ ErrorId MsgDm::CommandCancelled        = { ErrorOf( ES_DB, 62, E_FAILED, EV_COMM
 ErrorId MsgDm::MaxResults              = { ErrorOf( ES_DB, 32, E_FAILED, EV_ADMIN, 1 ), "Request too large (over %maxResults%); see '%'p4 help maxresults'%'." } ;
 ErrorId MsgDm::MaxScanRows             = { ErrorOf( ES_DB, 61, E_FAILED, EV_ADMIN, 1 ), "Too many rows scanned (over %maxScanRows%); see '%'p4 help maxscanrows'%'." } ;
 ErrorId MsgDm::MaxLockTime             = { ErrorOf( ES_DM, 453, E_FAILED, EV_ADMIN, 1 ), "Operation took too long (over %maxLockTime% seconds); see '%'p4 help maxlocktime'%'." } ;
+ErrorId MsgDm::MaxOpenFiles            = { ErrorOf( ES_DM, 500, E_FAILED, EV_ADMIN, 1 ), "Opening too many files (over %maxOpenFiles%); see '%'p4 help maxopenfiles'%'." } ;
 ErrorId MsgDm::UnknownReplicationMode  = { ErrorOf( ES_DM, 611, E_FAILED, EV_FAULT, 1 ), "Unknown replication mode '%mode%'." } ;
 ErrorId MsgDm::UnknownReplicationTarget = { ErrorOf( ES_DM, 612, E_FAILED, EV_FAULT, 1 ), "Unknown replication target '%target%'." } ;
 
@@ -946,8 +960,11 @@ ErrorId MsgDm::ChangeIdentityAlready   = { ErrorOf( ES_DM, 887, E_FAILED, EV_USA
 ErrorId MsgDm::ReservedClientName      = { ErrorOf( ES_DM, 892, E_FAILED, EV_USAGE, 1 ), "Client may not be named '%clientName%'; that is a reserved name." } ;
 ErrorId MsgDm::CannotChangeStorageType = { ErrorOf( ES_DM, 894, E_FAILED, EV_USAGE, 0 ), "Client storage type cannot be changed after client is created." } ;
 ErrorId MsgDm::ServerLocksOrder        = { ErrorOf( ES_DM, 895, E_FATAL, EV_FAULT, 4 ), "Server locking failure: %objectType% %objectName% %lockOrder% locked after %currentLockOrder%!" } ;//NOTRANS
-ErrorId MsgDm::JoinMax1TooSmall	       = { ErrorOf( ES_DM, 920, E_FAILED, EV_FAULT, 1 ), "Command exceeded map.joinmax1 size (%joinmax1% bytes).  This length can be increased by setting the map.joinmax1 configurable." } ;
+ErrorId MsgDm::CounterNoTAS            = { ErrorOf( ES_DM, 920, E_FAILED, EV_USAGE, 2 ), "New value for %counterName% not set. Current value is %counterValue%." } ;
+ErrorId MsgDm::JoinMax1TooSmall	       = { ErrorOf( ES_DM, 922, E_FAILED, EV_FAULT, 1 ), "Command exceeded map.joinmax1 size (%joinmax1% bytes).  This length can be increased by setting the map.joinmax1 configurable." } ;
 ErrorId MsgDm::RevChangedDuringPush    = { ErrorOf( ES_DM, 923, E_FAILED, EV_USAGE, 2 ), "Conflict: A concurrent modification to %depotFile%%depotRev% occurred during this push/fetch/unzip operation, causing the import step to be halted." } ;
+ErrorId MsgDm::UnknownReadonlyDir      = { ErrorOf( ES_DM, 936, E_FAILED, EV_ADMIN, 1 ), "Client %clientName% cannot be accessed, because clients of type %'readonly'% are unavailable if the %'client.readonly.dir'% configuration variable is invalid or unset." } ;
+ErrorId MsgDm::ShelveNotSubmittable    = { ErrorOf( ES_DM, 937, E_FAILED, EV_NOTYET, 1 ), "Shelved file %depotFile% has no submitted revisions. Perhaps the file was obliterated after the shelf was created, or perhaps the shelf was pushed from another server where the underlying file exists. You may unshelve the file and resolve it to specify that the new file should be added, or you may remove the file from the shelf, or you may submit the underlying revision first, but you may not submit this shelf as-is." } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 

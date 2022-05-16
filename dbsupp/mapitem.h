@@ -12,6 +12,7 @@
  * for MapTable::Check() and MapTable::Translate().
  */
 
+class MapItemArray;
 class MapItem {
 
     public:
@@ -24,6 +25,12 @@ class MapItem {
 			    mapFlag = f;
 			    chain = c;
 			    slot = s;
+			    halves[0].left = 0;
+			    halves[0].center = 0;
+			    halves[0].right = 0;
+			    halves[1].left = 0;
+			    halves[1].center = 0;
+			    halves[1].right = 0;
 			}
 
 	MapHalf *	Lhs() { return Half( LHS ); }
@@ -35,6 +42,7 @@ class MapItem {
 	int		Slot() { return slot; }
 
 	MapItem *	Reverse();
+	MapItem *	Move( int slot );
 
     public:
 
@@ -45,7 +53,8 @@ class MapItem {
 
 	void		Dump( MapTableT d, const char *name, int l = 0 );
 
-	MapItem *	Match( MapTableT dir, const StrPtr &from );
+	MapItem *	Match( MapTableT dir, const StrPtr &from,
+			    MapItemArray *ands = 0 );
 
 	static MapItem *Tree( MapItem **s, MapItem **e,
 			    MapTableT dir, MapItem *parent,
@@ -83,8 +92,10 @@ class MapItem {
 		MapItem	*center;
 		MapItem *right;
 
-		int 	maxSlot;
+		int	maxSlot;
 		int	overlap;
+		int	hasands;
+		int	maxSlotNoAnds;
 	} halves[2]; 
 
 	MapWhole *	Whole( int dir ) { return &halves[dir]; }
@@ -185,5 +196,25 @@ class MapPairArray : public VVarArray {
 	MapTableT 	dir1;
 	MapTableT	dir2;
 
+};
+
+/*
+ * MapItemArray - array of MapItems, means for returning multiple results
+ *                from Match()
+ *
+ *	MapPairArray::Get() - retrieve an item to the array ordered by slot.
+ *
+ *	MapPairArray::Put() - adds an item to the array ordered by slot.
+ */
+
+class MapItemArray : public VarArray {
+
+    public:
+			~MapItemArray();
+	MapItem *	Get( int i );
+	StrPtr  *	GetTranslation( int i );
+	MapItem *	Put( MapItem *i, StrPtr *t = 0 );
+	int		PutTree( MapItem *i, MapTableT dir );
+	void		Dump( const char *name );
 };
 

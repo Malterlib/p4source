@@ -275,6 +275,13 @@ HostEnv::GetTrustFile( StrBuf &result, Enviro * enviro )
 }
 
 int
+HostEnv::GetAliasesFile( StrBuf &result, Enviro *enviro )
+{
+	return GetHomeName( StrRef( "p4aliases" ), result,
+	                    enviro, "P4ALIASES" );
+}
+
+int
 HostEnv::GetHomeName( 
 	const StrRef &name, 
 	StrBuf &result, 

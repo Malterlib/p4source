@@ -60,6 +60,10 @@ public:
     static bool
     IsAddrUnspecified(const sockaddr *sa);
 
+    // make this address be unspecified
+    static bool
+    SetAddrUnspecified(sockaddr *sa);
+
     static bool
     IsAddrIPv6(const sockaddr *sa);
 

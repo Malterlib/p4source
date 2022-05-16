@@ -48,6 +48,7 @@ class MsgServer {
 	static ErrorId Unicode2;
 	static ErrorId Unicode3;
 	static ErrorId OperationFailed;
+	static ErrorId OperationInfo;
 	static ErrorId OperationDate;
 	static ErrorId BadCommand;
 	static ErrorId IllegalCommand;
@@ -74,7 +75,7 @@ class MsgServer {
 	static ErrorId LoginUser;
 	static ErrorId LoginGoodTill;
 	static ErrorId LoginNoTicket;
-	static ErrorId LogingInUser;
+	static ErrorId LoggingUserIn;
 	static ErrorId LogoutUser;
 	static ErrorId LoggedOut;
 	static ErrorId Login032;
@@ -137,7 +138,6 @@ class MsgServer {
 	static ErrorId LogEstimates;
 	static ErrorId Unlicensed;
 	static ErrorId TrackCommand;
-	static ErrorId NoValidLicense;
 	static ErrorId MaxLicensedFiles;
 	static ErrorId MaxUnLicensedFiles;
 	static ErrorId NoCentralLicense;
@@ -157,6 +157,7 @@ class MsgServer {
 	static ErrorId ReDowngrade;
 	static ErrorId Initialized;
 	static ErrorId AlreadyInitialized;
+	static ErrorId UserEmptyGroup;
 
 	static ErrorId PropertyAdd;
 	static ErrorId PropertyDelete;
@@ -177,6 +178,9 @@ class MsgServer {
 	static ErrorId CounterGet;
 	static ErrorId CounterNotNumeric;
 	static ErrorId KeyNotNumeric;
+	static ErrorId CounterSetVerbose;
+	static ErrorId KeySetVerbose;
+
 
 	static ErrorId DescribeFixed;
 	static ErrorId DescribeAffected;
@@ -448,6 +452,7 @@ class MsgServer {
 	static ErrorId UsePrint;
 	static ErrorId UseProtect;
 	static ErrorId UseProtects;
+	static ErrorId UseProtectsM;
 	static ErrorId UsePrune;
 	static ErrorId UsePull;
 	static ErrorId UsePurge;
@@ -475,12 +480,14 @@ class MsgServer {
 	static ErrorId UseServero;
 	static ErrorId UseServerd;
 	static ErrorId UseServeri;
+	static ErrorId UseServerc;
 	static ErrorId UseServerid;
 	static ErrorId UseServers;
 	static ErrorId UseSizes;
 	static ErrorId UseShelve;
 	static ErrorId UseShelvec;
 	static ErrorId UseShelvei;
+	static ErrorId UseShelvem;
 	static ErrorId UseShelver;
 	static ErrorId UseShelveNoOpts;
 	static ErrorId UseSnap;
@@ -587,9 +594,8 @@ class MsgServer {
 	static ErrorId CachepurgeBadMode;
 	static ErrorId ReplicaCacheConfig;
 	static ErrorId PullNotReplica;
-	static ErrorId PullCommandRunning;
+	static ErrorId CommandRunning;
 	static ErrorId PullOnDemand;
-	static ErrorId JcopyCommandRunning;
 	static ErrorId JournalCopyBadJnlState;
 	static ErrorId JournalCopyAppendFailed;
 	static ErrorId JournalStateVsSize;
@@ -694,6 +700,7 @@ class MsgServer {
 	static ErrorId LdapErrorSetOpt;
 	static ErrorId LdapSearchFailed;
 	static ErrorId LdapTestConfig;
+	static ErrorId LdapTestConfigAuthz;
 	static ErrorId LdapNoEmptyPasswd;
 	static ErrorId LdapUserNotFound;
 	static ErrorId LdapGroupNotFound;
@@ -713,6 +720,8 @@ class MsgServer {
 	static ErrorId LdapNoAttrConfig;
 	static ErrorId LdapNoAttrsFound;
 
+	static ErrorId LicenceInputOnly;
+
 	static ErrorId SwitchBranchData;
 	static ErrorId SwitchBranchDataMatch;
 	static ErrorId SwitchFilesOpen;
@@ -726,12 +735,14 @@ class MsgServer {
 	static ErrorId PushTriggersFailed;
 	static ErrorId PushClientExists;
 	static ErrorId PushPerformance;
+	static ErrorId PushCounters;
 	static ErrorId ResubmitPrompt;
 	static ErrorId ConflictingChange;
 	static ErrorId CannotResubmitOpened;
 	static ErrorId CannotResubmitNotUnshelved;
 	static ErrorId CannotResubmitChange;
 	static ErrorId ResolveUnsubmitted;
+	static ErrorId SubmitUnsubmitted;
 	static ErrorId RemoteMappingInvalid;
 	static ErrorId RemoteNoTarget;
 	static ErrorId UnsubmittedChanges;
@@ -764,6 +775,10 @@ class MsgServer {
 	static ErrorId AddressMismatch;
 	static ErrorId ClientRejected;
 	static ErrorId OpenReadOnly;
+	static ErrorId ClientTooOldToSkipXfer;
+	static ErrorId PartnerServerTooOld;
+	static ErrorId OpenNotDVCSLocal;
+	static ErrorId ServerIDIdentity;
 
 	//nimble
 	static ErrorId BackupOff;		// added in nimble
@@ -784,4 +799,7 @@ class MsgServer {
 	static ErrorId NotClusterService; // Not documented in any release but in 13.2-14.1
 	static ErrorId PushCryptoError; // DEPRECATED used in 15.1-2
 	static ErrorId FetchCryptoError; // DEPRECATED used in 15.1-2
+	static ErrorId PullCommandRunning; // DEPRECATED - use CommandRunning instead
+	static ErrorId JcopyCommandRunning; // DEPRECATED - use CommandRunning instead
+	static ErrorId NoValidLicense;
 };

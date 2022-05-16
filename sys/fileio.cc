@@ -33,7 +33,7 @@
 # include <i18napi.h>
 # include <charcvt.h>
 # include <largefile.h>
-# include <lockfile.h>
+# include <fdutil.h>
 # include <md5.h>
 
 # include <msgos.h>
@@ -205,9 +205,9 @@ FileIO::Truncate( Error *e )
 	int fd;
 
 # if !defined ( OS_MACOSX )
-	if( ( fd = openL( Name(), O_WRONLY|O_TRUNC, PERM_0666 ) ) >= 0 )
+	if( ( fd = checkFd( openL( Name(), O_WRONLY|O_TRUNC, PERM_0666 ) ) ) >= 0 )
 # else
-	if( ( fd = openL( Name(), O_WRONLY|O_TRUNC ) ) >= 0 )
+	if( ( fd = checkFd( openL( Name(), O_WRONLY|O_TRUNC ) ) ) >= 0 )
 # endif // OS_MACOSX
 	{
 	    close( fd );
@@ -490,6 +490,10 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 
 	int bits = openModes[ mode ].bflags;
 
+	// Reset the isStd flag
+
+	isStd = 0;
+
 	// Handle exclusive open (must not already exist)
 
 # ifdef O_EXCL
@@ -513,7 +517,7 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 # endif
 
 	// open stdin/stdout or real file
-
+	
 	if( Name()[0] == '-' && !Name()[1] )
 	{
 	    // we do raw output: flush stdout
@@ -521,10 +525,12 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 
 	    if( mode == FOM_WRITE )
 		fflush( stdout );
-
+            
 	    fd = openModes[ mode ].standard;
+            checkStdio( fd );
+	    isStd = 1;
 	}
-	else if( ( fd = openL( Name(), bits, PERM_0666 ) ) < 0 )
+	else if( ( fd = checkFd( openL( Name(), bits, PERM_0666 ) ) ) < 0 )
 	{
 	    e->Sys( openModes[ mode ].modeName, Name() );
 # ifdef O_EXCL
@@ -543,7 +549,7 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 void
 FileIOBinary::Close( Error *e )
 {
-	if( fd < 2 )
+	if( isStd || fd < 0 )
 	    return;
 
 	if( ( GetType() & FST_M_SYNC ) )
@@ -674,13 +680,19 @@ FileIOAppend::Open( FileOpenMode mode, Error *e )
 
 	this->mode = mode;
 
+	// Reset the isStd flag
+
+	isStd = 0;
+
 	// open stdin/stdout or real file
 
 	if( Name()[0] == '-' && !Name()[1] )
 	{
 	    fd = openModes[ mode ].standard;
+            checkStdio( fd );
+	    isStd = 1;
 	}
-	else if( ( fd = openL( Name(), openModes[ mode ].aflags, PERM_0666 ) ) < 0 )
+	else if( ( fd = checkFd( openL( Name(), openModes[ mode ].aflags, PERM_0666 ) ) ) < 0 )
 	{
 	    e->Sys( openModes[ mode ].modeName, Name() );
 	    ClearDeleteOnClose();

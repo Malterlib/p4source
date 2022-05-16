@@ -97,6 +97,9 @@ class BufferDict : public StrDict {
 	void		VClear() { buf.Clear(); count = 0; }
 	void		VRemoveVar( const StrPtr &var );
 
+    protected:
+	StrPtr *	GetBuffer() { return &buf; }
+
     private:
 	StrRef		varRef;		// temp for VGetVar
 

@@ -2,7 +2,7 @@ class MapTable;
 class StrPtr;
 class StrBuf;
 
-enum MapType { MapInclude, MapExclude, MapOverlay };
+enum MapType { MapInclude, MapExclude, MapOverlay, MapOneToMany };
 enum MapDir  { MapLeftRight, MapRightLeft };
 
 class MapApi

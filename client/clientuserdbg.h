@@ -50,3 +50,22 @@ class ClientUserFmt : public ClientUser {
 
 	const StrPtr *fmt;
 } ;
+
+/*
+ * ClientUserMunge -- modify spec output with user-specified strings
+ */
+
+class ClientUserMunge : public ClientUser {
+
+    public:
+
+	ClientUserMunge( Options &opts );
+	void		OutputStat( StrDict *dict );
+
+	static void	Munge( StrDict *spec, StrPtrArray *fields, 
+			       ClientUser *ui );
+
+    private:
+
+	StrPtrArray fields;
+};

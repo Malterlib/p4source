@@ -118,7 +118,10 @@ ERR_load_BIO_strings(void)
 {
 }
 
-
+void
+ERR_remove_thread_state(const CRYPTO_THREADID *not_used)
+{
+}
 
 int
 EVP_PKEY_assign(EVP_PKEY *pkey, int type, void *key)
@@ -126,25 +129,21 @@ EVP_PKEY_assign(EVP_PKEY *pkey, int type, void *key)
 	return 0;
 }
 
-
-
 void 
 EVP_PKEY_free(EVP_PKEY *pkey)
 {
 }
 
-
-
 EVP_PKEY *
 EVP_PKEY_new(void)
 {
-	return &mypkey;
+	return NULL;
 }
 
 EVP_PKEY *
 X509_get_pubkey(X509 *a)
 {
-	return &mypkey;
+	return NULL;
 }
 EVP_MD *
 EVP_sha1(void)
@@ -481,7 +480,7 @@ EVP_PKEY *
 PEM_read_PrivateKey(FILE *fp, EVP_PKEY **x,
                     pem_password_cb *cb, void *u)
 {
-	return &mypkey;
+	return NULL;
 }
 
 X509 *
@@ -534,6 +533,7 @@ void CRYPTO_set_locking_callback(void (*func)(int mode,int type,
 void CRYPTO_set_id_callback(unsigned long (*func)(void))
 {
 }
+
 void CRYPTO_set_dynlock_create_callback(struct CRYPTO_dynlock_value *
         (*dyn_create_function)(const char *file, int line))
 {
@@ -543,7 +543,9 @@ void CRYPTO_set_dynlock_lock_callback(void (*dyn_lock_function)
         const char *file, int line))
 {
 }
-void CRYPTO_set_dynlock_destroy_callback(void (*dyn_destroy_function)
+
+void
+CRYPTO_set_dynlock_destroy_callback(void (*dyn_destroy_function)
         (struct CRYPTO_dynlock_value *l, const char *file, int line))
 {
 }

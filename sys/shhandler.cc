@@ -47,17 +47,42 @@
 // handling.
 //
 
+# ifndef OS_NT
+// The following two functions are used for Linux instrumentation.
+int
+IsDebuggerPresent()
+{
+# ifdef MEM_DEBUG
+	return 1;
+# else
+	// This tunable is only for Linux, "sys.memory.debug".
+	return p4tunable.Get( P4TUNE_SYS_MEMORY_DEBUG );
+# endif
+}
+
+void
+OutputDebugString(
+	const char *msg
+	)
+{
+	// On Linux, Smart Heap output goes to stderr.
+	fprintf(stderr, "%s", msg);
+	fflush( stderr );
+}
+# endif // !OS_NT
+
 MEM_BOOL MEM_CALLBACK
 SHHandleError(
     MEM_ERROR_INFO *errorInfo
     )
 {
+	char msg[128];
+
 # ifdef OS_NT
 	// On Windows, we catch Smart Heap errors.
+	//
 	if( IsDebuggerPresent() )
 	{
-	    char msg[128];
-
 	    // Post the Smart Heap Error address to p4diag.
 	    // P4diag will read the structure from process memory
 	    // and display pertinent information.
@@ -72,8 +97,14 @@ SHHandleError(
 # endif // HAVE_DBGBREAK
 	}
 # else
-	// On Linux, we ignore Smart Heap errors.
-# endif
+	// On Linux just report the SH errorCode.
+	//
+	if( IsDebuggerPresent() )
+	{
+	    sprintf (msg, "display MEM_ERROR_CODE: 0x%x\n", errorInfo->errorCode);
+	    OutputDebugString(msg);
+	}
+# endif // OS_NT
 
 	return (0);
 }
@@ -96,7 +127,14 @@ SHHandler::SHHandler()
 	cur_ckpt = 1;
 	max_ckpt = 1;
 
+# ifdef OS_NT
+	// On Linux let Smart Heap format the error message.
+	if( MemSetErrorHandler( SHHandleError ) == NULL)
+	    OutputDebugString ("note: MemSetErrorHandler(): failed.\n");
+# else
+	// On Linux we can not do error output in the constructor.
 	MemSetErrorHandler( SHHandleError );
+# endif
 
 	MemRegisterTask();
 
@@ -115,11 +153,26 @@ SHHandler::SHHandler()
 	// O(n*n)
 	dbgMemSetSafetyLevel( MEM_SAFETY_DEBUG );
 # endif
-# ifdef OS_NT
-	// On Windows, output goes to the debug console.
-	// Use p4diag to view these messages.
-	dbgMemSetDefaultErrorOutput( DBGMEM_OUTPUT_CONSOLE, NULL);
+# if (SMARTHEAP_CHECKS == 4)
+	// O(n*n) plus the thorough checking
+	dbgMemSetSafetyLevel( MEM_SAFETY_DEBUG );
+
+	// Enable thorough checking, this might take a while.
+	dbgMemSetCheckFrequency( 1 );
+	dbgMemDeferFreeing( 1 );
+	dbgMemSetDeferQueueLen( ULONG_MAX-1 );
+	dbgMemSetDeferSizeThreshold( (MEM_SIZET)ULONG_MAX-1 );
 # endif
+# ifdef OS_NT
+	// On Windows, Debug Smart Heap output goes to the debug console.
+	// Use p4diag to view these messages.
+	if( !dbgMemSetDefaultErrorOutput( DBGMEM_OUTPUT_CONSOLE, NULL))
+	    OutputDebugString ("note: dbgMemSetDefaultErrorOutput(): failed.\n");
+# else // Linux
+	// On Linux, Debug Smart Heap output goes to stderr.
+	// On Linux we can not do error output in the constructor.
+	dbgMemSetDefaultErrorOutput( DBGMEM_OUTPUT_CONSOLE, NULL);
+# endif // OS_NT
 # endif // SMARTHEAP_CHECKS
 
 # ifdef OS_NT
@@ -127,8 +180,11 @@ SHHandler::SHHandler()
 
 	if( IsDebuggerPresent() )
 	{
+	    MEM_VERSION vers;
+
+	    vers = MemVersion( );
 	    sprintf (msg, "control: set sh_version=%d.%d.%d\n",
-		SHI_MAJOR_VERSION, SHI_MINOR_VERSION, SHI_UPDATE_LEVEL);
+		MEM_MAJOR_VERSION(vers), MEM_MINOR_VERSION(vers), MEM_UPDATE_VERSION(vers));
 	    OutputDebugString( msg );
 
 # ifdef MEM_DEBUG
@@ -136,7 +192,7 @@ SHHandler::SHHandler()
 	    OutputDebugString( msg );
 # endif
 	}
-# endif
+# endif // OS_NT
 }
 
 // Set all Smart Heap tunables.
@@ -192,10 +248,18 @@ SHHandler::SetTunable(
 	MEM_SIZET membytes = 0;
 	MEM_SIZET prevbytes = 0;
 
+# ifdef OS_NT
 	// A value of 0 is only allowed for poolgrowinc.
 	//
 	if( *value == 0 && index != P4TUNE_SYS_MEMORY_POOLGROWINC )
 	    return;
+# else
+	// No values of 0 allowed on Linux.
+	// Revisit this if we move to SH 11.0 on Linux.
+	//
+	if( *value == 0 )
+	    return;
+# endif
 
 	membytes = (MEM_SIZET)*value;
 
@@ -297,6 +361,7 @@ SHHandler::SetTunable(
 # ifdef OS_NT
 # ifndef MEM_DEBUG
 	    // Smart Heap bug, debug library doesn't have this export.
+	    // Check this again in SH 11.3
 	    prevbytes = MemPoolSetMaxSubpools( MemDefaultPool, membytes);
 # endif
 # endif
@@ -349,7 +414,6 @@ SHHandler::SetTunable(
 	    break;
 	}
 
-# ifdef OS_NT
 	// Emit a trace message for p4diag.
 	if( IsDebuggerPresent() )
 	{
@@ -380,7 +444,6 @@ SHHandler::SetTunable(
 
 	    OutputDebugString( msg );
 	}
-# endif
 }
 
 // External function for setting SH tunables.
@@ -525,7 +588,6 @@ SHHandler::UnsetTunable( const char *name )
 void
 SHHandler::Close()
 {
-	MemUnregisterTask();
 # ifdef OS_NT
 	DeleteCriticalSection( &section );
 # endif
@@ -537,7 +599,6 @@ SHHandler::ListEntry (
 	int show_unused
 	)
 {
-# ifdef OS_NT
 	char fmt[128];
 	char frame[128];
 	char msg[8192];
@@ -603,7 +664,6 @@ SHHandler::ListEntry (
 	    sprintf (msg, fmt, entry->entry, entry->size);
 	    OutputDebugString (msg);
 	}
-# endif // OS_NT
 }
 
 MEM_BOOL
@@ -632,7 +692,6 @@ SHHandler::ListPool (
 	unsigned int detail
 	)
 {
-# ifdef OS_NT
 	MEM_POOL_ENTRY entry;
 	char fmt[1024];
 	char msg[1024];
@@ -686,7 +745,6 @@ end:
 	sprintf (fmt, "poolend: %s '%%s'\n", FMT_X);
 	sprintf (msg, fmt, pool, tag);
 	OutputDebugString (msg);
-# endif // OS_NT
 }
 
 void
@@ -695,7 +753,6 @@ SHHandler::ListAllPools (
 	unsigned int detail
 	)
 {
-# ifdef OS_NT
 	MEM_POOL_INFO info;
 	MEM_POOL_STATUS status;
 	MEM_POOL_ENTRY entry;
@@ -718,7 +775,6 @@ SHHandler::ListAllPools (
 
 	sprintf (msg, "listend: '%s'\n", tag);
 	OutputDebugString (msg);
-# endif // OS_NT
 }
 
 MEM_SIZET
@@ -733,10 +789,8 @@ SHHandler::FlushPool( MEM_POOL pool )
 
 	if ( membytes == MEM_ERROR_RET )
 	{
-# ifdef OS_NT
 	    if( IsDebuggerPresent() )
 		OutputDebugString("note: MemPoolShrink() failed\n");
-# endif // OS_NT
 	    return (0);
 	}
 
@@ -827,6 +881,29 @@ SHHandler::ReportLeakage (
 	}
 
 	OutputDebugString ("note: ReportLeakage() end\n");
+# endif
+}
+
+void
+SHHandler::MemCheckAll ()
+{
+# ifdef MEM_DEBUG
+	char msg[256];
+
+	if( !IsDebuggerPresent() )
+	    return;
+
+	OutputDebugString ("note: MemCheckAll() begin\n");
+
+	if( !dbgMemCheckAll() )
+	    OutputDebugString ("note: MemCheckAll() failed.\n");
+
+	// After the check, free the deferred memory.  Otherwise
+	// it can pile up and potentially exhaust memory.
+	//
+	dbgMemFreeDeferred();
+
+	OutputDebugString ("note: MemCheckAll() end\n");
 # endif
 }
 

@@ -4,10 +4,17 @@
  * This file is part of Perforce - the FAST SCM System.
  */
 
+extern "C" {
+    
 #ifdef OS_NT
-extern "C" int lockFileByHandle( HANDLE h, int flag );
+int lockFileByHandle( HANDLE h, int flag );
 #endif
-extern "C" int lockFile( int fd, int flag );
+int lockFile( int fd, int flag );
+int checkFd( int fd );
+void checkStdio( int fd = -1 );
+
+}
+
 
 enum lockFileFlags {
 

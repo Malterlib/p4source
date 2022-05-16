@@ -47,9 +47,20 @@ class ErrorLog {
 	void		Abort( const Error *e );
 	void		SysLog( const Error *e, int tagged, const char *et,
 				const char *buf );
-	void		Report( const Error *e ){ Report( e, 1 ); }
-	void		ReportNoTag( const Error *e ){ Report( e, 0 ); }
-	void		Report( const Error *e, int tagged );
+
+	                enum ReportFlags
+	                {
+	                    REPORT_NO_FLAGS = 0,
+	                    REPORT_TAGGED   = 1,
+	                    REPORT_HOOKED   = 2,
+
+	                    REPORT_ALL      = 0x3
+	                } ;
+
+	void		Report( const Error *e ){ Report( e, REPORT_ALL ); }
+	void		ReportNoTag( const Error *e ){ Report( e, REPORT_HOOKED ); }
+	void		ReportNoHook( const Error *e ){ Report( e, REPORT_TAGGED ); }
+	void		Report( const Error *e, int flags );
 	void		LogWrite( const StrPtr & );
 
 	// Utility methods

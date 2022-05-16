@@ -18,7 +18,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgClient error code is: 68
+ * Current high value for a MsgClient error code is: 87
  */
 
 # include <error.h>
@@ -93,6 +93,26 @@ ErrorId MsgClient::InitUnicodeUnset    = { ErrorOf( ES_CLIENT, 65, E_FAILED, EV_
 ErrorId MsgClient::CloneFetchCounts    = { ErrorOf( ES_CLIENT, 66, E_INFO,   EV_CLIENT, 2 ), "%changes% change(s) containing a total of %revs% file revision(s) were successfully fetched." };
 ErrorId MsgClient::LocalRemoteMismatch = { ErrorOf( ES_CLIENT, 67, E_FAILED, EV_CLIENT, 0 ), "ServerHelperApi already refers to a local Perforce Server." };
 ErrorId MsgClient::RemoteLocalMismatch = { ErrorOf( ES_CLIENT, 68, E_FAILED, EV_CLIENT, 0 ), "ServerHelperApi already refers to a remote Perforce Server." };
+
+ErrorId MsgClient::AliasTooManyEquals  = { ErrorOf( ES_CLIENT, 69, E_FAILED, EV_USAGE, 1 ), "Alias syntax error: extra equals sign in '%alias%'" };
+ErrorId MsgClient::AliasMissingEquals  = { ErrorOf( ES_CLIENT, 70, E_FAILED, EV_USAGE, 1 ), "Alias syntax error: missing equals sign in '%alias%'" };
+ErrorId MsgClient::AliasTooComplex     = { ErrorOf( ES_CLIENT, 71, E_FAILED, EV_USAGE, 1 ), "Alias definition '%alias%' exceeds the complexity limit of %limit%." };
+ErrorId MsgClient::AliasMissingCommand = { ErrorOf( ES_CLIENT, 72, E_FAILED, EV_USAGE, 1 ), "Alias definition '%alias%' does not contain the command to run." };
+ErrorId MsgClient::AliasArgSyntax      = { ErrorOf( ES_CLIENT, 73, E_FAILED, EV_USAGE, 2 ), "Alias syntax error: '%arg%' not understood in '%alias%'." };
+ErrorId MsgClient::AliasIOSyntax       = { ErrorOf( ES_CLIENT, 74, E_FAILED, EV_USAGE, 2 ), "Alias syntax error: unexpected character '%redirChar%' found in alias '%alias%'." };
+ErrorId MsgClient::AliasInputMultiple  = { ErrorOf( ES_CLIENT, 75, E_FAILED, EV_USAGE, 1 ), "Alias syntax error: multiple input redirections were found in alias '%alias%'." };
+ErrorId MsgClient::AliasOutputMultiple = { ErrorOf( ES_CLIENT, 76, E_FAILED, EV_USAGE, 1 ), "Alias syntax error: multiple output redirections were found in alias '%alias%'." };
+ErrorId MsgClient::AliasRedirection    = { ErrorOf( ES_CLIENT, 77, E_FAILED, EV_USAGE, 1 ), "Alias syntax error: unrecognized redirection syntax in alias '%alias%'." };
+ErrorId MsgClient::NoAliasesFound      = { ErrorOf( ES_CLIENT, 78, E_INFO, EV_CLIENT, 0 ), "You have no aliases defined." };
+ErrorId MsgClient::AliasNoTransform    = { ErrorOf( ES_CLIENT, 79, E_FAILED, EV_USAGE, 1 ), "Alias syntax error: no transformation found in '%alias%'." };
+ErrorId MsgClient::AliasEmptyTransform = { ErrorOf( ES_CLIENT, 80, E_FAILED, EV_USAGE, 0 ), "Alias syntax error: empty transformation not allowed." };
+ErrorId MsgClient::AliasPartial        = { ErrorOf( ES_CLIENT, 81, E_FAILED, EV_USAGE, 0 ), "Alias syntax error: alias definition incomplete." };
+ErrorId MsgClient::AliasSubstArgs      = { ErrorOf( ES_CLIENT, 82, E_FAILED, EV_USAGE, 0 ), "Alias syntax error: p4subst should have exactly two arguments." };
+ErrorId MsgClient::AliasSubstInput     = { ErrorOf( ES_CLIENT, 83, E_FAILED, EV_USAGE, 0 ), "Alias syntax error: p4subst input should be redirected." };
+ErrorId MsgClient::AliasSubstOutput    = { ErrorOf( ES_CLIENT, 84, E_FAILED, EV_USAGE, 0 ), "Alias syntax error: p4subst output should be redirected" };
+ErrorId MsgClient::AliasSyntaxError    = { ErrorOf( ES_CLIENT, 85, E_FAILED, EV_USAGE, 1 ), "Alias syntax error: '%alias%' not understood." };
+ErrorId MsgClient::CommandNotAliased   = { ErrorOf( ES_CLIENT, 86, E_FAILED, EV_USAGE, 1 ), "There is no alias which applies to '%cmd%'." };
+ErrorId MsgClient::AliasEmptyPattern   = { ErrorOf( ES_CLIENT, 87, E_FAILED, EV_USAGE, 1 ), "Alias syntax error: no pattern found in '%alias%'" };
 
 // ErrorId graveyard: retired/deprecated ErrorIds.
 

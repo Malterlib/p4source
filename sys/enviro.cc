@@ -50,6 +50,7 @@ const char p4enviro[] = "P4ENVIRO";
 // Keep in sync with HelpEnvironment in msgs/msghelp.cc
 
 const static char *const envVars[] = {
+	"P4ALIASES",
 	"P4AUDIT",
 	"P4AUTH",
 	"P4BROKEROPTIONS",
@@ -107,6 +108,7 @@ struct EnviroItem {
 	StrBuf	value;
 	Enviro::ItemType type;
 	StrBuf	origin;
+	int	checked;
 } ;
 
 /*
@@ -234,13 +236,6 @@ Enviro::OsServer()
 	serviceKey = new KeyPair;
 	serviceKey->hkey = HKEY_LOCAL_MACHINE;
 	serviceKey->key = "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion";
-}
-
-void
-Enviro::Reload()
-{
-	delete symbolTab;
-	symbolTab = 0;
 }
 
 bool
@@ -419,7 +414,7 @@ Enviro::Set( const char *var, const char *value, Error *e )
 
 	EnviroItem *a = symbolTab->GetItem( StrRef( (char *)var ) );
 
-	if( a )
+	if( a  && a->type >= USER)
 	    a->type = NEW;
 
 	if( !StrBuf::SCompare( var[0], 'P' ) && var[1] == '4' && !IsKnown( var ) )
@@ -694,11 +689,6 @@ Enviro::OsServer()
 }
 
 void
-Enviro::Reload()
-{
-}
-
-void
 Enviro::Set( const char *var, const char *value, Error *e )
 {
 	if ( !var || !strcasecmp( var, p4passwd ) )
@@ -751,6 +741,13 @@ EnviroTable::~EnviroTable()
 	    delete (EnviroItem *)Get(i);
 }
 
+void
+Enviro::Reload()
+{
+	delete symbolTab;
+	symbolTab = 0;
+}
+
 EnviroItem *
 EnviroTable::GetItem( const StrRef &var )
 {
@@ -777,6 +774,9 @@ EnviroTable::PutItem( const StrRef &var )
 	    a = new EnviroItem;
 	    a->type = Enviro::NEW;
 	    a->var.Set( var );
+	    a->value.Clear();
+	    a->origin.Clear();
+	    a->checked = 0;
 	    VarArray::Put( a );
 	}
 
@@ -792,7 +792,7 @@ EnviroTable::RemoveType( Enviro::ItemType ty )
 	{
 	    a = (EnviroItem *)Get( --i );
 
-	    if( a->type != ty )
+	    if( a->type < ty )
 	        continue;
 
 	    delete a;
@@ -880,12 +880,16 @@ Enviro::GetItem( const char *var )
 
 	EnviroItem *a = symbolTab->PutItem( StrRef( (char *)var ) );
 
-	if( a->type != NEW ||
-	    ReadItemPlatform( SVC, var, a ) ||
-	    ReadItemPlatform( ENV, var, a ) ||
+	if( ( a->type != ENVIRO && a->type != NEW ) ||
+	    ( a->type == ENVIRO && a->checked ) ||
+	    ( a->type != ENVIRO && ReadItemPlatform( SVC, var, a ) ) ||
+	    ( a->type != ENVIRO && ReadItemPlatform( ENV, var, a ) ) ||
+	    a->type == ENVIRO ||
 	    ReadItemPlatform( USER, var, a ) ||
 	    ReadItemPlatform( SYS, var, a ) )
 	{
+	    a->checked = 1;
+
 	    // If we're resolving home, don't recurse
 
 	    if( !strcmp( var, "HOME" ) || !strcmp( var, "USERPROFILE" ) )
@@ -1040,6 +1044,7 @@ Enviro::ReadConfig( FileSys *f, Error *e, int checkSyntax, Enviro::ItemType ty )
 	    // Set as config'ed
 
 	    EnviroItem *a = GetItem( var.Text() );
+	    if( a->type <  ty ) continue;
 	    if( a->type == ty && a->origin.Length() ) continue;
 
 	    StrRef cnfdir( "$configdir" );
@@ -1061,8 +1066,10 @@ Enviro::ReadConfig( FileSys *f, Error *e, int checkSyntax, Enviro::ItemType ty )
 	    }
 	    else
 		a->value.Set( equals + 1 );
+
 	    a->type = ty;
 	    a->origin.Set( f->Path() );
+	    a->checked = 0;
 	}
 }
 
@@ -1107,6 +1114,7 @@ Enviro::LoadConfig( const StrPtr &cwd, int checkSyntax )
 	// settings from previously loaded P4CONFIG files.
 
 	symbolTab->RemoveType( CONFIG );
+	LoadEnviro( 0 );
 	configFile.Clear();
 	configFiles->Clear();
 
@@ -1211,7 +1219,15 @@ WriteItem( FileSys *newf, const char *var, const char *value, Error *e )
 void
 Enviro::SetEnviroFile( const char *f )
 {
+	if( ( f && symbolTab && enviroFile.Compare( StrRef( f ) ) ) ||
+	    ( !f && enviroFile.Length() ) )
+	{
+	    symbolTab->RemoveType( ENVIRO );
+	    LoadEnviro( 0 );
+	}
+
 	enviroFile.Set( f ? f : "" );
+
 }
 
 const StrPtr *
@@ -1353,6 +1369,19 @@ Enviro::SetEnviro( const char *var, const char *value, Error *e )
 
 	delete newf;
 	delete f;
+
+	// Update the cache, assuming we don't already have a higher
+	// presedence value.
+	if( symbolTab )
+	{
+	    EnviroItem *a = symbolTab->PutItem( StrRef( (char *) var ) );
+	    if( a->type >= ENVIRO )
+	    {
+	        a->type = ENVIRO;
+	        a->value.Set( value );
+	        a->origin.Set( envFile );
+	    }
+	}
 
 	// warn the user if the env variable is also set.
 	if( value && getenv( var ) )
