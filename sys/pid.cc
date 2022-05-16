@@ -18,6 +18,12 @@ Pid::GetID()
 }
 
 int
+Pid::GetProcID()
+{
+	return GetCurrentProcessId();
+}
+
+int
 Pid::CheckID( int id )
 {
 	DWORD threadId = id;
@@ -38,6 +44,12 @@ int
 Pid::GetID()
 {
 	return getpid();
+}
+
+int
+Pid::GetProcID()
+{
+	return GetID();
 }
 
 int 

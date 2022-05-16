@@ -9,6 +9,8 @@
  *
  */
 
+class Enviro;
+
 class CharSetApi {
 public:
     /*
@@ -26,7 +28,9 @@ public:
 	CP850, CP858, CP1253, CP737, ISO8859_7
     };
 
-    static CharSet Lookup(const char *);
+    static CharSet Lookup(const char *, Enviro * = 0);
+
+    static CharSet Discover(Enviro * = 0);
 
     static const char *Name(CharSet);
 

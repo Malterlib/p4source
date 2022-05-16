@@ -137,6 +137,22 @@ FileIO::ChmodTime( Error *e )
 # if !defined( OS_NT )
 
 void
+FileIO::Truncate( offL_t offset, Error *e )
+{
+	// Don't bother if non-existent.
+
+	if( !( Stat() & FSF_EXISTS ) )
+	    return;
+
+# ifdef HAVE_TRUNCATE
+	if( truncate( Name(), offset ) >= 0 )
+	    return;
+# endif // HAVE_TRUNCATE
+
+	e->Sys( "truncate", Name() );
+}
+
+void
 FileIO::Truncate( Error *e )
 {
 	// Don't bother if non-existent.
@@ -264,7 +280,8 @@ int
 FileIO::Writelink( const StrPtr &linkPath, Error *e )
 {
 # if defined( HAVE_SYMLINKS ) && !defined( OS_NT )
-	if( unlink( Name() ) < 0 )
+	if( ( Stat() & (FSF_EXISTS|FSF_SYMLINK) ) &&
+	    unlink( Name() ) < 0 )
 	{
 	    e->Sys( "unlink", Name() );
 	    return errno;
@@ -419,6 +436,7 @@ FileIO::Chmod( FilePerm perms, Error *e )
 	case FPM_ROO: bits &= ~PERM_0266; break;
 	case FPM_RWO: bits = PERM_0600; break; // for key file, set exactly to rwo
 	case FPM_RXO: bits = PERM_0500; break;
+	case FPM_RWXO: bits = PERM_0700; break;
 	}
 
 	if( chmod( Name(), bits & ~global_umask ) >= 0 )
@@ -523,10 +541,8 @@ FileIOBinary::Close( Error *e )
 	if( fd < 2 )
 	    return;
 
-# ifdef HAVE_FSYNC
-	if( ( GetType() & FST_M_SYNC ) && ( fsync( fd ) < 0 ) )
-	    e->Sys( "fsync", Name() );
-# endif
+	if( ( GetType() & FST_M_SYNC ) )
+	    Fsync( e );
 
 # ifdef OS_LINUX
 	if( cacheHint && p4tunable.Get( P4TUNE_FILESYS_CACHEHINT ) )
@@ -543,6 +559,15 @@ FileIOBinary::Close( Error *e )
 
 	if( mode == FOM_WRITE )
 	    Chmod( perms, e );
+}
+
+void
+FileIOBinary::Fsync( Error *e )
+{
+# ifdef HAVE_FSYNC
+	if( fd >= 0 && fsync( fd ) < 0 )
+	    e->Sys( "fsync", Name() );
+# endif
 }
 
 void

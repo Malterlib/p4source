@@ -271,7 +271,7 @@ Error::UnMarshall0( const StrPtr &inp )
  */
 
 void
-Error::Marshall1( StrDict &out ) const
+Error::Marshall1( StrDict &out, int uniquote ) const
 {
 	int i;
 	StrRef r, l;
@@ -281,7 +281,15 @@ Error::Marshall1( StrDict &out ) const
 	for( i = 0; i < ep->errorCount; i++ )
 	{
 	    out.SetVar( P4Tag::v_code, i, StrNum( ep->ids[i].code ) );
-	    out.SetVar( P4Tag::v_fmt, i, StrRef( ep->ids[i].fmt ) );
+
+	    if( uniquote )
+		out.SetVar( P4Tag::v_fmt, i, StrRef( ep->ids[i].fmt ) );
+	    else
+	    {
+		StrBuf mtext;
+		StrOps::RmUniquote( mtext, StrRef( ep->ids[i].fmt ) );
+		out.SetVar( P4Tag::v_fmt, i, mtext );
+	    }
 	}
 
 	StrRef c( P4Tag::v_code ), f( P4Tag::v_fmt );

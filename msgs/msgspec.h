@@ -15,6 +15,7 @@ class MsgSpec {
 	static ErrorId SpecBranch;
 	static ErrorId SpecClient;
 	static ErrorId SpecLabel;
+	static ErrorId SpecLdap;
 	static ErrorId SpecLicense;
 	static ErrorId SpecChange;
 	static ErrorId SpecDepot;

@@ -4,6 +4,9 @@
  * This file is part of Perforce - the FAST SCM System.
  */
 
+# define NEED_FILE
+# define NEED_CHDIR
+
 # include <stdhdrs.h>
 # include <charman.h>
 
@@ -27,6 +30,8 @@
 # include "errno.h"
 # include "hostenv.h"
 # define USE_ERRNO
+
+# include <msgos.h>
 
 void
 FileSysCleanup( FileSys *f )
@@ -136,6 +141,10 @@ FileSys::FileSys()
 
 	type = FST_TEXT;
 
+# ifdef OS_NT
+	LFN = 0;
+# endif
+
 	isTemp = 0;
 }
 
@@ -162,9 +171,68 @@ FileSys::Cleanup()
 	    Unlink();
 }
 
+# ifdef OS_NT
+void
+FileSys::SetLFN( const StrPtr &name )
+{
+	int lfn_val = p4tunable.Get( P4TUNE_FILESYS_WINDOWS_LFN );
+	if( lfn_val )
+	{
+	    // For LFN we need an absolute path with a drive spec.
+	    // CWD is still limited by MAX_PATH
+	    if( IsRelative( name ) )
+	    {
+		StrBuf cwd;
+		cwd.Alloc( _MAX_PATH );
+		_getcwd( cwd.Text(), cwd.Length() );
+		cwd.SetLength();
+
+		// If the absolute path is over 255, use LFN support.
+		// If the tunable is 10, LFN is always on for QA.
+		if( lfn_val == 10 || ( cwd.Length() + name.Length() > 255 ) )
+		    LFN = 1;
+	    }
+	    else
+	    {
+		// Here the path is already absolute, assume a drive spec.
+		if( lfn_val == 10 || ( name.Length() > 255 ) )
+		    LFN = 1;
+	    }
+
+	    // If UNC, set LFN=2, later we use "\\?\UNC" instead of "\\?\"
+	    if( IsUNC( name ) )
+		LFN = 2;
+	}
+}
+# endif
+
 void
 FileSys::Set( const StrPtr &name )
 {
+# if defined(OS_NT) && (_MSC_VER >= 1800)
+	if( name.Text()[0] != '-' )
+	    SetLFN( name );
+# endif
+	path.Set( name );
+}
+
+void
+FileSys::Set( const StrPtr &name, Error *e )
+{
+# ifdef OS_NT
+# if (_MSC_VER >= 1800)
+	if( name.Text()[0] != '-' )
+	    SetLFN( name );
+# endif
+	if( !LFN )
+	{
+	    // For a relative path, this does not take into account p4root.
+	    int maxLen = 260; // MAX_PATH from <windows.h>
+	    if( e && name.Text() && name.Length() > maxLen )
+		e->Set( MsgOs::NameTooLong ) << name <<
+		    StrNum( (int)name.Length() ) << StrNum( maxLen );
+	}
+# endif
 	path.Set( name );
 }
 
@@ -299,6 +367,22 @@ FileSys::IsRelative( const StrPtr &path )
 #endif
 	return true;
 }
+
+#ifdef OS_NT
+bool
+FileSys::IsUNC( const StrPtr &path )
+{
+	const char *p = path.Text();
+
+	// At a minimum we are looking for "\\host\share".
+	if( (p[0] == '/' || p[0] == '\\') && (p[1] == '/' || p[1] == '\\') )
+	{
+	    if( strchr( &(p[2]), '/' ) || strchr( &(p[2]), '\\' ) )
+		return true;
+	}
+	return false;
+}
+#endif
 
 static int UnderRootCheck( const char *name, const char *root, int rootLen )
 {

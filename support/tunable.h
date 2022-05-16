@@ -8,8 +8,10 @@ enum P4TunableName {
 
 	P4TUNE_CLUSTER_JOURNAL_SHARED = DT_LAST,// see db/dbjournal2.cc
 	P4TUNE_DB_ISALIVE,
+	P4TUNE_DB_JNLACK_SHARED,
 	P4TUNE_DB_MONITOR_SHARED,
 	P4TUNE_DB_PEEKING,
+	P4TUNE_DB_PEEKING_USEMAXLOCK,
 	P4TUNE_DB_REORG_DISABLE,
 	P4TUNE_DB_REORG_MISORDER,
 	P4TUNE_DB_REORG_OCCUP,
@@ -61,12 +63,15 @@ enum P4TunableName {
 	P4TUNE_DM_RESOLVE_ATTRIB,
 	P4TUNE_DM_REVCX_THRESH1,
 	P4TUNE_DM_REVCX_THRESH2,
+	P4TUNE_DM_ROTATELOGWITHJNL,
 	P4TUNE_DM_SHELVE_MAXFILES,
 	P4TUNE_DM_SHELVE_MAXSIZE,
+	P4TUNE_DM_SHELVE_PROMOTE,
 	P4TUNE_DM_STATUS_MATCHLINES,		// see userreconcile.cc
 	P4TUNE_DM_STATUS_MATCHSIZE,		// see dmreconcile.cc
 	P4TUNE_DM_USER_ACCESSUPDATE,		// see dmauser.cc
 	P4TUNE_DM_USER_ACCESSFORCE,		// see dmauser.cc
+	P4TUNE_DM_USER_INSECURELOGIN,		// see userlogin.cc
 	P4TUNE_DM_USER_LOGINATTEMPTS,		// see dmauser.cc
 	P4TUNE_DM_USER_NOAUTOCREATE,		// see dmauser.cc
 	P4TUNE_DM_USER_RESETPASSWORD,		// see dmauser.cc
@@ -78,14 +83,17 @@ enum P4TunableName {
 	P4TUNE_FILESYS_MAXSYMLINK,		// see fileiosym.cc
 	P4TUNE_FILESYS_MAXTMP,
 	P4TUNE_FILESYS_EXTENDLOWMARK,
+	P4TUNE_FILESYS_WINDOWS_LFN,		// see filesys.cc
 	P4TUNE_INDEX_DOMAIN_OWNER,              // see dmdomains.cc
+	P4TUNE_LBR_AUTOCOMPRESS,		// see submit
 	P4TUNE_LBR_BUFSIZE,			// see lbr.h
 	P4TUNE_LBR_PROXY_CASE,			// see pxclient.cc
+	P4TUNE_LBR_RCS_MAXLEN,			// see lbrkeyed.cc
 	P4TUNE_LBR_RETRY_MAX,			// see lbrstatus.cc
 	P4TUNE_LBR_STAT_INTERVAL,		// see pxclient.cc and lbrstatus.cc
 	P4TUNE_LBR_VERIFY_IN,			// see lbrservice.cc
 	P4TUNE_LBR_VERIFY_OUT,			// see rhservice.cc
-	P4TUNE_LBR_RCS_MAXLEN,			// see lbrkeyed.cc
+	P4TUNE_LBR_VERIFY_SCRIPT_OUT,		// see rhservice.cc
 	P4TUNE_MAP_JOINMAX1,
 	P4TUNE_MAP_JOINMAX2,
 	P4TUNE_MAP_MAXWILD,
@@ -102,6 +110,7 @@ enum P4TunableName {
 	P4TUNE_NET_RFC3484,			// see nettcpendpoint.cc
 	P4TUNE_NET_TCPSIZE,			// set nettcp.cc
 	P4TUNE_NET_BACKLOG,			// see nettcp.cc
+	P4TUNE_PROXY_DELIVER_FIX,
 	P4TUNE_PROXY_MONITOR_INTERVAL,		// see pxmonitor.cc
 	P4TUNE_PROXY_MONITOR_LEVEL,		// see pxmonitor.cc
 	P4TUNE_RCS_MAXINSERT,
@@ -115,23 +124,33 @@ enum P4TunableName {
 	P4TUNE_RPL_COMPRESS,			// See server / rpl.cc
 	P4TUNE_RPL_COUNTER_HOOK,		// See server / userpull.cc
 	P4TUNE_RPL_GROUPED,			// See server / rmtservice.cc
-	P4TUNE_RPL_JNLWAIT_ADJUST,		// See server / rpl.cc
-	P4TUNE_RPL_JNLWAIT_INTERVAL,		// See server / rpl.cc
-	P4TUNE_RPL_JNLWAIT_MAX,			// See server / rpl.cc
+	P4TUNE_RPL_JNL_BATCH_SIZE,		// See server / rpl.cc
+	P4TUNE_RPL_JNLWAIT_ADJUST,		// See server / rhservice.cc
+	P4TUNE_RPL_JNLWAIT_INTERVAL,		// See server / rhservice.cc
+	P4TUNE_RPL_JNLWAIT_MAX,			// See server / rhservice.cc
+	P4TUNE_RPL_AWAITJNL_INTERVAL,		// See server / rmtservice.cc
+	P4TUNE_RPL_AWAITJNL_COUNT,		// See server / rmtservice.cc
+	P4TUNE_RPL_JOURNAL_ACK,			// See server / rmtservice.cc
+	P4TUNE_RPL_JOURNAL_ACK_MIN,		// See server / rmtservice.cc
 	P4TUNE_RPL_LABELS_GLOBAL,		// See userlabel/userlabsync
 	P4TUNE_RPL_VERIFY_CACHE,		// See rhservice.cc
 	P4TUNE_RUN_MOVE_ALLOW,			// see usermove.cc
 	P4TUNE_RUN_OBLITERATE_ALLOW,		// see userpurge.cc
+	P4TUNE_RUN_PRUNE_ALLOW,			// see userpurge.cc
 	P4TUNE_RUN_USERS_AUTHORIZE,		// see userusers.cc
 	P4TUNE_SERVER_COMMANDLIMITS,		// see dmcaller.cc
 	P4TUNE_SERVER_FILECHARSET,
+	P4TUNE_SERVER_LOCKS_ARCHIVE,		// see userarchive.cc
 	P4TUNE_SERVER_LOCKS_SYNC,		// see usersync.cc
 	P4TUNE_SERVER_MAXCOMMANDS,		// see rhmain.cc
+	P4TUNE_FILETYPE_BYPASSLOCK,		// see useropen.cc
 	P4TUNE_FILETYPE_MAXTEXTSIZE,		// set useropen.cc
 	P4TUNE_SPEC_HASHBUCKETS,		// see rhspecmgr.cc
 	P4TUNE_SPEC_CUSTOM,			// see userspec.cc
 	P4TUNE_STREAMVIEW_DOTS_LOW,		// see maptable.cc
 	P4TUNE_STREAMVIEW_SORT_REMAP,		// see viewgen.cc
+	P4TUNE_SUBMIT_FORCENORETRANSFER,	// see usersubmit.cc
+	P4TUNE_SUBMIT_NORETRANSFER,		// see usersubmit.cc
 	P4TUNE_SUBMIT_UNLOCK_LOCKED,		// see usersubmit.cc
 	// vv Smart Heap tunables must be a continuous group vv
 	P4TUNE_SYS_MEMORY_POOLFREE,		// see shhandler.cc
@@ -154,11 +173,13 @@ enum P4TunableName {
 	P4TUNE_SYS_RENAME_MAX,			// see fileiont.cc
 	P4TUNE_SYS_RENAME_WAIT,			// see fileiont.cc
 	P4TUNE_RPL_FORWARD_ALL,
+	P4TUNE_RPL_FORWARD_LOGIN,		// see rhmain.cc
 	P4TUNE_RPL_PULL_POSITION,		// see userpull.cc
 	P4TUNE_RPL_PULL_RELOAD,			// see userpull.cc
 	P4TUNE_SSL_SECONDARY_SUITE,             // see netssltransport.cc
 	P4TUNE_SSL_CLIENT_TIMEOUT,		// see netssltransport.cc
 	P4TUNE_TRIGGERS_IO,			// see rhtrigger.cc
+	P4TUNE_ISTAT_MIMIC_ICHANGES,		// see dmistat.cc & DIOR_SPLIT
 
 	P4TUNE_LAST
 

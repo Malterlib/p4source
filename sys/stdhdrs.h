@@ -104,6 +104,12 @@
 # endif
 # endif
 
+# if defined( NEED_LSOF )
+# if defined( OS_LINUX ) || defined( OS_DARWIN )
+# define HAVE_LSOF
+# endif
+# endif
+
 # if defined( NEED_GETUID )
 # if defined ( OS_MACOSX ) || defined ( OS_DARWIN ) || defined ( unix )
 # define HAVE_GETUID
@@ -541,7 +547,6 @@ typedef unsigned long useconds_t;
 
 # define HAVE_TRUNCATE
 # if defined( OS_OS2 ) || \
-	defined( OS_NT ) || \
 	defined( MAC_MWPEF ) || \
 	defined( OS_BEOS ) || \
 	defined( OS_QNX ) || \

@@ -6,6 +6,7 @@ SubDirHdrs $(P4) dm ;
 
 P4DLibrary $(DMLIB) : 
 	license.cc
+	ldapconf.cc
 	qryparse.cc
 	wordlist.cc
 	viewgen.cc

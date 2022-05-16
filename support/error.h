@@ -194,7 +194,7 @@ class Error {
 	// 2 is 2002.1 loopback (not used by client)
 
 	void		Marshall0( StrBuf &out ) const;
-	void		Marshall1( StrDict &out ) const;
+	void		Marshall1( StrDict &out, int uniquote = 0 ) const;
 	void		Marshall2( StrBuf &out ) const;
 
 	void		UnMarshall0( const StrPtr &in );
@@ -219,4 +219,8 @@ class Error {
 	static const char *severityText[];
 } ;
 
+// Note Macro can only be used in methods with void return values
+# define IF_ERROR_STOP( e ) \
+	if( (e)->Test() ) \
+	    return;
 # endif /* __ERROR_H__ */

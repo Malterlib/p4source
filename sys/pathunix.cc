@@ -16,7 +16,7 @@ IsUnder( StrRef *path, const char *under )
 {
 	char *s = path->Text();
 
-	while( *s && *s == *under )
+	while( *s && StrRef::SEqual( *s, *under ) )
 	    ++s, ++under;
 
 	if( *under || under[-1] != '/' && *s && *s++ != '/' )

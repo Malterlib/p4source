@@ -85,6 +85,8 @@ class Sequencer {
 
     public:
 
+	virtual		~Sequencer() {}
+
 	virtual int	Equal( LineNo lA, Sequence *B, LineNo lB ) = 0;
 	virtual	void	Load( Error *e ) = 0;
 

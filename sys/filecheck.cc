@@ -131,20 +131,20 @@ FileSys::CheckType( int scan )
 		if( controlchar )
 		    goto somebinary;
 
-		if( highbit )
+		if( highbit && utf8bomPresent )
+		{
+		    rettype = FST_UNICODE;
+		}
+		else if( highbit )
 		{
 		    // run special UTF_8 validator...
 
-		    rettype = FST_UNICODE;
-
-		    // leading utf-8 BOM?
-		    if( utf8bomPresent )
-			break;
-
 		    CharSetUTF8Valid utf8test;
-		    if( !utf8test.Valid( buf, len ) )
-			goto somebinary;
+		    if( utf8test.Valid( buf, len ) )
+			rettype = FST_UNICODE;
 		}
+
+		// else?  should we do unicode if no highbit?
 
 		break;
 

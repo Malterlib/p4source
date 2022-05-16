@@ -178,6 +178,7 @@ RcsParse::RcsParse(
 {
 	file = rf;
 	lineno = 1;
+	textlen = 0;
 }
 
 void

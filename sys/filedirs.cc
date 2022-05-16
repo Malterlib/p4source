@@ -26,6 +26,9 @@
 # include <wchar.h>
 # include <i18napi.h>
 # include <charcvt.h>
+# include "fileio.h"
+
+extern void nt_free_wname( const wchar_t *wname );
 
 StrArray *
 FileSys::ScanDir( Error *e )
@@ -40,14 +43,13 @@ FileSys::ScanDir( Error *e )
 	StrArray *r = new StrArray;
 	intptr_t handle = 0;
 
-	if( CharSetApi::isUnicode( (CharSetApi::CharSet)GetCharSetPriv() ) )
+	if( DOUNICODE || LFN )
 	{
 	    struct _wfinddata_t winfo;
-	    CharSetCvtUTF816 cvt;
 
-	    const char *wname = cvt.FastCvt( fs.Text(), fs.Length() );
-	    if( cvt.LastErr() == CharSetCvt::NONE &&
-		( handle = _wfindfirst( (wchar_t *)wname, &winfo ) ) >= 0 )
+	    const wchar_t *wname;
+	    if( ( wname = FileIO::UnicodeName( &fs, LFN ) ) &&
+		( handle = _wfindfirst( wname, &winfo ) ) >= 0 )
 	    {
 		CharSetCvtUTF168 rcvt;
 
@@ -65,6 +67,8 @@ FileSys::ScanDir( Error *e )
 
 		} while( !_wfindnext( handle, &winfo ) );
 	    }
+	    if( wname )
+		nt_free_wname( wname );
 	}
 	else
 	if( ( handle = _findfirst( fs.Text(), &finfo ) ) >= 0 )

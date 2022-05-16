@@ -400,25 +400,25 @@ class StrBuf : public StrPtr {
 		}
 
 	void	Reset( const char *buf )
-		{ Reset(); Append( buf ); }
+		{ Reset(); UAppend( buf ); }
 
 	void	Reset( const StrPtr *s )
-		{ Reset(); Append( s ); }
+		{ Reset(); UAppend( s ); }
 
 	void 	Reset( const StrPtr &s )
-		{ Reset(); Append( &s ); }
+		{ Reset(); UAppend( &s ); }
 
 	void	Set( const char *buf )
-		{ Clear(); Append( buf ); }
+	    { if( buf == Text() ) SetLength(); else { Clear(); Append( buf ); } }
 
 	void	Set( const StrPtr *s )
-		{ Clear(); Append( s ); }
+	    { if( s != this ) { Clear(); UAppend( s ); } }
 
 	void	Set( const StrPtr &s )
-		{ Clear(); Append( &s ); }
+	    { if( &s != this ) { Clear(); UAppend( &s ); } }
 
 	void	Set( const char *buf, p4size_t len )
-		{ Clear(); Append( buf, len ); }
+	    { if( buf == Text() ) SetLength( len ); else { Clear(); Append( buf, len ); } }
 
 	void	Extend( const char *buf, p4size_t len )
 		{ memcpy( Alloc( len ), buf, len ); }
@@ -438,12 +438,42 @@ class StrBuf : public StrPtr {
 
 	void	Append( const char *buf, p4size_t len );
 
+	void	UAppend( const char *buf );     
+
+	void	UAppend( const StrPtr *s );
+
+	void	UAppend( const char *buf, p4size_t len );
+
+	// large-block append
+	void	BlockAppend( const char *buf );
+
+	void	BlockAppend( const StrPtr *s );
+
+	void	BlockAppend( const char *buf, p4size_t len );
+
+	void	UBlockAppend( const char *buf );
+
+	void	UBlockAppend( const StrPtr *s );
+
+	void	UBlockAppend( const char *buf, p4size_t len );
+
 	char *	Alloc( p4size_t len )
 		{
-	    p4size_t oldlen = length;
+		    p4size_t oldlen = length;
 
 		    if( ( length += len ) > size )
 			Grow( oldlen );
+
+		    return buffer + oldlen;
+		}
+
+	// large block (>= 128KB) allocation; no extra space is reserved
+	char *	BlockAlloc( p4size_t len )
+		{
+		    p4size_t oldlen = length;
+
+		    if( ( length += len ) > size )
+			Reserve( oldlen );
 
 		    return buffer + oldlen;
 		}
@@ -454,6 +484,9 @@ class StrBuf : public StrPtr {
                 {
 		    Fill( buf, Length() );
 		}
+
+	p4size_t 	BufSize() const
+		{ return size; }
 
 	// leading-string compression
 
@@ -477,6 +510,9 @@ class StrBuf : public StrPtr {
 	p4size_t	size;
 
 	void	Grow( p4size_t len );
+
+	// reserve a large block of memory (>= 128 KB); don't over-allocate
+	void	Reserve( p4size_t oldlen );
 
 	// Some DbCompare funcs memcpy from this, so it has be be big
 	// enough that we aren't reaching past valid memory.  The

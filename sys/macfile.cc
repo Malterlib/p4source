@@ -79,25 +79,21 @@ char * FSRefToPath( const FSRef * ref )
     
     // Use the FSRef calls to get the path
     //
-    fullPath = (char *)malloc( length );
+    fullPath = new char[ length ];
     status = FSRefMakePath( ref, (UInt8 *)fullPath, length );
     
     while ( status == pathTooLongErr || status == buffersTooSmall )
     {
 	length += 256;
-	char *tmp = fullPath;
-	fullPath = (char *)realloc( fullPath, length );
-	if( !fullPath )
-	{
-	    free( tmp );
-	    return NULL;
-	}
+	delete [] fullPath;
+	fullPath = new char[ length ];
 	status = FSRefMakePath( ref, (UInt8 *)fullPath, length );
     }
 
     if ( status != noErr )
     {
-        free( fullPath ); fullPath = NULL;
+	delete [] fullPath;
+        fullPath = NULL;
     }
 
     return fullPath;
@@ -317,7 +313,7 @@ MacFile::MacFile( FSRef * file )
 
     dataForkRef = rsrcForkRef = 0;
     
-    this->comment = 0;
+    this->comment = NULL;
     this->commentLength = -1;	
 }
 
@@ -325,8 +321,8 @@ MacFile::MacFile( FSRef * file )
 MacFile::~MacFile()
 {
     delete file;
-    delete fullPath;
-    delete comment;
+    delete [] fullPath;
+    delete [] comment;
 }
 
 

@@ -31,7 +31,8 @@
 
 # ifdef OS_NT
 # include "windows.h"
-extern int nt_islink( const char *fname );
+extern int nt_islink( StrPtr *fname, DWORD *dwFlags, int dounicode, int lfn );
+extern void nt_free_wname( const wchar_t *wname );
 # endif
 
 // We can encounter .DS_Store files on *any* platform
@@ -42,6 +43,23 @@ extern int nt_islink( const char *fname );
 //
 StrRef DS_STORE_NAME(".DS_Store");
 
+
+# ifdef OS_NT
+int
+DirExists( const wchar_t *wp )
+{
+	DWORD attrs;
+
+	// Silly MS, can't use wstat because they screen for wild cards
+	// without stepping past the LFN escape, "\\?\".
+	//
+	attrs = GetFileAttributesW (wp);
+	if (attrs == INVALID_FILE_ATTRIBUTES)
+	    return -1;
+	else
+	    return 0;
+}
+# endif
 
 /*
  * filemkdir.cc -- mkdir and rmdir operations
@@ -59,9 +77,19 @@ FileSys::MkDir( const StrPtr &path, Error *e )
 
 	p->Set( path );
 
+# ifdef OS_NT
+	if( !LFN )
+	{
+	    // This will error on a Windows path longer than 260 chars.
+	    FileSys *f = FileSys::Create( FST_TEXT );
+	    f->Set( path, e );
+	    delete f;
+	}
+#endif
+
 	// Bail if there is no parent, or the parent is "" (current dir)
 
-	if( !p->ToParent() || !p->Length() )
+	if( ( e && e->Test() ) || !p->ToParent() || !p->Length() )
 	{
 	    delete p;
 	    return;
@@ -73,30 +101,29 @@ FileSys::MkDir( const StrPtr &path, Error *e )
 	// Now we always use stat(), just 'cause it works.
 
 # ifdef OS_NT
-	wchar_t *wp;
+	const wchar_t *wp;
 
-	if( CharSetApi::isUnicode( (CharSetApi::CharSet)GetCharSetPriv() ) &&
-	    ( wp = FileIO::UnicodeName( p->Text(), p->Length() ) ) )
+	// LFN is supported in UnicodeName
+	if( ( DOUNICODE || LFN ) &&
+	    ( wp = FileIO::UnicodeName( p, LFN ) ) )
 	{
-	    struct _stat sb;
-
-	    if( _wstat( wp, &sb ) < 0 )
+	    if( DirExists( wp ) < 0 )
 	    {
 		MkDir( *p, e );
 
 		if( !e->Test() )
 		{
-		    if( _wmkdir( wp ) < 0 && _wstat( wp, &sb ) < 0 )
+		    if( _wmkdir( wp ) < 0 && DirExists( wp ) < 0 )
 			if( errno != EEXIST )
 			    e->Sys( "mkdir", p->Text() );
 		}
 	    }
 
-	    delete [] wp;
+	    nt_free_wname( wp );
 	    delete p;
 	    return;
 	}	
-	if( nt_islink( p->Text() ) > 0 )
+	if( nt_islink( p, NULL, DOUNICODE, LFN ) > 0 )
 	{
 	    delete p;
 	    return;
@@ -155,9 +182,19 @@ FileSys::RmDir( const StrPtr &path, Error *e )
 
 	p->Set( path );
 
+# ifdef OS_NT
+	if( !LFN )
+	{
+	    // This will error on a Windows path longer than 260 chars.
+	    FileSys *f = FileSys::Create( FST_TEXT );
+	    f->Set( path, e );
+	    delete f;
+	}
+# endif
+
 	// Bail if there is no parent, or the parent is "" (current dir)
 
-	if( !p->ToParent() || !p->Length() )
+	if( (e && e->Test() ) || !p->ToParent() || !p->Length() )
 	{
 	    delete p;
 	    return;
@@ -181,11 +218,13 @@ FileSys::RmDir( const StrPtr &path, Error *e )
 
 # ifdef OS_NT
 	DWORD attr;
-	wchar_t *wp = NULL;
+	const wchar_t *wp = NULL;
 
-	if( CharSetApi::isUnicode( (CharSetApi::CharSet)GetCharSetPriv() ) &&
-	    ( wp = FileIO::UnicodeName( p->Text(), p->Length() ) ) )
-	    attr = GetFileAttributesW( wp );
+	if( DOUNICODE || LFN )
+	{
+	    if( (wp = FileIO::UnicodeName( p, LFN )) != NULL )
+		attr = GetFileAttributesW( wp );
+	}
 	else	
 	    attr = GetFileAttributesA( p->Text() );
 
@@ -193,7 +232,7 @@ FileSys::RmDir( const StrPtr &path, Error *e )
 
 	if( attr & FILE_ATTRIBUTE_REPARSE_POINT )
 	{
-	    delete [] wp;
+	    nt_free_wname( wp );
 	    delete p;
 	    return;  
 	}
@@ -202,12 +241,11 @@ FileSys::RmDir( const StrPtr &path, Error *e )
 	{
 	    if( _wrmdir( wp ) < 0 )
 	    {
-
-		delete [] wp;
+		nt_free_wname( wp );
 		delete p;
 		return; 
 	    }
-	    delete [] wp;
+	    nt_free_wname( wp );
 	}
 	else
 # endif

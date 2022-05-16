@@ -38,6 +38,7 @@ P4Library $(CLIENTLIB) :
 	clientuser.cc
 	clientuserdbg.cc
 	clientusermsh.cc
+	clientusernull.cc
 	;
 
 LinkSSL p4 ;

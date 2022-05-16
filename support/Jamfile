@@ -2,7 +2,14 @@ SubDir P4 support ;
 
 SubDirHdrs $(P4) dbsupp ;
 SubDirHdrs $(P4) i18n ;
-SubDirC++Flags -I$(SSLINCLUDE) ;
+SubDirC++Flags -I$(SSLINCDIR) ;
+
+if USE_OPENLDAP
+{
+        SubDirC++Flags
+                -I$(OPENLDAPINCDIR)
+                -I$(CYRUSSASLPINCDIR) ;
+}
 
 if $(OSPLAT) = X86_64 || $(OSPLAT) = X86 ||
    $(OSPLAT) = X64 || ( $(OSPLAT) = IA64 && $(OS) != HPUX ) {
@@ -10,13 +17,13 @@ if $(OSPLAT) = X86_64 || $(OSPLAT) = X86 ||
 	OPTIM on [ FGristSourceFiles md5.o ] += $(OPTIM) -O3 ;
 }
 
-P4Library $(SUPPORTLIB) : 
+P4Library $(SUPPORTLIB) :
 	bitarray.cc
 	datetime.cc
 	debug.cc
-	error.cc 
-	errormsh.cc 
-	errorsys.cc 
+	error.cc
+	errormsh.cc
+	errorsys.cc
 	handler.cc
 	hash.cc
 	ident.cc
@@ -25,7 +32,7 @@ P4Library $(SUPPORTLIB) :
 	mangle.cc
 	mapapi.cc
 	md5.cc
-	options.cc 
+	options.cc
 	progress.cc
 	random.cc
 	regmatch.cc
@@ -36,8 +43,8 @@ P4Library $(SUPPORTLIB) :
 	specdef.cc
 	specparse.cc
 	strarray.cc
-	strbuf.cc 
-	strdict.cc 
+	strbuf.cc
+	strdict.cc
 	strops.cc
 	strtable.cc
 	strxml.cc

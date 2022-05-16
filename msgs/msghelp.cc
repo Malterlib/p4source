@@ -18,11 +18,9 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgHelp error code is: 170
+ * Current high value for a MsgHelp error code is: 174
  */
 
-// off for 13.2, document in 14.1
-//#define CLUSTERHELP
 # define NEED_SMARTHEAP
 
 # include <stdhdrs.h>
@@ -34,7 +32,7 @@ ErrorId MsgHelp::NoHelp = { ErrorOf( ES_HELP, 1, E_FAILED, EV_USAGE, 1  ),
 "No help for %command%."   
 } ;
 
-ErrorId MsgHelp::HelpPerforce = { ErrorOf( ES_HELP, 11, E_INFO, 0, 2  ), 
+ErrorId MsgHelp::HelpPerforce = { ErrorOf( ES_HELP, 11, E_INFO, EV_NONE, 2  ), 
 "\n"
 "    Perforce -- the Fast Software Configuration Management System.\n"
 "\n"
@@ -64,7 +62,7 @@ ErrorId MsgHelp::HelpPerforce = { ErrorOf( ES_HELP, 11, E_INFO, 0, 2  ),
 "    Server %release_id%/%patch_id%.\n"
 };
 
-ErrorId MsgHelp::HelpUsage = { ErrorOf( ES_HELP, 12, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpUsage = { ErrorOf( ES_HELP, 12, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    Perforce client usage:\n"
 "\n"
@@ -147,7 +145,7 @@ ErrorId MsgHelp::HelpUsage = { ErrorOf( ES_HELP, 12, E_INFO, 0, 0  ),
 "	format returned by 'p4 fstat'.\n"
 };
 
-ErrorId MsgHelp::HelpSimple = { ErrorOf( ES_HELP, 13, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpSimple = { ErrorOf( ES_HELP, 13, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    Most common Perforce client commands:\n"
 "\n"
@@ -165,7 +163,7 @@ ErrorId MsgHelp::HelpSimple = { ErrorOf( ES_HELP, 13, E_INFO, 0, 0  ),
 "	revert     Revert open files and restore originals to workspace\n"
 };
 
-ErrorId MsgHelp::HelpCommands = { ErrorOf( ES_HELP, 14, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpCommands = { ErrorOf( ES_HELP, 14, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    Perforce client commands:\n"
 "\n"
@@ -229,6 +227,7 @@ ErrorId MsgHelp::HelpCommands = { ErrorOf( ES_HELP, 14, E_INFO, 0, 0  ),
 "	print        Retrieve a depot file to the standard output\n"
 "	protect      Modify protections in the server namespace\n"
 "	protects     Display protections in place for a given user/path\n"
+"	prune        Remove unmodified branched files from a stream\n"
 "	reconcile    Reconcile client to offline workspace changes\n"
 "	rename       Moves files from one location to another\n"
 "	reopen       Change the type or changelist number of an opened file\n"
@@ -261,7 +260,7 @@ ErrorId MsgHelp::HelpCommands = { ErrorOf( ES_HELP, 14, E_INFO, 0, 0  ),
 "    operating the server.\n"
 };
 
-ErrorId MsgHelp::HelpUndoc = { ErrorOf( ES_HELP, 15, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpUndoc = { ErrorOf( ES_HELP, 15, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    Unsupported or obsolete Perforce commands and options:\n"
 "\n"
@@ -271,7 +270,7 @@ ErrorId MsgHelp::HelpUndoc = { ErrorOf( ES_HELP, 15, E_INFO, 0, 0  ),
 "	database locks are not held during network I/O to the client.\n"
 "	This command requires 'super' access.\n"
 "\n"
-"    p4 admin import [-l] [-b batchsz]\n"
+"    p4 admin import [-l] [-b batchsz] [-f]\n"
 "	Imports a journal of the server through the client.  The journal\n"
 "	data is read from the standard input.  When the data has been\n"
 "	transfered to the server, it is processed in batches with the\n"
@@ -284,6 +283,7 @@ ErrorId MsgHelp::HelpUndoc = { ErrorOf( ES_HELP, 15, E_INFO, 0, 0  ),
 "	normally terminates if it can't delete a record as indicated by\n"
 "	the journal.  Avoid using this command to import large journal\n"
 "	files, because the entire file has to fit in memory.\n"
+"	The -f flag forces a replica server to run this command.\n"
 "	This command requires 'super' access.\n"
 "\n"
 "    p4 branch -F stream [ -P parent ] -o name\n"
@@ -334,6 +334,11 @@ ErrorId MsgHelp::HelpUndoc = { ErrorOf( ES_HELP, 15, E_INFO, 0, 0  ),
 "	HTML tags that switch the font to red or blue for words only\n"
 "	in the first or second file, respectively.\n"
 "\n"
+"    p4 discover\n"
+"	This variant of 'p4 info' is used to discover if a server is\n"
+"	in unicode mode or not.  It's important to allow this through\n"
+"	a broker.\n"
+"\n"
 "    p4 duplicate\n"
 "	Duplicate revisions and their integration history.\n"
 "	See 'p4 help duplicate'.\n"
@@ -341,14 +346,6 @@ ErrorId MsgHelp::HelpUndoc = { ErrorOf( ES_HELP, 15, E_INFO, 0, 0  ),
 "    p4 filelog -1\n"
 "	This flag prevents filelog from following any renames resulting from\n"
 "	use of the 'p4 move' command. By default, filelog follows moved files.\n"
-"\n"
-"    p4 export -G\n"
-"	The export command accepts the -G flag in place of the -r flag.\n"
-"	The -G flag specifies that journal data is to be grouped by table\n"
-"	within each transaction. If the -G flag is specified, journal\n"
-"	records can be returned by the export command in a different order\n"
-"	than original written; however, a more efficient and compact\n"
-"	network protocol is used to return the data.\n"
 "\n"
 "    p4 fstat [-OcChiz]\n"
 "	The -Oc flag outputs the path, revision and type of the server\n"
@@ -447,6 +444,15 @@ ErrorId MsgHelp::HelpUndoc = { ErrorOf( ES_HELP, 15, E_INFO, 0, 0  ),
 "    p4 spec\n"
 "	Edit spec definitions.\n"
 "	See 'p4 help spec'.\n"
+"\n"
+"    p4 submit -c <change> --forcenoretransfer\n"
+"	Using this option, submit only transfers client files if\n"
+"	no corresponding archive files are found. If any corresponding\n"
+"	archive is found, submit will bypass its client file transfer and\n"
+"	commit the archive content even if it differs from the client file\n"
+"	content. This option is only allowed if the undocumented tunable\n"
+"	value 'submit.forcenoretransfer' is set to 1. This is not\n"
+"	recommended for the general public.\n"
 "\n"
 "    p4 submit -t\n"
 "	Tamper-checks branch/sync files and files resolved with 'at' \n"
@@ -566,6 +572,14 @@ ErrorId MsgHelp::HelpUndoc = { ErrorOf( ES_HELP, 15, E_INFO, 0, 0  ),
 "	from regular checkpoints does, and such restores take longer to\n"
 "	complete.\n"
 "\n"
+"    p4d -n\n"
+"       Starts the server in maintenance mode. Maintenance mode does not\n"
+"       police the user and file count restrictions listed in the license\n"
+"       file. When in maintenance mode a server is only able to perform\n"
+"       those commands that do not require a client. In addition, if the\n"
+"       server is in maintenance mode and it is a member of a DCS cluster\n"
+"       it will not launch a p4zk process.\n"
+"\n"
 "    p4d -xf bugno\n"
 "	Updates the server data to fix problems due to the\n"
 "	specified bug number.  Valid values of bugno are as follows:\n"
@@ -577,8 +591,8 @@ ErrorId MsgHelp::HelpUndoc = { ErrorOf( ES_HELP, 15, E_INFO, 0, 0  ),
 "		12904 -- replace / with _ in client names\n"
 "		18362 -- 2005.2 replace 'check' trigger command\n"
 "		43361 -- 2012.2 - recreate db.have from db.working\n"
-"		71917 -- 2014.1 - promoted shelved changes on commit server\n"
 "		71819 -- 2013.2 - clears unneeded/invalid charset data\n"
+"		71917 -- 2014.2 - promoted shelved changes on commit server\n"
 "\n"
 "    p4d -xU upgrade\n"
 "	Re-runs the named upgrade step that is normally done automatically by\n"
@@ -699,10 +713,11 @@ ErrorId MsgHelp::HelpUndoc = { ErrorOf( ES_HELP, 15, E_INFO, 0, 0  ),
 "	dm.quick.resolve        1K Release lock if all needed rows buffered\n"
 "	dm.quick.rev          100K Release lock if all needed rows buffered\n"
 "	dm.quick.working        1K Release lock if all needed rows buffered\n"
-"	dm.status.matchlines    50 Min %% matching lines to match moves\n"
+"	dm.status.matchlines    80 Min %% matching lines to match moves\n"
 "	dm.status.matchsize     10 Max size %% difference to match moves\n"
 "	dm.revcx.thresh1        4K Path@change uses db.revcx if thresh2 ...\n"
 "	dm.revcx.thresh2        1K ...of thresh1+thresh2 rows match path\n"
+"	dm.user.insecurelogin    0 issue login tickets that work on all hosts\n"
 "	filesys.cachehint        0 preserve buffer cache for db files (linux)\n"
 "	filesys.maketmp         10 Max attempts to find unused temp name\n"
 "	filesys.maxmap       1000M Use read rather than mmapping big files\n"
@@ -712,17 +727,21 @@ ErrorId MsgHelp::HelpUndoc = { ErrorOf( ES_HELP, 15, E_INFO, 0, 0  ),
 "	map.joinmax2            1M Produce at most joinmax2\n"
 "	map.maxwild             10 Maximum number of wildcards per line\n"
 "	net.bufsize             4K Network I/O buffer size\n"
+"	proxy.deliver.fix	 1 Enable fix for proxy hang\n"
 "	rcs.maxinsert           1G Max lines in RCS archive file\n"
-"	rpc.deliver.duplex       1 Use RPC duplexing for proxied 'sync -f'\n"
+"	rpc.deliver.duplex       1 (Obsolete)\n"
 "	rpc.himark            2000 Max outstanding data between server/client\n"
 "	rpc.lowmark            700 Interval for checking outstanding data\n"
 "	rpl.grouped              0 Master to use grouped export to replica\n"
+"	rpl.awaitjnl.count     100 Max count of waits for journal data (-i 0)\n"
+"	rpl.awaitjnl.interval   50 Millisecs to wait for journal data (-i 0)\n"
 "	rpl.pull.position        0 Interval in ms for pull position reports\n"
 "	rpl.pull.reload      60000 Interval in ms for pull to reload config\n"
 "	server.filecharset       0 Enable per-file charset storage\n"
 "	serverlog.name.N      none Alias name for this log file\n"
 "	serverlog.events.N    none Events that should write to this log\n"
 "	spec.custom              0 If > 0 allow modifications to spec forms.\n"
+"	submit.forcenoretransfer 0 Allow submit --forcenoretransfer option\n"
 "	sys.rename.max          10 Limit for retrying a failed file rename\n"
 "	sys.rename.wait       1000 Timeout in ms between file rename attempts\n"
 # ifdef HAVE_SMARTHEAP
@@ -743,7 +762,7 @@ ErrorId MsgHelp::HelpUndoc = { ErrorOf( ES_HELP, 15, E_INFO, 0, 0  ),
 "	winoem		Windows Codepage 437 (US Command Window)\n"
 };
 
-ErrorId MsgHelp::HelpEnvironment = { ErrorOf( ES_HELP, 16, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpEnvironment = { ErrorOf( ES_HELP, 16, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    Environment variables used by Perforce:\n"
 "\n"
@@ -758,6 +777,7 @@ ErrorId MsgHelp::HelpEnvironment = { ErrorOf( ES_HELP, 16, E_INFO, 0, 0  ),
 "    P4DIFF           Diff program to use on client   p4 help diff\n"
 "    P4DIFFUNICODE    Diff program to use on client   p4 help diff\n"
 "    P4EDITOR         Editor invoked by p4 commands   p4 help change, etc\n"
+"    P4ENVIRO         Name of enviroment file         Perforce Command Reference\n"
 "    P4HOST           Name of host computer           p4 help usage\n"
 "    P4IGNORE         Name of ignore file             Perforce Command Reference\n"
 "    P4LANGUAGE       Language for text messages      p4 help usage\n"
@@ -804,9 +824,11 @@ ErrorId MsgHelp::HelpEnvironment = { ErrorOf( ES_HELP, 16, E_INFO, 0, 0  ),
 "\n"
 "    To set server environment variables persistently, use the 'p4 configure' \n"
 "    command.  Note that P4ROOT and TMP/TEMP cannot be set using 'p4 configure'.\n"
+"    Also note that server enviroment variables are not searched for in\n"
+"    configuration nor enviroment files, i.e. P4CONFIG and P4ENVIRO are ignored.\n"
 };
 
-ErrorId MsgHelp::HelpFiletypes = { ErrorOf( ES_HELP, 17, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpFiletypes = { ErrorOf( ES_HELP, 17, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    File types supported by Perforce:\n"
 "\n"
@@ -901,7 +923,7 @@ ErrorId MsgHelp::HelpFiletypes = { ErrorOf( ES_HELP, 17, E_INFO, 0, 0  ),
 "	whole filetype must be specified.\n"
 };
 
-ErrorId MsgHelp::HelpJobView = { ErrorOf( ES_HELP, 18, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpJobView = { ErrorOf( ES_HELP, 18, E_INFO, EV_NONE, 0  ), 
 "\n"
 "   Perforce job views:\n"
 "\n"
@@ -962,7 +984,7 @@ ErrorId MsgHelp::HelpJobView = { ErrorOf( ES_HELP, 18, E_INFO, 0, 0  ),
 "	comparisons are done chronologically.\n"
 };
 
-ErrorId MsgHelp::HelpRevisions = { ErrorOf( ES_HELP, 19, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpRevisions = { ErrorOf( ES_HELP, 19, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    Specifying file revisions and revision ranges:\n"
 "\n"
@@ -1008,13 +1030,13 @@ ErrorId MsgHelp::HelpRevisions = { ErrorOf( ES_HELP, 19, E_INFO, 0, 0  ),
 "	If you omit the revision specifier, the default is all revisions.\n"
 };
 
-ErrorId MsgHelp::HelpViews = { ErrorOf( ES_HELP, 20, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpViews = { ErrorOf( ES_HELP, 20, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    Perforce views:\n"
 "\n"
 "	A Perforce view maps file names from the depot to the client\n"
 "	workspace (client view) or to another part of the depot\n"
-"	(branch view).\n"
+"	(branch view), or selects a subset of the depot (label view).\n"
 "\n"
 "	A view is one or more mappings, and each mapping is a pair of file\n"
 "	names on a line.  The left side always refers to the depot namespace;\n"
@@ -1043,7 +1065,7 @@ ErrorId MsgHelp::HelpViews = { ErrorOf( ES_HELP, 20, E_INFO, 0, 0  ),
 "	To exclude matching files, precede the mapping with a minus sign (-).\n"
 };
 
-ErrorId MsgHelp::HelpMaxResults = { ErrorOf( ES_HELP, 21, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpMaxResults = { ErrorOf( ES_HELP, 21, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    Limiting data access:\n"
 "\n"
@@ -1156,7 +1178,7 @@ ErrorId MsgHelp::HelpMaxResults = { ErrorOf( ES_HELP, 21, E_INFO, 0, 0  ),
 "	or reload the client or label for you.\n"
 };
 
-ErrorId MsgHelp::HelpCharset = { ErrorOf( ES_HELP, 23, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpCharset = { ErrorOf( ES_HELP, 23, E_INFO, EV_NONE, 0  ), 
 "\n"
 "	The Perforce clients and server have an optional mode of operation\n"
 "	in which all metadata and some file content are stored in the server\n"
@@ -1166,6 +1188,8 @@ ErrorId MsgHelp::HelpCharset = { ErrorOf( ES_HELP, 23, E_INFO, 0, 0  ),
 "	The environment variable P4CHARSET specifies the client character\n"
 "	set.  Valid settings for P4CHARSET are:\n"
 "\n"
+"		auto		(Guess a P4CHARSET based on client OS params\n"
+"		none		(same as unsetting P4CHARSET)\n"
 "		eucjp\n"
 "		iso8859-1\n"
 "		iso8859-5\n"
@@ -1200,7 +1224,6 @@ ErrorId MsgHelp::HelpCharset = { ErrorOf( ES_HELP, 23, E_INFO, 0, 0  ),
 "		cp1251		(Windows code page 1251 - Cyrillic)\n"
 "		winansi		(Windows code page 1252)\n"
 "		cp1253		(Windows code page 1253 - Greek)\n"
-"		none		(same as unsetting P4CHARSET)\n"
 "\n"
 "	If (and only if) P4CHARSET is set for the client, the server\n"
 "	must also be operating in Unicode mode.  This mode is switched\n"
@@ -1230,7 +1253,7 @@ ErrorId MsgHelp::HelpCharset = { ErrorOf( ES_HELP, 23, E_INFO, 0, 0  ),
 "	UTF-16 format is observed.\n"
 };
 
-ErrorId MsgHelp::HelpCommandments = { ErrorOf( ES_HELP, 128, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpCommandments = { ErrorOf( ES_HELP, 128, E_INFO, EV_NONE, 0  ), 
 "\n"
 "	P4 Commandments -- Values we work by\n"
 "\n"
@@ -1250,7 +1273,7 @@ ErrorId MsgHelp::HelpCommandments = { ErrorOf( ES_HELP, 128, E_INFO, 0, 0  ),
 "	* These are the best years of our lives.\n"
 };
 
-ErrorId MsgHelp::HelpCredits = { ErrorOf( ES_HELP, 24, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpCredits = { ErrorOf( ES_HELP, 24, E_INFO, EV_NONE, 0  ), 
 "\n"
 "	Perforce, The Fast Software Configuration Management System,\n"
 "	from the fleet fingers of Christopher Seiwald, with notable\n"
@@ -1262,7 +1285,7 @@ ErrorId MsgHelp::HelpCredits = { ErrorOf( ES_HELP, 24, E_INFO, 0, 0  ),
 "	Alan Teague and Mark Wittenberg.\n"
 };
 
-ErrorId MsgHelp::HelpAdd = { ErrorOf( ES_HELP, 25, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpAdd = { ErrorOf( ES_HELP, 25, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    add -- Open a new file to add it to the depot\n"
 "\n"
@@ -1319,7 +1342,7 @@ ErrorId MsgHelp::HelpAdd = { ErrorOf( ES_HELP, 25, E_INFO, 0, 0  ),
 "	changing any files or metadata.\n"
 };
 
-ErrorId MsgHelp::HelpServerid = { ErrorOf( ES_HELP, 139, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpServerid = { ErrorOf( ES_HELP, 139, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    p4 serverid [serverID]\n"
 "\n"
@@ -1337,7 +1360,7 @@ ErrorId MsgHelp::HelpServerid = { ErrorOf( ES_HELP, 139, E_INFO, 0, 0  ),
 "	P4NAME for the server is generally not necessary.\n"
 };
 
-ErrorId MsgHelp::HelpAdmin = { ErrorOf( ES_HELP, 26, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpAdmin = { ErrorOf( ES_HELP, 26, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    admin -- Perform administrative operations on the server\n"
 "\n"
@@ -1402,34 +1425,30 @@ ErrorId MsgHelp::HelpAdmin = { ErrorOf( ES_HELP, 26, E_INFO, 0, 0  ),
 "\n"
 };
 
-#ifdef CLUSTERHELP
-ErrorId MsgHelp::HelpCluster = { ErrorOf( ES_HELP, 164, E_INFO, 0, 0  ),
+ErrorId MsgHelp::HelpCluster = { ErrorOf( ES_HELP, 164, E_INFO, EV_NONE, 0  ),
 "\n"
-"    cluster -- Perform administrative operations on a server with failover\n"
+"    cluster -- Administer a server with failover (Perforce Cluster servers\n"
+"               only)\n"
 "\n"
-"    p4 cluster forward-off\n"
-"    p4 cluster master-stop\n"
 "    p4 cluster new-master [previous master serverId]\n"
+"    p4 cluster master-changed [new master address]\n"
+"    p4 cluster members-set [new list of cluster members]\n"
+"    p4 cluster end-journal\n"
 "\n"
-"	Each 'p4 cluster' command requires that the user be an operator\n"
-"	or have 'super' access. \n"
+"	The preceding 'p4 cluster' commands are issued automatically by the \n"
+"	Perforce cluster management infrastructure when a cluster server fails.\n"
 "\n"
-"	'p4 cluster forward-off' causes the server to stop forwarding write\n"
-"	requests. The command is executed at the replica by updating its local\n"
-"	copy of the configuration and setting 'rpl.forward.all' to zero.\n"
-"	This configuration change is not added to the journal and the command\n"
-"	is only supported on cluster replicas.  If issued to a cluster master,\n"
-"	the command will be rejected.\n"
+"	The following 'p4 cluster' command can be issued to reset the cluster\n"
+"	master generation number stored in Zookeeper.\n"
 "\n"
-"	'p4 cluster master-stop' will be forwarded from workspace servers to\n"
-"	the depot master.  It causes the current deopt master to write to\n"
-"	the journal that it is stopping. It writes the configuration change to "
-"	the journal.\n"
+"    p4 cluster set-gen-number [new master gen number]\n"
+"\n"
+"	All 'p4 cluster' commands require that the user be an operator\n"
+"	or have 'super' access.\n"
 "\n"
 };
-#endif // CLUSTERHELP
 
-ErrorId MsgHelp::HelpJournaldbchecksums = { ErrorOf( ES_HELP, 135, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpJournaldbchecksums = { ErrorOf( ES_HELP, 135, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    journaldbchecksums -- write journal notes with table checkums\n"
 "\n"
@@ -1534,7 +1553,37 @@ ErrorId MsgHelp::HelpJournaldbchecksums = { ErrorOf( ES_HELP, 135, E_INFO, 0, 0 
 "	have 'super' access.\n"
 };
 
-ErrorId MsgHelp::HelpBranch = { ErrorOf( ES_HELP, 27, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpJournalcopy = { ErrorOf( ES_HELP, 171, E_INFO, EV_NONE, 0  ), 
+"\n"
+"    journalcopy -- Copy journal data from master to local filesystem\n"
+"\n"
+"    p4 journalcopy -i N [-b N] [--durable-only] [--non-acknowledging]\n"
+"    p4 journalcopy -l\n"
+"\n"
+"	'p4 journalcopy' is used with a standby replica that can take\n"
+"	over as the master server in the event of a failover.\n"
+"\n"
+"	Complete configuration of a standby replica involves several steps.\n"
+"	Please consult the Perforce documentation set for the full details.\n"
+"\n"
+"	The -i flag causes the command to automatically repeat its action\n"
+"	every N seconds. If -i is not specified, the command runs once,\n"
+"	then exits.\n"
+"\n"
+"	The -b flag specifies a wait time before retrying a journalcopy after\n"
+"	a failed journalcopy attempt.  This defaults to 60 seconds.\n"
+"\n"
+"	The --durable-only flag limits the results to durable journal records.\n"
+"\n"
+"	The --non-acknowledging flag means that this request does not mark\n"
+"	previous journal records as durable.\n"
+"\n"
+"	The -l flag reports the current standby journal position.\n"
+"\n"
+"	This command requires 'super' access granted by 'p4 protect'.\n"
+};
+
+ErrorId MsgHelp::HelpBranch = { ErrorOf( ES_HELP, 27, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    branch -- Create, modify, or delete a branch view specification\n"
 "\n"
@@ -1603,7 +1652,7 @@ ErrorId MsgHelp::HelpBranch = { ErrorOf( ES_HELP, 27, E_INFO, 0, 0  ),
 "	child of a different parent. The -o flag is required with -S.\n"
 };
 
-ErrorId MsgHelp::HelpAnnotate = { ErrorOf( ES_HELP, 87, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpAnnotate = { ErrorOf( ES_HELP, 87, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    annotate -- Print file lines and their revisions\n"
 "\n"
@@ -1647,7 +1696,7 @@ ErrorId MsgHelp::HelpAnnotate = { ErrorOf( ES_HELP, 87, E_INFO, 0, 0  ),
 "	The -t flag forces 'p4 annotate' to display binary files.\n"
 };
 
-ErrorId MsgHelp::HelpArchive = { ErrorOf( ES_HELP, 125, E_INFO, 0, 0  ),
+ErrorId MsgHelp::HelpArchive = { ErrorOf( ES_HELP, 125, E_INFO, EV_NONE, 0  ),
 "\n"
 "    archive -- Archive obsolete revisions to an archive depot.\n"
 "\n"
@@ -1689,7 +1738,7 @@ ErrorId MsgHelp::HelpArchive = { ErrorOf( ES_HELP, 125, E_INFO, 0, 0  ),
 "	'p4 help restore'.\n"
 };
 
-ErrorId MsgHelp::HelpAttribute = { ErrorOf( ES_HELP, 95, E_INFO, 0, 0 ),
+ErrorId MsgHelp::HelpAttribute = { ErrorOf( ES_HELP, 95, E_INFO, EV_NONE, 0 ),
 "\n"
 "    attribute -- Set per-revision attributes on revisions\n"
 "\n"
@@ -1722,7 +1771,7 @@ ErrorId MsgHelp::HelpAttribute = { ErrorOf( ES_HELP, 95, E_INFO, 0, 0 ),
 "	from an edge server in a distributed environment.\n"
 };
 
-ErrorId MsgHelp::HelpBranches = { ErrorOf( ES_HELP, 28, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpBranches = { ErrorOf( ES_HELP, 28, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    branches -- Display list of branch specifications\n"
 "\n"
@@ -1735,13 +1784,14 @@ ErrorId MsgHelp::HelpBranches = { ErrorOf( ES_HELP, 28, E_INFO, 0, 0  ),
 "	The -u user flag lists branch specs owned by the specified user.\n"
 "\n"
 "	The -e nameFilter flag lists branch specs with a name that matches\n"
-"	the nameFilter pattern, for example: -e 'svr-dev-rel*'. -E makes\n"
-"	the matching case-insensitive.\n"
+"	the nameFilter pattern, for example: -e 'svr-dev-rel*'. The -e flag\n"
+"	uses the server's normal case-sensitivity rules. The -E flag makes\n"
+"	the matching case-insensitive, even on a case-sensitive server.\n"
 "\n"
 "	The -m max flag limits output to the specified number of branch specs.\n"
 };
 
-ErrorId MsgHelp::HelpBroker = { ErrorOf( ES_HELP, 149, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpBroker = { ErrorOf( ES_HELP, 149, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    broker -- Display Broker connection information\n"
 "\n"
@@ -1754,7 +1804,7 @@ ErrorId MsgHelp::HelpBroker = { ErrorOf( ES_HELP, 149, E_INFO, 0, 0  ),
 "	the broker's network address, and the broker's version information.\n"
 };
 
-ErrorId MsgHelp::HelpChange = { ErrorOf( ES_HELP, 29, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpChange = { ErrorOf( ES_HELP, 29, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    change -- Create or edit a changelist description\n"
 "    changelist -- synonym for 'change'\n"
@@ -1827,10 +1877,12 @@ ErrorId MsgHelp::HelpChange = { ErrorOf( ES_HELP, 29, E_INFO, 0, 0  ),
 "	from users. Valid values for this field are 'public' (default), and\n"
 "	'restricted'. A shelved or committed change that is 'restricted' is\n"
 "	accessible only to users who own the change or have 'list' permission\n"
-"	to at least one file in the change.  A pending (not shelved) change\n"
-"	is accessible to its owner.  Public changes are accessible to all\n"
-"	users. This setting affects the output of the 'p4 change',\n"
-"	'p4 changes', and 'p4 describe' commands.\n"
+"	to at least one file in the change.  A pending (not shelved)\n"
+"	restricted change is only accessible to its owner.  Public changes\n"
+"	are accessible to all users. This setting affects the output of the\n"
+"	'p4 change', 'p4 changes', and 'p4 describe' commands. Note that\n"
+"	the '-S' flag is required with 'p4 describe' for the command to\n"
+"	enforce shelved	rather than pending restricted changelist rules.\n"
 "\n"
 "	If a user is not permitted to have access to a restricted change,\n"
 "	The 'Description' text is replaced with a 'no permission' message\n"
@@ -1838,7 +1890,7 @@ ErrorId MsgHelp::HelpChange = { ErrorOf( ES_HELP, 29, E_INFO, 0, 0  ),
 "	restriction using the -f flag.\n"
 };
 
-ErrorId MsgHelp::HelpChanges = { ErrorOf( ES_HELP, 30, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpChanges = { ErrorOf( ES_HELP, 30, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    changes -- Display list of pending and submitted changelists\n"
 "    changelists -- synonym for 'changes'\n"
@@ -1886,7 +1938,7 @@ ErrorId MsgHelp::HelpChanges = { ErrorOf( ES_HELP, 30, E_INFO, 0, 0  ),
 "	The -u user flag displays only changes owned by the specified user.\n"
 };
 
-ErrorId MsgHelp::HelpClient = { ErrorOf( ES_HELP, 31, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpClient = { ErrorOf( ES_HELP, 31, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    client -- Create or edit a client workspace specification and its view\n"
 "    workspace -- Synonym for 'client'\n"
@@ -2000,6 +2052,12 @@ ErrorId MsgHelp::HelpClient = { ErrorOf( ES_HELP, 31, E_INFO, 0, 0  ),
 "		     onto the client.  See 'p4 help views' for view syntax.\n"
 "		     A new view takes effect on the next 'p4 sync'.\n"
 "\n"
+"	ChangeView:  Restricts depot paths to a particular point in time.\n"
+"	             Example: //depot/path/...@1000\n"
+"	             Revisions submitted to the path after the specified\n"
+"	             changelist will not be visible.  Files matching a\n"
+"	             ChangeView path may not be submitted.\n"
+"\n"
 "	Stream:      The stream to which this client's view will be dedicated.\n"
 "		     (Files in stream paths can be submitted only by dedicated\n"
 "		     stream clients.) When this optional field is set, the\n"
@@ -2054,8 +2112,9 @@ ErrorId MsgHelp::HelpClient = { ErrorOf( ES_HELP, 31, E_INFO, 0, 0  ),
 "\n"
 "	Without -s, the '-S stream' flag can be used to create a new client\n"
 "	spec dedicated to a stream. If the client spec already exists, and\n"
-"	-S is used without -s, it is ignored.  Using -S sets the client's\n"
-"	Stream field.  The special syntax '-S //a/stream@changelist' can be\n"
+"	-S is used without -s, an error occurs when the client is bound to\n"
+"	a different, or no stream.  Using -S sets the new client's\n"
+"	Stream field.  The special syntax '-S //a/stream@changelist' can\n"
 "	be used to set both Stream and StreamAtChange at the same time.\n"
 "\n"
 "	The '-S stream' flag can be used with '-o -c change' to inspect an\n"
@@ -2078,7 +2137,7 @@ ErrorId MsgHelp::HelpClient = { ErrorOf( ES_HELP, 31, E_INFO, 0, 0  ),
 "\n"
 };
 
-ErrorId MsgHelp::HelpClients = { ErrorOf( ES_HELP, 32, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpClients = { ErrorOf( ES_HELP, 32, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    clients -- Display list of clients\n"
 "    workspaces -- synonym for 'clients'\n"
@@ -2095,8 +2154,9 @@ ErrorId MsgHelp::HelpClients = { ErrorOf( ES_HELP, 32, E_INFO, 0, 0  ),
 "	specified user.\n"
 "\n"
 "	The -e nameFilter flag lists workspaces with a name that matches\n"
-"	the nameFilter pattern, for example: -e 'svr-dev-rel*'. -E makes\n"
-"	the matching case-insensitive.\n"
+"	the nameFilter pattern, for example: -e 'svr-dev-rel*'. The -e flag\n"
+"	uses the server's normal case-sensitivity rules. The -E flag makes\n"
+"	the matching case-insensitive, even on a case-sensitive server.\n"
 "\n"
 "	The -m max flag limits output to the specified number of workspaces.\n"
 "\n"
@@ -2114,7 +2174,7 @@ ErrorId MsgHelp::HelpClients = { ErrorOf( ES_HELP, 32, E_INFO, 0, 0  ),
 "\n"
 };
 
-ErrorId MsgHelp::HelpStream = { ErrorOf( ES_HELP, 110, E_INFO, 0, 0 ),
+ErrorId MsgHelp::HelpStream = { ErrorOf( ES_HELP, 110, E_INFO, EV_NONE, 0 ),
 "\n"
 "    stream -- Create, delete, or modify a stream specification\n"
 "\n"
@@ -2250,6 +2310,9 @@ ErrorId MsgHelp::HelpStream = { ErrorOf( ES_HELP, 110, E_INFO, 0, 0 ),
 "	                  stream will be limited to seeing revisions at that\n"
 "	                  change or lower within that depot path.\n"
 "\n"
+"	          import+: <view_path> same as 'import' except that files can\n"
+"	                   be submitted to the import path.\n"
+"\n"
 "	          exclude: <view_path> will be excluded from client views\n"
 "	                   and branch views. Files in this path are not\n"
 "	                   accessible to workspaces, and can't be submitted\n"
@@ -2314,7 +2377,7 @@ ErrorId MsgHelp::HelpStream = { ErrorOf( ES_HELP, 110, E_INFO, 0, 0 ),
 "	locked stream. It requires 'admin' access granted by 'p4 protect'.\n"
 }; 
 
-ErrorId MsgHelp::HelpStreamintro = { ErrorOf( ES_HELP, 132, E_INFO, 0, 0 ),
+ErrorId MsgHelp::HelpStreamintro = { ErrorOf( ES_HELP, 132, E_INFO, EV_NONE, 0 ),
 "\n"
 "    Introduction to streams\n"
 "\n"
@@ -2415,7 +2478,7 @@ ErrorId MsgHelp::HelpStreamintro = { ErrorOf( ES_HELP, 132, E_INFO, 0, 0 ),
 "\n"
 };
 
-ErrorId MsgHelp::HelpStreams = { ErrorOf( ES_HELP, 111, E_INFO, 0, 0 ),
+ErrorId MsgHelp::HelpStreams = { ErrorOf( ES_HELP, 111, E_INFO, EV_NONE, 0 ),
 "\n"
 "    streams -- Display list of streams\n"
 "\n"
@@ -2450,7 +2513,7 @@ ErrorId MsgHelp::HelpStreams = { ErrorOf( ES_HELP, 111, E_INFO, 0, 0 ),
 "	The -U flag lists unloaded task streams (see 'p4 help unload').\n"
 }; 
 
-ErrorId MsgHelp::HelpCopy = { ErrorOf( ES_HELP, 127, E_INFO, 0, 0 ),
+ErrorId MsgHelp::HelpCopy = { ErrorOf( ES_HELP, 127, E_INFO, EV_NONE, 0 ),
 "\n"
 "    copy -- Copy one set of files to another\n"
 "\n"
@@ -2540,7 +2603,7 @@ ErrorId MsgHelp::HelpCopy = { ErrorOf( ES_HELP, 127, E_INFO, 0, 0 ),
 "	from an edge server in a distributed environment.\n"
 };
 
-ErrorId MsgHelp::HelpCounter = { ErrorOf( ES_HELP, 33, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpCounter = { ErrorOf( ES_HELP, 33, E_INFO, EV_NONE, 0  ), 
 "\n"
 "     counter -- Display, set, or delete a counter\n"
 "\n"
@@ -2578,7 +2641,7 @@ ErrorId MsgHelp::HelpCounter = { ErrorOf( ES_HELP, 33, E_INFO, 0, 0  ),
 "	access.\n"
 };
 
-ErrorId MsgHelp::HelpCounters = { ErrorOf( ES_HELP, 34, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpCounters = { ErrorOf( ES_HELP, 34, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    counters -- Display list of known counters\n"
 "\n"
@@ -2601,13 +2664,13 @@ ErrorId MsgHelp::HelpCounters = { ErrorOf( ES_HELP, 34, E_INFO, 0, 0  ),
 "	The -m max flag limits the output to the first 'max' counters.\n"
 "\n"
 "	The names 'minClient', 'minClientMessage', 'monitor',\n"
-"	'security', and 'unicode' are reserved names: do not use them\n"
-"	as ordinary counters.\n"
+"	'security', 'masterGenNumber', and 'unicode' are reserved names:\n"
+"	do not use them as ordinary counters.\n"
 "\n"
 "	For general-purpose server configuration, see 'p4 help configure'.\n"
 };
 
-ErrorId MsgHelp::HelpCstat = { ErrorOf( ES_HELP, 123, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpCstat = { ErrorOf( ES_HELP, 123, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    cstat -- Dump change/sync status for current client\n"
 "\n"
@@ -2624,7 +2687,7 @@ ErrorId MsgHelp::HelpCstat = { ErrorOf( ES_HELP, 123, E_INFO, 0, 0  ),
 "\n"
 };
 
-ErrorId MsgHelp::HelpDepot = { ErrorOf( ES_HELP, 35, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpDepot = { ErrorOf( ES_HELP, 35, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    depot -- Create or edit a depot specification\n"
 "\n"
@@ -2712,7 +2775,7 @@ ErrorId MsgHelp::HelpDepot = { ErrorOf( ES_HELP, 35, E_INFO, 0, 0  ),
 "	user's editor is not invoked.\n"
 };
 
-ErrorId MsgHelp::HelpDepots = { ErrorOf( ES_HELP, 36, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpDepots = { ErrorOf( ES_HELP, 36, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    depots -- Lists defined depots\n"
 "\n"
@@ -2722,7 +2785,7 @@ ErrorId MsgHelp::HelpDepots = { ErrorOf( ES_HELP, 36, E_INFO, 0, 0  ),
 "	Depots takes no arguments.\n"
 };
 
-ErrorId MsgHelp::HelpDiskspace = { ErrorOf( ES_HELP, 133, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpDiskspace = { ErrorOf( ES_HELP, 133, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    diskspace -- Display disk space information on the server.\n"
 "\n"
@@ -2739,7 +2802,7 @@ ErrorId MsgHelp::HelpDiskspace = { ErrorOf( ES_HELP, 133, E_INFO, 0, 0  ),
 "	access granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpSizes = { ErrorOf( ES_HELP, 94,  E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpSizes = { ErrorOf( ES_HELP, 94,  E_INFO, EV_NONE, 0  ), 
 "\n"
 "    sizes -- Display information about the size of the files in the depot\n"
 "\n"
@@ -2784,7 +2847,7 @@ ErrorId MsgHelp::HelpSizes = { ErrorOf( ES_HELP, 94,  E_INFO, 0, 0  ),
 "	unload depot (see 'p4 help unload').\n"
 };
 
-ErrorId MsgHelp::HelpDelete = { ErrorOf( ES_HELP, 37, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpDelete = { ErrorOf( ES_HELP, 37, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    delete -- Open an existing file for deletion from the depot\n"
 "\n"
@@ -2819,7 +2882,7 @@ ErrorId MsgHelp::HelpDelete = { ErrorOf( ES_HELP, 37, E_INFO, 0, 0  ),
 "	from an edge server in a distributed environment.\n"
 };
 
-ErrorId MsgHelp::HelpDescribe = { ErrorOf( ES_HELP, 38, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpDescribe = { ErrorOf( ES_HELP, 38, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    describe -- Display a changelist description\n"
 "\n"
@@ -2832,10 +2895,14 @@ ErrorId MsgHelp::HelpDescribe = { ErrorOf( ES_HELP, 38, E_INFO, 0, 0  ),
 "\n"
 "	For restricted changelists, 'no permission' is displayed if the user\n"
 "	is not permitted to view the change (see 'p4 help change'). If a\n"
-"	submitted or shelved change is restricted, the description is hidden\n"
-"	unless the user is the owner of the change or has list permission for\n"
-"	at least one file in the change. To view restricted pending (not\n"
-"	shelved) changes, the user must be the owner of the change.\n"
+"	submitted change is restricted, the description is hidden unless\n"
+"	the user is the owner of the change or has list permission for\n"
+"	at least one file in the change. If a shelved change is restricted,\n"
+"	the description is hidden unless the user is the owner of the change,\n"
+"	or has list permission to at least one file in the change and has\n"
+"	used the -S flag to request the shelved change. To view restricted\n"
+"	pending (not shelved) changes, the user must be the owner of the\n"
+"	change.\n"
 "\n"
 "	The -d<flags> passes one or more flags to the built-in diff routine\n"
 "	to modify the output: -dn (RCS), -dc[n] (context), -ds (summary),\n"
@@ -2847,6 +2914,8 @@ ErrorId MsgHelp::HelpDescribe = { ErrorOf( ES_HELP, 38, E_INFO, 0, 0  ),
 "\n"
 "	The -S flag lists files that are shelved for the specified changelist\n"
 "	and displays diffs of the files against their previous revision.\n"
+"	If the change is restricted, the description is displayed according\n"
+"	to the rules for shelved restricted changes described above.\n"
 "\n"
 "	The -f flag forces display of the descriptions in a restricted\n"
 "	change.  The -f flag requires 'admin' access, which is granted\n"
@@ -2858,7 +2927,7 @@ ErrorId MsgHelp::HelpDescribe = { ErrorOf( ES_HELP, 38, E_INFO, 0, 0  ),
 "	The -m flag limits files to the first 'max' number of files.\n"
 };
 
-ErrorId MsgHelp::HelpDiff = { ErrorOf( ES_HELP, 39, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpDiff = { ErrorOf( ES_HELP, 39, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    diff -- Display diff of client file with depot file\n"
 "\n"
@@ -2927,7 +2996,7 @@ ErrorId MsgHelp::HelpDiff = { ErrorOf( ES_HELP, 39, E_INFO, 0, 0  ),
 "	argument to the program.\n"
 };
 
-ErrorId MsgHelp::HelpDiff2 = { ErrorOf( ES_HELP, 40, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpDiff2 = { ErrorOf( ES_HELP, 40, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    diff2 -- Compare one set of depot files to another\n"
 "\n"
@@ -2996,7 +3065,7 @@ ErrorId MsgHelp::HelpDiff2 = { ErrorOf( ES_HELP, 40, E_INFO, 0, 0  ),
 "	the output can be used by the patch program.\n"
 };
 
-ErrorId MsgHelp::HelpDirs = { ErrorOf( ES_HELP, 41, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpDirs = { ErrorOf( ES_HELP, 41, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    dirs -- List depot subdirectories\n"
 "\n"
@@ -3027,7 +3096,7 @@ ErrorId MsgHelp::HelpDirs = { ErrorOf( ES_HELP, 41, E_INFO, 0, 0  ),
 "	client view.\n"
 };
 
-ErrorId MsgHelp::HelpDuplicate = { ErrorOf( ES_HELP, 104, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpDuplicate = { ErrorOf( ES_HELP, 104, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    duplicate -- duplicate revisions with integration history (unsupported)\n"
 "\n"
@@ -3054,7 +3123,7 @@ ErrorId MsgHelp::HelpDuplicate = { ErrorOf( ES_HELP, 104, E_INFO, 0, 0  ),
 "	'p4 duplicate' requires 'admin' access granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpEdit = { ErrorOf( ES_HELP, 42, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpEdit = { ErrorOf( ES_HELP, 42, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    edit -- Open an existing file for edit\n"
 "\n"
@@ -3091,7 +3160,7 @@ ErrorId MsgHelp::HelpEdit = { ErrorOf( ES_HELP, 42, E_INFO, 0, 0  ),
 "	from an edge server in a distributed environment.\n"
 };
 
-ErrorId MsgHelp::HelpFiles = { ErrorOf( ES_HELP, 43, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpFiles = { ErrorOf( ES_HELP, 43, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    files -- List files in the depot\n"
 "\n"
@@ -3125,7 +3194,7 @@ ErrorId MsgHelp::HelpFiles = { ErrorOf( ES_HELP, 43, E_INFO, 0, 0  ),
 "	for more information about the unload depot).\n"
 };
 
-ErrorId MsgHelp::HelpFilelog = { ErrorOf( ES_HELP, 44, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpFilelog = { ErrorOf( ES_HELP, 44, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    filelog -- List revision history of files\n"
 "\n"
@@ -3173,7 +3242,7 @@ ErrorId MsgHelp::HelpFilelog = { ErrorOf( ES_HELP, 44, E_INFO, 0, 0  ),
 "	non-contributory integrations.\n"
 };
 
-ErrorId MsgHelp::HelpFix = { ErrorOf( ES_HELP, 45, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpFix = { ErrorOf( ES_HELP, 45, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    fix -- Mark jobs as being fixed by the specified changelist\n"
 "\n"
@@ -3205,7 +3274,7 @@ ErrorId MsgHelp::HelpFix = { ErrorOf( ES_HELP, 45, E_INFO, 0, 0  ),
 "	fix's status is 'same', the job's status is left unchanged.\n"
 };
 
-ErrorId MsgHelp::HelpFixes = { ErrorOf( ES_HELP, 46, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpFixes = { ErrorOf( ES_HELP, 46, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    fixes -- List jobs with fixes and the changelists that fix them\n"
 "\n"
@@ -3231,7 +3300,7 @@ ErrorId MsgHelp::HelpFixes = { ErrorOf( ES_HELP, 46, E_INFO, 0, 0  ),
 "	fixes.\n"
 };
 
-ErrorId MsgHelp::HelpFstat = { ErrorOf( ES_HELP, 48, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpFstat = { ErrorOf( ES_HELP, 48, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    fstat -- Dump file info\n"
 "\n"
@@ -3376,7 +3445,7 @@ ErrorId MsgHelp::HelpFstat = { ErrorOf( ES_HELP, 48, E_INFO, 0, 0  ),
 "	-C (-Rc) -H (-Rh) -W (-Ro) -P (-Op) -l (-Ol) -s (-Os).\n"
 };
 
-ErrorId MsgHelp::HelpGrep = { ErrorOf( ES_HELP, 122, E_INFO, 0, 0 ),
+ErrorId MsgHelp::HelpGrep = { ErrorOf( ES_HELP, 122, E_INFO, EV_NONE, 0 ),
 "\n"
 "    grep -- Print lines matching a pattern\n"
 "\n"
@@ -3467,7 +3536,7 @@ ErrorId MsgHelp::HelpGrep = { ErrorOf( ES_HELP, 122, E_INFO, 0, 0 ),
 "	`^').  To include a literal `-', make it the first or last character.\n"
 };
 
-ErrorId MsgHelp::HelpGroup = { ErrorOf( ES_HELP, 49, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpGroup = { ErrorOf( ES_HELP, 49, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    group -- Change members of user group\n"
 "\n"
@@ -3527,7 +3596,7 @@ ErrorId MsgHelp::HelpGroup = { ErrorOf( ES_HELP, 49, E_INFO, 0, 0  ),
 "	invoked with the '-a' or '-A' flag by a qualified user.\n"
 };
 
-ErrorId MsgHelp::HelpGroups = { ErrorOf( ES_HELP, 50, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpGroups = { ErrorOf( ES_HELP, 50, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    groups -- List groups (of users)\n"
 "\n"
@@ -3560,7 +3629,7 @@ ErrorId MsgHelp::HelpGroups = { ErrorOf( ES_HELP, 50, E_INFO, 0, 0  ),
 "	The -o flag indicates that the 'name' argument is an owner.\n"
 };
 
-ErrorId MsgHelp::HelpHave = { ErrorOf( ES_HELP, 51, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpHave = { ErrorOf( ES_HELP, 51, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    have -- List the revisions most recently synced to the current workspace\n"
 "\n"
@@ -3572,7 +3641,7 @@ ErrorId MsgHelp::HelpHave = { ErrorOf( ES_HELP, 51, E_INFO, 0, 0  ),
 "	The format is:  depot-file#revision - client-file\n"
 };
 
-ErrorId MsgHelp::HelpHelp = { ErrorOf( ES_HELP, 52, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpHelp = { ErrorOf( ES_HELP, 52, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    help -- Print help message\n"
 "\n"
@@ -3583,7 +3652,7 @@ ErrorId MsgHelp::HelpHelp = { ErrorOf( ES_HELP, 52, E_INFO, 0, 0  ),
 "	list the available client commands.\n"
 };
 
-ErrorId MsgHelp::HelpIndex = { ErrorOf( ES_HELP, 96, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpIndex = { ErrorOf( ES_HELP, 96, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    index -- Add words to the jobs index (unsupported)\n"
 "\n"
@@ -3603,7 +3672,7 @@ ErrorId MsgHelp::HelpIndex = { ErrorOf( ES_HELP, 96, E_INFO, 0, 0  ),
 "	See also 'p4 help search'.\n"
 };
 
-ErrorId MsgHelp::HelpInfo = { ErrorOf( ES_HELP, 53, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpInfo = { ErrorOf( ES_HELP, 53, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    info -- Display client/server information\n"
 "\n"
@@ -3618,7 +3687,7 @@ ErrorId MsgHelp::HelpInfo = { ErrorOf( ES_HELP, 53, E_INFO, 0, 0  ),
 "	that requires a database lookup such as the client root).\n"
 };
 
-ErrorId MsgHelp::HelpInteg = { ErrorOf( ES_HELP, 54, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpInteg = { ErrorOf( ES_HELP, 54, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    integrate -- Integrate one set of files into another\n"
 "\n"
@@ -3745,14 +3814,14 @@ ErrorId MsgHelp::HelpInteg = { ErrorOf( ES_HELP, 54, E_INFO, 0, 0  ),
 "	resolve command will fail.\n"
 };
 
-ErrorId MsgHelp::HelpInteg3 = { ErrorOf( ES_HELP, 160, E_INFO, 0, 0  ),
+ErrorId MsgHelp::HelpInteg3 = { ErrorOf( ES_HELP, 160, E_INFO, EV_NONE, 0  ),
 "\n"
 "	See 'p4 help integrate'.\n"
 "\n"
 };
 
 
-ErrorId MsgHelp::HelpInteged = { ErrorOf( ES_HELP, 55, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpInteged = { ErrorOf( ES_HELP, 55, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    integrated -- List integrations that have been submitted\n"
 "\n"
@@ -3771,7 +3840,7 @@ ErrorId MsgHelp::HelpInteged = { ErrorOf( ES_HELP, 55, E_INFO, 0, 0  ),
 "	target files and source files.  The -b branch flag is required.\n"
 };
 
-ErrorId MsgHelp::HelpIstat = { ErrorOf( ES_HELP, 131, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpIstat = { ErrorOf( ES_HELP, 131, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    istat -- Show/cache a stream's integration status\n"
 "\n"
@@ -3800,7 +3869,7 @@ ErrorId MsgHelp::HelpIstat = { ErrorOf( ES_HELP, 131, E_INFO, 0, 0  ),
 "	The -s flag shows cached state without refreshing stale data.\n"
 };
 
-ErrorId MsgHelp::HelpJob = { ErrorOf( ES_HELP, 56, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpJob = { ErrorOf( ES_HELP, 56, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    job -- Create or edit a job (defect) specification\n"
 "\n"
@@ -3843,7 +3912,7 @@ ErrorId MsgHelp::HelpJob = { ErrorOf( ES_HELP, 56, E_INFO, 0, 0  ),
 "	'p4 protect' command.\n"
 };
 
-ErrorId MsgHelp::HelpKey = { ErrorOf( ES_HELP, 157, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpKey = { ErrorOf( ES_HELP, 157, E_INFO, EV_NONE, 0  ), 
 "\n"
 "     key -- Display, set, or delete a key/value pair\n"
 "\n"
@@ -3871,7 +3940,7 @@ ErrorId MsgHelp::HelpKey = { ErrorOf( ES_HELP, 157, E_INFO, 0, 0  ),
 "	'p4 key' requires 'review' access granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpKeys = { ErrorOf( ES_HELP, 158, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpKeys = { ErrorOf( ES_HELP, 158, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    keys -- Display list of known key/values\n"
 "\n"
@@ -3883,7 +3952,7 @@ ErrorId MsgHelp::HelpKeys = { ErrorOf( ES_HELP, 158, E_INFO, 0, 0  ),
 "	The -m max flag limits the output to the first 'max' keys.\n"
 };
 
-ErrorId MsgHelp::HelpInterchanges = { ErrorOf( ES_HELP, 97, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpInterchanges = { ErrorOf( ES_HELP, 97, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    interchanges -- Report changes not yet integrated\n"
 "\n"
@@ -3892,7 +3961,7 @@ ErrorId MsgHelp::HelpInterchanges = { ErrorOf( ES_HELP, 97, E_INFO, 0, 0  ),
 "    p4 interchanges [options] -b branch -s fromFile[revRange] [toFile ...]\n"
 "    p4 interchanges [options] -S stream [-P parent] [file[revRange] ...]\n"
 "\n"
-"	options: -f -l -r -t -b -s -S -P -F\n"
+"	options: -f -l -r -t -u -F\n"
 "\n"
 "	'p4 interchanges' lists changes that have not been integrated from \n"
 "	a set of source files to a set of target files.\n"
@@ -3916,6 +3985,8 @@ ErrorId MsgHelp::HelpInterchanges = { ErrorOf( ES_HELP, 97, E_INFO, 0, 0  ),
 "	be given to further restrict the scope of the target file set.  The\n"
 "	-r flag is ignored when -s is used.\n"
 "\n"
+"	The -u flag limits results to those submitted by a particular user.\n"
+"\n"
 "	The -S flag causes 'p4 interchanges' to use a generated branch view\n"
 "	that maps a stream to its parent.  With -r, the direction of the\n"
 "	mapping is reversed.  -P can be used to generate the branch view\n" 
@@ -3929,7 +4000,7 @@ ErrorId MsgHelp::HelpInterchanges = { ErrorOf( ES_HELP, 97, E_INFO, 0, 0  ),
 "\n"
 };
 
-ErrorId MsgHelp::HelpJobs = { ErrorOf( ES_HELP, 57, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpJobs = { ErrorOf( ES_HELP, 57, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    jobs -- Display list of jobs\n"
 "\n"
@@ -3961,7 +4032,7 @@ ErrorId MsgHelp::HelpJobs = { ErrorOf( ES_HELP, 57, E_INFO, 0, 0  ),
 "	user be an operator or have 'super' access granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpJobSpec = { ErrorOf( ES_HELP, 58, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpJobSpec = { ErrorOf( ES_HELP, 58, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    jobspec -- Edit the job template\n"
 "\n"
@@ -4080,7 +4151,7 @@ ErrorId MsgHelp::HelpJobSpec = { ErrorOf( ES_HELP, 58, E_INFO, 0, 0  ),
 "	'p4 jobspec' requires 'admin' access, which is granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpLabel = { ErrorOf( ES_HELP, 59, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpLabel = { ErrorOf( ES_HELP, 59, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    label -- Create or edit a label specification\n"
 "\n"
@@ -4132,7 +4203,7 @@ ErrorId MsgHelp::HelpLabel = { ErrorOf( ES_HELP, 59, E_INFO, 0, 0  ),
 "		     default view selects all depot files. Only the left\n"
 "		     side of the mapping is used for labels.  Leave this\n"
 "		     field blank when creating an automatic label as\n"
-"		     a pure alias.\n"
+"		     a pure alias. See 'p4 help views'.\n"
 "\n"
 "	ServerID:    If set, restricts usage to the named server.\n"
 "		     If unset, usage is allowed on any server.\n"
@@ -4171,7 +4242,7 @@ ErrorId MsgHelp::HelpLabel = { ErrorOf( ES_HELP, 59, E_INFO, 0, 0  ),
 "	default and causes this flag to have the opposite meaning.\n"
 };
 
-ErrorId MsgHelp::HelpLabels = { ErrorOf( ES_HELP, 60, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpLabels = { ErrorOf( ES_HELP, 60, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    labels -- Display list of defined labels\n"
 "\n"
@@ -4193,9 +4264,10 @@ ErrorId MsgHelp::HelpLabels = { ErrorOf( ES_HELP, 60, E_INFO, 0, 0  ),
 "\n"	
 "	The -u user flag lists labels owned by the specified user.\n"
 "\n"
-"	The -e nameFilter flag lists labels with names that match the\n"
-"	the nameFilter pattern, for example:  -e 'svr-dev-rel*'. -E makes\n"
-"	the matching case-insensitive.\n"
+"	The -e nameFilter flag lists labels with a name that matches\n"
+"	the nameFilter pattern, for example: -e 'svr-dev-rel*'. The -e flag\n"
+"	uses the server's normal case-sensitivity rules. The -E flag makes\n"
+"	the matching case-insensitive, even on a case-sensitive server.\n"
 "\n"
 "	The -m max flag limits output to the first 'max' number of labels.\n"
 "\n"
@@ -4217,7 +4289,7 @@ ErrorId MsgHelp::HelpLabels = { ErrorOf( ES_HELP, 60, E_INFO, 0, 0  ),
 "	on the Commit Server are global, and are also included in the output.\n"
 };
 
-ErrorId MsgHelp::HelpLabelsync = { ErrorOf( ES_HELP, 61, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpLabelsync = { ErrorOf( ES_HELP, 61, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    labelsync -- Apply the label to the contents of the client workspace\n"
 "\n"
@@ -4262,7 +4334,7 @@ ErrorId MsgHelp::HelpLabelsync = { ErrorOf( ES_HELP, 61, E_INFO, 0, 0  ),
 "	flag to have the opposite meaning.\n"
 };
 
-ErrorId MsgHelp::HelpNetworkAddress = { ErrorOf( ES_HELP, 161, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpNetworkAddress = { ErrorOf( ES_HELP, 161, E_INFO, EV_NONE, 0  ), 
 "\n"
 "	When specifying the network address for a Perforce connection, use\n"
 "	the following syntax:\n"
@@ -4296,7 +4368,159 @@ ErrorId MsgHelp::HelpNetworkAddress = { ErrorOf( ES_HELP, 161, E_INFO, 0, 0  ),
 "\n"
 };
 
-ErrorId MsgHelp::HelpLegal = { ErrorOf( ES_HELP, 151, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpLdap = { ErrorOf( ES_HELP, 172, E_INFO, EV_NONE, 0  ), 
+"\n"
+"    ldap -- Create, modify, delete or test an LDAP configuration\n"
+"\n"
+"    p4 ldap config\n"
+"    p4 ldap -d config\n"
+"    p4 ldap -o config\n"
+"    p4 ldap -i\n"
+"    p4 ldap -t username config\n"
+"\n"
+"	An LDAP configuration defines an Active Directory or other LDAP server\n"
+"	to which the Perforce Server can connect in order to authenticate users\n"
+"	who have AuthMethod set to 'ldap'. In addition to the host and port of\n"
+"	the LDAP server, this configuration defines how the authentication\n"
+"	should happen, by picking one of three bind methods:\n"
+"\n"
+"	Simple:\n"
+"	This authentication method takes a template DN and substitutes %%user%%\n"
+"	placeholders with the user's userId to produce the user's DN which the\n"
+"	Perforce Server will then attempt to bind against, validating the user's\n"
+"	password. An example of such a template could look like this:\n"
+"\n"
+"	    uid=%%user%%,ou=users,dc=example,dc=org\n"
+"\n"
+"	Search:\n"
+"	This authentication method uses an LDAP search query to locate the\n"
+"	appropriate user record. It requires a known base DN for the search and\n"
+"	an LDAP search query (which should make use of the %%user%% placeholder).\n"
+"	It may also require the full DN and password of a known read-only entity\n"
+"	in the directory in order to perform the search. An example base DN and\n"
+"	LDAP query might look like this:\n"
+"\n"
+"	    Base DN: ou=users,dc=example,dc=org\n"
+"	    LDAP query: (uid=%%user%%)\n"
+"\n"
+"	SASL:\n"
+"	This authentication method defers the user search to the LDAP server and\n"
+"	does not require a DN to be discovered before the bind is attempted. A\n"
+"	specific realm may be provided if the LDAP server has multiple realms (or\n"
+"	domains in the case of Active Directory). This may be the easiest method\n"
+"	to configure if the LDAP server supports SASL DIGEST-MD5.\n"
+"\n"
+"\n"
+"	To enable LDAP authentication, one or more LDAP configurations must\n"
+"	exist and be assigned a priority with the auth.ldap.order.N configurable.\n"
+"	If more than one valid configuration is enabled with this configurable, a\n"
+"	login by a user with AuthMethod set to ldap will cause each configuration\n"
+"	to be checked in order until the user's credentials are validated or the\n"
+"	user record is found but the credentials are rejected.\n"
+"\n"
+"	When LDAP authentication is enabled, any user who is able to authenticate\n"
+"	will be created and will consume a license, regardless of whether they\n"
+"	are granted any access by 'p4 protect'. In addition to the bind methods,\n"
+"	user access can be restricted only to those who belong to a particular group\n"
+"	within the directory. This is done by performing an LDAP search as the user\n"
+"	who has just authenticated, and checking that there is at least one record\n"
+"	returned from that search. This search requires a base DN and a LDAP query\n"
+"	that contains the %%user%% placeholder. An example base DN and LDAP query to\n"
+"	check that the user is in a group named 'perforce' might look like this:\n"
+"\n"
+"	    Base DN: ou=groups,dc=example,dc=org\n"
+"	    LDAP query: (&(cn=perforce)(memberUid=%%user%%))\n"
+"\n"
+"\n"
+"	The LDAP configuration spec contains the following fields:\n"
+"\n"
+"	Name:          The LDAP configuration name.\n"
+"\n"
+"	Host:          The FQDN of the directory server.\n"
+"\n"
+"	Port:          The port number at which to connect to the directory server.\n"
+"\n"
+"	Encryption:    The encryption method to use when connecting to the\n"
+"	               directory server. Options are: 'none', 'ssl' and 'tls'.\n"
+"\n"
+"	BindMethod:    The bind method to use with this directory. Options are:\n"
+"	               'simple', 'search' and 'sasl'.\n"
+"\n"
+"	SimplePattern: This is the DN which will be used to bind against to\n"
+"	               validate the user's credentials. The %%user%% placeholder\n"
+"	               will be replaced with the user's userId. This field only\n"
+"	               applies to the 'simple' bind method.\n"
+"\n"
+"	SearchBaseDN:  The DN from which to start the search for the user object.\n"
+"\n"
+"	SearchFilter:  The LDAP query filter to use to identify the user object\n"
+"	               which will be used to bind against. The %%user%%\n"
+"	               placeholder will be replaced with the user's userId.\n"
+"\n"
+"	SearchScope:   The scope to use when searching for the user records.\n"
+"	               Options are:\n"
+"	                   baseonly - Just the BaseDN object\n"
+"	                   children - The BaseDN and its direct children\n"
+"	                   subtree - The BaseDN and all objects below it\n"
+"\n"
+"	SearchBindDN:  The DN to bind against in order to search the directory.\n"
+"\n"
+"	SearchPasswd:  The password for the BindDN record.\n"
+"\n"
+"	SaslRealm:     The optional realm to use when authenticating the user\n"
+"	               via SASL.This field applies only to the 'sasl' bind\n"
+"	               method.\n"
+"\n"
+"	GroupSearchFilter: The filter to use for the group search.\n"
+"\n"
+"	GroupBaseDN:       The search base for performing the group search. If\n"
+"	                   unset this will default to the SearchBaseDN.\n"
+"\n"
+"	GroupSearchScope:  The scope to use when performing the group search.\n"
+"	                   Options are:\n"
+"	                       baseonly - Just the BaseDN object\n"
+"	                       children - The BaseDN and its direct children\n"
+"	                       subtree - The BaseDN and all objects below it\n"
+"\n"
+"	The last three fields need to be set only if users must also belong to a\n"
+"	group within the directory.\n"
+"\n"
+"\n"
+"	The -d flag deletes the named LDAP configuration.\n"
+"\n"
+"	The -o flag writes the LDAP configuration to standard output. The\n"
+"	user's editor is not invoked.\n"
+"\n"
+"	The -i flag causes a LDAP configuration to be read from the standard\n"
+"	input. The user's editor is not invoked.\n"
+"\n"
+"	The -t flag specifies a username to attempt authentication against\n"
+"	the named LDAP configuration. This will return a success message or an\n"
+"	error message that will contain more detailed information when\n"
+"	available.\n"
+"\n"
+"	'p4 ldap' requires 'super' access granted by 'p4 protect'.\n"
+};
+
+ErrorId MsgHelp::HelpLdaps = { ErrorOf( ES_HELP, 173, E_INFO, EV_NONE, 0  ), 
+"\n"
+"    ldaps -- Display list of LDAP configurations\n"
+"\n"
+"    p4 ldaps [-A]\n"
+"    p4 ldaps -t username\n"
+"\n"
+"	Lists LDAP configurations. (See 'p4 help ldap'.)\n"
+"\n"
+"	The -A flag limits the results to a priority ordered list of\n"
+"	active configurations.\n"
+"\n"
+"	The -t flag specifies a username to attempt authentication against\n"
+"	each active configuration (all active configurations will be tested).\n"
+"\n"
+"	'p4 ldaps' requires 'super' access granted by 'p4 protect'.\n"
+};
+
+ErrorId MsgHelp::HelpLegal = { ErrorOf( ES_HELP, 151, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    For Perforce legal and license information see:\n"
 "	http://www.perforce.com/purchase/license-agreements\n"
@@ -4363,8 +4587,8 @@ ErrorId MsgHelp::HelpLegal = { ErrorOf( ES_HELP, 151, E_INFO, 0, 0  ),
 "     *\n"    
 "     */\n"    
 "    \n"    
-"     Original SSLeay License\n"    
-"     -----------------------\n"    
+"    Original SSLeay License\n"    
+"    -----------------------\n"    
 "    \n"    
 "    /* Copyright (C) 1995-1998 Eric Young (eay@cryptsoft.com)\n"    
 "     * All rights reserved.\n"    
@@ -4422,10 +4646,179 @@ ErrorId MsgHelp::HelpLegal = { ErrorOf( ES_HELP, 151, E_INFO, 0, 0  ),
 "     * copied and put under another distribution licence\n"    
 "     * [including the GNU Public Licence.]\n"    
 "     */\n"    
+"    \n"    
+"    OpenLDAP:\n"    
+"    -----------------------\n"    
+"    \n"    
+"    Copyright 1998-2014 The OpenLDAP Foundation\n"    
+"    All rights reserved.\n"    
+"    \n"    
+"    Redistribution and use in source and binary forms, with or without\n"    
+"    modification, are permitted only as authorized by the OpenLDAP\n"    
+"    Public License.\n"    
+"    \n"    
+"    A copy of this license is available in the file LICENSE in the\n"    
+"    top-level directory of the distribution or, alternatively, at\n"    
+"    <http://www.OpenLDAP.org/license.html>.\n"    
+"    \n"    
+"    OpenLDAP is a registered trademark of the OpenLDAP Foundation.\n"    
+"    \n"    
+"    Individual files and/or contributed packages may be copyright by\n"    
+"    other parties and/or subject to additional restrictions.\n"    
+"    \n"    
+"    This work is derived from the University of Michigan LDAP v3.3\n"    
+"    distribution.  Information concerning this software is available\n"    
+"    at <http://www.umich.edu/~dirsvcs/ldap/ldap.html>.\n"    
+"    \n"    
+"    This work also contains materials derived from public sources.\n"    
+"    \n"    
+"    Additional information about OpenLDAP can be obtained at\n"    
+"    <http://www.openldap.org/>.\n"    
+"    \n"    
+"    ---\n"    
+"    \n"    
+"    Portions Copyright 1998-2012 Kurt D. Zeilenga.\n"    
+"    Portions Copyright 1998-2006 Net Boolean Incorporated.\n"    
+"    Portions Copyright 2001-2006 IBM Corporation.\n"    
+"    All rights reserved.\n"    
+"    \n"    
+"    Redistribution and use in source and binary forms, with or without\n"    
+"    modification, are permitted only as authorized by the OpenLDAP\n"    
+"    Public License.\n"    
+"    \n"    
+"    ---\n"    
+"    \n"    
+"    Portions Copyright 1999-2008 Howard Y.H. Chu.\n"    
+"    Portions Copyright 1999-2008 Symas Corporation.\n"    
+"    Portions Copyright 1998-2003 Hallvard B. Furuseth.\n"    
+"    Portions Copyright 2007-2011 Gavin Henry.\n"    
+"    Portions Copyright 2007-2011 Suretec Systems Ltd.\n"    
+"    All rights reserved.\n"    
+"    \n"    
+"    Redistribution and use in source and binary forms, with or without\n"    
+"    modification, are permitted provided that this notice is preserved.\n"    
+"    The names of the copyright holders may not be used to endorse or\n"    
+"    promote products derived from this software without their specific\n"    
+"    prior written permission.  This software is provided ``as is''\n"    
+"    without express or implied warranty.\n"    
+"    \n"    
+"    ---\n"    
+"    \n"    
+"    Portions Copyright (c) 1992-1996 Regents of the University of Michigan.\n"    
+"    All rights reserved.\n"    
+"    \n"    
+"    Redistribution and use in source and binary forms are permitted\n"    
+"    provided that this notice is preserved and that due credit is given\n"    
+"    to the University of Michigan at Ann Arbor.  The name of the\n"    
+"    University may not be used to endorse or promote products derived\n"    
+"    from this software without specific prior written permission.  This\n"    
+"    software is provided ``as is'' without express or implied warranty.\n"    
+"    \n"    
+"    \n"    
+"    OpenLDAP License\n"    
+"    -----------------------\n"    
+"    \n"    
+"    The OpenLDAP Public License\n"    
+"       Version 2.8, 17 August 2003\n"    
+"    \n"    
+"    Redistribution and use of this software and associated documentation\n"    
+"    (\"Software\"), with or without modification, are permitted provided\n"    
+"    that the following conditions are met:\n"    
+"    \n"    
+"    1. Redistributions in source form must retain copyright statements\n"    
+"       and notices,\n"    
+"    \n"    
+"    2. Redistributions in binary form must reproduce applicable copyright\n"    
+"       statements and notices, this list of conditions, and the following\n"    
+"       statements and notices, this list of conditions, and the following\n"    
+"       disclaimer in the documentation and/or other materials provided\n"    
+"       with the distribution, and\n"    
+"    \n"    
+"    3. Redistributions must contain a verbatim copy of this document.\n"    
+"    \n"    
+"    The OpenLDAP Foundation may revise this license from time to time.\n"    
+"    Each revision is distinguished by a version number.  You may use\n"    
+"    this Software under terms of this license revision or under the\n"    
+"    terms of any subsequent revision of the license.\n"    
+"    \n"    
+"    THIS SOFTWARE IS PROVIDED BY THE OPENLDAP FOUNDATION AND ITS\n"    
+"    CONTRIBUTORS ``AS IS'' AND ANY EXPRESSED OR IMPLIED WARRANTIES,\n"    
+"    INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY\n"    
+"    AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT\n"    
+"    SHALL THE OPENLDAP FOUNDATION, ITS CONTRIBUTORS, OR THE AUTHOR(S)\n"    
+"    OR OWNER(S) OF THE SOFTWARE BE LIABLE FOR ANY DIRECT, INDIRECT,\n"    
+"    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,\n"    
+"    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;\n"    
+"    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER\n"    
+"    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT\n"    
+"    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN\n"    
+"    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE\n"    
+"    POSSIBILITY OF SUCH DAMAGE.\n"    
+"    \n"    
+"    The names of the authors and copyright holders must not be used in\n"    
+"    advertising or otherwise to promote the sale, use or other dealing\n"    
+"    in this Software without specific, written prior permission.  Title\n"    
+"    to copyright in this Software shall at all times remain with copyright\n"    
+"    holders.\n"    
+"    \n"    
+"    OpenLDAP is a registered trademark of the OpenLDAP Foundation.\n"    
+"    \n"    
+"    Copyright 1999-2003 The OpenLDAP Foundation, Redwood City,\n"    
+"    California, USA.  All Rights Reserved.  Permission to copy and\n"    
+"    distribute verbatim copies of this document is granted.\n"    
+"    \n"    
+"    \n"    
+"    Cyrus SASL License\n"    
+"    -----------------------\n"    
+"    \n"    
+"    /* CMU libsasl\n"    
+"     * Tim Martin\n"    
+"     * Rob Earhart\n"    
+"     * Rob Siemborski\n"    
+"     */\n"    
+"    /* \n"    
+"     * Copyright (c) 1998-2003 Carnegie Mellon University.  All rights reserved.\n"    
+"     *\n"    
+"     * Redistribution and use in source and binary forms, with or without\n"    
+"     * modification, are permitted provided that the following conditions\n"    
+"     * are met:\n"    
+"     *\n"    
+"     * 1. Redistributions of source code must retain the above copyright\n"    
+"     *    notice, this list of conditions and the following disclaimer. \n"    
+"     *\n"    
+"     * 2. Redistributions in binary form must reproduce the above copyright\n"    
+"     *    notice, this list of conditions and the following disclaimer in\n"    
+"     *    the documentation and/or other materials provided with the\n"    
+"     *    distribution.\n"    
+"     *\n"    
+"     * 3. The name \"Carnegie Mellon University\" must not be used to\n"    
+"     *    endorse or promote products derived from this software without\n"    
+"     *    prior written permission. For permission or any other legal\n"    
+"     *    details, please contact  \n"    
+"     *      Office of Technology Transfer\n"    
+"     *      Carnegie Mellon University\n"    
+"     *      5000 Forbes Avenue\n"    
+"     *      Pittsburgh, PA  15213-3890\n"    
+"     *      (412) 268-4387, fax: (412) 268-7395\n"    
+"     *      tech-transfer@andrew.cmu.edu\n"    
+"     *\n"    
+"     * 4. Redistributions of any form whatsoever must retain the following\n"    
+"     *    acknowledgment:\n"    
+"     *    \"This product includes software developed by Computing Services\n"    
+"     *     at Carnegie Mellon University (http://www.cmu.edu/computing/).\"\n"    
+"     *\n"    
+"     * CARNEGIE MELLON UNIVERSITY DISCLAIMS ALL WARRANTIES WITH REGARD TO\n"    
+"     * THIS SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY\n"    
+"     * AND FITNESS, IN NO EVENT SHALL CARNEGIE MELLON UNIVERSITY BE LIABLE\n"    
+"     * FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES\n"    
+"     * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN\n"    
+"     * AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING\n"    
+"     * OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.\n"    
+"     */\n"    
 "\n"
 };
 
-ErrorId MsgHelp::HelpLicense = { ErrorOf( ES_HELP, 101, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpLicense = { ErrorOf( ES_HELP, 101, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    license -- Update or display the license file\n"
 "\n"
@@ -4461,7 +4854,7 @@ ErrorId MsgHelp::HelpLicense = { ErrorOf( ES_HELP, 101, E_INFO, 0, 0  ),
 "	**********************************************************************\n"
 };
 
-ErrorId MsgHelp::HelpList = { ErrorOf( ES_HELP, 147, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpList = { ErrorOf( ES_HELP, 147, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    list -- Create a temporary list of files that can be used as a label\n"
 "\n"
@@ -4498,7 +4891,7 @@ ErrorId MsgHelp::HelpList = { ErrorOf( ES_HELP, 147, E_INFO, 0, 0  ),
 "	forwarded to the master server.\n"
 };
 
-ErrorId MsgHelp::HelpLock = { ErrorOf( ES_HELP, 62, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpLock = { ErrorOf( ES_HELP, 62, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    lock -- Lock an open file to prevent it from being submitted\n"
 "\n"
@@ -4512,7 +4905,7 @@ ErrorId MsgHelp::HelpLock = { ErrorOf( ES_HELP, 62, E_INFO, 0, 0  ),
 "	files in the default changelist are locked.\n"
 };
 
-ErrorId MsgHelp::HelpLogger = { ErrorOf( ES_HELP, 63, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpLogger = { ErrorOf( ES_HELP, 63, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    logger -- Report changed jobs and changelists\n"
 "\n"
@@ -4542,7 +4935,7 @@ ErrorId MsgHelp::HelpLogger = { ErrorOf( ES_HELP, 63, E_INFO, 0, 0  ),
 "	to the Commit Server, not to an Edge Server.\n"
 };
 
-ErrorId MsgHelp::HelpLogin = { ErrorOf( ES_HELP, 89, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpLogin = { ErrorOf( ES_HELP, 89, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    login -- Log in to Perforce by obtaining a session ticket\n"
 "\n"
@@ -4581,7 +4974,7 @@ ErrorId MsgHelp::HelpLogin = { ErrorOf( ES_HELP, 89, E_INFO, 0, 0  ),
 "	does not prompt for the password (you must already be logged in).\n"
 };
 
-ErrorId MsgHelp::HelpLogout = { ErrorOf( ES_HELP, 90, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpLogout = { ErrorOf( ES_HELP, 90, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    logout -- Log out from Perforce by removing or invalidating a ticket.\n"
 "\n"
@@ -4602,7 +4995,7 @@ ErrorId MsgHelp::HelpLogout = { ErrorOf( ES_HELP, 90, E_INFO, 0, 0  ),
 "	another machine.\n"
 };
 
-ErrorId MsgHelp::HelpMerge = { ErrorOf( ES_HELP, 134, E_INFO, 0, 0 ),
+ErrorId MsgHelp::HelpMerge = { ErrorOf( ES_HELP, 134, E_INFO, EV_NONE, 0 ),
 "\n"
 "    merge -- Merge one set of files into another \n"
 "\n"
@@ -4688,7 +5081,7 @@ ErrorId MsgHelp::HelpMerge = { ErrorOf( ES_HELP, 134, E_INFO, 0, 0 ),
 "	will fail.\n"
 };
 
-ErrorId MsgHelp::HelpMerge3 = { ErrorOf( ES_HELP, 98, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpMerge3 = { ErrorOf( ES_HELP, 98, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    merge3 -- three-way file merge (unsupported)\n"
 "\n"
@@ -4705,11 +5098,11 @@ ErrorId MsgHelp::HelpMerge3 = { ErrorOf( ES_HELP, 98, E_INFO, 0, 0  ),
 "	'p4 resolve'.\n"
 };
 
-ErrorId MsgHelp::HelpMonitor = { ErrorOf( ES_HELP, 88, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpMonitor = { ErrorOf( ES_HELP, 88, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    monitor -- Display Perforce process information\n"
 "\n"
-"    p4 monitor show [-a -l -e -s R/T/P/I ]\n"
+"    p4 monitor show [-a -l -e -L -s R/T/P/I ]\n"
 "    p4 monitor terminate [id]\n"
 "    p4 monitor clear [id | all]\n"
 "    p4 monitor pause [id]\n"
@@ -4723,6 +5116,20 @@ ErrorId MsgHelp::HelpMonitor = { ErrorOf( ES_HELP, 88, E_INFO, 0, 0  ),
 "	    To monitor active commands, set the configurable to 1.\n"
 "	    To monitor idle connections and active commands, set the\n"
 "	    configurable to 2.\n"
+"\n"
+"	    To monitor idle connections and active commands, including a list\n"
+"	    of the tables locked by the command for more than 1 second, set\n"
+"	    the configurable to 5.\n"
+"\n"
+"	    To monitor idle connections and active commands, including a list\n"
+"	    of the tables locked by the command for more than 1 second, with\n"
+"	    lock wait times included in the lock information, set the\n"
+"	    configurable to 10.\n"
+"\n"
+"	    To monitor idle connections and active commands, including a list\n"
+"	    of the tables locked by the command for any duration, with\n"
+"	    lock wait times included in the lock information, set the\n"
+"	    configurable to 25.\n"
 "\n"
 "	Changes to the monitor configurable affect all new p4 processes that\n"
 "	connect to the server; restarting the server is not required.\n"
@@ -4742,6 +5149,15 @@ ErrorId MsgHelp::HelpMonitor = { ErrorOf( ES_HELP, 88, E_INFO, 0, 0  ),
 "\n"
 "	    The -l flag displays long output, including the full username and\n"
 "	    argument list.\n"
+"\n"
+"	    The -L flag includes file locking information, and requires that\n"
+"	    either the monitor configurable has been set as described above,\n"
+"	    or the monitor.lsof configurable has been set to enable the\n"
+"	    display. The monitor.lsof configurable can be used with a Linux\n"
+"	    server, while setting the monitor configurable to 5 or more works\n"
+"	    for any server platform. However, there is no value to setting\n"
+"	    both configurables; either set monitor.lsof, or set monitor to\n"
+"	    5 or more, but not both.\n"
 "\n"
 "	    The -s flag restricts the display to processes in the indicated\n"
 "	    state: [R]unning, [T]erminated, [P]aused, or [I]dle.\n"
@@ -4765,7 +5181,7 @@ ErrorId MsgHelp::HelpMonitor = { ErrorOf( ES_HELP, 88, E_INFO, 0, 0  ),
 "	'super' access.\n"
 };
 
-ErrorId MsgHelp::HelpMove = { ErrorOf( ES_HELP, 108, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpMove = { ErrorOf( ES_HELP, 108, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    move -- move file(s) from one location to another\n"
 "    rename -- synonym for 'move'\n"
@@ -4811,7 +5227,7 @@ ErrorId MsgHelp::HelpMove = { ErrorOf( ES_HELP, 108, E_INFO, 0, 0  ),
 "	'-f' flag requires a 2010.1 client.\n"
 };
 
-ErrorId MsgHelp::HelpObliterate = { ErrorOf( ES_HELP, 64, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpObliterate = { ErrorOf( ES_HELP, 64, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    obliterate -- Remove files and their history from the depot\n"
 "\n"
@@ -4875,7 +5291,7 @@ ErrorId MsgHelp::HelpObliterate = { ErrorOf( ES_HELP, 64, E_INFO, 0, 0  ),
 "	protect'.\n"
 };
 
-ErrorId MsgHelp::HelpOpened = { ErrorOf( ES_HELP, 65, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpOpened = { ErrorOf( ES_HELP, 65, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    opened -- List open files and display file status\n"
 "\n"
@@ -4913,7 +5329,7 @@ ErrorId MsgHelp::HelpOpened = { ErrorOf( ES_HELP, 65, E_INFO, 0, 0  ),
 "	the -a option.\n"
 };
 
-ErrorId MsgHelp::HelpPasswd = { ErrorOf( ES_HELP, 66, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpPasswd = { ErrorOf( ES_HELP, 66, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    passwd -- Set the user's password on the server (and Windows client)\n"
 "\n"
@@ -4941,14 +5357,14 @@ ErrorId MsgHelp::HelpPasswd = { ErrorOf( ES_HELP, 66, E_INFO, 0, 0  ),
 "	access granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpPopulate = { ErrorOf( ES_HELP, 148, E_INFO, 0, 0 ),
+ErrorId MsgHelp::HelpPopulate = { ErrorOf( ES_HELP, 148, E_INFO, EV_NONE, 0 ),
 "\n"
 "    populate -- Branch a set of files as a one-step operation\n"
 "\n"
 "    p4 populate [options] fromFile[rev] toFile\n"
-"    p4 populate [options] -b branch [-r] [toFile[rev] ...]\n"
-"    p4 populate [options] -b branch -s fromFile[rev] [toFile ...]\n"
-"    p4 populate [options] -S stream [-P parent] [-r] [toFile[rev] ...]\n"
+"    p4 populate [options] -b branch [-r] [toFile[rev]]\n"
+"    p4 populate [options] -b branch -s fromFile[rev] [toFile]\n"
+"    p4 populate [options] -S stream [-P parent] [-r] [toFile[rev]]\n"
 "\n"
 "	options: -d description -f -m max -n -o\n"
 "\n"
@@ -4961,8 +5377,8 @@ ErrorId MsgHelp::HelpPopulate = { ErrorOf( ES_HELP, 148, E_INFO, 0, 0 ),
 "	Source and target files (fromFile and toFile) can be specified on\n"
 "	the command line or through a branch view. On the command\n"
 "	line, fromFile is the source file set and toFile is the target file\n"
-"	set.  With a branch view, one or more toFile arguments can be given\n"
-"	to limit the scope of the target file set.\n"
+"	set.  With a branch view, a toFile argument can be given to limit the\n"
+"	scope of the target file set.\n"
 "\n"
 "	A revision specifier can be used to select the revision to branch; by\n"
 "	default, the head revision is branched. The revision specifier can be\n"
@@ -4984,9 +5400,9 @@ ErrorId MsgHelp::HelpPopulate = { ErrorOf( ES_HELP, 148, E_INFO, 0, 0 ),
 "\n"
 "	The -s flag can be used with -b to cause fromFile to be treated as\n"
 "	the source, and both sides of the user-defined branch view to be\n"
-"	treated as the target, per the branch view mapping.  Optional toFile\n"
-"	arguments may be given to further restrict the scope of the target\n"
-"	file set. -r is ignored when -s is used.\n"
+"	treated as the target, per the branch view mapping.  An optional\n"
+"	toFile argument may be given to further restrict the scope of the\n"
+"	target file set.  -r is ignored when -s is used.\n"
 "\n"
 "	The -d flag specifies a description for the submitted changelist.\n"
 "\n"
@@ -5003,7 +5419,7 @@ ErrorId MsgHelp::HelpPopulate = { ErrorOf( ES_HELP, 148, E_INFO, 0, 0 ),
 };
 
 
-ErrorId MsgHelp::HelpPrint = { ErrorOf( ES_HELP, 67, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpPrint = { ErrorOf( ES_HELP, 67, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    print -- Write a depot file to standard output\n"
 "\n"
@@ -5041,7 +5457,7 @@ ErrorId MsgHelp::HelpPrint = { ErrorOf( ES_HELP, 67, E_INFO, 0, 0  ),
 "	for more information about the unload depot).\n"
 };
 
-ErrorId MsgHelp::HelpProperty = { ErrorOf( ES_HELP, 159, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpProperty = { ErrorOf( ES_HELP, 159, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    property -- Add, delete, or list property values\n"
 "\n"
@@ -5095,7 +5511,7 @@ ErrorId MsgHelp::HelpProperty = { ErrorOf( ES_HELP, 159, E_INFO, 0, 0  ),
 "	granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpProtect = { ErrorOf( ES_HELP, 68, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpProtect = { ErrorOf( ES_HELP, 68, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    protect -- Modify protections in the server namespace\n"
 "\n"
@@ -5110,7 +5526,7 @@ ErrorId MsgHelp::HelpProtect = { ErrorOf( ES_HELP, 68, E_INFO, 0, 0  ),
 "	path pattern. Users receive the highest privilege that is granted\n"
 "	on any line.\n"
 "\n"
-"	Note: remote depot are accessed using the pseudo-user 'remote'.\n"
+"	Note: remote depots are accessed using the pseudo-user 'remote'.\n"
 "	To control access from other servers that define your server as\n"
 "	a remote server, grant appropriate permissions to the 'remote' user.\n"
 "\n"
@@ -5204,7 +5620,7 @@ ErrorId MsgHelp::HelpProtect = { ErrorOf( ES_HELP, 68, E_INFO, 0, 0  ),
 "	access.\n"
 };
 
-ErrorId MsgHelp::HelpProtects = { ErrorOf( ES_HELP, 93, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpProtects = { ErrorOf( ES_HELP, 93, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    protects -- Display protections defined for a specified user and path\n"
 "\n"
@@ -5231,7 +5647,7 @@ ErrorId MsgHelp::HelpProtects = { ErrorOf( ES_HELP, 93, E_INFO, 0, 0  ),
 "	The -a/-g/-u flags require 'super' access granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpProxy = { ErrorOf( ES_HELP, 145, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpProxy = { ErrorOf( ES_HELP, 145, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    proxy -- Display Proxy connection information\n"
 "\n"
@@ -5244,7 +5660,40 @@ ErrorId MsgHelp::HelpProxy = { ErrorOf( ES_HELP, 145, E_INFO, 0, 0  ),
 "	the proxy's network address, and the proxy's version information.\n"
 };
 
-ErrorId MsgHelp::HelpRename = { ErrorOf( ES_HELP, 69, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpPrune = { ErrorOf( ES_HELP, 174, E_INFO, EV_NONE, 0 ),
+"\n"
+"    prune -- Remove unmodified branched files from a stream\n"
+"\n"
+"    p4 prune [-y] -S stream\n"
+"\n"
+"	Prune permanently removes unmodified files from a stream that is\n"
+"	no longer being actively used.  Only the owner of a stream may\n"
+"	'p4 prune' it.\n"
+"\n"
+"	After a stream has been pruned, files that have been modified, i.e.\n"
+"	files with more than one revision, will remain in the stream so that\n"
+"	their edit history will be preserved.  The unmodified files will be\n"
+"	gone as if obliterated by an administrator (see 'p4 help obliterate').\n"
+"\n"
+"	Mainline, task, and virtual streams may not be pruned.  To remove\n"
+"	unmodified files from a task stream, delete or unload it (see 'p4 help\n"
+"	stream' and 'p4 help unload').\n"
+"\n"
+"	Pruned files will remain in client workspaces until the next 'p4 sync',\n"
+"	which will remove them.  If pruned files have been branched to a child\n"
+"	stream, new integration records will be generated to directly link the\n"
+"	branched files in the child stream to the files in the parent stream\n"
+"	that they were previously related to indirectly.\n"
+"\n"
+"	By default, prune displays a preview of the results.  To execute the\n"
+"	operation, you must specify the -y flag.\n"
+"\n"
+"	'p4 prune' requires 'write' access, which is granted by 'p4 protect'.\n"
+"	You must also be the owner of the stream in order to run 'p4 prune'.\n"
+"\n"
+};
+
+ErrorId MsgHelp::HelpRename = { ErrorOf( ES_HELP, 69, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    rename -- How to rename files using pre-2009.1 clients\n"
 "\n"
@@ -5264,7 +5713,7 @@ ErrorId MsgHelp::HelpRename = { ErrorOf( ES_HELP, 69, E_INFO, 0, 0  ),
 "	rather than moved files in subsequent operations.\n"
 };
 
-ErrorId MsgHelp::HelpReopen = { ErrorOf( ES_HELP, 70, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpReopen = { ErrorOf( ES_HELP, 70, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    reopen -- Change the filetype of an open file or move it to\n"
 "              another changelist\n"
@@ -5283,7 +5732,7 @@ ErrorId MsgHelp::HelpReopen = { ErrorOf( ES_HELP, 70, E_INFO, 0, 0  ),
 "	filetype.  For details, see 'p4 help filetypes'.\n"
 };
 
-ErrorId MsgHelp::HelpReconcile = { ErrorOf( ES_HELP, 146, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpReconcile = { ErrorOf( ES_HELP, 146, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    reconcile -- Open files for add, delete, and/or edit to reconcile\n"
 "                 client with workspace changes made outside of Perforce\n"
@@ -5312,6 +5761,10 @@ ErrorId MsgHelp::HelpReconcile = { ErrorOf( ES_HELP, 146, E_INFO, 0, 0  ),
 "	If the list of files to be opened includes both adds and deletes,\n"
 "	the missing and added files will be compared and converted to pairs\n"
 "	of move/delete and move/add operations if they are similar enough.\n"
+"\n"
+"	In addition to opening unopened files, reconcile will detect files\n"
+"	that are currently opened for edit but missing from the workspace\n"
+"	and reopen them for delete.\n"
 "\n"
 "	The -n flag previews the operation without performing any action.\n"
 "	Although metadata updates from reconcile require open permission,\n"
@@ -5364,7 +5817,7 @@ ErrorId MsgHelp::HelpReconcile = { ErrorOf( ES_HELP, 146, E_INFO, 0, 0  ),
 "	from an edge server in a distributed environment.\n"
 };
 
-ErrorId MsgHelp::HelpResolve = { ErrorOf( ES_HELP, 71, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpResolve = { ErrorOf( ES_HELP, 71, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    resolve -- Resolve integrations and updates to workspace files\n"
 "\n"
@@ -5543,7 +5996,7 @@ ErrorId MsgHelp::HelpResolve = { ErrorOf( ES_HELP, 71, E_INFO, 0, 0  ),
 "	from an edge server in a distributed environment.\n"
 };
 
-ErrorId MsgHelp::HelpResolved = { ErrorOf( ES_HELP, 72, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpResolved = { ErrorOf( ES_HELP, 72, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    resolved -- Show files that have been resolved but not submitted\n"
 "\n"
@@ -5563,7 +6016,7 @@ ErrorId MsgHelp::HelpResolved = { ErrorOf( ES_HELP, 72, E_INFO, 0, 0  ),
 "	resolve.\n"
 };
 
-ErrorId MsgHelp::HelpRestore = { ErrorOf( ES_HELP, 126, E_INFO, 0, 0  ),
+ErrorId MsgHelp::HelpRestore = { ErrorOf( ES_HELP, 126, E_INFO, EV_NONE, 0  ),
 "\n"
 "    restore -- Restore revisions from an archive depot.\n"
 "\n"
@@ -5582,7 +6035,7 @@ ErrorId MsgHelp::HelpRestore = { ErrorOf( ES_HELP, 126, E_INFO, 0, 0  ),
 "	protect'.\n"
 };
 
-ErrorId MsgHelp::HelpRetype = { ErrorOf( ES_HELP, 103, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpRetype = { ErrorOf( ES_HELP, 103, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    retype -- Change rev type or archive (storage) type (unsupported)\n"
 "\n"
@@ -5622,7 +6075,7 @@ ErrorId MsgHelp::HelpRetype = { ErrorOf( ES_HELP, 103, E_INFO, 0, 0  ),
 "	with other 'p4 retype', 'p4 snap', or 'p4 obliterate' commands.\n"
 };
 
-ErrorId MsgHelp::HelpRevert = { ErrorOf( ES_HELP, 73, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpRevert = { ErrorOf( ES_HELP, 73, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    revert -- Discard changes from an opened file\n"
 "\n"
@@ -5648,7 +6101,7 @@ ErrorId MsgHelp::HelpRevert = { ErrorOf( ES_HELP, 73, E_INFO, 0, 0  ),
 "	The -c flag reverts files that are open in the specified changelist.\n"
 };
 
-ErrorId MsgHelp::HelpReview = { ErrorOf( ES_HELP, 74, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpReview = { ErrorOf( ES_HELP, 74, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    review -- List and track changelists (for the review daemon)\n"
 "\n"
@@ -5665,7 +6118,7 @@ ErrorId MsgHelp::HelpReview = { ErrorOf( ES_HELP, 74, E_INFO, 0, 0  ),
 "	support an automated change review daemon.\n"
 };
 
-ErrorId MsgHelp::HelpReviews = { ErrorOf( ES_HELP, 75, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpReviews = { ErrorOf( ES_HELP, 75, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    reviews -- List the users who are subscribed to review files\n"
 "\n"
@@ -5684,7 +6137,7 @@ ErrorId MsgHelp::HelpReviews = { ErrorOf( ES_HELP, 75, E_INFO, 0, 0  ),
 "	the 'Reviews field'.\n"
 };
 
-ErrorId MsgHelp::HelpSearch = { ErrorOf( ES_HELP, 100, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpSearch = { ErrorOf( ES_HELP, 100, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    search -- Search index (unsupported)\n"
 "\n"
@@ -5698,7 +6151,7 @@ ErrorId MsgHelp::HelpSearch = { ErrorOf( ES_HELP, 100, E_INFO, 0, 0  ),
 "	See also 'p4 help index'.\n"
 };
 
-ErrorId MsgHelp::HelpSnap = { ErrorOf( ES_HELP, 102, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpSnap = { ErrorOf( ES_HELP, 102, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    snap -- Snap (undo) archive lazy copies (unsupported)\n"
 "\n"
@@ -5735,7 +6188,7 @@ ErrorId MsgHelp::HelpSnap = { ErrorOf( ES_HELP, 102, E_INFO, 0, 0  ),
 "	'p4 snap' requires 'admin' access, which is granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpSet = { ErrorOf( ES_HELP, 76, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpSet = { ErrorOf( ES_HELP, 76, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    set -- Set or display Perforce variables\n"
 "\n"
@@ -5779,7 +6232,7 @@ ErrorId MsgHelp::HelpSet = { ErrorOf( ES_HELP, 76, E_INFO, 0, 0  ),
 "	location.\n"
 };
 
-ErrorId MsgHelp::HelpShelve = { ErrorOf( ES_HELP, 119, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpShelve = { ErrorOf( ES_HELP, 119, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    shelve -- Store files from a pending changelist into the depot\n"
 "\n"
@@ -5855,15 +6308,15 @@ ErrorId MsgHelp::HelpShelve = { ErrorOf( ES_HELP, 119, E_INFO, 0, 0  ),
 "	from an edge server in a distributed environment.\n"
 };
 
-ErrorId MsgHelp::HelpSubmit = { ErrorOf( ES_HELP, 77, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpSubmit = { ErrorOf( ES_HELP, 77, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    submit -- Submit open files to the depot\n"
 "\n"
-"    p4 submit [-r -s -f option]\n"
+"    p4 submit [-r -s -f option --noretransfer 0|1]\n"
 "    p4 submit [-r -s -f option] file\n"
 "    p4 submit [-r -f option] -d description\n"
 "    p4 submit [-r -f option] -d description file\n"
-"    p4 submit [-r -f option] -c changelist#\n"
+"    p4 submit [-r -f option --noretransfer 0|1] -c changelist#\n"
 "    p4 submit -e shelvedChange#\n"
 "    p4 submit -i [-r -s -f option]\n"
 "\n"
@@ -5895,6 +6348,17 @@ ErrorId MsgHelp::HelpSubmit = { ErrorOf( ES_HELP, 77, E_INFO, 0, 0  ),
 "\n"
 "	Submit is atomic: if the operation succeeds, all files are updated\n"
 "	in the depot. If the submit fails, no depot files are updated.\n"
+"\n"
+"	If submit fails, some or all of the files may have been copied to\n"
+"	the server. By default, retrying a failed submit will transfer all of\n"
+"	the files again unless the submit.noretransfer configurable is set.\n"
+"	If submit.noretransfer is set to 1, submit uses digest comparisons to\n"
+"	to detect if the files have already been transferred in order to\n"
+"	avoid file re-transfer when retrying a failed submit.\n"
+"\n"
+"	The --noretransfer flag is used to override the submit.noretransfer\n"
+"	configurable so the user can choose his preferred re-transfer\n"
+"	behavior during the current submit operation.\n"
 "\n"
 "	The -c flag submits the specified pending changelist instead of the\n"
 "	default changelist. Additional changelists can be created manually, \n"
@@ -5938,7 +6402,7 @@ ErrorId MsgHelp::HelpSubmit = { ErrorOf( ES_HELP, 77, E_INFO, 0, 0  ),
 "	from an edge server in a distributed environment.\n"
 };
 
-ErrorId MsgHelp::HelpSpec = { ErrorOf( ES_HELP, 99, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpSpec = { ErrorOf( ES_HELP, 99, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    spec -- Edit spec comments and formatting hints (unsupported)\n"
 "\n"
@@ -5953,7 +6417,7 @@ ErrorId MsgHelp::HelpSpec = { ErrorOf( ES_HELP, 99, E_INFO, 0, 0  ),
 "	(including the job spec) can be deleted with 'p4 spec -d type'.\n"
 };
 
-ErrorId MsgHelp::HelpSync = { ErrorOf( ES_HELP, 78, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpSync = { ErrorOf( ES_HELP, 78, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    sync -- Synchronize the client with its view of the depot\n"
 "    flush -- synonym for 'sync -k'\n"
@@ -6051,7 +6515,7 @@ ErrorId MsgHelp::HelpSync = { ErrorOf( ES_HELP, 78, E_INFO, 0, 0  ),
 "	--parallel flag to be ignored.\n"
 };
 
-ErrorId MsgHelp::HelpTag = { ErrorOf( ES_HELP, 91, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpTag = { ErrorOf( ES_HELP, 91, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    tag -- Tag files with a label\n"
 "\n"
@@ -6091,7 +6555,7 @@ ErrorId MsgHelp::HelpTag = { ErrorOf( ES_HELP, 91, E_INFO, 0, 0  ),
 "	flag to have the opposite meaning.\n"
 };
 
-ErrorId MsgHelp::HelpTickets = { ErrorOf( ES_HELP, 92, E_INFO, 0, 0  ),
+ErrorId MsgHelp::HelpTickets = { ErrorOf( ES_HELP, 92, E_INFO, EV_NONE, 0  ),
 "\n"
 "    tickets -- Display list of session tickets for this user\n"
 "\n"
@@ -6101,12 +6565,12 @@ ErrorId MsgHelp::HelpTickets = { ErrorOf( ES_HELP, 92, E_INFO, 0, 0  ),
 "	user by 'p4 login'.\n"
 };
 
-ErrorId MsgHelp::HelpTrigger = { ErrorOf( ES_HELP, 79, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpTrigger = { ErrorOf( ES_HELP, 79, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    trigger -- see 'p4 help triggers'\n"
 };
 
-ErrorId MsgHelp::HelpTriggers = { ErrorOf( ES_HELP, 80, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpTriggers = { ErrorOf( ES_HELP, 80, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    triggers -- Modify list of server triggers\n"
 "\n"
@@ -6359,6 +6823,7 @@ ErrorId MsgHelp::HelpTriggers = { ErrorOf( ES_HELP, 80, E_INFO, 0, 0  ),
 "		    depot files whose contents is available are valid.\n"
 "		    %%argc%% -- number of command arguments\n"
 "		    %%args%% -- command argument string\n"
+"		    %%argsQuoted%% -- command argument string, CSV delimited\n"
 "		    %%client%% -- the client issuing the command\n"
 "		    %%clientcwd%% -- client current working directory\n"
 "		    %%clienthost%% -- the hostname of the client\n"
@@ -6453,7 +6918,7 @@ ErrorId MsgHelp::HelpTriggers = { ErrorOf( ES_HELP, 80, E_INFO, 0, 0  ),
 "	'p4 triggers' requires 'super' access granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpTypeMap = { ErrorOf( ES_HELP, 81, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpTypeMap = { ErrorOf( ES_HELP, 81, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    typemap -- Edit the filename-to-filetype mapping table\n"
 "\n"
@@ -6493,7 +6958,7 @@ ErrorId MsgHelp::HelpTypeMap = { ErrorOf( ES_HELP, 81, E_INFO, 0, 0  ),
 "	'p4 typemap' requires 'admin' access, which is granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpUnlock = { ErrorOf( ES_HELP, 82, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpUnlock = { ErrorOf( ES_HELP, 82, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    unlock -- Release a locked file, leaving it open\n"
 "\n"
@@ -6521,12 +6986,12 @@ ErrorId MsgHelp::HelpUnlock = { ErrorOf( ES_HELP, 82, E_INFO, 0, 0  ),
 "	is necessary across servers.\n"
 };
 
-ErrorId MsgHelp::HelpUnshelve = { ErrorOf( ES_HELP, 120, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpUnshelve = { ErrorOf( ES_HELP, 120, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    unshelve -- Restore shelved files from a pending change into a workspace\n"
 "\n"
 "    p4 unshelve -s changelist# [options] [file ...]\n"
-"	Options: [-f -n] [-c changelist#] [-b branch|-S stream]\n"
+"	Options: [-f -n] [-c changelist#] [-b branch|-S stream [-P parent]]\n"
 "\n"
 "	'p4 unshelve' retrieves shelved files from the specified pending\n"
 "	changelist, opens them in a pending changelist and copies them\n"
@@ -6561,10 +7026,13 @@ ErrorId MsgHelp::HelpUnshelve = { ErrorOf( ES_HELP, 120, E_INFO, 0, 0  ),
 "	mapped through prior to being unshelved, allowing files to be shelved\n"
 "	in one branch and unshelved in another.  As with unshelving into an\n"
 "	open file, it may be necessary to run 'p4 resolve'. In a distributed\n"
-"	environment, an additional requirement is that the shelve was created\n""	on the same edge server.\n"
+"	environment, an additional requirement is that the shelve was created\n"
+"	on the same edge server.\n"
 "\n"
 "	The -S flag uses a generated branch view to map the shelved files\n"
-"	between the specified stream and its parent stream.\n"
+"	between the specified stream and its parent stream.  The -P flag\n"
+"	can be used to generate the view using a parent stream other than\n"
+"	the actual parent.\n"
 "\n"
 "	The -c flag specifies the changelist to which files are unshelved.\n"
 "	By default,  'p4 unshelve' opens shelved files in the default\n"
@@ -6580,7 +7048,7 @@ ErrorId MsgHelp::HelpUnshelve = { ErrorOf( ES_HELP, 120, E_INFO, 0, 0  ),
 "	from an edge server in a distributed environment.\n"
 };
 
-ErrorId MsgHelp::HelpUser = { ErrorOf( ES_HELP, 83, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpUser = { ErrorOf( ES_HELP, 83, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    user -- Create or edit a user specification\n"
 "\n"
@@ -6627,6 +7095,11 @@ ErrorId MsgHelp::HelpUser = { ErrorOf( ES_HELP, 83, E_INFO, 0, 0  ),
 "	Type:        Must be 'service', operator, or 'standard'. Default is\n"
 "		     'standard'. Once set, the user type cannot be changed.\n"
 "\n"
+"	AuthMethod:  Must be 'perforce' or 'ldap'. Default is 'perforce'\n"
+"		     Unless overridden by the 'auth.method.default'\n"
+"		     configurable, see 'p4 help configurables'. AuthMethod\n"
+"		     can only be changed when the -f flag has been provided.\n"
+"\n"
 "	The -d flag deletes the specified user (unless the user has files\n"
 "	open).\n"
 "\n"
@@ -6642,7 +7115,7 @@ ErrorId MsgHelp::HelpUser = { ErrorOf( ES_HELP, 83, E_INFO, 0, 0  ),
 "	-f flag requires 'super' access, which is granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpUsers = { ErrorOf( ES_HELP, 84, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpUsers = { ErrorOf( ES_HELP, 84, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    users -- List Perforce users\n"
 "\n"
@@ -6666,7 +7139,7 @@ ErrorId MsgHelp::HelpUsers = { ErrorOf( ES_HELP, 84, E_INFO, 0, 0  ),
 "	will reflect replica usage or master usage whichever is newer.\n"
 };
 
-ErrorId MsgHelp::HelpVerify = { ErrorOf( ES_HELP, 85, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpVerify = { ErrorOf( ES_HELP, 85, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    verify -- Verify that the server archives are intact\n"
 "\n"
@@ -6733,7 +7206,7 @@ ErrorId MsgHelp::HelpVerify = { ErrorOf( ES_HELP, 85, E_INFO, 0, 0  ),
 "	 access, which is granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpWhere = { ErrorOf( ES_HELP, 86, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpWhere = { ErrorOf( ES_HELP, 86, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    where -- Show how file names are mapped by the client view\n"
 "\n"
@@ -6751,7 +7224,7 @@ ErrorId MsgHelp::HelpWhere = { ErrorOf( ES_HELP, 86, E_INFO, 0, 0  ),
 "	It only displays the locations that are mapped by the client view.\n"
 };
 
-ErrorId MsgHelp::HelpTunables = { ErrorOf( ES_HELP, 106, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpTunables = { ErrorOf( ES_HELP, 106, E_INFO, EV_NONE, 0  ), 
 "\n"
 "	For information on server configuration variables, see\n"
 "	'p4 help configurables'.\n"
@@ -6761,7 +7234,7 @@ ErrorId MsgHelp::HelpTunables = { ErrorOf( ES_HELP, 106, E_INFO, 0, 0  ),
 "	as directed by Technical Support.\n"
 };
 
-ErrorId MsgHelp::HelpDbschema = { ErrorOf( ES_HELP, 109, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpDbschema = { ErrorOf( ES_HELP, 109, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    dbschema -- Report meta database information\n"
 "\n"
@@ -6777,7 +7250,7 @@ ErrorId MsgHelp::HelpDbschema = { ErrorOf( ES_HELP, 109, E_INFO, 0, 0  ),
 "	Table names are the file names that start with 'db.'\n"
 };
 
-ErrorId MsgHelp::HelpExport = { ErrorOf( ES_HELP, 112, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpExport = { ErrorOf( ES_HELP, 112, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    export -- Extract journal or checkpoint records\n"
 "\n"
@@ -6859,7 +7332,7 @@ ErrorId MsgHelp::HelpExport = { ErrorOf( ES_HELP, 112, E_INFO, 0, 0  ),
 "	complete in the journal.\n"
 };
 
-ErrorId MsgHelp::HelpReplicate = { ErrorOf( ES_HELP, 121, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpReplicate = { ErrorOf( ES_HELP, 121, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    replicate -- poll for journal changes and apply them to another server\n"
 "\n"
@@ -6904,7 +7377,7 @@ ErrorId MsgHelp::HelpReplicate = { ErrorOf( ES_HELP, 121, E_INFO, 0, 0  ),
 "	Super permission is required to run this command.\n"
 };
 
-ErrorId MsgHelp::HelpDbstat = { ErrorOf( ES_HELP, 113, E_INFO, 0, 0  ),
+ErrorId MsgHelp::HelpDbstat = { ErrorOf( ES_HELP, 113, E_INFO, EV_NONE, 0  ),
 "\n"
 "    dbstat -- Display size or simple statistics for a database table\n"
 "\n"
@@ -6926,7 +7399,7 @@ ErrorId MsgHelp::HelpDbstat = { ErrorOf( ES_HELP, 113, E_INFO, 0, 0  ),
 "	access granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpDbverify = { ErrorOf( ES_HELP, 141, E_INFO, 0, 0  ),
+ErrorId MsgHelp::HelpDbverify = { ErrorOf( ES_HELP, 141, E_INFO, EV_NONE, 0  ),
 "\n"
 "    dbverify -- Perform low-level verification of the database tables\n"
 "\n"
@@ -6949,7 +7422,7 @@ ErrorId MsgHelp::HelpDbverify = { ErrorOf( ES_HELP, 141, E_INFO, 0, 0  ),
 "	access granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpLogstat = { ErrorOf( ES_HELP, 114, E_INFO, 0, 0  ),
+ErrorId MsgHelp::HelpLogstat = { ErrorOf( ES_HELP, 114, E_INFO, EV_NONE, 0  ),
 "\n"
 "    logstat -- Report the size of the journal, error log, audit log,\n"
 "		or server log files\n"
@@ -6969,7 +7442,7 @@ ErrorId MsgHelp::HelpLogstat = { ErrorOf( ES_HELP, 114, E_INFO, 0, 0  ),
 "	access, which is granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpLogappend = { ErrorOf( ES_HELP, 142, E_INFO, 0, 0  ),
+ErrorId MsgHelp::HelpLogappend = { ErrorOf( ES_HELP, 142, E_INFO, EV_NONE, 0  ),
 "\n"
 "    logappend -- Write text to any 'user' log files.\n"
 "\n"
@@ -6984,7 +7457,7 @@ ErrorId MsgHelp::HelpLogappend = { ErrorOf( ES_HELP, 142, E_INFO, 0, 0  ),
 "	access, which is granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpLogrotate = { ErrorOf( ES_HELP, 136, E_INFO, 0, 0  ),
+ErrorId MsgHelp::HelpLogrotate = { ErrorOf( ES_HELP, 136, E_INFO, EV_NONE, 0  ),
 "\n"
 "    logrotate -- Rotate one or more server log files\n"
 "\n"
@@ -6997,7 +7470,7 @@ ErrorId MsgHelp::HelpLogrotate = { ErrorOf( ES_HELP, 136, E_INFO, 0, 0  ),
 "	access, which is granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpLogparse = { ErrorOf( ES_HELP, 143, E_INFO, 0, 0  ),
+ErrorId MsgHelp::HelpLogparse = { ErrorOf( ES_HELP, 143, E_INFO, EV_NONE, 0  ),
 "\n"
 "    logparse -- Parse a server logfile and return log data\n"
 "\n"
@@ -7023,7 +7496,7 @@ ErrorId MsgHelp::HelpLogparse = { ErrorOf( ES_HELP, 143, E_INFO, 0, 0  ),
 "	access, which is granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpLogschema = { ErrorOf( ES_HELP, 144, E_INFO, 0, 0  ),
+ErrorId MsgHelp::HelpLogschema = { ErrorOf( ES_HELP, 144, E_INFO, EV_NONE, 0  ),
 "\n"
 "    logschema -- Describe the schema of a log record type\n"
 "\n"
@@ -7037,7 +7510,7 @@ ErrorId MsgHelp::HelpLogschema = { ErrorOf( ES_HELP, 144, E_INFO, 0, 0  ),
 "	access, which is granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpLockstat = { ErrorOf( ES_HELP, 115, E_INFO, 0, 0  ),
+ErrorId MsgHelp::HelpLockstat = { ErrorOf( ES_HELP, 115, E_INFO, EV_NONE, 0  ),
 "\n"
 "    lockstat -- Report lock status of database tables\n"
 "\n"
@@ -7053,11 +7526,15 @@ ErrorId MsgHelp::HelpLockstat = { ErrorOf( ES_HELP, 115, E_INFO, 0, 0  ),
 "	If the -C argument is supplied, lockstat instead reports on all client\n"
 "	workspaces that are currently locked for a read or write operation.\n"
 "\n"
+"	Database table lock information is also reported by 'p4 monitor' if\n"
+"	the server has been configured to collect that data. For more\n"
+"	information, see 'p4 help monitor'.\n"
+"\n"
 "	This command requires that the user be an operator or have 'super'\n"
 "	access granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpLogtail = { ErrorOf( ES_HELP, 116, E_INFO, 0, 0  ),
+ErrorId MsgHelp::HelpLogtail = { ErrorOf( ES_HELP, 116, E_INFO, EV_NONE, 0  ),
 "\n"
 "    logtail -- Display the last block(s) of the errorLog\n"
 "\n"
@@ -7087,7 +7564,7 @@ ErrorId MsgHelp::HelpLogtail = { ErrorOf( ES_HELP, 116, E_INFO, 0, 0  ),
 "	access, which is granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpDbpack = { ErrorOf( ES_HELP, 117, E_INFO, 0, 0  ),
+ErrorId MsgHelp::HelpDbpack = { ErrorOf( ES_HELP, 117, E_INFO, EV_NONE, 0  ),
 "\n"
 "    dbpack -- reorder database index pages (unsupported)\n"
 "\n"
@@ -7111,7 +7588,7 @@ ErrorId MsgHelp::HelpDbpack = { ErrorOf( ES_HELP, 117, E_INFO, 0, 0  ),
 
 
 
-ErrorId MsgHelp::HelpPing = { ErrorOf( ES_HELP, 118, E_INFO, 0, 0  ),
+ErrorId MsgHelp::HelpPing = { ErrorOf( ES_HELP, 118, E_INFO, EV_NONE, 0  ),
 "\n"
 "    ping -- test network performance\n"
 "\n"
@@ -7146,7 +7623,7 @@ ErrorId MsgHelp::HelpPing = { ErrorOf( ES_HELP, 118, E_INFO, 0, 0  ),
 "\n"
 };
 
-ErrorId MsgHelp::HelpConfigure = { ErrorOf( ES_HELP, 124, E_INFO, 0, 0  ),
+ErrorId MsgHelp::HelpConfigure = { ErrorOf( ES_HELP, 124, E_INFO, EV_NONE, 0  ),
 "\n"
 "    configure -- manage server configuration variables\n"
 "\n"
@@ -7189,7 +7666,7 @@ ErrorId MsgHelp::HelpConfigure = { ErrorOf( ES_HELP, 124, E_INFO, 0, 0  ),
 "\n"
 };
 
-ErrorId MsgHelp::HelpPull = { ErrorOf( ES_HELP, 129, E_INFO, 0, 0  ),
+ErrorId MsgHelp::HelpPull = { ErrorOf( ES_HELP, 129, E_INFO, EV_NONE, 0  ),
 "\n"
 "    pull -- cause this replica server to retrieve data from its target\n"
 "\n"
@@ -7198,6 +7675,7 @@ ErrorId MsgHelp::HelpPull = { ErrorOf( ES_HELP, 129, E_INFO, 0, 0  ),
 "    p4 pull -u [-i <N>]\n"
 "    p4 pull -l [ -s | -j [-J prefix] ]\n"
 "    p4 pull -d -f file -r revision\n"
+"    p4 pull -L [-i <N>]\n"
 "\n"
 "	'p4 pull' instructs this replica server to retrieve either journal\n"
 "	records or file contents from its target server.\n"
@@ -7250,11 +7728,16 @@ ErrorId MsgHelp::HelpPull = { ErrorOf( ES_HELP, 129, E_INFO, 0, 0  ),
 "	the list and separate the table names with spaces. The table names\n"
 "	must start with \"db.\". Table names can also be separated by commas.\n"
 "\n"
+"	The -L flag specifies that journal records shall be retrieved from a\n"
+"	local journal file, such as is produced by 'p4 journalcopy'. The\n"
+"	'pull -L' and 'journalcopy' commands are designed to be used together\n"
+"	in a standby replica (see 'p4 help replication').\n"
+"\n"
 "	This command requires 'super' access granted by 'p4 protect'.\n"
 "\n"
 };
 
-ErrorId MsgHelp::HelpConfigurables = { ErrorOf( ES_HELP, 130, E_INFO, 0, 0  ),
+ErrorId MsgHelp::HelpConfigurables = { ErrorOf( ES_HELP, 130, E_INFO, EV_NONE, 0  ),
 "\n"
 "   Perforce server configurables\n"
 "\n"
@@ -7265,21 +7748,24 @@ ErrorId MsgHelp::HelpConfigurables = { ErrorOf( ES_HELP, 130, E_INFO, 0, 0  ),
 "\n"
 "	Name               Default Use\n"
 "	----               ------- ---\n"
-#ifdef CLUSTERHELP
-"	cluster.id            none Wendy to document\n"
-"	cluster.target        none Wendy to document\n"
-"	cluster.target.dir    none Wendy to document\n"
-"	cluster.target.file   none Wendy to document\n"
-"	cluster.target.owner.file none Pathname for journal owner symlink\n"
-"	cluster.chg.master.file   none Wendy to document\n"
-"	cluster.role          none Wendy to document\n"
-"	cluster.journal.shared   0 Share journal file among cluster nodes\n"
-#endif
+"	auth.default.method perforce Default auth method for new users\n"
+"	                           perforce: classic password validation\n"
+"	                           ldap: passwords validated by LDAP server\n"
+"	auth.ldap.cafile      none Path to PEM encoded CA validation file\n"
+"	auth.ldap.order.N     none Enabled LDAP configuration names\n"
+"	auth.ldap.sslciphers  none SSL ciphers to present to LDAP servers\n"
+"	auth.ldap.ssllevel       0 Level of SSL certificate validation\n"
+"	                           0: no validation (default)\n"
+"	                           1: Cert must be valid, but CN not checked\n"
+"	                           2: Cert must be valid and CN must match\n"
+"	auth.ldap.timeout       30 Maximum wait time for LDAP connections\n"
+"	cluster.id            none Unique identifier for this cluster\n"
 "	db.peeking               0 Lockless operation\n"
-"	                           0: classic locking (default)\n"
+"	                           0: classic locking\n"
 "	                           1: new locking\n"
-"	                           2: basic lockless operation\n"
+"	                           2: basic lockless operation (default)\n"
 "	                           3: extra lockless operation\n"
+"	db.peeking.usemaxlock    0 When peeking, obey maxlocktime setting.\n"
 "	db.replication        none Replica metadata access mode\n"
 "	dbjournal.bufsize      16K Journal/checkpoint read/write size\n"
 "	dbopen.nofsync           0 Disable fsync of db files\n"
@@ -7295,8 +7781,10 @@ ErrorId MsgHelp::HelpConfigurables = { ErrorOf( ES_HELP, 130, E_INFO, 0, 0  ),
 "	dm.password.minlength    8 Minimum password length (when enabled)\n"
 "	dm.proxy.protects        1 Add 'proxy-' to IP (see 'p4 help protect')\n"
 "	dm.resolve.attrib        1 Enable resolve for attributes\n"
+"	dm.rotatelogwithjnl      1 Rotate logs when journals are rotated.\n"
 "	dm.shelve.maxfiles     10M Max number of files that can be shelved\n"
 "	dm.shelve.maxsize        0 Limit size of a file that can be shelved\n"
+"	dm.shelve.promote        0 Promote shelved changes from edge server\n"
 "	dm.user.accessupdate   300 Time interval to update user access time\n"
 "	dm.user.accessforce   3600 Time interval to force user access time\n"
 "	dm.user.loginattempts    3 Number of password attempts before delay\n"
@@ -7304,14 +7792,15 @@ ErrorId MsgHelp::HelpConfigurables = { ErrorOf( ES_HELP, 130, E_INFO, 0, 0  ),
 "	dm.user.resetpassword    0 New user requires password reset\n"
 "	filesys.binaryscan     64K 'add' looks this far for binary chars\n"
 "	filesys.bufsize         4K Client file I/O buffer size\n"
-"	filesys.depot.min      10M Minimum space for depot filesystem\n"
+"	filesys.depot.min     250M Minimum space for depot filesystem\n"
 "	filesys.extendlowmark  32K Minimum filesize before preallocation(NT)\n"
-"	filesys.P4ROOT.min     10M Minimum space for P4ROOT filesystem\n"
-"	filesys.P4JOURNAL.min  10M Minimum space for P4JOURNAL filesystem\n"
-"	filesys.P4LOG.min      10M Minimum space for P4LOG filesystem\n"
-"	filesys.TEMP.min       10M Minimum space for TEMP filesystem\n"
+"	filesys.P4ROOT.min    250M Minimum space for P4ROOT filesystem\n"
+"	filesys.P4JOURNAL.min 250M Minimum space for P4JOURNAL filesystem\n"
+"	filesys.P4LOG.min     250M Minimum space for P4LOG filesystem\n"
+"	filesys.TEMP.min      250M Minimum space for TEMP filesystem\n"
 "	filetype.maxtextsize   10M Maximum file size for text type detection\n"
 "	journalPrefix         none Prefix or directory location for journal\n"
+"	lbr.autocompress         0 Use compressed text storage instead of RCS\n"
 "	lbr.bufsize             4K Archive file I/O buffer size\n"
 "	lbr.proxy.case           1 Proxy cache case-handling (see 'p4p -h')\n"
 "	lbr.replication       none Replica depot access and replication mode\n"
@@ -7319,9 +7808,11 @@ ErrorId MsgHelp::HelpConfigurables = { ErrorOf( ES_HELP, 130, E_INFO, 0, 0  ),
 "	lbr.stat.interval        0 Proxy file status interval (see 'p4p -h')\n"
 "	lbr.verify.in            1 Verify contents from the client to server\n"
 "	lbr.verify.out           1 Verify contents from the server to client\n"
+"	lbr.verify.script.out    1 Verify +X contents from server to client\n"
 "	minClient             none Lowest client version that may connect\n"
 "	minClientMessage      none Message to issue for client-too-old\n"
 "	monitor                  0 Server monitoring level\n"
+"	monitor.lsof          none Set to /usr/bin/lsof to enable on Linux\n"
 "	net.backlog             10 Maximum pending connections queue length\n"
 "	net.keepalive.disable    0 Disable sending TCP keepalive packets\n"
 "	net.keepalive.idle       0 Seconds before starting to send keepalives\n"
@@ -7333,12 +7824,9 @@ ErrorId MsgHelp::HelpConfigurables = { ErrorOf( ES_HELP, 130, E_INFO, 0, 0  ),
 "	net.parallel.max         0 Highest allowed degree of sync parallelism\n"
 "	net.reuseport            0 Set SO_REUSEPORT for listening socket\n"
 "	net.rfc3484              0 Allow OS to choose between IPv4 and IPv6\n"
-"	net.tcpsize            64K TCP sndbuf/rcvbuf sizes set at connect\n"
-#ifdef CLUSTERHELP
-"	p4.utils.dir          none Wendy to document\n"
-"	p4zk.socket.path      none Pathname for p4d/zk socket\n"
-"	p4jsp.socket.path     none Pathname for p4d/jsp socket\n"
-#endif
+"	net.tcpsize           512K TCP sndbuf/rcvbuf sizes set at connect\n"
+"	p4.utils.dir          none Directory which contains p4zk executable\n"
+"	p4zk.log.file     p4zk.log Pathname for the p4zk log file\n"
 "	proxy.monitor.level      0 Proxy monitoring level (see 'p4p -h')\n"
 "	proxy.monitor.interval  10 Proxy monitoring interval (see 'p4p -h')\n"
 "	rcs.nofsync              0 Disable fsync of RCS files\n"
@@ -7347,27 +7835,34 @@ ErrorId MsgHelp::HelpConfigurables = { ErrorOf( ES_HELP, 130, E_INFO, 0, 0  ),
 "	rpl.checksum.table       0 Control table checksum behavior\n"
 "	rpl.compress             0 Enable replica-master network compression\n"
 "	rpl.forward.all          0 Enable replica update command forwarding\n"
+"	rpl.forward.login        0 Enable replica login command forwarding\n"
+"	rpl.jnl.batch.size    100M Max size of a single journal transfer\n"
 "	rpl.jnlwait.adjust      25 Per-loop ms to add to rpl.jnlwait.interval\n"
 "	rpl.jnlwait.interval    50 Initial value in ms of jnlwait loop timer\n"
 "	rpl.jnlwait.max       1000 Highest value in ms that loop will attain\n"
+"	rpl.journal.ack          0 In DCS, number of ACKs requested\n"
+"	rpl.journal.ack.min      0 In DCS, number of ACKs required\n"
 "	rpl.labels.global        0 Label default for distributed installations\n"
 "	rpl.verify.cache         0 Verify contents in the replica cache\n"
 "	run.users.authorize      0 Should 'p4 users' require authentication\n"
 "	security                 0 User/password security level\n"
 "	server.depot.root          Base directory of depots with relative maps\n"
 "	server.locks.dir           \"server.locks\" server lock directory\n"
-"	server.locks.sync        1 Should sync command lock client workspace\n"
+"	server.locks.archive     1 Should archive command lock rev data\n"
+"	server.locks.sync        0 Should sync command lock client workspace\n"
 "	server.commandlimits     0 Policy for per-command resource limits\n"
 "	server.maxcommands       0 Max simultaneous commands (if monitoring)\n"
 "	server.rolechecks        0 Should server enforce 'p4 server' settings\n"
 "	serverlog.file.N      none Server log file name(s)\n"
 "	serverlog.maxmb.N     none Size at which log file should be rotated\n"
 "	serverlog.retain.N    none Number of rotated log files to retain\n"
+"	serverlog.counter.N   none Counter to use for file rotation number\n"
 "	serviceUser           none Intermediate service identity\n"
 "	spec.hashbuckets        99 Hash spec domains to sub directories\n"
 "	ssl.secondary.suite      0 Set SSL cipher suite to the secondary choice\n"
 "	startup.N             none Background 'pull' command(s) for replica\n"
 "	statefile             none Replica server state tracking file name\n"
+"	submit.noretransfer      0 Avoid file re-transfer after failed submit\n"
 "	submit.unlocklocked      0 Unlock locked files if submit fails\n"
 "	sys.rename.max          10 Limit for retrying a failed file rename\n"
 "	sys.rename.wait       1000 Timeout in ms between file rename attempts\n"
@@ -7375,9 +7870,10 @@ ErrorId MsgHelp::HelpConfigurables = { ErrorOf( ES_HELP, 130, E_INFO, 0, 0  ),
 "	template.label             Label to use as template if -t omitted\n"
 "	triggers.io              0 Method used for server/trigger communication\n"
 "	zerosyncPrefix        none Client prefix for zerosync (-k) namespace\n"
-#ifdef CLUSTERHELP
-"	zk.host.port.pairs    none Wendy to document\n"
-#endif
+"	zk.host.port.pairs    none Host/port configuration for p4zk\n"
+"	zk.connect.timeout     300 Maximum time in seconds to wait for \n"
+"	                           Zookeeper servers to come online before\n"
+"	                           failing connect.\n"
 "\n"
 "   Perforce client configurables\n"
 "\n"
@@ -7390,7 +7886,6 @@ ErrorId MsgHelp::HelpConfigurables = { ErrorOf( ES_HELP, 130, E_INFO, 0, 0  ),
 "	----               ------- ---\n"
 "	filesys.binaryscan     64K 'add' looks this far for binary chars\n"
 "	filesys.bufsize         4K Client file I/O buffer size\n"
-"	filetype.maxtextsize   10M Maximum file size for text type detection\n"
 "	lbr.verify.out           1 Verify contents from the server to client\n"
 "	net.keepalive.disable    0 Disable sending TCP keepalive packets\n"
 "	net.keepalive.idle       0 Seconds before starting to send keepalives\n"
@@ -7398,13 +7893,13 @@ ErrorId MsgHelp::HelpConfigurables = { ErrorOf( ES_HELP, 130, E_INFO, 0, 0  ),
 "	net.keepalive.count      0 Unacknowledged keepalives before failure\n"
 "	net.maxwait              0 Seconds to wait for a network read or write\n"
 "	net.rfc3484              0 Allow OS to choose between IPv4 and IPv6\n"
-"	net.tcpsize            64K TCP sndbuf/rcvbuf sizes set at connect\n"
+"	net.tcpsize           512K TCP sndbuf/rcvbuf sizes set at connect\n"
 "	sys.rename.max          10 Limit for retrying a failed file rename\n"
 "	sys.rename.wait       1000 Timeout in ms between file rename attempts\n"
 "\n"
 };
 
-ErrorId MsgHelp::ResolveUserHelp = { ErrorOf( ES_HELP, 22, E_INFO, 0, 1 ),
+ErrorId MsgHelp::ResolveUserHelp = { ErrorOf( ES_HELP, 22, E_INFO, EV_NONE, 1 ),
 "%resolveType% options:\n"
 "\n"
 "    Accept:\n"
@@ -7419,7 +7914,7 @@ ErrorId MsgHelp::ResolveUserHelp = { ErrorOf( ES_HELP, 22, E_INFO, 0, 1 ),
 "            ^C              Quit the resolve operation.\n"
 };
 
-ErrorId MsgHelp::HelpServer = { ErrorOf( ES_HELP, 137, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpServer = { ErrorOf( ES_HELP, 137, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    server -- Create, modify, or delete a server specification\n"
 "\n"
@@ -7448,17 +7943,27 @@ ErrorId MsgHelp::HelpServer = { ErrorOf( ES_HELP, 137, E_INFO, 0, 0  ),
 "	Type:      The server executable type.\n"
 "	           One of: server(p4d), proxy(p4p), or broker(p4broker)\n"
 "\n"
-"	Services:  The services provided by this server, one of:\n"
-"	           standard: standard Perforce server\n"
-"	           replica: read-only replica server\n"
-"	           broker: p4broker process\n"
-"	           proxy: p4p caching proxy\n"
-"	           commit-server: central server in a distributed installation\n"
-"	           edge-server: node in a distributed installation\n"
-"	           forwarding-replica: replica which forwards update commands\n"
-"	           build-server: replica which supports build automation\n"
-"	           P4AUTH: server which provides central authentication\n"
-"	           P4CHANGE: server which provides central change numbers\n"
+"	%'Services'%:  Services provided by this server.\n"
+"	           One of the following (grouped by server type):\n"
+"	    Type %''server''%:\n"
+"	         %'standard'%: standard %'Perforce'% server\n"
+"	         %'replica'%: read-only replica server\n"
+"	         %'commit-server'%: central server in distributed installation\n"
+"	         %'edge-server'%: node in distributed installation\n"
+"	         %'forwarding-replica'%: replica which forwards update commands\n"
+"	         %'build-server'%: replica which supports build farm integration\n"
+"	         %'P4AUTH'%: server which provides central authentication\n"
+"	         %'P4CHANGE'%: server which provides central change numbers\n"
+"	         %'depot-master'%: commit-server with automated failover\n"
+"	         %'depot-standby'%: standby replica of the depot-master\n"
+"	         %'workspace-server'%: node in data center installation\n"
+"	         %'standby'%: read-only replica server which uses %'journalcopy'%\n"
+"	         %'forwarding-standby'%: forwarding-replica which uses %'journalcopy'%\n"
+"	    Type %''broker''%:\n"
+"	         %'broker'%: %'p4broker'% process\n"
+"	         %'workspace-router'%: Routing %'broker'% in data center installation\n"
+"	    Type %''proxy''%:\n"
+"	         %'proxy'%: %'p4p'% caching proxy\n"
 "\n"
 "	Name:      The P4NAME that is used by the server (optional).\n"
 "\n"
@@ -7466,6 +7971,8 @@ ErrorId MsgHelp::HelpServer = { ErrorOf( ES_HELP, 137, E_INFO, 0, 0  ),
 "\n"
 "	Description:\n"
 "	           A description of the server (optional).\n"
+"\n"
+"	User:      The service user that is used by the server (optional).\n"
 "\n"
 "	ClientDataFilter:\n"
 "	           For a replica server, this optional field can contain one\n"
@@ -7511,24 +8018,62 @@ ErrorId MsgHelp::HelpServer = { ErrorOf( ES_HELP, 137, E_INFO, 0, 0  ),
 "	The -i flag causes a server spec to be read from the standard input.\n"
 "	The user's editor is not invoked.\n"
 "\n"
-"	If a value is specified for any of the ClientDataFilter,\n"
-"	RevisionDataFilter, or ArchiveDataFilter fields, the replica server's\n"
-"	journal pull thread should specify '-P serverid' to enable filtering.\n"
-"	See 'p4 help pull' for journal pull thread configuration.\n"
-"\n"
 "	'p4 server' requires 'super' access granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpServers = { ErrorOf( ES_HELP, 138, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpServers = { ErrorOf( ES_HELP, 138, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    servers -- Display list of server specifications\n"
 "\n"
-"    p4 servers\n"
+"    p4 servers [-J | --replication-status]\n"
 "\n"
-"	Lists server specifications. (See 'p4 help server'.) \n"
+"	Lists server specifications. (See 'p4 help server'.)\n"
+"\n"
+"	The -J (or --replication-status) flag instead reports information\n"
+"	about this server's journal, and about the replication status of all\n"
+"	replicas that replicate from this server (if any).  The fields shown\n"
+"	are the server id, last updated time, server type, persisted journal\n"
+"	position, applied journal position, flags, and is-alive. The is-alive\n"
+"	field is 0 for a replica that is no longer running, or 1 for a live\n"
+"	replica.  The persisted and applied journal fields are different only\n"
+"	for a replica running journalcopy: the persisted position is the last\n"
+"	journal offset that this replica has persisted to disk and acknowledged\n"
+"	to the master server, and the applied position is the offset of the\n"
+"	last journal record that has been applied to the replica's database.\n"
+"\n"
+"	The first row displays information about this server, and the following\n"
+"	rows display information about each replica that has requested journal\n"
+"	records from this server.  Only replicas that have a serverID or a\n"
+"	P4NAME are listed in the results.\n"
+"\n"
+"	The flags are a set of fields, each printed in upper-case if it is set\n"
+"	or in lower-case if it is not; the numeric value of the flags is\n"
+"	displayed after the alphabetic display.  Each field is listed below\n"
+"	with its value, name, and description:\n"
+"\n"
+"	W/8 (Wait)              : this is a long-poll request (-i 0)\n"
+"	w   (no wait)           : this is not a long-poll request\n"
+"	A/4 (Acknowledging)     : this request ACKs previous journal records\n"
+"	a   (non-acknowledging) : this request does not ACK previous records\n"
+"	D/2 (Durable)           : only durable records should be returned\n"
+"	d   (non-durable)       : non-durable records should also be returned\n"
+"	L/1 (Local)             : this is data about the local journal\n"
+"	l   (remote)            : this is a request from a replica\n"
+"\n"
+"	Common field displays with their associated pull or journalcopy\n"
+"	commands are:\n"
+"\n"
+"	WAdl/12     journalcopy -i 0\n"
+"	WaDl/10     pull -i 0\n"
+"	wAdl/4      journalcopy -i 1\n"
+"	waDl/2      pull -i 1\n"
+"	wadL/1      (synthesized record for master status)\n"
+"\n"
+"	You can compare the journal positions of each replica with that of this\n"
+"	server to see if any replicas are falling behind.\n"
 };
 
-ErrorId MsgHelp::HelpReload = { ErrorOf( ES_HELP, 155, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpReload = { ErrorOf( ES_HELP, 155, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    reload -- Reload an unloaded client, label, or task stream\n"
 "\n"
@@ -7557,7 +8102,7 @@ ErrorId MsgHelp::HelpReload = { ErrorOf( ES_HELP, 155, E_INFO, 0, 0  ),
 "	other Edge Server in order to perform this operation.\n"
 };
 
-ErrorId MsgHelp::HelpUnload = { ErrorOf( ES_HELP, 156, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpUnload = { ErrorOf( ES_HELP, 156, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    unload -- Unloads a client, label, or task stream to the unload depot\n"
 "\n"
@@ -7616,16 +8161,13 @@ ErrorId MsgHelp::HelpUnload = { ErrorOf( ES_HELP, 156, E_INFO, 0, 0  ),
 };
 
 
-ErrorId MsgHelp::HelpAdministration = { ErrorOf( ES_HELP, 140, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpAdministration = { ErrorOf( ES_HELP, 140, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    Perforce commands for administering and operating the server:\n"
 "\n"
 "	admin        Perform administrative operations on the server\n"
 "	archive      Archive obsolete revisions to archive depots\n"
 "	cachepurge   Reclaim disk space on a replica\n"
-#ifdef CLUSTERHELP
-"	cluster      Perform administrative operations on a cluster server.\n"
-#endif
 "	configure    Set, unset, or show server configuration variables\n"
 "	counter      Display, set, or delete a counter\n"
 "	counters     Display list of known counters\n"
@@ -7669,7 +8211,7 @@ ErrorId MsgHelp::HelpAdministration = { ErrorOf( ES_HELP, 140, E_INFO, 0, 0  ),
 "    operating replicated servers.\n"
 };
 
-ErrorId MsgHelp::HelpReplication = { ErrorOf( ES_HELP, 162, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpReplication = { ErrorOf( ES_HELP, 162, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    Topics regarding the configuration and operation of replicated servers:\n"
 "\n"
@@ -7678,6 +8220,7 @@ ErrorId MsgHelp::HelpReplication = { ErrorOf( ES_HELP, 162, E_INFO, 0, 0  ),
 "	distributed        Topics relevant to a distributed installation\n"
 "	export             Extract journal or checkpoint records\n"
 "	forwardingreplica  General information about forwarding replicas\n"
+"	journalcopy        Copy journal data from master to local filesystem\n"
 "	journaldbchecksums Write journal notes with table checkums\n"
 "	pull               Pull journal or file data from master\n"
 "	replicate          Poll for journal data and apply to another server\n"
@@ -7723,8 +8266,8 @@ ErrorId MsgHelp::HelpReplication = { ErrorOf( ES_HELP, 162, E_INFO, 0, 0  ),
 "	shared, or         Replica allows commands which reference file\n"
 "	ondemand:          content, but does not automatically transfer new\n"
 "	(synonyms)         files nor remove purged files. If a file is not\n"
-"	                   present in the archives, the replica will retrieve\n"
-"	                   it from the target server. THIS MODE MUST BE USED\n"
+"	                   present in the archives, commands which reference\n"
+"	                   that file will fail. THIS MODE MUST BE USED\n"
 "	                   WHEN A REPLICA DIRECTLY SHARES THE SAME PHYSICAL\n"
 "	                   ARCHIVES AS THE TARGET, whether by running on the\n"
 "	                   same machine or via network sharing, and can also\n"
@@ -7746,11 +8289,16 @@ ErrorId MsgHelp::HelpReplication = { ErrorOf( ES_HELP, 162, E_INFO, 0, 0  ),
 "    special handling in the protections table if the Host: field specifies\n"
 "    an IP address; see 'p4 help protect' for more information.\n"
 "\n"
+"    A standby replica processes journal records from its master server in\n"
+"    such a way that it can be used for failover if the master server dies.\n"
+"    A standby replica uses both the 'journalcopy' and 'pull -L' commands\n"
+"    together to ensure that the replica journals exactly match the master.\n"
+"\n"
 "    Complete information about replica configuration and operation can be\n"
-"    found in the System Administration Guide.\n"
+"    found in the Distributing Perforce Guide.\n"
 };
 
-ErrorId MsgHelp::HelpBuildserver = { ErrorOf( ES_HELP, 165, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpBuildserver = { ErrorOf( ES_HELP, 165, E_INFO, EV_NONE, 0  ), 
 "\n"
 "	A server of type 'build-server' (see 'p4 help server') is a replica\n"
 "	which supports build farm integration.\n"
@@ -7790,7 +8338,7 @@ ErrorId MsgHelp::HelpBuildserver = { ErrorOf( ES_HELP, 165, E_INFO, 0, 0  ),
 "	be used to recover from the catastrophic loss of the master server.\n"
 };
 
-ErrorId MsgHelp::HelpForwardingreplica = { ErrorOf( ES_HELP, 166, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpForwardingreplica = { ErrorOf( ES_HELP, 166, E_INFO, EV_NONE, 0  ), 
 "\n"
 "	A server of type 'forwarding-replica' (see 'p4 help server') is a\n"
 "	replica which supports the full Perforce command set.\n"
@@ -7816,7 +8364,7 @@ ErrorId MsgHelp::HelpForwardingreplica = { ErrorOf( ES_HELP, 166, E_INFO, 0, 0  
 "	can be used to recover from the catastrophic loss of the master server.\n"
 };
 
-ErrorId MsgHelp::HelpDistributed = { ErrorOf( ES_HELP, 163, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpDistributed = { ErrorOf( ES_HELP, 163, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    A distributed installation contains a Commit Server and one or more Edge\n"
 "    Servers. Individual client workspaces are bound to the Edge Server on\n"
@@ -8011,11 +8559,14 @@ ErrorId MsgHelp::HelpDistributed = { ErrorOf( ES_HELP, 163, E_INFO, 0, 0  ),
 "        used with propagating attributes only from a Commit Server.\n"
 };
 
-ErrorId MsgHelp::HelpCachepurge = { ErrorOf( ES_HELP, 168, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpCachepurge = { ErrorOf( ES_HELP, 168, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    cachepurge -- Reclaim disk space on a replica\n"
 "\n"
-"    p4 cachepurge [-a | -f N | -m N | -s N] [-i N -n -R -S N -O -D files...]\n"
+"    p4 cachepurge -a [-i N -n -R -S N -O -D files...]\n"
+"    p4 cachepurge -f N [-i N -n -R -S N -O -D files...]\n"
+"    p4 cachepurge -m N [-i N -n -R -S N -O -D files...]\n"
+"    p4 cachepurge -s N [-i N -n -R -S N -O -D files...]\n"
 "\n"
 "	A replica used as a standby spare or for disaster recovery will\n"
 "	maintain a complete copy of the master server's versioned file\n"
@@ -8031,12 +8582,8 @@ ErrorId MsgHelp::HelpCachepurge = { ErrorOf( ES_HELP, 168, E_INFO, 0, 0  ),
 "	have a backup of these files, either a backup made on this replica or\n"
 "	on another replica or on a backup made on the master server.\n"
 "\n"
-"	The -i flag causes the command to automatically repeat its action\n"
-"	every N seconds. If -i is not specified, the command runs once,\n"
-"	then exits.\n"
-"\n"
-"	The -n flag displays a preview of the cachepurge operation without\n"
-"	deleting any files.\n"
+"	The disk space goal is specified using one of the required flags:\n"
+"	-a, -f, -m, or -s.\n"
 "\n"
 "	Each time the cachepurge command runs, it attempts to permanently\n"
 "	delete enough file content from the replica to achieve the goal\n"
@@ -8045,9 +8592,6 @@ ErrorId MsgHelp::HelpCachepurge = { ErrorOf( ES_HELP, 168, E_INFO, 0, 0  ),
 "	other replica, and also note that if a command is issued to this\n"
 "	replica which accesses the file content in the future, the file will\n"
 "	be re-retrieved from the master.\n"
-"\n"
-"	The disk space goal is specified using one of the flags: -a, -f, -m,\n"
-"	or -s.\n"
 "\n"
 "	The -a flag specifies to delete all file content. This reclaims the\n"
 "	maximum amount of disk space, but also means any file content must\n"
@@ -8063,6 +8607,13 @@ ErrorId MsgHelp::HelpCachepurge = { ErrorOf( ES_HELP, 168, E_INFO, 0, 0  ),
 "	The -s flag specifies the number of bytes of file data to delete.\n"
 "	This can be helpful for replicas which have a predictable observed\n"
 "	growth rate in their filesystem resources.\n"
+"\n"
+"	The -i flag causes the command to automatically repeat its action\n"
+"	every N seconds. If -i is not specified, the command runs once,\n"
+"	then exits.\n"
+"\n"
+"	The -n flag displays a preview of the cachepurge operation without\n"
+"	deleting any files.\n"
 "\n"
 "	The cachepurge command normally examines all files in the repository.\n"
 "	The -D flag may be used to specify the subset of the files that are\n"
@@ -8081,7 +8632,7 @@ ErrorId MsgHelp::HelpCachepurge = { ErrorOf( ES_HELP, 168, E_INFO, 0, 0  ),
 "	newest, in order to prefer the deletion of older content over newer.\n"
 };
 
-ErrorId MsgHelp::HelpTrust = { ErrorOf( ES_HELP, 150, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpTrust = { ErrorOf( ES_HELP, 150, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    trust -- Establish trust of an SSL connection\n"
 "\n"
@@ -8090,7 +8641,7 @@ ErrorId MsgHelp::HelpTrust = { ErrorOf( ES_HELP, 150, E_INFO, 0, 0  ),
 };
 
 
-ErrorId MsgHelp::HelpRenameUser = { ErrorOf( ES_HELP, 169, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpRenameUser = { ErrorOf( ES_HELP, 169, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    renameuser -- Completely rename a user throughout the database\n"
 "\n"
@@ -8144,7 +8695,7 @@ ErrorId MsgHelp::HelpRenameUser = { ErrorOf( ES_HELP, 169, E_INFO, 0, 0  ),
 "	'p4 renameuser' requires 'super' access granted by 'p4 protect'.\n"
 };
 
-ErrorId MsgHelp::HelpJournals = { ErrorOf( ES_HELP, 170, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpJournals = { ErrorOf( ES_HELP, 170, E_INFO, EV_NONE, 0  ), 
 "\n"
 "    journals -- Display the checkpoint and journal history of the server\n"
 "\n"
@@ -8168,7 +8719,7 @@ ErrorId MsgHelp::HelpJournals = { ErrorOf( ES_HELP, 170, E_INFO, 0, 0  ),
 
 // ErrorId graveyard: retired/deprecated ErrorIds.
 
-ErrorId MsgHelp::HelpBrowse = { ErrorOf( ES_HELP, 107, E_INFO, 0, 0  ),
+ErrorId MsgHelp::HelpBrowse = { ErrorOf( ES_HELP, 107, E_INFO, EV_NONE, 0  ),
 "\n"
 "    browse -- Browse for a list of Zeroconf-registered Perforce servers.\n"
 "\n"
@@ -8179,7 +8730,7 @@ ErrorId MsgHelp::HelpBrowse = { ErrorOf( ES_HELP, 107, E_INFO, 0, 0  ),
 "	libraries and Zeroconf (Avahi or Bonjour) services.\n"
 }; // DEPRECATED 2013.1 removed ZeroConf
 
-ErrorId MsgHelp::HelpZeroConf = { ErrorOf( ES_HELP, 105, E_INFO, 0, 0  ), 
+ErrorId MsgHelp::HelpZeroConf = { ErrorOf( ES_HELP, 105, E_INFO, EV_NONE, 0  ), 
 "\n"
 "   Zeroconf service support\n"
 "\n"

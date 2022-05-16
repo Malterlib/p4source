@@ -33,6 +33,7 @@ class FileIO : public FileSys {
 	virtual int	StatModTime();
 	virtual bool	HasOnlyPerm( FilePerm perms );
 	virtual void	Truncate( Error *e );
+	virtual void	Truncate( offL_t offset, Error *e );
 	virtual void	Chmod( FilePerm perms, Error *e );
 	virtual void	ChmodTime( Error *e );
 	virtual void	ChmodTime( int modTime, Error *e );
@@ -45,7 +46,7 @@ class FileIO : public FileSys {
 
 
 # ifdef OS_NT
-	static wchar_t	*UnicodeName( const char *fname, int flen );
+	static wchar_t	*UnicodeName( StrBuf *fname, int lfn );
 # endif
 
 } ;
@@ -65,6 +66,7 @@ class FileIOBinary : public FileIO {
 	virtual offL_t	GetSize();
 	virtual void	Seek( offL_t offset, Error *e );
 	virtual offL_t	Tell();
+	virtual void	Fsync( Error *e );
 
     protected:
 
@@ -136,6 +138,7 @@ class FileIOUTF16 : public FileIOUnicode {
 	FileIOUTF16( LineType lineType );
 
 	virtual void	Set( const StrPtr &name );
+	virtual void	Set( const StrPtr &name, Error *e );
 	virtual void	Open( FileOpenMode mode, Error *e );
 	virtual void	Close( Error *e );
 	virtual void	Translator( CharSetCvt * );
@@ -207,6 +210,7 @@ class FileIOEmpty : public FileSys {
 	virtual int	Stat() { return FSF_EMPTY; }
 	virtual int	StatModTime() { return 0; }
 	virtual void	Truncate( Error *e ) {}
+	virtual void	Truncate( offL_t offset, Error *e ) {}
 	virtual void	Chmod( FilePerm perms, Error *e ) {}
 	virtual void	ChmodTime( Error *e ) {}
 	virtual void	ChmodTime( int modTime, Error *e ) {}
@@ -237,6 +241,7 @@ class FileIOSymlink : public FileIO {
 
 	virtual int	StatModTime();
 	virtual void	Truncate( Error *e );
+	virtual void	Truncate( offL_t offset, Error *e );
 	virtual void	Chmod( FilePerm perms, Error *e );
 	virtual void	ChmodTime( int modTime, Error *e );
 
@@ -292,10 +297,12 @@ class FileIOApple : public FileIO {
 
 	virtual bool    HasOnlyPerm( FilePerm perms );
 	virtual int	Stat();
-	virtual void	Set( const StrPtr &s );
+	virtual void	Set( const StrPtr &name );
+	virtual void	Set( const StrPtr &name, Error *e );
 
 	virtual int	StatModTime();
 	virtual void	Truncate( Error *e );
+	virtual void	Truncate( offL_t offset, Error *e );
 	virtual void	Chmod( FilePerm perms, Error *e );
 	virtual void	ChmodTime( int modTime, Error *e );
 	virtual void	Unlink( Error *e );
@@ -316,8 +323,11 @@ class FileIOMac : public FileIO {
 		FileIOMac();
 		~FileIOMac();
 
-	void	Set( const StrPtr &name );
+	virtual void	Set( const StrPtr &name );
+	virtual void	Set( const StrPtr &name, Error *e );
 	void	Set( const char *name ) { FileSys::Set( name ); }
+	void	Set( const char *name, Error *e )
+	        { FileSys::Set( name, e ); }
 	
 	int	Stat( bool includeRsrcFork = false );
 
@@ -351,6 +361,7 @@ class FileIOResource : public FileIOMac {
 	virtual int	Stat() { return FileIOMac::Stat( true ); };
 
 	virtual void	Set( const StrPtr &name );
+	virtual void	Set( const StrPtr &name, Error *e );
 	virtual void	Open( FileOpenMode mode, Error *e );
 	virtual void	Write( const char *buf, int len, Error *e );
 	virtual int	Read( char *buf, int len, Error *e );

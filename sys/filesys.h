@@ -69,9 +69,14 @@
  *	FileSys::Copy - copy one file to another
  *	FileSys::Digest() - return a fingerprint of the file contents
  *	FileSys::Chmod2() - copy a file to get ownership and set perms
+ *	FileSys::Fsync() - sync file state to disk
  *
  *	FileSys::CheckType() - look at the file and see if it is binary, etc
  */
+
+# ifdef OS_NT
+# define DOUNICODE ( CharSetApi::isUnicode((CharSetApi::CharSet)GetCharSetPriv()) )
+# endif
 
 enum FileSysType
 {
@@ -207,6 +212,10 @@ class FileSys {
 
 	static bool	IsRelative( const StrPtr &p );
 
+# ifdef OS_NT
+	static bool	IsUNC( const StrPtr &p );
+# endif
+
 	virtual void	SetBufferSize( size_t ) { }
 
 	int		IsUnderPath( const StrPtr &path );
@@ -264,7 +273,11 @@ class FileSys {
 			FileSys();
 	virtual		~FileSys();
 
+# ifdef OS_NT
+	virtual void	SetLFN( const StrPtr &name );
+# endif
 	virtual void	Set( const StrPtr &name );
+	virtual void	Set( const StrPtr &name, Error *e );
 	virtual StrPtr	*Path() { return &path; }
 	virtual int	DoIndirectWrites();
 	virtual void	Translator( CharSetCvt * );
@@ -278,6 +291,7 @@ class FileSys {
 	virtual int	Stat() = 0;
 	virtual int	StatModTime() = 0;
 	virtual void	Truncate( Error *e ) = 0;
+	virtual void	Truncate( offL_t offset, Error *e ) = 0;
 	virtual void	Unlink( Error *e = 0 ) = 0;
 	virtual void	Rename( FileSys *target, Error *e ) = 0;
 	// Note: Readlink in NOT IMPLEMENTED on Windows, sets Fatal error
@@ -286,6 +300,8 @@ class FileSys {
 	virtual int	Writelink( const StrPtr &linkPath, Error *e );
 	virtual void	Chmod( FilePerm perms, Error *e ) = 0;
 	virtual void	ChmodTime( Error *e ) = 0;
+
+	virtual void	Fsync( Error *e ) { }
 
 	// NB: these for ReadFile only; interface will likely change
 	virtual bool	HasOnlyPerm( FilePerm perms );
@@ -303,6 +319,8 @@ class FileSys {
 
 	char *		Name() { return Path()->Text(); }
 	void		Set( const char *name ) { Set( StrRef( name ) ); }
+	void		Set( const char *name, Error *e )
+	                { Set( StrRef( name ), e ); }
 
 	void		Write( const StrPtr &b, Error *e ) 
 			{ Write( b.Text(), b.Length(), e ); }
@@ -372,6 +390,10 @@ class FileSys {
 	FileSysType 	type;
 	MD5		*checksum;      // if verifying file transfer
 	int		cacheHint;      // don't pollute cache
+
+# ifdef OS_NT
+	int		LFN;
+# endif
 
     private:
 	void		TempName( char *buf );

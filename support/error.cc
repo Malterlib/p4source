@@ -335,10 +335,22 @@ ErrorPrivate::SetArg( const StrPtr &arg )
 	if( !walk )
 	    return;
 
-	/* Loop past %%'s looing for %param% */
+	/* Loop past %%'s and %'stuff'% looking for %param% */
 
-	while( ( walk = strchr( walk, '%' ) ) && *++walk == '%' )
+	while( ( walk = strchr( walk, '%' ) ) )
+	{
+	    if( *++walk == '\'' )
+	    {
+		walk = strchr( walk, '%' );
+		if( !walk )
+		    return;
+	    }
+	    else if( *walk == '%' )
+		;
+	    else
+		break;
 	    ++walk;
+	}
 
 	// No more %?s
 

@@ -12,6 +12,7 @@
  *
  *		x.	- flag takes an argument (-xarg)
  *		x:	- flag takes an argument (-xarg or -x arg)
+ *		x?	- flag takes an optional argument (--long=arg only)
  *		x+	- flag takes a flag and arg (-xyarg or -xy arg)
  *		x#	- flag takes a non-neg numeric arg (-xN or -x N)
  */
@@ -199,6 +200,7 @@ class Options
 	                Backoff        , // pull -b
 	                ArchiveData    , // pull -u
 	                Status         , // pull -l
+	                LocalJournal   , // pull -L
 	                JournalPosition, // pull -j
 	                PullServerid   , // pull -P
 	                ExcludeTables  , // pull -T
@@ -258,6 +260,9 @@ class Options
 			TaskStatus     , // monitor show -s
 			AllUsers       , // property -A
 			Promote        , // shelve -p
+			Test           , // ldap -t, ldaps -t
+			Active         , // ldaps -A
+			ReplicationStatus, // servers --replication-status, servers -J
 
 		// options which have only long-form option names go here:
 
@@ -267,6 +272,13 @@ class Options
 	                From           , // renameuser --from
 	                To             , // renameuser --to
 	                Parallel       , // sync --parallel
+	                InputFile      , // reload --input-file
+	                PidFile        , // p4d --pid-file
+	                NoRetransfer   , // submit --noretransfer
+	                ForceNoRetransfer, // submit --forcenoretransfer
+			DurableOnly    , // journalcopy --durable-only
+			NonAcknowledging, // journalcopy --non-acknowledging
+			BypassExclusiveLock, // open --bypass-exclusive-lock
 
 			UnusedLastOption
 	} ;

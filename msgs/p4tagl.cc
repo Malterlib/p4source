@@ -52,8 +52,9 @@
 // client protocol 74: 2013.2 
 // client protocol 75: 2013.3 
 // client protocol 76: 2014.1
+// client protocol 77: 2014.2
 
-const char P4Tag::l_client[] = "76"; // Also update knownReleases in dmtypes.cc
+const char P4Tag::l_client[] = "77"; // Also update knownReleases in dmtypes.cc
 
 // see server/rhmain.cc
 
@@ -94,10 +95,11 @@ const char P4Tag::l_client[] = "76"; // Also update knownReleases in dmtypes.cc
 // server level 35: 2013.2 // distributed
 // server level 36: 2013.3 // new btree and lockless reads
 // server level 37: 2014.1 // change maps, command triggers and depot file exe
+// server level 38: 2014.2
 
 const char P4Tag::l_xfiles[] = "6"; // see clientservice.cc
 const char P4Tag::l_server[] = "3"; // 97.3 GUI is stuck here!
-const char P4Tag::l_server2[] = "37"; // generic server level
+const char P4Tag::l_server2[] = "38"; // generic server level
 
 // proxy level 4: 2006.1	p4 print w/o -o via proxy
 // proxy level 5: 2007.3	submit cacheing

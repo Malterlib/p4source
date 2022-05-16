@@ -82,6 +82,7 @@ class MsgServer {
 	static ErrorId SSOInvalid;
 	static ErrorId CantAuthenticate;
 	static ErrorId CantChangeOther;
+	static ErrorId CantResetPassword;
 	static ErrorId NoSuchUser;
 	static ErrorId BadPassword0;
 	static ErrorId BadPassword1;
@@ -133,6 +134,7 @@ class MsgServer {
 	static ErrorId MaxUnLicensedFiles;
 	static ErrorId NoCentralLicense;
 	static ErrorId RemoteNotAllowed;
+	static ErrorId InsecureReplica;
 	static ErrorId NoAuthFileCount;
 	static ErrorId ClientBadHost;
 	static ErrorId NoAuthServiceOnly;
@@ -235,6 +237,9 @@ class MsgServer {
 	static ErrorId SpecArchiveWarning;
 	static ErrorId SpecCheckTriggers;
 
+	static ErrorId StreamBadType;
+	static ErrorId StreamNotOwner;
+
 	static ErrorId SubmitLocking;
 	static ErrorId SubmitComplete;
 	static ErrorId SubmitBegin;
@@ -272,6 +277,7 @@ class MsgServer {
 
 	static ErrorId MonitorDisabled;
 	static ErrorId MonitorBadId;
+	static ErrorId MonitorNoLockinfo;
 	static ErrorId TooManyCommands;
 
 	static ErrorId IstatInvalid;
@@ -365,6 +371,7 @@ class MsgServer {
 	static ErrorId UseJobs;
 	static ErrorId UseJobSpec;
 	static ErrorId UseJournals;
+	static ErrorId UseJournalcopy;
 	static ErrorId UseJournalWait;
 	static ErrorId UseKey;
 	static ErrorId UseKeyi;
@@ -374,6 +381,14 @@ class MsgServer {
 	static ErrorId UseLabeld;
 	static ErrorId UseLabeli;
 	static ErrorId UseLabelSync;
+	static ErrorId UseLdap;
+	static ErrorId UseLdapd;
+	static ErrorId UseLdapo;
+	static ErrorId UseLdapi;
+	static ErrorId UseLdapt;
+	static ErrorId UseLdaps;
+	static ErrorId UseLdapsa;
+	static ErrorId UseLdapst;
 	static ErrorId UseLicense;
 	static ErrorId UseList;
 	static ErrorId UseLock;
@@ -408,6 +423,7 @@ class MsgServer {
 	static ErrorId UsePrint;
 	static ErrorId UseProtect;
 	static ErrorId UseProtects;
+	static ErrorId UsePrune;
 	static ErrorId UsePull;
 	static ErrorId UsePurge;
 	static ErrorId UseRelease;
@@ -519,12 +535,19 @@ class MsgServer {
 	static ErrorId JournalorCheckpointRequired;
 	static ErrorId CurJournalButNotJournaling;
 	static ErrorId LogtailNoLog;
+	static ErrorId CachepurgeNotReplica;
 	static ErrorId PullNotReplica;
 	static ErrorId PullCommandRunning;
 	static ErrorId PullOnDemand;
+	static ErrorId JcopyCommandRunning;
+	static ErrorId JournalCopyBadJnlState;
+	static ErrorId JournalCopyAppendFailed;
+	static ErrorId JournalStateVsSize;
 	static ErrorId PullTransferSummary;
+	static ErrorId PullTransferChange;
 	static ErrorId PullJournalSummary;
 	static ErrorId PullJournalDate;
+	static ErrorId PullInvalidPos;
 	static ErrorId ReplicaServerTime;
 	static ErrorId CacheAlreadyPurged;
 	static ErrorId JournalCounterMismatch;
@@ -576,13 +599,16 @@ class MsgServer {
 	static ErrorId ChangeNotSubmitted;
 	static ErrorId ChangeNotLocal;
 	static ErrorId NotInCluster;
-	static ErrorId NotClusterReplica;
+	static ErrorId NotClusterStandby;
 	static ErrorId NotClusterMaster;
-	static ErrorId NotClusterService;
-	static ErrorId NotEdgeLocal;
+
+	static ErrorId NotWorkspaceSvr;
 	static ErrorId ClusterCannotWriteJournal;
 	static ErrorId ClusterNotAllowed;
+	static ErrorId ZookeeperInitError;
+	static ErrorId MonitorOffInCluster;
 	static ErrorId CommandUnsupported;
+	static ErrorId MaitModeRestricted;
 
 	static ErrorId NotDistributed;
 	static ErrorId PortMissing;
@@ -598,6 +624,29 @@ class MsgServer {
 
 	static ErrorId ReopenNotOwnerCL;
 
+	static ErrorId LdapAuthSuccess;
+	static ErrorId LdapAuthSuccessD;
+	static ErrorId LdapAuthFailed;
+	static ErrorId LdapAuthFailedR;
+	static ErrorId LdapAuthFailedD;
+	static ErrorId LdapNoSupport;
+	static ErrorId LdapAuthNone;
+	static ErrorId LdapNoPassChange;
+	static ErrorId LdapNoEnabled;
+	static ErrorId LdapNoConfig;
+	static ErrorId LdapErrorInit;
+	static ErrorId LdapErrorInitTls;
+	static ErrorId LdapErrorSetOpt;
+	static ErrorId LdapSearchFailed;
+	static ErrorId LdapTestConfig;
+	static ErrorId LdapUserNotFound;
+	static ErrorId LdapGroupNotFound;
+	static ErrorId LdapMissingCAFile;
+	static ErrorId LdapReadCAErr0;
+	static ErrorId LdapReadCAErr1;
+	static ErrorId LdapReadCAErr2;
+	static ErrorId LdapReadCAErr3;
+
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 
 	// still sending these.
@@ -609,4 +658,5 @@ class MsgServer {
 	static ErrorId PullTransferPending; // Was used in 2010.2 BETA only.
 	static ErrorId PasswordTooShort; // DEPRECATED
 	static ErrorId SubmitShelvedHasTask; // used in 2013.1 only
+	static ErrorId NotClusterService; // Not documented in any release but in 13.2-14.1
 };

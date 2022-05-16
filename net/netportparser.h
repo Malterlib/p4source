@@ -133,6 +133,9 @@ public:
 	bool
 	IsValid(Error *e) const;
 
+	const StrBuf
+	GetQualifiedP4Port( StrBuf &serverSpecAddr, Error &e ) const;
+
 protected:
 
 private:

@@ -258,12 +258,15 @@ CharSetCvt::FindCvt(CharSetCvt::CharSet from, CharSetCvt::CharSet to)
 	case CP737:
 	    if (to == UTF_8)
 		return new CharSetCvtSimpletoUTF8(11);
+	    break;
 	case CP1253:
 	    if (to == UTF_8)
 		return new CharSetCvtSimpletoUTF8(9);
+	    break;
 	case ISO8859_7:
 	    if (to == UTF_8)
 		return new CharSetCvtSimpletoUTF8(10);
+	    break;
 	case SHIFTJIS:
 	    if (to == UTF_8)
 		return new CharSetCvtShiftJistoUTF8;

@@ -1,16 +1,16 @@
 # These values identify the release and patchlevel represented by these sources.
 
-# RELEASE = 2010 2 main nightly ;
+# RELEASE = year Nth special ;
 #	'year' is the year of the release
 #	'Nth' is which release of the year (1 2 3)
 #	'special' is 'main' for mainline builds and 'beta' for beta builds.
 
-# PATCHLEVEL = 251229 ;
+# PATCHLEVEL = changeno ;
 #	Of the source.
 
-# SUPPDATE = 2010 06 17 ;
+# SUPPDATE = yyyy mm dd ;
 #	Of the build.  The copyright date is derived from SUPPDATE.
 
-RELEASE = 2014 1 community ;
-PATCHLEVEL =  576838 ;
-SUPPDATE = 2013 01 17 ;
+RELEASE = 2014 2 community ;
+PATCHLEVEL =  768519 ;
+SUPPDATE = 2014 12 31 ;

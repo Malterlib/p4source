@@ -356,7 +356,7 @@ jtail( int ac, char **av, Options &preopts, Options &opts,
 		{
 		    // bad charset specification
 		    printf( "Character set must be one of:\n"
-		        "none, utf8, utf8-bom, iso8859-1, shiftjis, eucjp, iso8859-15,\n"
+		        "none, auto, utf8, utf8-bom, iso8859-1, shiftjis, eucjp, iso8859-15,\n"
 		        "iso8859-5, macosroman, winansi, koi8-r, cp949, cp1251,\n"
 		        "utf16, utf16-nobom, utf16le, utf16le-bom, utf16be,\n"
 		        "utf16be-bom, utf32, utf32-nobom, utf32le, utf32le-bom, utf32be,\n"

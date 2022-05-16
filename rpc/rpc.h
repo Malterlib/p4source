@@ -151,6 +151,7 @@ class RpcService {
 	void		GetHost( StrPtr *peerAddr, StrBuf & hostBuf, Error *e );
 	virtual void	GetMyFingerprint(StrBuf &value);
 	void		GetExpiration( StrBuf &buf );
+	const StrBuf	GetMyQualifiedP4Port( StrBuf &serverSpecAddr, Error &e ) const;
 
 	// Set Protocol varieties
 
@@ -299,6 +300,10 @@ class Rpc : public StrDict {
 	void		TrackReport( int level, StrBuf &out );
 	void		GetTrack( int level, RpcTrack *track );
 	void		ForceGetTrack( RpcTrack *track );
+
+	int		GetHiMarkFwd() { return rpc_hi_mark_fwd; }
+
+	RpcType		RpcTypeIs() { return GetRpcType(); }
 
     protected:
 

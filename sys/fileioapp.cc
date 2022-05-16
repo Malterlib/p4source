@@ -80,13 +80,19 @@ FileIOApple::~FileIOApple()
 void
 FileIOApple::Set( const StrPtr &s )
 {
+	Set( s, 0 );
+}
+
+void
+FileIOApple::Set( const StrPtr &s, Error *e )
+{
 	// Our name
 
-	FileIO::Set( s );
+	FileIO::Set( s, e );
 
 	// Data fork name
 
-	data->Set( s );
+	data->Set( s, e );
 
 	// Make %file name
 
@@ -99,7 +105,7 @@ FileIOApple::Set( const StrPtr &s )
 	p->SetLocal( *p, StrRef( "%", 1 ) );
 	p->Append( &file );
 
-	header->Set( *p );
+	header->Set( *p, e );
 
 	delete p;
 }
@@ -124,6 +130,11 @@ FileIOApple::StatModTime()
 	int d = data->StatModTime();
 
 	return h > d ? h : d;
+}
+
+void
+FileIOApple::Truncate( offL_t offset, Error *e )
+{
 }
 
 void
@@ -173,7 +184,7 @@ FileIOApple::Rename( FileSys *target, Error *e )
 	    // Make one so that we can write both forks.
 
 	    apple = new FileIOApple;
-	    apple->Set( StrRef( target->Name() ) );
+	    apple->Set( StrRef( target->Name() ), e );
 	    target = apple;
 	}
 	

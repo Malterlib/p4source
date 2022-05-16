@@ -67,6 +67,22 @@ Signaler::Signaler()
 	disable = 0;
 }
 
+Signaler::~Signaler()
+{
+# ifdef OS_NT
+	// This seems like it would be the right thing to do. Unfortunately,
+	// we have a single global Signaler instance, and the methods in it
+	// are called by other global objects. Since the order of destructors
+	// of global objects is not under our control, we can't close the
+	// mutex here, because other objects may continue to try calling the
+	// Signaler object even after the Signaler object's destructor has
+	// been called. So we leave the mutex handle open, and let the
+	// operating system clean it up when we exit.
+	//
+	// CloseHandle( hmutex );
+# endif // OS_NT
+}
+
 void
 Signaler::Disable()
 {

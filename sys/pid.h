@@ -13,10 +13,12 @@
  *
  * Public methods:
  *
- *      ErrorLog::GetID() - get identifier for current process/thread
- *      ErrorLog::CheckID() - check to see if (our) thread is still
- *                            running (note: recycled process/thread are
- *                            not explicitly checked for).
+ *      Pid::GetID() - get identifier for current process/thread
+ *      Pid::GetProcID() - get identifier for the entire process,
+                           not just a thread (Windows is different.)
+ *      Pid::CheckID() - check to see if (our) thread is still
+ *                       running (note: recycled process/thread are
+ *                       not explicitly checked for).
  */
 
 class Pid {
@@ -24,6 +26,7 @@ class Pid {
     public:
 
 	int	GetID();
+	int	GetProcID();
 	int	CheckID( int id );
 } ;
 

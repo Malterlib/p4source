@@ -1,5 +1,7 @@
 SubDir P4 i18n ;
 
+SubDirHdrs $(P4) sys ;
+
 P4Library $(SUPPORTLIB) :
 	charcvt.cc
 	charman.cc

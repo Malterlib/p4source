@@ -25,6 +25,7 @@ class MsgOs {
 	static ErrorId ChmodBetrayal;
 
 	static ErrorId EmptyFork;
+	static ErrorId NameTooLong;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

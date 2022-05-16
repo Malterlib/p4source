@@ -17,6 +17,20 @@ extern "C"
 }
 # endif //USE_SSL
 
+# if defined( USE_OPENLDAP ) && !defined( SASL_VERSION_FULL )
+extern "C"
+{ // CyrusSASL
+# include "sasl/sasl.h"
+}
+# endif //USE_OPENLDAP && !SASL_VERSION_FULL
+
+# if defined( USE_OPENLDAP ) && !defined( LDAP_VENDOR_VERSION_MAJOR )
+extern "C"
+{ // OpenLDAP
+# include "ldap.h"
+}
+# endif //USE_OPENLDAP && !LDAP_VENDOR_VERSION_MAJOR
+
 void
 Ident::GetMessage( StrBuf *s, int isServer )
 {
@@ -37,6 +51,17 @@ Ident::GetMessage( StrBuf *s, int isServer )
     *s << "See 'p4 help legal' for full OpenSSL license information\n";
     *s << "Version of OpenSSL Libraries: " << OPENSSL_VERSION_TEXT << "\n";
 # endif //USE_SSL
+# ifdef USE_OPENLDAP
+    *s << "This product includes software developed by the OpenLDAP Foundation\n";
+    *s << " (http://www.openldap.org/)\n";
+    *s << "This product includes software developed by Computing Services\n";
+    *s << "at Carnegie Mellon University: Cyrus SASL (http://www.cmu.edu/computing/)\n";
+    *s << "See 'p4 help legal' for full Cyrus SASL and OpenLDAP license information\n";
+    *s << "Version of OpenLDAP Libraries: " << LDAP_VENDOR_VERSION_MAJOR << "."
+        << LDAP_VENDOR_VERSION_MINOR << "." << LDAP_VENDOR_VERSION_PATCH << "\n";
+    *s << "Version of Cyrus SASL Libraries: " << SASL_VERSION_MAJOR <<  "."
+         << SASL_VERSION_MINOR << "." << SASL_VERSION_STEP << "\n";
+# endif //USE_OPENLDAP
 
     *s << "Rev. " << GetIdent() << " (" << GetDate() << ").\n";
 }

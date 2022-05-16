@@ -46,7 +46,12 @@ Gzip::Gzip()
 	isInflate = 0;
 	isDeflate = 0;
 	ws = we = 0;
+	is = ie = 0;
+	os = oe = 0;
 	state = 0;
+	crc = 0;
+	hflags = 0;
+	hxlen = 0;
 }
 
 Gzip::~Gzip()

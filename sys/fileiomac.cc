@@ -42,13 +42,19 @@ FileIOMac::~FileIOMac()
 void
 FileIOMac::Set( const StrPtr &name )
 {
+	Set( name, 0 );
+}
+
+void
+FileIOMac::Set( const StrPtr &name, Error *e )
+{
 	//
 	// The MacFile will no longer refer to this new name,
 	// so delete it.
 	//
 	delete mf;
 	mf = 0;
-	FileSys::Set( name );
+	FileSys::Set( name, e );
 }
 
 MacFile * FileIOMac::GetMacFile( Error *e )
@@ -357,6 +363,11 @@ FileIOResource::~FileIOResource()
 void
 FileIOResource::Set( const StrPtr &name )
 {
+	Set( name, 0 );
+}
+void
+FileIOResource::Set( const StrPtr &name, Error *e )
+{
 	// Set colon to file component (after final :)
 	const char *colon = NULL;
 	colon = strrchr( name.Text(), GetSystemFileSeparator() ); // unix paths
@@ -385,6 +396,11 @@ FileIOResource::Set( const StrPtr &name )
 
 void
 FileIOResource::Set( const StrPtr &name )
+{
+	Set( name, 0 );
+}
+void
+FileIOResource::Set( const StrPtr &name, Error *e )
 {
 	path.Set( name );
 }

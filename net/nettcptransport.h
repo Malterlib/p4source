@@ -83,6 +83,13 @@ class NetTcpTransport : public NetTransport {
 	int		GetFd() { return t; }
 
     protected:
+#ifdef OS_NT
+	bool		SetWin32KeepAlives(
+			    int		socket,
+			    const SOCKOPT_T
+			    		ka_idlesecs,
+			    const int	ka_intvlsecs);
+#endif // OS_NT
 	void            CloseSocket();
 	int 		Peek( int fd, char *buffer, int length );
 

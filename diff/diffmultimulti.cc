@@ -40,6 +40,7 @@ class FileMultiMerge : public FileSys
 	int	Read( char *buf, int len, Error *e );
 	void	Open( FileOpenMode mode, Error *e );
 	offL_t	GetSize();
+	void	Seek( offL_t offset, Error * );
 
 	// FileSys stubs
 
@@ -48,6 +49,7 @@ class FileMultiMerge : public FileSys
 	int	Stat() { return FSF_EXISTS; }
 	int	StatModTime() { return 0; }
 	void	Truncate( Error *e ) {};
+	void	Truncate( offL_t offset, Error *e ) {};
 	void	Unlink( Error *e = 0 ) {};
 	void	Rename( FileSys *target, Error *e ) {};
 	void	Chmod( FilePerm perms, Error *e ) {};
@@ -298,6 +300,19 @@ FileMultiMerge::GetSize()
 	     size += L->buf.Length();
 
 	return size;
+}
+
+void
+FileMultiMerge::Seek( offL_t off, Error * )
+{
+	line = InRev( m->FirstLine() );
+	while( line && line->buf.Length() <= off )
+	{
+	    off -= line->buf.Length();
+	    line = InRev( line->next );
+	}
+
+	offset = off;
 }
 
 MergeLine*

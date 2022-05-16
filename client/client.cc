@@ -23,11 +23,14 @@
 # include <filesys.h>
 
 # include <msgclient.h>
+# include <msgserver.h>
 # include <msgrpc.h>
+# include <msgsupp.h>
 # include <p4tags.h>
 # include <netportparser.h>
 
 # include "clientuser.h"
+# include "clientusernull.h"
 # include "clientservice.h"
 # include "clientmerge.h"
 # include "client.h"
@@ -49,6 +52,7 @@ Client::Client() : Rpc( &service )
 	errors = 0;
 	fatals = 0;
 	is_unicode = 0;
+	unknownUnicode = 1;
 	content_charset = 0;
         output_charset = 0;
 	enviro = new Enviro;
@@ -93,9 +97,14 @@ void
 Client::Init( Error *e )
 {
 	// Set up address and connect.
+	errors = 0;
 
 	// re-add host and port in protocol message
 	hostprotoset = 0;
+
+	// unicode setup if possible
+	if( unknownUnicode )
+	    SetupUnicode( e );
 
 	if( !e->Test() )
 	    service.SetEndpoint( GetPort().Text(), e );
@@ -107,7 +116,40 @@ Client::Init( Error *e )
 	{
 	    DoHandshake( e );	// no-op if not ssl
 
+	    if( !e->Test() && unknownUnicode )
+	    {
+		ClientUserNULL cnull( e );
+		
+		// discover unicode server status
+		Run( "discover", &cnull );
+
+		// bad command is expected when connecting to
+		// servers before 2014.2
+		if( e->CheckId( MsgServer::BadCommand ) )
+		{
+		    e->Clear();
+		    errors = 0;
+		}
+
+		// on trust errors, ignore them, and ignore the
+		// unicode detection result
+		if( e->CheckId( MsgRpc::HostKeyMismatch ) ||
+		    e->CheckId( MsgRpc::HostKeyUnknown ) )
+		{
+		    e->Clear();
+		    errors = 0;
+		}
+		else
+		{
+		if( !e->Test() )
+		    LearnUnicode( e );
+		}
+		if( e->Test() )
+		    (void) Final( e );
+	    }
+
 	    // don't bother testing for error since caller will handle
+
 	    return;
 	}
 
@@ -297,13 +339,13 @@ Client::GetEnv()
 	if( is_unicode )
         {
             SetVar( P4Tag::v_unicode );
-            SetVar( P4Tag::v_charset, content_charset);
+            SetVar( P4Tag::v_charset, content_charset );
         }
         else // no charset was defined
         {
             int cs = GuessCharset();
             if (cs != 0)
-                SetVar( P4Tag::v_charset, cs);
+                SetVar( P4Tag::v_charset, cs );
         }
 
 	int i = GetUi()->ProgressIndicator();
@@ -398,3 +440,57 @@ Client::GetProtocol( const StrPtr &var )
 	return &protocolBuf;
 }
 
+void
+Client::SetupUnicode( Error *e )
+{
+	const char *charsetVal = GetCharset().Text();
+
+	if( *charsetVal )
+	    LateUnicodeSetup( charsetVal, e );
+}
+
+void
+Client::LearnUnicode( Error *e )
+{
+	const char *value = "none";
+
+	if( protocolUnicode )
+	    value = "auto";
+
+	SetCharset( value );
+
+	if( charsetVar.Length() )
+	    enviro->Set( charsetVar.Text(), value, e );
+
+	// ignore any errors trying to save the charset
+	e->Clear();
+	errors = 0;
+
+	LateUnicodeSetup( value, e );
+}
+
+void
+Client::LateUnicodeSetup( const char *value, Error *e )
+{
+	unknownUnicode = 0;
+
+	int cs = CharSetApi::Lookup( value );
+
+	if( cs >= 0 )
+	    SetTrans( cs );
+	else if( e )
+	    e->Set( MsgClient::UnknownCharset ) << value;
+}
+
+void
+Client::SetEnviroFile( const char *c )
+{
+	enviro->SetEnviroFile( c );
+	enviro->Reload();
+}
+
+const StrPtr *
+Client::GetEnviroFile()
+{
+	return enviro->GetEnviroFile();
+}

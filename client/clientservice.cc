@@ -215,7 +215,13 @@ ClientSvc::FileFromPath( Client *client, const char *vName, Error *e )
 	FileSys *f = client->GetUi()->File( LookupType( clientType ) );
 
 	f->SetContentCharSetPriv( client->ContentCharset() );
-	f->Set( *clientPath );
+	f->Set( *clientPath, e );
+	if( e->Test() )
+	{
+	    delete f;
+	    client->OutputError( e );
+	    return 0;
+	}
 
 	if( !clientPath->Compare( client->GetTicketFile() ) ||
 	    !clientPath->Compare( client->GetTrustFile() ) ||
@@ -1686,6 +1692,7 @@ clientSendFile( Client *client, Error *e )
 	StrPtr *pendingDigest = client->GetVar( "pendingDigest" );
 	StrPtr *revertUnchanged = client->GetVar( P4Tag::v_revertUnchanged );
 	StrPtr *reopen = client->GetVar( P4Tag::v_reopen );
+	StrPtr *skipDigestCheck = client->GetVar( "skipDigestCheck" );
 
 	if( e->Test() && !e->IsFatal() )
 	{
@@ -1705,6 +1712,24 @@ clientSendFile( Client *client, Error *e )
 	    return;
 	}
 
+	// 2014.2 submit --forcenoretransfer skips file transfer to call 
+	// dmsubmitfile directly, only fixing up file perms as needed.
+
+	if( skipDigestCheck )
+	{
+	    client->SetVar( P4Tag::v_status, "same" );
+	    client->SetVar( P4Tag::v_digest, skipDigestCheck );
+	    client->Confirm( confirm );
+
+	    // Ignore failure to chmod file since the file may not exist
+
+	    Error te;
+	    if( !e->Test() && perms && revertUnchanged )
+		f->Chmod2( perms->Text(), &te );
+	    delete f;
+	    return;
+	}
+
 	// 2000.1 started sending modTime
 	// 2003.2 wants a digest
 	// 2005.1 sends filesize
@@ -1715,6 +1740,7 @@ clientSendFile( Client *client, Error *e )
 
 	StrBuf digest;
 	offL_t len = 0;
+	offL_t filesize = 0;
 	MD5 md5;
 
 	// 2006.2 server, sends digest for 'p4 submit -R'
@@ -1747,14 +1773,21 @@ clientSendFile( Client *client, Error *e )
 	if( modTime && !sendDigest )
 	    client->SetVar( P4Tag::v_time, modTime );
 
-	// Send open (with modTime)
-
-	client->Confirm( open );
-
-	// open source file
-	// This must happen after Confirm(), lest 'submit' has a fit.
+	// open source file, even if file open fails.
 
 	f->Open( FOM_READ, e );
+
+	if( !e->Test() )
+	{
+	    // This is just an estimate. The actual file size is computed below
+
+	    filesize = f->GetSize();
+	    client->SetVar( P4Tag::v_fileSize, StrNum( filesize ) );
+	}
+
+	// Send open (with modTime, and possibly estimated file size)
+
+	client->Confirm( open );
 
 	int size = FileSys::BufferSize();
 
@@ -1766,13 +1799,11 @@ clientSendFile( Client *client, Error *e )
 	f->Translator( ClientSvc::XCharset( client, FromClient ) );
 
 	ClientProgress *indicator;
-	offL_t filesize;
 
 	if( indicator = client->GetUi()->CreateProgress( CPT_SENDFILE ) )
 	{
 	    progress = new ClientProgressReport( indicator );
 	    progress->Description( *clientPath );
-	    filesize = f->GetSize();
 	    progress->Units( CPU_KBYTES );
 	    progress->Total( filesize / 1024 );
 	}
@@ -2820,31 +2851,6 @@ clientProtocol( Client *client, Error *e )
 	client->protocolNocase = client->GetVar( P4Tag::v_nocase ) != 0;
 
 	client->protocolUnicode = client->GetVar( P4Tag::v_unicode ) != 0;
-
-        // if the server is unicode and we sent a charset we can
-        // make the client unicode as well
-        if (client->IsUnicode())
-            return;
-        if (!client->protocolUnicode)
-            return;
-        s = client->GetVar( P4Tag::v_charset);
-        if (! s)
-            return;
- 
-        CharSetApi::CharSet cs = (CharSetApi::CharSet) s->Atoi();
-        if (cs == 0)
-            return;
-	if( CharSetApi::Granularity( cs ) == 1 )
-        {
-            client->SetTrans(cs, cs, cs, cs);
-        }
-        else
-        {
-            CharSetCvt::CharSet ot = CharSetApi::UTF_8;    
-            client->SetTrans(ot, cs, ot, ot);
-        }
-        client->SetVar( P4Tag::v_unicode );
-        client->SetCharset(CharSetApi::Name(cs));
 }
 
 //

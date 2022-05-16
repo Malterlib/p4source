@@ -37,10 +37,12 @@ MT_STATIC P4DebugConfig *p4debughelp;
 # define B16K 16*1024
 # define B32K 32*1024
 # define B64K 64*1024
+# define B512K 512*1024
 # define B1M 1024*1024
 # define B2M 1024*2048
 # define B4M 1024*4096
 # define B10M 10*1024*1024
+# define B256M 256*1024*1024
 # define B1G 1024*1024*1024
 # define BBIG 2147483647 /* (2^31-1) */
 
@@ -100,6 +102,12 @@ MT_STATIC P4DebugConfig *p4debughelp;
 #  define SHSUBP	0
 # endif
 
+# ifdef OS_NTX86
+# define MAX_SHARED_MONITOR	4096
+# else
+# define MAX_SHARED_MONITOR	32768
+# endif
+
 P4Tunable::tunable P4Tunable::list[] = {
 
 	// P4Debug's collection
@@ -127,9 +135,8 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"ssl",          0, -1, -1, 10, 1, 1, 0,
 	"time",         0, -1, -1, 10, 1, 1, 0,
 	"cluster",      0, -1, -1, 10, 1, 1, 0,
-	"zks",          0, -1, -1, 10, 1, 1, 0,
-	"jsp",          0, -1, -1, 10, 1, 1, 0,
-	"zmq",          0, -1, -1, 10, 1, 1, 0,
+	"zk",           0, -1, -1, 10, 1, 1, 0,
+	"ldap",         0, -1, -1, 10, 1, 1, 0,
 
 	// P4Tunable's collection
 	//
@@ -137,8 +144,10 @@ P4Tunable::tunable P4Tunable::list[] = {
 
 	"cluster.journal.shared",0,	0,	0,	1,	1,	1, 0,
 	"db.isalive",		0,	R10K,	1,	RBIG,	1,	R1K, 0,
-	"db.monitor.shared",	0,	128,	0,	2048,	1,	B1K, 0,
-	"db.peeking",		0,	0,	0,	3,	1,	1, 0,
+	"db.jnlack.shared",	0,	16,	0,	2048,	1,	B1K, 0,
+	"db.monitor.shared",	0,	256, 0, MAX_SHARED_MONITOR, 1, B1K, 0,
+	"db.peeking",		0,	2,	0,	3,	1,	1, 0,
+	"db.peeking.usemaxlock",0,	0,	0,	1,	1,	1, 0,
 	"db.reorg.disable",	0,	0,	0,	1,	1,	1, 0,
 	"db.reorg.misorder",	0,	80,	0,	100,	1,	1, 0,
 	"db.reorg.occup",	0,	8,	0,	100,	1,	1, 0,
@@ -190,12 +199,15 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"dm.resolve.attrib",	0,	1,	0,	1,	1,	1, 0,
 	"dm.revcx.thresh1",	0,	R4K,	1,	RBIG,	1,	R1K, 0,
 	"dm.revcx.thresh2",	0,	R1K,	1,	RBIG,	1,	R1K, 0,
+	"dm.rotatelogwithjnl",	0,	1,	0,	1,	1,	1, 0,
 	"dm.shelve.maxfiles",	0,	R10M,	0,	RBIG,	1,	R1K, 0,
 	"dm.shelve.maxsize",	0,	0,	0,	BBIG,	1,	B1K, 0,
-	"dm.status.matchlines", 0,	50,	0,	100,	1,	1, 0,
+	"dm.shelve.promote",	0,	0,	0,	1,	1,	1, 0,
+	"dm.status.matchlines", 0,	80,	0,	100,	1,	1, 0,
 	"dm.status.matchsize",	0,	10,	0,	R1G,	1,	R1K, 0,
 	"dm.user.accessupdate",	0,	300,	1,	RBIG,	1,	1, 0,
 	"dm.user.accessforce",	0,	3600,	1,	RBIG,	1,	1, 0,
+	"dm.user.insecurelogin",0,	0,	0,	1,	1,	1, 0,
 	"dm.user.loginattempts",0,	3,	0,	10000,	1,	1, 0,
 	"dm.user.noautocreate", 0,	0,	0,	2,	1,	1, 0,
 	"dm.user.resetpassword", 0,	0,	0,	1,	1,	1, 0,
@@ -207,14 +219,17 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"filesys.maxsymlink",	0,	B1K,	1,	BBIG,	1,	B1K, 0,
 	"filesys.maxtmp",	0,	R1M,	1,	RBIG,	1,	R1K, 0,
 	"filesys.extendlowmark",0,	B32K,	0,	BBIG,	B1K,	B1K, 0,
+	"filesys.windows.lfn",	0,	0,	0,	10,	1,	1, 0,
 	"index.domain.owner",	0,      0,      0,      1,      1,      1, 0,
+	"lbr.autocompress",	0,	0,	0,	1,	1,	1, 0,
 	"lbr.bufsize",		0,	B4K,	1,	BBIG,	1,	B1K, 0,
 	"lbr.proxy.case",	0,	1,	1,	3,	1,	1, 0,
+	"lbr.rcs.maxlen",	0,	B10M,	0,	BBIG,	1,	1, 0,
 	"lbr.retry.max",	0,	R50K,	1,	BBIG,	1,	R1K, 0,
 	"lbr.stat.interval",	0,	0,	0,	999,	1,	1, 0,
 	"lbr.verify.in",	0,	1,	0,	1,	1,	1, 0,
 	"lbr.verify.out",	0,	1,	0,	1,	1,	1, 0,
-	"lbr.rcs.maxlen",	0,	B10M,	0,	BBIG,	1,	1, 0,
+	"lbr.verify.script.out",0,	1,	0,	1,	1,	1, 0,
 	"map.joinmax1",		0,	R10K,	1,	200000, 1,	R1K, 0,
 	"map.joinmax2",		0,	R1M,	1,	RBIG,	1,	R1K, 0,
 	"map.maxwild",          0,      10,     1,      10,     1,      1, 0,
@@ -229,8 +244,9 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"net.rcvbufsize",	0,	B32K,	1,	BBIG,	1,	B1K, 0,
 	"net.reuseport",	0,	0,	0,	1,	1,	1, 0,
 	"net.rfc3484",		0,	0,	0,	1,	1,	1, 0,
-	"net.tcpsize",		0,	B64K,	B1K,	B4M,	B1K,	B1K, 0,
+	"net.tcpsize",		0,	B512K,	B1K,	B256M,	B1K,	B1K, 0,
 	"net.backlog",		0,	10,	1,      SMAX,   1,	B1K, 0,
+	"proxy.deliver.fix",	0,	1,	0,	1,	1,	1, 0,
 	"proxy.monitor.interval", 0,	10,	1,	999,	1,	1, 0,
 	"proxy.monitor.level",	0,	0,	0,	3,	1,	1, 0,
 	"rcs.maxinsert",	0,	R1G,	1,	RBIG,	1,	R1K, 0,
@@ -244,23 +260,33 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"rpl.compress",		0,	0,	0,	3,	1,	1, 0,
 	"rpl.counter.hook",	0,	1,	0,	1,	1,	1, 0,
 	"rpl.grouped",		0,	0,	0,	1,	1,	1, 0,
+	"rpl.jnl.batch.size",	0,	R100M,	0,	RBIG,	1,	R1K, 0,
 	"rpl.jnlwait.adjust",	0,	25,	0,	RBIG,	1,	R1K, 0,
 	"rpl.jnlwait.interval",	0,	50,	50,	RBIG,	1,	R1K, 0,
 	"rpl.jnlwait.max",	0,	1000,	100,	RBIG,	1,	R1K, 0,
+	"rpl.awaitjnl.count",	0,	100,	1,	RBIG,	1,	R1K, 0,
+	"rpl.awaitjnl.interval",0,	50,	1,	RBIG,	1,	R1K, 0,
+	"rpl.journal.ack",	0,	0,	0,	B1M,	1,	1, 0,
+	"rpl.journal.ack.min",	0,	0,	0,	B1M,	1,	1, 0,
 	"rpl.labels.global",	0,	0,	0,	1,	1,	1, 0,
 	"rpl.verify.cache",	0,	0,	0,	1,	1,	1, 0,
 	"run.move.allow",	0,	1,	0,	1,	1,	1, 0,
 	"run.obliterate.allow",	0,	1,	0,	1,	1,	1, 0,
+	"run.prune.allow",      0,	1,	0,	1,	1,	1, 0,
 	"run.users.authorize", 	0,	0,	0,	1,	1,	1, 0,
 	"server.commandlimits",	0,	0,	0,	2,	1,	1, 0,
 	"server.filecharset",	0,	0,	0,	1,	1,	1, 0,
-	"server.locks.sync",	0,	1,	0,	1,	1,	1, 0,
+	"server.locks.archive",	0,	1,	0,	1,	1,	1, 0,
+	"server.locks.sync",	0,	0,	0,	1,	1,	1, 0,
 	"server.maxcommands", 	0,	0,	0,	RBIG,	1,	R1K, 0,
+	"filetype.bypasslock",	0,	0,	0,	1,	1,	1, 0,
 	"filetype.maxtextsize",	0,	B10M,	0,	RBIG,	1,	R1K, 0,
 	"spec.hashbuckets",	0,	99,	0,	999,	1,	1, 0,
 	"spec.custom",		0,	0,	0,	1,	1,	1, 0,
 	"streamview.dots.low",	0,	0,	0,	1,	1,	1, 0,
 	"streamview.sort.remap",0,	0,	0,	1,	1,	1, 0,
+	"submit.forcenoretransfer",0,	0,	0,	1,	1,	1, 0,
+	"submit.noretransfer",	0,	0,	0,	1,	1,	1, 0,
 	"submit.unlocklocked",	0,	0,	0,	1,	1,	1, 0,
 	// vv Smart Heap tunables must be a continuous group vv
 	"sys.memory.poolfree",	0,	SHPOOL,	0,	BBIG,	1,	B1K, 0,
@@ -283,11 +309,13 @@ P4Tunable::tunable P4Tunable::list[] = {
 	"sys.rename.max",	0,	10,	10,	RBIG,	1,	R1K, 0,
 	"sys.rename.wait",	0,	1000,	50,	RBIG,	1,	R1K, 0,
 	"rpl.forward.all",	0,	0,	0,	1,	1,	1, 0,
+	"rpl.forward.login",	0,	0,	0,	1,	1,	1, 0,
 	"rpl.pull.position",	0,	0,	0,	RBIG,	1,	R1K, 0,
 	"rpl.pull.reload",	0,	60000,	0,	RBIG,	1,	R1K, 0,
 	"ssl.secondary.suite",	0,	0,	0,	1,	1,	1, 0,
 	"ssl.client.timeout",	0,	30,	1,	RBIG,	1,	1, 0,
 	"triggers.io",		0,	0,	0,	1,	1,	1, 0,
+	"istat.mimic.ichanges",	0,	0,	0,	1,	1,	1, 0,
 
 	0, 0, 0, 0, 0, 0, 0, 0
 
@@ -387,11 +415,21 @@ P4Tunable::Set( const char *set )
 	    if( list[i].name )
 	    {
 		int val = 0;
+		int negative = 0;
 
 		// Atoi()
 
+		if( equals[1] == '-' )
+		{
+		    negative = 1;
+		    equals++;
+		}
+
 		while( ++equals < comma && isdigit( *equals ) )
 		    val = val * 10 + *equals - '0';
+
+		if( negative )
+		    val = -val;
 
 		// k = *1000, m = *1000,000
 
@@ -424,6 +462,14 @@ P4Tunable::IsNumeric( const char *p )
 {
 	const char *s = p;
 	long val = 0;
+	int negative = 0;
+
+	if( *p == '-' )
+	{
+	    negative = 1;
+	    p++;
+	}
+
 	while( *p && isdigit( *p ) )
 	{
 	    if( val > BBIG / 10 )
@@ -448,7 +494,7 @@ P4Tunable::IsNumeric( const char *p )
 	            return 0;
 	        val *= 1024;
 	    }
-	    if( val < 0 || val > BBIG )
+	    if( (!negative && val < 0) || val > BBIG )
 	        return 0;
 	    p++;
 	}
@@ -530,9 +576,10 @@ P4Debug::printf( const char *fmt, ... )
 
 # ifdef OS_NT
 	    // Stupid NT vsnprintf returns -1 when the size is too small...
+	    // Unless the size is only 1 byte too small, then it returns sz...
 	    // So we have to iterate getting more space until it works...
 
-	    while( rsz == -1 )
+	    while( rsz == -1 || rsz == sz )
 	    {
 		buf->SetLength( ssz );
 

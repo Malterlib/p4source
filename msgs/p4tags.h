@@ -89,6 +89,8 @@ struct P4Tag {
 	static const char v_action[];
 	static const char v_api[];
 	static const char v_app[];
+	static const char v_appliedJnl[];
+	static const char v_appliedPos[];
 	static const char v_attack[];
 	static const char v_attr[];
 	static const char v_authServer[];
@@ -134,6 +136,7 @@ struct P4Tag {
 	static const char v_endToRev[];
 	static const char v_erev[];
 	static const char v_externalAuth[];
+	static const char v_ldapAuth[];
 	static const char v_extraTag[];
 	static const char v_extraTagType[];
 	static const char v_fatal[];
@@ -163,8 +166,11 @@ struct P4Tag {
 	static const char v_how[];
 	static const char v_ignore[];
 	static const char v_isgroup[];
+	static const char v_journalcopyFlags[];
 	static const char v_job[];
 	static const char v_jobstat[];
+	static const char v_jnlBatchSize[];
+	static const char v_journal[];
 	static const char v_key[];
 	static const char v_language[];
 	static const char v_lbrFile[];		// also remote depot
@@ -271,6 +277,7 @@ struct P4Tag {
 	static const char v_serverCertExpires[];
 	static const char v_serverName[];
 	static const char v_serverRoot[];
+	static const char v_serverType[];
 	static const char v_serverUptime[];
 	static const char v_serverLicense[];
 	static const char v_serverLicenseIp[];
@@ -452,9 +459,14 @@ struct P4Tag {
 	// server-p4zk message fields
 	static const char z_clusterid[];
 	static const char z_clusterrole[];
+	static const char z_genNum[];
+	static const char z_jnlnum[];
+	static const char z_jnloffst[];
 	static const char z_p4port[];
 	static const char z_pid[];
 	static const char z_serverid[];
 	static const char z_zkhostport[];
+	static const char z_zkconnecttime[];
+	static const char z_brokercfg[];
 } ;
 

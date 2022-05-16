@@ -178,6 +178,8 @@ class Client : public Rpc {
 			{ ticketfile.Set( c ); }
 
 	void		SetTrustFile( const StrPtr *c ) { trustfile.Set( c ); }
+	void		SetEnviroFile( const StrPtr *c )
+	    { if( c ) SetEnviroFile( c->Text() ); }
 
 	void		SetCharset( const char *c ) { charset.Set( c ); }
 	void		SetClient( const char *c ) { client.Set( c ); }
@@ -201,6 +203,8 @@ class Client : public Rpc {
 			{ ticketfile.Set( c ); }
 
 	void		SetTrustFile( const char *c ) { trustfile.Set( c ); }
+
+	void		SetEnviroFile( const char *c );
 
 	void		SetServerID( const char *c )
 	                { serverID.Set( c ); }
@@ -258,6 +262,7 @@ class Client : public Rpc {
 
 	void		GetEnv();
 	Enviro*		GetEnviro() { return enviro; }
+	const StrPtr *	GetEnviroFile();
 	Ignore*		GetIgnore() { return ignore; }
 	void		Confirm( const StrPtr *confirm );
 	ClientUser *	GetUi() { return tags[ lowerTag ]; }
@@ -274,6 +279,7 @@ class Client : public Rpc {
 	void		NewHandler();
 	CharSetCvt	*fromTransDialog, *toTransDialog;
         StrDict		*translated, *transfname;
+	int		unknownUnicode;
 	int		content_charset; // file content charset
 	int		output_charset;  // result output charset
  
@@ -343,6 +349,7 @@ class Client : public Rpc {
 	StrBuf		syncTrigger;	// sync trigger binary
 	StrBuf		ignorefile;	// ignore filename
 	StrBuf		exeName;
+	StrBuf		charsetVar;
 	StrRef		buildInfo;
 
 	Enviro		*enviro;	// environment vars
@@ -354,4 +361,7 @@ class Client : public Rpc {
 	StrNum		protocolBuf;	// for our GetProtocol
 
 	void		CleanupTrans();	// free translators
+	void		SetupUnicode( Error * );
+	void		LearnUnicode( Error * );
+	void		LateUnicodeSetup( const char *, Error * );
 } ;

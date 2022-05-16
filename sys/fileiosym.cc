@@ -15,15 +15,19 @@
 # include <strbuf.h>
 # include <debug.h>
 # include <tunable.h>
+# include <i18napi.h>
+# include <charcvt.h>
 
 # include "filesys.h"
+# include "pathsys.h"
 # include "fileio.h"
 
 # ifdef OS_NT
-extern int nt_readlink( const char *name, char *buf, int sz );
-extern int nt_makelink( const char *target, const char *name );
-# define readlink(name,buf,sz) nt_readlink(name,buf,sz)
-# define symlink(target,name) nt_makelink(target,name)
+extern int nt_readlink( StrPtr *name, StrBuf &buf, int dounicode, int lfn );
+# define readlink(name,buf,dounicode,lfn) nt_readlink(name,buf,dounicode,lfn)
+
+extern int nt_makelink( StrBuf &target, StrPtr *name, int dounicode, int lfn );
+# define symlink(target,name,dounicode,lfn) nt_makelink(target,name,dounicode,lfn)
 # endif
 
 FileIOSymlink::~FileIOSymlink()
@@ -43,9 +47,14 @@ FileIOSymlink::Open( FileOpenMode mode, Error *e )
 
 	if( mode == FOM_READ )
 	{
+# ifdef OS_NT
+	    // The StrBuf allocation is done in nt_readlink().
+	    int l = readlink( Path(), value, DOUNICODE, LFN );
+# else
 	    int size = p4tunable.Get( P4TUNE_FILESYS_MAXSYMLINK );
 
 	    int l = readlink( Name(), value.Alloc( size ), size );
+# endif
 
 	    if( l < 0 )
 	    {
@@ -55,7 +64,7 @@ FileIOSymlink::Open( FileOpenMode mode, Error *e )
 
 	    value.SetLength( l );
 
-	    // Append newline for prettiness.
+	    // Append newline for prettiness and terminate string.
 
 	    value.Append( "\n" );
 	}
@@ -102,13 +111,22 @@ FileIOSymlink::Close( Error *e )
 		value.Terminate();
 	    }
 
+# ifdef OS_NT
+	    if( symlink( value, Path(), DOUNICODE, LFN ) < 0 )
+# else
 	    if( symlink( value.Text(), Name() ) < 0 )
+# endif
 		e->Sys( "symlink", Name() );
 	}
 
 	// Prevent duplicate closes
 
 	value.Clear();
+}
+
+void
+FileIOSymlink::Truncate( offL_t offset, Error *e )
+{
 }
 
 void

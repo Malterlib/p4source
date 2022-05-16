@@ -443,6 +443,39 @@ StrBuf::Append( const StrPtr *t )
 	--length;
 }
 
+void
+StrBuf::UAppend( const char *buf, p4size_t len )
+{
+	// This code is the functional equivalent of:
+	//
+	//	Extend( buf, len );
+	//	Terminate();
+	//
+
+	char *s = Alloc( len + 1 );
+	memcpy( s, buf, len );
+	s[ len ] = '\0'; 
+	--length;
+}
+
+void
+StrBuf::UAppend( const char *buf )
+{
+	// Use buf's EOS
+	int len = strlen( buf ) + 1;
+	memcpy( Alloc( len ), buf, len );
+	--length;
+}
+
+void
+StrBuf::UAppend( const StrPtr *t )
+{
+	char *s = Alloc( t->Length() + 1 );
+	memcpy( s, t->Text(), t->Length() );
+	s[ t->Length() ] = '\0'; 
+	--length;
+}
+
 /*
  * StrBuf::Grow() - grow a string buffer
  */
@@ -471,6 +504,103 @@ StrBuf::Grow( p4size_t oldlen )
 	{
 	    if( size < 4096 )
 		size += 1;
+	    buffer = new char[ size ];
+	}
+}
+
+/*
+ * StrBuf::BlockAppend() - append a large block to a buffer
+ */
+
+void
+StrBuf::BlockAppend( const char *buf, p4size_t len )
+{
+	// This code is the functional equivalent of:
+	//
+	//	Extend( buf, len );
+	//	Terminate();
+	//
+	// except that it doesn't over-allocate
+
+	char *s = BlockAlloc( len + 1 );
+	memmove( s, buf, len );
+	s[ len ] = '\0'; 
+	--length;
+}
+
+void
+StrBuf::BlockAppend( const char *buf )
+{
+	// Use buf's EOS
+	int len = strlen( buf ) + 1;
+	memmove( BlockAlloc( len ), buf, len );
+	--length;
+}
+
+void
+StrBuf::BlockAppend( const StrPtr *t )
+{
+	char *s = BlockAlloc( t->Length() + 1 );
+	memmove( s, t->Text(), t->Length() );
+	s[ t->Length() ] = '\0'; 
+	--length;
+}
+
+void
+StrBuf::UBlockAppend( const char *buf, p4size_t len )
+{
+	// This code is the functional equivalent of:
+	//
+	//	Extend( buf, len );
+	//	Terminate();
+	//
+	// except that it doesn't over-allocate
+
+	char *s = BlockAlloc( len + 1 );
+	memcpy( s, buf, len );
+	s[ len ] = '\0'; 
+	--length;
+}
+
+void
+StrBuf::UBlockAppend( const char *buf )
+{
+	// Use buf's EOS
+	int len = strlen( buf ) + 1;
+	memcpy( BlockAlloc( len ), buf, len );
+	--length;
+}
+
+void
+StrBuf::UBlockAppend( const StrPtr *t )
+{
+	char *s = BlockAlloc( t->Length() + 1 );
+	memcpy( s, t->Text(), t->Length() );
+	s[ t->Length() ] = '\0'; 
+	--length;
+}
+
+/*
+ * StrBuf::Reserve() - Ensure that there is the requested  space
+ * - don't over-allocate
+ * - intended for large requests (>= 128 KB)
+ */
+
+void
+StrBuf::Reserve( p4size_t oldlen )
+{
+	size = length;
+
+	if( buffer != nullStrBuf )
+	{
+	    // geometric growth
+	    char *o = buffer;
+	    buffer = new char[ size ];
+	    memcpy( buffer, o, oldlen );
+	    delete []o;
+	}
+	else
+	{
 	    buffer = new char[ size ];
 	}
 }

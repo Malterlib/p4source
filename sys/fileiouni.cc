@@ -134,7 +134,13 @@ FileIOUTF16::FileIOUTF16( LineType lineType )
 void
 FileIOUTF16::Set( const StrPtr &name )
 {
-	FileIOUnicode::Set( name );
+	Set( name, 0 );
+}
+
+void
+FileIOUTF16::Set( const StrPtr &name, Error *e )
+{
+	FileIOUnicode::Set( name, e );
 	SetContentCharSetPriv( (int)CharSetApi::UTF_16_BOM );
 }
 

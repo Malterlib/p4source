@@ -207,6 +207,21 @@ RpcService::SetProtocolV( const char *arg )
 	    protoSendBuffer->SetVar( StrRef( (char *)arg ), StrRef::Null() );
 	}
 }
+const StrBuf
+RpcService::GetMyQualifiedP4Port( StrBuf &serverSpecAddr, Error &e ) const
+{
+	StrBuf result;
+	if( endPoint )
+	{
+	    result = endPoint->GetPortParser().GetQualifiedP4Port( serverSpecAddr, e);
+	}
+	else
+	{
+	    e.Set( MsgRpc::BadP4Port ) << "no endpoint";
+	}
+	return result;
+}
+
 void
 RpcService::GetMyFingerprint( StrBuf &value )
 {

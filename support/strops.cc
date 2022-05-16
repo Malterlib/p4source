@@ -14,6 +14,7 @@
 # include <charman.h>
 # include <charset.h>
 # include <debug.h>
+# include <validate.h>
 
 # include "strbuf.h"
 # include "strdict.h"
@@ -328,6 +329,20 @@ StrOps::Expand2( StrBuf &o, const StrPtr &buf, StrDict &dict )
 
 	while( q = strchr( p, '%' ) )
 	{
+	    if( q[1] == '\'' ) // %' stuff '%: include stuff, uninspected...
+	    {
+	        for( s = q + 2; *s; s++ )
+	            if( s[0] == '\'' && s[1] == '%' )
+	                break;
+	        if( ! *s )
+		    break; // %'junk
+		o.UAppend( p, q - p );
+		q += 2;
+		o.UAppend( q, s - q );
+		p = s + 2;
+		continue;
+	    }
+
 	    // variables: (p)text (r)[ stuff (q)%var(s)% stuff2 (t)]
 
 	    if( !( s = strchr( q + 1, '%' ) ) )
@@ -393,6 +408,37 @@ StrOps::Expand2( StrBuf &o, const StrPtr &buf, StrDict &dict )
 	}
 
 	o.Append( p );
+}
+
+/*
+ * StrOps::RmUniquote() - Remove %'text'% quote from a string
+ */
+
+void
+StrOps::RmUniquote( StrBuf &o, const StrPtr &buf )
+{
+	const char *p = buf.Text();
+	const char *q = p;
+	const char *r;
+
+	while( ( q = strchr( q, '%' ) ) )
+	{
+	    r = strchr( ++q, '%' );
+	    if( !r )
+		break;
+	    if( q == r )
+		continue;
+	    if( *q == '\'' )
+	    {
+		o.UAppend( p, q++ - p - 1 );
+		o.UAppend( q, r - q - 1 );
+		q = p = r + 1;
+	    }
+	    else
+		q = r + 1;
+	}
+
+	o.UAppend( p );
 }
 
 /*
@@ -929,6 +975,22 @@ StrOps::CharCopy( const StrPtr &s, StrBuf &t, int length )
 	}
 
 	t.Set( s.Text(), length );
+}
+
+int
+StrOps::SafeLen( const StrPtr &s )
+{
+	int cs = GlobalCharSet::Get();
+
+	if( cs == 1 ) // utf8
+	{
+	    CharSetUTF8Valid v;
+	    const char *rp;
+
+	    if( v.Valid( s.Text(), s.Length(), &rp ) != 1 )
+		return rp - s.Text();
+	}
+	return s.Length();
 }
 
 /*

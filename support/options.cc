@@ -177,6 +177,8 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionLeaveKeywords,
 	"file",               Options::OutputFile,   'o', ':',
 	                      &MsgSupp::OptionOutputFile,
+	"input-file",         Options::InputFile,    'i', ':',
+	                      &MsgSupp::OptionInputFile,
 	"archive",            Options::Archive,      'A', 0,
 	                      &MsgSupp::OptionArchive,
 	"unload",             Options::Unload,       'U', 0,
@@ -192,7 +194,7 @@ Options::OptionInfo Options::list[] = {
 	"keep-client",        Options::KeepClient,   'k', 0,
 	                      &MsgSupp::OptionKeepClient,
 	"file-charset",       Options::FileCharset,  'Q', ':',
-	                      &MsgSupp::OptionOmitMoved,
+	                      &MsgSupp::OptionFileCharset,
 	"virtual",            Options::Virtual,      'v', 0,
 	                      &MsgSupp::OptionVirtual,
 	"generate",           Options::Generate,     'g', 0,
@@ -323,6 +325,8 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionStatus,
 	"status",             Options::LoginStatus,  's', 0,
 	                      &MsgSupp::OptionLoginStatus,
+	"local-journal",      Options::LocalJournal, 'L', 0,
+	                      &MsgSupp::OptionLocalJournal,
 	"journal-position",   Options::JournalPosition, 'j', 0,
 	                      &MsgSupp::OptionJournalPosition,
 	"serverid",           Options::PullServerid, 'P', ':',
@@ -439,6 +443,12 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionAllUsers,
 	"promote",            Options::Promote,      'p', 0,
 	                      &MsgSupp::OptionPromote,
+	"test",               Options::Test,         't', ':',
+	                      &MsgSupp::OptionTest,
+	"active",             Options::Active,       'A', 0,
+	                      &MsgSupp::OptionActive,
+	"replication-status", Options::ReplicationStatus, 'J', 0,
+	                      &MsgSupp::OptionReplicationStatus,
 
 	// Options below this line have no short-form equivalent:
 
@@ -450,6 +460,19 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionTo,
 	"parallel",           Options::Parallel,     0, ':',
 	                      &MsgSupp::OptionParallel,
+	"pid-file",           Options::PidFile,     0, '?',
+	                      &MsgSupp::OptionPidFile,
+	"noretransfer",       Options::NoRetransfer, 0, '#',
+	                      &MsgSupp::OptionNoRetransfer,
+	"forcenoretransfer",  Options::ForceNoRetransfer, 0, 0,
+	                      &MsgSupp::OptionForceNoRetransfer,
+	"durable-only",       Options::DurableOnly, 0, 0,
+	                      &MsgSupp::OptionDurableOnly,
+	"non-acknowledging",  Options::NonAcknowledging, 0, 0,
+	                      &MsgSupp::OptionNonAcknowledging,
+	"bypass-exclusive-lock",
+	                      Options::BypassExclusiveLock, 0, 0,
+	                      &MsgSupp::OptionBypassExlusiveLock,
 
 	0, 0, 0, 0, 0
 } ;
@@ -546,7 +569,12 @@ Options::ParseLong( int &argc, StrPtr *&argv, const char *opts,
 		    }
 		    vals[ optc++ ] = "true";
 		    continue;
-
+		case '?':
+		    if( *opt_e == '=' )
+			vals[ optc++ ] = &opt_e[1];
+	            else
+	                vals[ optc++ ] = StrRef::Null();
+	            break;
 		case ':':
 		case '#':
 		    // : is --option=value or --option value

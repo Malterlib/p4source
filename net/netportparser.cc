@@ -92,6 +92,8 @@
 # include <ctype.h>
 # include <error.h>
 # include <msgserver.h>
+# include <msgrpc.h>
+# include <hostenv.h>
 # include "netport.h"
 # include "netportipv6.h"
 # include "netportparser.h"
@@ -488,6 +490,46 @@ NetPortParser::String(
 	}
 
 	return result;
+}
+/**
+ * NetPortParser::GetQualifiedP4Port
+ *
+ * @brief  Return the external view of P4PORT, if current
+ *         p4port does not contain a host/ip addr try using
+ *         the value of the addr stored in the server spec
+ *
+ * @param serverSpecAddr, string server spec address field
+ * @param e,              Error reference to hand back any error
+ */
+const StrBuf
+NetPortParser::GetQualifiedP4Port( StrBuf &serverSpecAddr, Error &e ) const
+{
+	StrBuf result;
+	StrBuf tmpHost;
+
+	// sanity check that the numeric port suffix exists.
+	if( mPort.Length() == 0 )
+	{
+	    e.Set( MsgRpc::BadP4Port ) << String();
+	    return String();
+	}
+
+	// if host is present just return the port string
+	if( mHost.Length() != 0 )
+	{
+	    return String();
+	}
+
+	if( serverSpecAddr.Length() )
+	{
+	    NetPortParser npp( serverSpecAddr );
+	    if( npp.mHost.Length() )
+	    {
+		return npp.String();
+	    }
+	}
+	e.Set( MsgRpc::NoHostnameForPort );
+	return String();
 }
 
 int

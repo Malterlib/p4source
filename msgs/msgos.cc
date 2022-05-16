@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgOs error code is: 11
+ * Current high value for a MsgOs error code is: 12
  */
 
 # include <error.h>
@@ -47,5 +47,7 @@ ErrorId MsgOs::Deleted                 = { ErrorOf( ES_OS, 6, E_FATAL, EV_FAULT,
 ErrorId MsgOs::NoSuch                  = { ErrorOf( ES_OS, 7, E_FATAL, EV_FAULT, 1 ), "%handle%: no such handle!" } ;
 
 ErrorId MsgOs::EmptyFork               = { ErrorOf( ES_OS, 8, E_FAILED, EV_CLIENT, 1 ), "Resource fork for %file% from server is empty." } ;
+
+ErrorId MsgOs::NameTooLong             = { ErrorOf( ES_OS, 12, E_FAILED, EV_FAULT, 3 ), "Filename '%filename%' is length %actual% which exceeds the internal length limit of %maxlen%." } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 

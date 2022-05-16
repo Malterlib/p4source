@@ -32,9 +32,8 @@ enum P4DebugType {
 	DT_SSL,		// SSL related
 	DT_TIME,	// Add timestamps to debug output
 	DT_CLUSTER,	// Cluster related
-	DT_ZKS,		// p4zk related
-	DT_JSP,		// jsp related
-	DT_ZMQ,		// p4zmq related
+	DT_ZK,		// p4zk related
+	DT_LDAP,	// LDAP related
 	DT_LAST
 }  ;
 

@@ -104,7 +104,8 @@ class Threader {
     friend class Threading;
 
 			Threader()
-	                { cancelled = 0; restarted = 0; threadCount = 0; }
+	                { cancelled = 0; restarted = 0;
+	                  threadCount = 0; process = 0; }
 
 	virtual		~Threader();
 	virtual void	Launch( Thread *t );
@@ -137,6 +138,7 @@ class Threading {
 	static void	Cancel() { if( current ) current->Cancel(); }
 	static void	Restart() { if( current ) current->Restart(); }
 	static int	WasCancelled() { if( current ) return current->cancelled; else return 0; }
+	static int	WasRestarted() { if( current ) return current->restarted; else return 0; }
 
 	static int	GetThreadCount()
 	                { return current ? current->GetThreadCount() : -1; }

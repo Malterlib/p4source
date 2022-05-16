@@ -1,5 +1,7 @@
 SubDir P4 ;
 
+SubInclude P4 auth ;
+SubInclude P4 broker ;
 SubInclude P4 client ;
 SubInclude P4 db ;
 SubInclude P4 dbpipe ;

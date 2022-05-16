@@ -168,6 +168,8 @@ class ClientApi : public StrDict {
 	int		Final( Error *e );
 	int		Dropped();
 	int		GetErrors();
+	int		GetTrans();
+	int		IsUnicode();
 
 	void		RunTag( const char *func, ClientUser *ui );
 	void		WaitTag( ClientUser *ui = 0 );
@@ -185,6 +187,7 @@ class ClientApi : public StrDict {
 	void		SetProg( const char *c );
 	void		SetVersion( const char *c );
 	void		SetTicketFile( const char *c );
+	void		SetEnviroFile( const char *c );
 
 	void		SetCharset( const StrPtr *c );
 	void		SetClient( const StrPtr *c );
@@ -199,6 +202,7 @@ class ClientApi : public StrDict {
 	void		SetProg( const StrPtr *c );
 	void		SetVersion( const StrPtr *c );
 	void		SetTicketFile( const StrPtr *c );
+	void		SetEnviroFile( const StrPtr *c );
 
 	void		SetBreak( KeepAlive *k );
 

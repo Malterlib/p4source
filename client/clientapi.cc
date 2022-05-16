@@ -29,6 +29,8 @@ void 	ClientApi::Run( const char *func, ClientUser *i ) { client->Run( func, i )
 int 	ClientApi::Final( Error *e ) { return client->Final( e ); }
 int 	ClientApi::Dropped() { return client->Dropped(); }
 int 	ClientApi::GetErrors() { return client->GetErrors(); }
+int	ClientApi::GetTrans() { return client->output_charset; }
+int	ClientApi::IsUnicode() { return client->IsUnicode(); }
 
 void	ClientApi::RunTag( const char *f, ClientUser *u ) { client->RunTag( f, u ); }
 void	ClientApi::WaitTag( ClientUser *u ) { client->WaitTag( u ); }
@@ -49,6 +51,7 @@ void 	ClientApi::SetUser( const char *c ) { client->SetUser( c ); }
 void 	ClientApi::SetProg( const char *c ) { client->SetProg( c ); }
 void	ClientApi::SetVersion( const char *c ) { client->SetVersion( c ); }
 void 	ClientApi::SetTicketFile( const char *c ) { client->SetTicketFile( c ); }
+void 	ClientApi::SetEnviroFile( const char *c ) { client->SetEnviroFile( c ); }
 
 void 	ClientApi::SetCharset( const StrPtr *c ) { client->SetCharset( c ); }
 void 	ClientApi::SetClient( const StrPtr *c ) { client->SetClient( c ); }
@@ -63,6 +66,7 @@ void 	ClientApi::SetUser( const StrPtr *c ) { client->SetUser( c ); }
 void 	ClientApi::SetProg( const StrPtr *c ) { client->SetProg( c ); }
 void	ClientApi::SetVersion( const StrPtr *c ) { client->SetVersion( c ); }
 void 	ClientApi::SetTicketFile( const StrPtr *c ) { client->SetTicketFile( c ); }
+void 	ClientApi::SetEnviroFile( const StrPtr *c ) { client->SetEnviroFile( c ); }
 
 void	ClientApi::SetBreak( KeepAlive *k ) { client->SetBreak( k ); }
 

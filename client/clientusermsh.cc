@@ -55,6 +55,8 @@ class MarshalDict : public StrBuf
 {
     public:
 
+	virtual		~MarshalDict();
+
 	// Read/Write
 
 	virtual void	StartWrite( const char *code ) = 0;
@@ -242,6 +244,11 @@ class PhpDict : public MarshalDict
 /*******************************************************************************
  * MarshalDict methods
  ******************************************************************************/
+
+// empty virtual destructor
+MarshalDict::~MarshalDict()
+{
+}
 
 /*
  * Checks whether or not the next char in the input is what is expected.

@@ -25,6 +25,8 @@
 DiskSpaceInfo::DiskSpaceInfo()
 {
 	this->fsType = new StrBuf();
+	blockSize = totalBytes = usedBytes = freeBytes = 0;
+	pctUsed = 0;
 }
 
 DiskSpaceInfo::~DiskSpaceInfo()

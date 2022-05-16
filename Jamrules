@@ -167,6 +167,39 @@
 		$(2[1]) on $(1[1]) = [ on $(1[1]) FRemoveAny $($(2[1])) : $(3) ] ;
 	}
 
+	rule SetDefaultDirName
+	{
+		# Usage: SetDefaultDirName VARIABLE : DEFAULT ;
+
+		# Initialize VARIABLE with DEFAULT if it is not already set.
+		#
+		# If the variable's value after initialization is a multi-element
+		# list, it is assumed that the variable was inherited from the
+		# environment with spaces in the value and these are joined
+		# together to create a single string with spaces in it.
+		#
+		# HOWEVER, if the first string in the list matches a subdir token
+		# as defined by SubDir, resolve that and prepend it to the rest of
+		# the path separated by a / or \ (as appropriate per OS).
+		#
+		# This allows one e.g. to set SSLPREFIX to "AllP4 ../../3rd_party/whatever"
+		# and it will always point to the correct relative location regardless
+		# of where you invoke jam, and regardless of your workspace root.
+
+		$(1) ?= $(2) ;
+
+		if $($(1)[2]) && [ FSubDirPath $($(1)[1]) ]
+		{
+			$(1) = [ FSubDirPath $($(1)[1]) $($(1)[2-]:J=" ") ] ;
+		}
+		else
+		{
+			$(1) = $($(1):J=" ") ;
+		}
+
+		return $($(1)) ;
+	}
+
 	rule LinkDir
 	{
 		# Usage: LinkDir app : dir1 dir2 ... ] ;
@@ -249,6 +282,107 @@
 	}
 
 
+    rule SetCommonCompiler
+	{
+		# Basic setup for common cross-platform compilers (gcc, llvm/clang, etc).
+		# This doesn't include OS-specific compiler tweaking.
+
+		# If cross compiling on one platform for another, set
+		# CROSS_COMPILE to the prefix of the cross tools.  For
+		# example, to build for ARM using an X86 host, set
+		# CROSS_COMPILE="arm-none-linux-gnueabi-" and OSPLAT="ARM".
+
+		# COMPILER_PREFIX can be e.g. "llvm-".  This variable differs from
+		# CROSS_COMPILE in that it only affects the compiler tools,
+		# not other cross-compile-sensitive programs such as ranlib, ar,
+		# and so on.
+
+		# COMPILER_SUFFIX is used to specify special versions of the
+		# compiler, e.g. when needing to use "gcc34" or "g++34" to make a
+		# portable legacy build.
+
+		local linker = $(2:E=C++) ;
+		local prefix = $(3:E=$(COMPILER_PREFIX:E)$(CROSS_COMPILE:E)) ;
+		local suffix = $(4:E=$(COMPILER_SUFFIX:E)) ;
+
+		switch $(1:U)
+		{
+		case *CLANG* :
+			CC   = $(prefix)clang$(suffix) ;
+			C++  = $(prefix)clang++$(suffix) ;
+			# make no return value from non-void func an error, and quiet
+			# some of the noisier clang warnings until we clean up the code
+			C++FLAGS += -Wno-parentheses -Wno-switch -Wreturn-type -Werror=return-type ;
+			LINK = $(OSLINK:E=$($(linker))) ;
+
+		case *GCC* :
+			CC   = $(prefix)gcc$(suffix) ;
+			C++  = $(prefix)g++$(suffix) ;
+			# no return value from non-void func is an error in Visual Studio
+			# so make it a warning in gcc; unfortunately gcc 3.4.5 does not
+			# support making it an error, so we can't use -Werror=return-type
+			C++FLAGS += -Wreturn-type ;
+			LINK = $(OSLINK:E=$($(linker))) ;
+		}
+
+		STRIP  = $(CROSS_COMPILE:E)strip   ;
+		RANLIB = $(CROSS_COMPILE:E)ranlib  ;
+		AR     = $(CROSS_COMPILE:E)ar cru  ;
+	}
+
+
+	rule SetOSXSdk
+	{
+		# Common setup for darwin/macosx platform.
+		# Determine correct version and location of SDK to use, and arch flags.
+
+		local _xcode = /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform ;
+		local _sdkver = $(1:J=.) ;   # Override computed sdk version
+		local _xflags = $(2) ;       # additional flags to compiler+linker
+		local _uplats = $(3:E=i386 x86_64) ;  # platforms for "universal" builds
+
+		switch $(OS:U)
+		{
+		case DARWIN :
+			# For Darwin 11 (OSX 10.7) and later, sdk lives deep under xcode.app
+			if [ FVersionCmp $(OSVER) : 110 ] >= 0 { XCODE_PREFIX ?= $(_xcode) ; }
+
+			local _v = [ MATCH ([0-9]+)[0-9]$ : $(OSVER) ] ;
+			# darwin:       1  2  3  4  5  6  7  8  9  10  11  12  13  14  15  16
+			local _sdkmap = 0  0  0  0  1  2  3  4  5   6   7   8   9  10  11  12 ;
+			_sdkver ?= 10.$(_sdkmap[$(_v)]) ;
+
+		case MACOSX :
+			# For OSX 10.7 and later, sdk lives deep under xcode.app
+			if [ FVersionCmp $(OSVER) : 107 ] >= 0 { XCODE_PREFIX ?= $(_xcode) ; }
+
+			local _v = [ MATCH ([0-9]+)([0-9])$ : $(OSVER) ] ;
+			_sdkver ?= $(_v:J=.) ;
+		}
+		if $(_sdkver) = 10.4 { _sdkver = $(_sdkver)u ; }  # "10.4u.sdk"
+
+		MACOSX_SDK       ?= $(XCODE_PREFIX:E)/Developer/SDKs/MacOSX$(_sdkver).sdk ;
+		MACOSX_SDK_FLAGS ?= -isysroot $(MACOSX_SDK) ;
+
+		# OSPLAT=U : universal binary
+		local _arch _elt ;
+		switch $(OSPLAT:U)
+		{
+		case PPC    : _arch = -arch ppc    ;
+		case X86    : _arch = -arch i386   ;
+		case X86_64 : _arch = -arch x86_64 ;
+		case U      :
+			for _elt in $(_uplats) { _arch += -arch $(_elt) ; }
+			NOARSCAN = true ; # can't scan "fat" archives
+		}
+
+		# n.b. we used to have a "CS" OSVER suffix so you could produce a
+		# case-sensitive server on mac, but that's no longer necessary
+		# since you can specify a different default at runtime on any platform.
+		$(GENFLAGS) += $(MACOSX_SDK_FLAGS) $(_arch) -DCASE_INSENSITIVE  $(_xflags) ;
+		LINKFLAGS   += $(MACOSX_SDK_FLAGS) $(_arch) $(_xflags) ;
+	}
+
 #################################################
 #
 # Section 1.  Global variable settings.
@@ -278,7 +412,6 @@
 	# INCREMENTAL_BUILD - disable removing of temporary artifacts
     # BUILD_WITH_SUB_DIRECTORIES - locates the object files in a subtree
 
-
     BUILD_WITH_SUB_DIRECTORIES ?= true ;
 
 	# Variables that activate certain build features per group
@@ -301,10 +434,9 @@
 	# Variables that shouldn't be set in PRODUCTION build environment
 	if $(PRODUCTION)
 	{
-		if $(P4DEVELOPER)  = true { exit ERROR - P4DEVELOPER and PRODUCTION defined at the same time ; }
+		if $(P4DEVELOPER)  = true { exit ERROR - P4DEVELOPER  and PRODUCTION defined at the same time ; }
 		if $(P4VDEVELOPER) = true { exit ERROR - P4VDEVELOPER and PRODUCTION defined at the same time ; }
-
-		if $(DEV_VERSION)  = true { exit ERROR - DEV_VERSION and PRODUCTION defined at the same time ; }
+		if $(DEV_VERSION)  = true { exit ERROR - DEV_VERSION  and PRODUCTION defined at the same time ; }
 	}
 
 	# For convenience of historical compatibility, the OSPLAT value
@@ -326,22 +458,9 @@
 		$(BUILD)
 		$(TYPE:L) ;
 
-	EXEC_LIB_TOKENS =
-		P4BIN
-		lib.$(EXEC_SUB_TOKENS[1]) ;
-	EXEC_LIB ?= [ FSubDirPath $(EXEC_LIB_TOKENS) ] ;
-
-	EXEC_INC_TOKENS =
-		P4BIN
-		inc.$(EXEC_SUB_TOKENS[1]) ;
-
-	EXEC_INC ?= [ FSubDirPath $(EXEC_INC_TOKENS) ] ;
-
-
-	EXEC_LIBEXEC_TOKENS =
-		P4BIN
-		libexec.$(EXEC_SUB_TOKENS[1]) ;
-	EXEC_LIBEXEC ?= [ FSubDirPath $(EXEC_LIBEXEC_TOKENS) ] ;
+	EXEC_LIB     ?= [ FSubDirPath P4BIN     lib.$(EXEC_SUB_TOKENS[1]) ] ;
+	EXEC_INC     ?= [ FSubDirPath P4BIN     inc.$(EXEC_SUB_TOKENS[1]) ] ;
+	EXEC_LIBEXEC ?= [ FSubDirPath P4BIN libexec.$(EXEC_SUB_TOKENS[1]) ] ;
 
 	# Build dir: p4-bin/bin.xxx[/build][/type]
 	EXEC_TOKENS =
@@ -352,8 +471,6 @@
 		;
 	EXEC ?= [ FSubDirPath $(EXEC_TOKENS) ] ;
 	ALL_LOCATE_TARGET = $(EXEC) ;
-
-
 
     if $(BUILD_WITH_SUB_DIRECTORIES) = true
     {
@@ -377,12 +494,10 @@
         }
     }
 
-
 	# version file
 	# Ident'ed executables depend on this
-
-	SEARCH on Version Jamrules = $(P4) ;
-	include Version ;
+	SEARCH on Version = $(P4) ;
+    include Version ;
 
 	if $(DEV_VERSION) = true
 	{
@@ -440,7 +555,8 @@
 
 	# The default, if linking with stdc++, is to dynamically link unless a specific platform overrides as static.
 	STATIC_LIBSTDC++ = no ;
-	LINK_WITH_STDC++ = p4d p4p p4broker p4zk p4sandbox p4sandbox_ja p4vc ;
+	# This really ought to be renamed LINK_WITH_STL since some operating systems use a different name.
+    LINK_WITH_STDC++ = p4d p4p p4broker p4zk p4sandbox p4sandbox_ja p4vc ;
 
 	# SSL configuration:
 	# Define SSL to include netssl* source code into the libraries and executables
@@ -451,14 +567,23 @@
 	#    (i.e., link with OpenSSL libraries)
 	# 2. C/C++ Client API built with SSL = yes and SSLSTUB = yes
 	#    SSL is defined but libraries not released with code.
-	SSL ?= no ;
+	SSL     ?= no ;
 	SSLSTUB ?= no ;
+
+	SetDefaultDirName SSLPREFIX : [ FSubDirPath P4BIN ] ;
+
+	# 2014-10-23 temporary backward compatibility for transition.
+	# Don't use SSLINCLUDE anymore.
+	if $(SSLINCLUDE) { SSLINCDIR ?= $(SSLINCLUDE) ; }
+
 	if $(SSLSTUB) = yes
 	{
 		SSL = yes ;
-		SSLINCLUDE ?= [ FDirName $(AllP4) p4 sslstub ] $(EXEC_INC) ;
-	} else {
-		SSLINCLUDE ?= $(EXEC_INC) ;
+		SSLINCDIR ?= [ FSubDirPath AllP4 p4 sslstub ]
+		             [ FDirName $(SSLPREFIX) inc.$(EXEC_SUB_TOKENS[1]) ] ;
+		SetDefaultDirName SSLINCDIR ;
+    } else {
+		SetDefaultDirName SSLINCDIR : [ FDirName $(SSLPREFIX) inc.$(EXEC_SUB_TOKENS[1]) ] ;
 	}
 
 	# Zookeeper configuration
@@ -472,6 +597,21 @@
 	# 2. All non-linux OS p4d and p4brokers will not compile in support for Zookeeper.
 	# 3. The proxy and perforce client will not compile in support for Zookeeper
 	ZK ?= no ;
+
+	# LDAP configuration:
+	# Define LDAPSTUB to link in a stubbed version of the LDAP libraries
+	# rather than linking to either the OpenLDAP or WinLDAP libraries.
+	# Expected build configurations:
+	# 1. NT P4D binaries built with LDAPSTUB = no and linked against WinLDAP
+	#    in the Windows SDK.
+	# 2. Linux P4D binaries built with LDAPSTUB = no and linked against the
+	#    OpenLDAP and CyrusSASL libraries
+	# 3. All other P4D binaries built with LDAPSTUB = yes
+	LDAPSTUB ?= yes ;
+	SetDefaultDirName OPENLDAPINCDIR   : $(EXEC_INC) ;
+	SetDefaultDirName OPENLDAPLIBDIR   : $(EXEC_LIB) ;
+	SetDefaultDirName CYRUSSASLPINCDIR : $(EXEC_INC) ;
+	SetDefaultDirName CYRUSSASLPLIBDIR : $(EXEC_LIB) ;
 
 #################################################
 #
@@ -631,19 +771,13 @@
 	switch $(OS)$(OSVER:E)
 	{
 	case AIX53 :
-		CC        = $(CROSS_COMPILE:E)gcc$(COMPILER_SUFFIX:E) ;
-		C++       = $(CROSS_COMPILE:E)g++$(COMPILER_SUFFIX:E) ;
-		LINK      = $(CROSS_COMPILE:E)gcc$(COMPILER_SUFFIX:E) ;
+		SetCommonCompiler $(OSCOMP:E=gcc) : CC ;
 
 		# NO_VIZ disables the use of the `hidden' symbol
 		# visibility attribute used by gcc in zlib/zutil.h.
 		CCFLAGS  += -DNO_VIZ ;
 		C++FLAGS += -DBSD -Dunix -D_LARGE_FILES=1 ;
 		LINKLIBS += -lsupc++ ;
-
-		RANLIB    = $(CROSS_COMPILE:E)ranlib ;
-		AR        = $(CROSS_COMPILE:E)ar ru  ;
-		STRIP     = $(CROSS_COMPILE:E)strip  ;
 
 		if $(CROSS_COMPILE)
 		{
@@ -699,250 +833,65 @@
 		LINK = g++ ;
 
 	case DARWIN8* :
-		CC   = gcc$(COMPILER_SUFFIX:E) ;
-		C++  = g++$(COMPILER_SUFFIX:E) ;
-		LINK = g++$(COMPILER_SUFFIX:E) ;
+		SetCommonCompiler $(OSCOMP:E=gcc) ;
+		SetOSXSdk : -mmacosx-version-min=10.4 : ppc i386 ;
 
-		MACOSX_SDK       ?= /Developer/SDKs/MacOSX10.4u.sdk ;
-		MACOSX_SDK_FLAGS ?= -isysroot $(MACOSX_SDK) -mmacosx-version-min=10.4 ;
 		LIBRARY_DEPOLYMENT_SDK = sdk10.4 ;
-
-		$(GENFLAGS) += $(MACOSX_SDK_FLAGS) ;
-		LINKFLAGS   += $(MACOSX_SDK_FLAGS) ;
-		LINKLIBS    += -weak_framework CoreFoundation ;
-
-		switch $(OSVER:U)
-		{
-		case *CS :
-		case *   : $(GENFLAGS) += -DCASE_INSENSITIVE ;
-		}
-
-		# OSPLAT=U : universal binary
-		#            Can't include x64 on darwin8 because CoreServices
-		#            doesn't include x64 symbols there.
-		switch $(OSPLAT:U)
-		{
-		case PPC    : _arch = -arch ppc    ;
-		case X86    : _arch = -arch i386   ;
-		case U      : _arch = -arch ppc
-		                      -arch i386 ;
-		              NOARSCAN = true ; # can't scan "fat" archives
-		}
-
-		$(GENFLAGS) += $(_arch) -DOS_DARWIN80 ;
-		LINKFLAGS   += $(_arch) ;
+		LINKLIBS += -weak_framework CoreFoundation ;
 
 	case DARWIN9* :
+		SetCommonCompiler $(OSCOMP:E=gcc) ;
+		SetOSXSdk : -mmacosx-version-min=10.5 -fwrapv : ppc i386 x86_64 ;
 
-		# COMPILER_SUFFIX can be e.g. "-4.2" to force a specific version.
-		CC   = gcc$(COMPILER_SUFFIX:E) ;
-		C++  = g++$(COMPILER_SUFFIX:E) ;
-		LINK = g++$(COMPILER_SUFFIX:E) ;
-
-		MACOSX_SDK       ?= /Developer/SDKs/MacOSX10.5.sdk ;
-		MACOSX_SDK_FLAGS ?= -isysroot $(MACOSX_SDK) -mmacosx-version-min=10.5 ;
 		LIBRARY_DEPOLYMENT_SDK = sdk10.5 ;
-
-		$(GENFLAGS) += $(MACOSX_SDK_FLAGS) ;
-		LINKFLAGS   += $(MACOSX_SDK_FLAGS) ;
 		# Unspeakably horrible kludge:
 		# The *actual* 10.5 linker doesn't understand this option (and it's
 		# not needed), but it's needed if we want to build 10.5-compatible
 		# executables on a 10.6 system.
 		if $(MACOSX105ON106) { LINKFLAGS += -Wl,-no_compact_linkedit ; }
-
-	 	LINKLIBS    += -weak_framework CoreFoundation ;
-
-		switch $(OSVER:U)
-		{
-		case *CS :
-		case *   : $(GENFLAGS) += -DCASE_INSENSITIVE ;
-		}
-
-		# OSPLAT=U : universal binary
-		switch $(OSPLAT:U)
-		{
-		case PPC    : _arch = -arch ppc    ;
-		case X86    : _arch = -arch i386   ;
-		case X86_64 : _arch = -arch x86_64 ;
-		case U      : _arch = -arch ppc
-		                      -arch i386
-		                      -arch x86_64 ;
-		              NOARSCAN = true ; # can't scan "fat" archives
-		}
-
-		$(GENFLAGS) += $(_arch) -fwrapv -DOS_DARWIN90 ;
-		LINKFLAGS   += $(_arch) ;
+	 	LINKLIBS += -weak_framework CoreFoundation ;
 
 	case DARWIN10* :
+		SetCommonCompiler $(OSCOMP:E=gcc) ;
+		SetOSXSdk : -mmacosx-version-min=10.5 -fwrapv ;
 
-		# COMPILER_SUFFIX can be e.g. "-4.2" to force a specific version.
-		CC   = gcc$(COMPILER_SUFFIX:E) ;
-		C++  = g++$(COMPILER_SUFFIX:E) ;
-		LINK = g++$(COMPILER_SUFFIX:E) ;
-
-		# Use 10.6 SDK, but maintain ABI compatibility with 10.5.
-		MACOSX_SDK       ?= /Developer/SDKs/MacOSX10.6.sdk ;
-		MACOSX_SDK_FLAGS ?= -isysroot $(MACOSX_SDK) -mmacosx-version-min=10.5 ;
 		LIBRARY_DEPOLYMENT_SDK = sdk10.5 ;
-
-		$(GENFLAGS) += $(MACOSX_SDK_FLAGS) ;
 		# Don't insert LC_* loader commands in executables.  Even though OS
 		# X 10.5 can load these executables, none of the older editing
 		# tools like `strip', `otool', etc. from earlier SDKs can interpret
 		# them.  So if we really want to reuse artifacts portably, we can't
 		# use these newer features.
-		LINKFLAGS   += $(MACOSX_SDK_FLAGS) -Wl,-no_compact_linkedit ;
-		LINKLIBS    += -weak_framework CoreFoundation ;
+		LINKFLAGS += -Wl,-no_compact_linkedit ;
+		LINKLIBS  += -weak_framework CoreFoundation ;
 
-		switch $(OSVER:U)
-		{
-		case *CS :
-		case *   : $(GENFLAGS) += -DCASE_INSENSITIVE ;
-		}
+	case DARWIN1[12]* :
+		SetCommonCompiler $(OSCOMP:E=gcc) ;
+		SetOSXSdk : -mmacosx-version-min=10.5 -fwrapv ;
 
-		# OSPLAT=U : universal binary
-		# There is no ppc support in osx 10.6 / darwin 10
-		switch $(OSPLAT:U)
-		{
-		case X86    : _arch = -arch i386   ;
-		case X86_64 : _arch = -arch x86_64 ;
-		case U      : _arch = -arch i386
-		                      -arch x86_64 ;
-		              NOARSCAN = true ; # can't scan "fat" archives
-		}
-
-		$(GENFLAGS) += $(_arch) -fwrapv -DOS_DARWIN10 -DOS_DARWIN100 ;
-		LINKFLAGS   += $(_arch) ;
-
-	case DARWIN11* :
-
-		# COMPILER_SUFFIX can be e.g. "-4.2" to force a specific version.
-		# COMPILER_PREFIX can be e.g. "llvm-".
-		CC   = $(COMPILER_PREFIX:E)gcc$(COMPILER_SUFFIX:E) ;
-		C++  = $(COMPILER_PREFIX:E)g++$(COMPILER_SUFFIX:E) ;
-		LINK = $(COMPILER_PREFIX:E)g++$(COMPILER_SUFFIX:E) ;
-
-		XCODE_PREFIX     ?= /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform ;
-		MACOSX_SDK       ?= $(XCODE_PREFIX)/Developer/SDKs/MacOSX10.7.sdk ;
-		MACOSX_SDK_FLAGS ?= -isysroot $(MACOSX_SDK) -mmacosx-version-min=10.5 ;
 		LIBRARY_DEPOLYMENT_SDK = sdk10.5 ;
-
-		$(GENFLAGS) += $(MACOSX_SDK_FLAGS) ;
-		LINKLIBS    += -framework CoreFoundation ;
-
-		switch $(OSVER:U)
-		{
-		case *CS :
-		case *   : $(GENFLAGS) += -DCASE_INSENSITIVE ;
-		}
-
-		# OSPLAT=U : universal binary
-		switch $(OSPLAT:U)
-		{
-		case X86    : _arch = -arch i386   ;
-		case X86_64 : _arch = -arch x86_64 ;
-		case U      : _arch = -arch i386
-		                      -arch x86_64 ;
-		              NOARSCAN = true ; # can't scan "fat" archives
-		}
-
-		$(GENFLAGS) += $(_arch) -fwrapv -DOS_DARWIN11 -DOS_DARWIN110 ;
-		LINKFLAGS   += $(_arch) ;
-
-	case DARWIN12* :
-
-		# COMPILER_SUFFIX can be e.g. "-4.2" to force a specific version.
-		# COMPILER_PREFIX can be e.g. "llvm-".
-		CC   = $(COMPILER_PREFIX:E)gcc$(COMPILER_SUFFIX:E) ;
-		C++  = $(COMPILER_PREFIX:E)g++$(COMPILER_SUFFIX:E) ;
-		LINK = $(COMPILER_PREFIX:E)g++$(COMPILER_SUFFIX:E) ;
-
-		XCODE_PREFIX     ?= /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform ;
-		MACOSX_SDK       ?= $(XCODE_PREFIX)/Developer/SDKs/MacOSX10.8.sdk ;
-		MACOSX_SDK_FLAGS ?= -isysroot $(MACOSX_SDK) -mmacosx-version-min=10.5 ;
-		LIBRARY_DEPOLYMENT_SDK = sdk10.5 ;
-
-		$(GENFLAGS) += $(MACOSX_SDK_FLAGS) ;
-		LINKLIBS    += -framework CoreFoundation ;
-
-		switch $(OSVER:U)
-		{
-		case *CS :
-		case *   : $(GENFLAGS) += -DCASE_INSENSITIVE ;
-		}
-
-		# OSPLAT=U : universal binary
-		switch $(OSPLAT:U)
-		{
-		case X86    : _arch = -arch i386   ;
-		case X86_64 : _arch = -arch x86_64 ;
-		case U      : _arch = -arch i386
-		                      -arch x86_64 ;
-		              NOARSCAN = true ; # can't scan "fat" archives
-		}
-
-		$(GENFLAGS) += $(_arch) -fwrapv -DOS_DARWIN12 -DOS_DARWIN120 ;
-		LINKFLAGS   += $(_arch) ;
+		LINKLIBS += -framework CoreFoundation ;
 
 	case DARWIN13* :
+		SetCommonCompiler $(OSCOMP:E=clang) ;
+		SetOSXSdk : -mmacosx-version-min=10.5 -fwrapv ;
 
-		# COMPILER_SUFFIX can be e.g. "-4.2" to force a specific version.
-		# COMPILER_PREFIX can be e.g. "llvm-".
-		CC   = $(COMPILER_PREFIX:E)clang$(COMPILER_SUFFIX:E) ;
-		C++  = $(COMPILER_PREFIX:E)clang++$(COMPILER_SUFFIX:E) ;
-		LINK = $(COMPILER_PREFIX:E)clang++$(COMPILER_SUFFIX:E) ;
-
-		XCODE_PREFIX     ?= /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform ;
-		MACOSX_SDK       ?= $(XCODE_PREFIX)/Developer/SDKs/MacOSX10.9.sdk ;
-		MACOSX_SDK_FLAGS ?= -isysroot $(MACOSX_SDK) -mmacosx-version-min=10.5 ;
 		LIBRARY_DEPOLYMENT_SDK = sdk10.5 ;
-
-		$(GENFLAGS) += $(MACOSX_SDK_FLAGS) ;
-		LINKFLAGS   += $(MACOSX_SDK_FLAGS) -Wl ;
-		LINKLIBS    += -framework CoreFoundation ;
-
-		switch $(OSVER:U)
-		{
-		case *CS :
-		case *   : $(GENFLAGS) += -DCASE_INSENSITIVE ;
-		}
-
-		$(GENFLAGS) += -arch x86_64 -DOS_DARWIN13 -DOS_DARWIN130 ;
-		LINKFLAGS   += -arch x86_64 ;
-
+		LINKFLAGS += -Wl ;
+		LINKLIBS  += -framework CoreFoundation ;
 
 	case FREEBSD :
 		Exit Set OSVER to 4, 54, 60, 70, 80, etc for FreeBSD ;
 
 	case FREEBSD4 :
-		CC   = gcc ;
-		C++  = g++ ;
-		LINK = gcc ;
-
-		switch $(OSCOMP)
-		{
-		case GCC3 : LINKLIBS += -lsupc++ ;
-		}
+		SetCommonCompiler $(OSCOMP:E=gcc) ;
 
 		if $(OSPLAT:U) != AXP { LINKFLAGS += -static ; }
 		$(GENFLAGS) += -pipe ;
 
 	case FREEBSD[56789]* : # Freebsd 5.0 to 9.0
-		CC        = $(CROSS_COMPILE:E)gcc$(COMPILER_SUFFIX:E) ;
-		C++       = $(CROSS_COMPILE:E)g++$(COMPILER_SUFFIX:E) ;
-		LINK      = $(CROSS_COMPILE:E)gcc$(COMPILER_SUFFIX:E) ;
-		STRIP     = $(CROSS_COMPILE:E)strip  ;
-		RANLIB    = $(CROSS_COMPILE:E)ranlib ;
-		AR        = $(CROSS_COMPILE:E)ar ru  ;
+		SetCommonCompiler $(OSCOMP:E=gcc) ;
 
 		if [ FVersionCmp $(OSVER) : 70 ] >= 0 { OPTIM += -fwrapv ; } # see job047026
-
-		# supc++ library on freebsd5.x and later is missing some
-		# modules (this is a bug), so we can't use it.
-		# Since every major version of the OS requires relinking
-		# anyway, there's no harm in linking stdc++ dynamically.
-		LINKLIBS += -lstdc++ ;
 
 		_mflags = ;
 		switch $(OSPLAT:U)
@@ -955,17 +904,10 @@
 		$(GENFLAGS) += $(_mflags) -pipe ;
 		LINKFLAGS   += $(_mflags) ;
 
-		QTOPENGL ?= no ;
-
 	case FREEBSD1* : # FreeBSD 10.0 and later
-		CC        = $(CROSS_COMPILE:E)clang$(COMPILER_SUFFIX:E) ;
-		C++       = $(CROSS_COMPILE:E)clang++$(COMPILER_SUFFIX:E) ;
-		LINK      = $(CROSS_COMPILE:E)clang++$(COMPILER_SUFFIX:E) ;
-		STRIP     = $(CROSS_COMPILE:E)strip  ;
-		RANLIB    = $(CROSS_COMPILE:E)ranlib ;
-		AR        = $(CROSS_COMPILE:E)ar ru  ;
+		SetCommonCompiler $(OSCOMP:E=clang) ;
 
-		OPTIM += -Wno-parentheses -fwrapv ; # see job047026
+		OPTIM += -Wno-parentheses -Wno-switch -fwrapv ;
 
 		_mflags = ;
 		switch $(OSPLAT:U)
@@ -1087,30 +1029,16 @@
 		Exit Set OSVER to 24 or 26 ;
 
 	case LINUX2[46] :
+		SetCommonCompiler $(OSCOMP:E=gcc) : CC ;
 
-		LIBRARY_DEPOLYMENT_OS_VERSION = $(OSVER) ;
-
-		# If cross compiling on one platform for another, set
-		# CROSS_COMPILE to the prefix of the cross tools.  For
-		# example, to build for ARM using an X86 host, set
-		# CROSS_COMPILE="arm-none-linux-gnueabi-" and OSPLAT="ARM".
-
-		# COMPILER_SUFFIX is used to specify special versions of the
-		# compiler, e.g. when needing to use "gcc34" or "g++34" to make a
-		# portable legacy build.
-
-		CC        = $(CROSS_COMPILE:E)gcc$(COMPILER_SUFFIX:E) ;
-		C++       = $(CROSS_COMPILE:E)g++$(COMPILER_SUFFIX:E) ;
-		LINK      = $(CROSS_COMPILE:E)gcc$(COMPILER_SUFFIX:E) ;
-		STRIP     = $(CROSS_COMPILE:E)strip  ;
-		RANLIB    = $(CROSS_COMPILE:E)ranlib ;
-		AR        = $(CROSS_COMPILE:E)ar ru  ;
 		LINKLIBS += -lsupc++ # Assumes gcc 3.x or later
 					-lrt     # for clock_gettime
 		            -ldl     # for OpenSSL
                     -lm ;    # for floor & misc
 
 		STATIC_LIBSTDC++ = yes ;
+
+		LIBRARY_DEPOLYMENT_OS_VERSION = $(OSVER) ;
 
 		# be explicit about submodel since we may be compiling x86 code on
 		# an x86/x86_64 biarch system, and the default may be uncertain.
@@ -1123,7 +1051,17 @@
 		case PPC    : _mflags = -m32 ;
 		case PPC64  : _mflags = -m64 ;
 
-		case ARM*   : _mflags = -march=armv4t ;
+		case ARMEL  : _mflags = -march=armv4t -mfloat-abi=soft ;
+
+		# Use arch=armv6 for compatibility with Raspberry Pi Raspian.
+		#
+		# It should be noted that vfpv3-d16 is the agreed upon linux
+		# floating point ABI for armv7 and above.  This won't actually work
+		# on the raspi because it doesn't have these registers, but we
+		# don't use any floating point in our own programs at present.
+		# This flag is just present to make sure our cross compiler
+		# generates the right code if this situation changes.
+		case ARMHF  : _mflags = -march=armv6  -mfloat-abi=hard -mfpu=vfpv3-d16 ;
 		}
 
 		$(GENFLAGS) += $(_mflags) -D_GNU_SOURCE ;
@@ -1132,121 +1070,61 @@
 		QTOPENGL ?= no ;
 
 	case MACOSX :
-		Exit Set OSVER to 104, 105, or 106 for MACOSX ;
+		Exit Set OSVER to 104, 105, 106, ... for MACOSX ;
 
 	case MACOSX104 :
-		# COMPILER_SUFFIX can be e.g. "-4.2" to force a specific version.
-		CC   = gcc$(COMPILER_SUFFIX:E) ;
-		C++  = g++$(COMPILER_SUFFIX:E) ;
-		LINK = g++$(COMPILER_SUFFIX:E) ;
+		SetCommonCompiler $(OSCOMP:E=gcc) ;
+		SetOSXSdk : -mmacosx-version-min=10.4 : ppc i386 ;
 
-		MACOSX_SDK       ?= /Developer/SDKs/MacOSX10.4u.sdk ;
-		MACOSX_SDK_FLAGS ?= -isysroot $(MACOSX_SDK) -mmacosx-version-min=10.4 ;
 		LIBRARY_DEPOLYMENT_SDK = sdk10.4 ;
-
-		$(GENFLAGS) += $(MACOSX_SDK_FLAGS) ;
-		LINKFLAGS   += $(MACOSX_SDK_FLAGS) ;
 
 		# The -fvisibility-inlines-hidden option is a C++-only
 		# option, needed because Qt4 is built with it and all
 		# statically-compiled objects need to use it consistently.
 		C++FLAGS    += -fvisibility-inlines-hidden ;
-		$(GENFLAGS) += -DCASE_INSENSITIVE
-		               -fpascal-strings ;
+		$(GENFLAGS) += -fpascal-strings
+		               -F$(QTDIR)/lib ;
 
-		# This looks like a flag but it is really a library macro
-		# and causes link problems if it's at the front of the link
-		# command, so we make it a LIB.
 		LINKLIBS    += -framework ApplicationServices
 		               -framework Foundation
 		               -framework CoreServices ;
 
-		# OSPLAT=U : universal binary (no x86_64 for 10.4)
-		switch $(OSPLAT:U)
-		{
-		case PPC    : _arch = -arch ppc    ;
-		case X86    : _arch = -arch i386   ;
-		case X86_64 : _arch = -arch x86_64 ;
-		case U      : _arch = -arch ppc
-		                      -arch i386   ;
-		              NOARSCAN = true ; # can't scan "fat" archives
-		}
-
-		$(GENFLAGS) += $(_arch) ;
-		LINKFLAGS   += $(_arch) ;
-
-		# This adds $(QTDIR)/lib as a frameworks directory, in case
-		# Qt is built as frameworks.  On the mac, it can be built
-		# either as frameworks, regular unix-style shared
-		# libraries, or unix-style static libaries.
-		$(GENFLAGS)  += -F$(QTDIR)/lib ;
-
 	case MACOSX105 :
-		# COMPILER_SUFFIX can be e.g. "-4.2" to force a specific version.
-		CC   = gcc$(COMPILER_SUFFIX:E) ;
-		C++  = g++$(COMPILER_SUFFIX:E) ;
-		#C++ = /Xcode4/usr/bin/clang -x c++ ;
-		LINK = g++$(COMPILER_SUFFIX:E) ;
+		SetCommonCompiler $(OSCOMP:E=gcc) ;
+		SetOSXSdk : -mmacosx-version-min=10.5 -fwrapv : ppc i386 ;
 
-		MACOSX_SDK       ?= /Developer/SDKs/MacOSX10.5.sdk ;
-		MACOSX_SDK_FLAGS ?= -isysroot $(MACOSX_SDK) -mmacosx-version-min=10.5 ;
 		LIBRARY_DEPOLYMENT_SDK = sdk10.5 ;
 
-		$(GENFLAGS) += $(MACOSX_SDK_FLAGS) ;
-		LINKFLAGS   += $(MACOSX_SDK_FLAGS) ;
+		# The -fvisibility-inlines-hidden option is a C++-only
+		# option, needed because Qt4 is built with it and all
+		# statically-compiled objects need to use it consistently.
+		C++FLAGS    += -fvisibility-inlines-hidden ;
+		$(GENFLAGS) += -fpascal-strings
+		               -F$(QTDIR)/lib ;
+
 		# Unspeakably horrible kludge:
 		# The *actual* 10.5 linker doesn't understand this option (and it's
 		# not needed), but it's needed if we want to build 10.5-compatible
 		# executables on a 10.6 system.
 		if $(MACOSX105ON106) { LINKFLAGS += -Wl,-no_compact_linkedit ; }
 
-		# The -fvisibility-inlines-hidden option is a C++-only
-		# option, needed because Qt4 is built with it and all
-		# statically-compiled objects need to use it consistently.
-		C++FLAGS    += -fvisibility-inlines-hidden ;
-		$(GENFLAGS) += -DCASE_INSENSITIVE
-		               -fpascal-strings ;
-
-		# This looks like a flag but it is really a library macro
-		# and causes link problems if it's at the front of the link
 		LINKLIBS    += -framework ApplicationServices
 		               -framework Foundation
 		               -framework CoreServices ;
 
-		# OSPLAT=U : universal binary
-		#
-		# Omitting x86_64 from U until B&R's Qt builds include it.
-		switch $(OSPLAT:U)
-		{
-		case PPC    : _arch = -arch ppc    ;
-		case X86    : _arch = -arch i386   ;
-		case X86_64 : _arch = -arch x86_64 ;
-		case U      : _arch = -arch ppc
-		                      -arch i386   ;
-		              NOARSCAN = true ; # can't scan "fat" archives
-		}
-
-		$(GENFLAGS) += $(_arch) -fwrapv -DCASE_INSENSITIVE ;
-		LINKFLAGS   += $(_arch) ;
-
-		# This adds $(QTDIR)/lib as a frameworks directory, in case
-		# Qt is built as frameworks.  On the mac, it can be built
-		# either as frameworks, regular unix-style shared
-		# libraries, or unix-style static libaries.
-		$(GENFLAGS)  += -F$(QTDIR)/lib ;
-
 	case MACOSX106 :
-		# COMPILER_SUFFIX can be e.g. "-4.2" to force a specific version.
-		CC   = gcc$(COMPILER_SUFFIX:E) ;
-		C++  = g++$(COMPILER_SUFFIX:E) ;
-		LINK = g++$(COMPILER_SUFFIX:E) ;
+		SetCommonCompiler $(OSCOMP:E=gcc) ;
+		SetOSXSdk : -mmacosx-version-min=10.5 -fwrapv : i386 ;
 
-		# Use the 10.6 SDK, but maintain ABI compatibility with 10.5.
-		MACOSX_SDK       ?= /Developer/SDKs/MacOSX10.6.sdk ;
-		MACOSX_SDK_FLAGS ?= -isysroot $(MACOSX_SDK) -mmacosx-version-min=10.5 ;
 		LIBRARY_DEPOLYMENT_SDK = sdk10.5 ;
 
-		$(GENFLAGS) += $(MACOSX_SDK_FLAGS) ;
+		# The -fvisibility-inlines-hidden option is a C++-only
+		# option, needed because Qt4 is built with it and all
+		# statically-compiled objects need to use it consistently.
+		C++FLAGS    += -fvisibility-inlines-hidden ;
+		$(GENFLAGS) += -fpascal-strings
+		               -F$(QTDIR)/lib ;
+
 		# Don't insert LC_* loader commands in executables.  Even though OS
 		# X 10.5 can load these executables, none of the older editing
 		# tools like `strip', `otool', etc. from earlier SDKs can interpret
@@ -1254,124 +1132,43 @@
 		# use these newer features.
 		LINKFLAGS   += $(MACOSX_SDK_FLAGS) -Wl,-no_compact_linkedit ;
 
-		# The -fvisibility-inlines-hidden option is a C++-only
-		# option, needed because Qt4 is built with it and all
-		# statically-compiled objects need to use it consistently.
-		C++FLAGS    += -fvisibility-inlines-hidden ;
-		$(GENFLAGS) += -DCASE_INSENSITIVE
-		               -fpascal-strings ;
-
-		# This looks like a flag but it is really a library macro
-		# and causes link problems if it's at the front of the link
 		LINKLIBS    += -framework ApplicationServices
 		               -framework Foundation
 		               -framework CoreServices ;
 
-		# OSPLAT=U : universal binary
-		#
-		# Omitting x86_64 from U until B&R's Qt builds include it.
-		# No PPC support in OSX 10.6.
-		switch $(OSPLAT:U)
-		{
-		case X86    : _arch = -arch i386   ;
-		case X86_64 : _arch = -arch x86_64 ;
-		case U      : _arch = -arch i386   ;
-		}
+	case MACOSX10[78] :
+		SetCommonCompiler $(OSCOMP:E=gcc) ;
+		SetOSXSdk : -mmacosx-version-min=10.5 -fwrapv ;
 
-		$(GENFLAGS) += $(_arch) -fwrapv -DCASE_INSENSITIVE ;
-		LINKFLAGS   += $(_arch) ;
-
-		# This adds $(QTDIR)/lib as a frameworks directory, in case
-		# Qt is built as frameworks.  On the mac, it can be built
-		# either as frameworks, regular unix-style shared
-		# libraries, or unix-style static libaries.
-		$(GENFLAGS)  += -F$(QTDIR)/lib ;
-
-	case MACOSX107 :
-		# COMPILER_SUFFIX can be e.g. "-4.2" to force a specific version.
-		# COMPILER_PREFIX can be e.g. "llvm-" to use llvm front ends.
-		CC   = $(COMPILER_PREFIX:E)gcc$(COMPILER_SUFFIX:E) ;
-		C++  = $(COMPILER_PREFIX:E)g++$(COMPILER_SUFFIX:E) ;
-		LINK = $(COMPILER_PREFIX:E)g++$(COMPILER_SUFFIX:E) ;
-
-		XCODE_PREFIX     ?= /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform ;
-		MACOSX_SDK       ?= $(XCODE_PREFIX)/Developer/SDKs/MacOSX10.7.sdk ;
-		MACOSX_SDK_FLAGS ?= -isysroot $(MACOSX_SDK) -mmacosx-version-min=10.5 ;
 		LIBRARY_DEPOLYMENT_SDK = sdk10.5 ;
 
-		$(GENFLAGS) += $(MACOSX_SDK_FLAGS) ;
-
 		# The -fvisibility-inlines-hidden option is a C++-only
 		# option, needed because Qt4 is built with it and all
 		# statically-compiled objects need to use it consistently.
 		C++FLAGS    += -fvisibility-inlines-hidden ;
-		$(GENFLAGS) += -DCASE_INSENSITIVE
-		               -fpascal-strings ;
+		$(GENFLAGS) += -fpascal-strings
+		               -F$(QTDIR)/lib ;
 
 		LINKLIBS    += -framework ApplicationServices
 		               -framework Foundation
 		               -framework CoreServices ;
 
-		# OSPLAT=U : universal binary
-		switch $(OSPLAT:U)
-		{
-		case X86    : _arch = -arch i386   ;
-		case X86_64 : _arch = -arch x86_64 ;
-		case U      : _arch = -arch i386
-		                      -arch x86_64 ;
-		              NOARSCAN = true ; # can't scan "fat" archives
-		}
+	case MACOSX1[01]* : # 10.9 and later
+		SetCommonCompiler $(OSCOMP:E=clang) ;
+		SetOSXSdk : -mmacosx-version-min=10.5 -fwrapv ;
 
-		$(GENFLAGS) += $(_arch) -fwrapv -DCASE_INSENSITIVE ;
-		LINKFLAGS   += $(_arch) ;
-
-		# Qt is built as frameworks.  On the mac, it can be built
-		# either as frameworks, regular unix-style shared
-		# libraries, or unix-style static libaries.
-		$(GENFLAGS)  += -F$(QTDIR)/lib ;
-
-	case MACOSX108 :
-		# COMPILER_SUFFIX can be e.g. "-4.2" to force a specific version.
-		# COMPILER_PREFIX can be e.g. "llvm-" to use llvm front ends.
-		CC   = $(COMPILER_PREFIX:E)gcc$(COMPILER_SUFFIX:E) ;
-		C++  = $(COMPILER_PREFIX:E)g++$(COMPILER_SUFFIX:E) ;
-		LINK = $(COMPILER_PREFIX:E)g++$(COMPILER_SUFFIX:E) ;
-
-		XCODE_PREFIX     ?= /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform ;
-		MACOSX_SDK       ?= $(XCODE_PREFIX)/Developer/SDKs/MacOSX10.8.sdk ;
-		MACOSX_SDK_FLAGS ?= -isysroot $(MACOSX_SDK) -mmacosx-version-min=10.5 ;
 		LIBRARY_DEPOLYMENT_SDK = sdk10.5 ;
 
-		$(GENFLAGS) += $(MACOSX_SDK_FLAGS) ;
-
 		# The -fvisibility-inlines-hidden option is a C++-only
 		# option, needed because Qt4 is built with it and all
 		# statically-compiled objects need to use it consistently.
 		C++FLAGS    += -fvisibility-inlines-hidden ;
-		$(GENFLAGS) += -DCASE_INSENSITIVE
-		               -fpascal-strings ;
+		$(GENFLAGS) += -fpascal-strings
+		               -F$(QTDIR)/lib ;
 
 		LINKLIBS    += -framework ApplicationServices
 		               -framework Foundation
 		               -framework CoreServices ;
-
-		# OSPLAT=U : universal binary
-		switch $(OSPLAT:U)
-		{
-		case X86    : _arch = -arch i386   ;
-		case X86_64 : _arch = -arch x86_64 ;
-		case U      : _arch = -arch i386
-		                      -arch x86_64 ;
-		              NOARSCAN = true ; # can't scan "fat" archives
-		}
-
-		$(GENFLAGS) += $(_arch) -fwrapv -DCASE_INSENSITIVE ;
-		LINKFLAGS   += $(_arch) ;
-
-		# Qt is built as frameworks.  On the mac, it can be built
-		# either as frameworks, regular unix-style shared
-		# libraries, or unix-style static libaries.
-		$(GENFLAGS)  += -F$(QTDIR)/lib ;
 
 	case MINGW* :
 		# MinGW is a special case of NT : instead of using msft's compiler,
@@ -1388,12 +1185,7 @@
 			CROSS_COMPILE ?= i686-pc-mingw32- ;
 		}
 
-		CC        = $(CROSS_COMPILE:E)gcc    ;
-		C++       = $(CROSS_COMPILE:E)g++    ;
-		LINK      = $(CROSS_COMPILE:E)gcc    ;
-		STRIP     = $(CROSS_COMPILE:E)strip  ;
-		RANLIB    = $(CROSS_COMPILE:E)ranlib ;
-		AR        = $(CROSS_COMPILE:E)ar ru  ;
+		SetCommonCompiler $(OSCOMP:E=gcc) ;
 
 		SUFLIB    = .a   ;
 		SUFOBJ	  = .o   ;
@@ -1407,6 +1199,8 @@
 		# some builds of MinGW don't even support them.
 		$(GENFLAGS) += -D_WIN32_WINNT=0x0501 -DWINVER=0x0501
 		               -fno-exceptions ;
+
+		if $(RI_DEVKIT) { $(GENFLAGS) += -DOS_MINGWW64 ; }
 
 		# LINKLIBS comes from jambase wrongly initialized
 		# do not use += here
@@ -1472,8 +1266,6 @@
 	case NT* :
 		LIBRARY_DEPOLYMENT_SDK = vs$(MSVSVER) ;
 
-		local _Z = /Zi ; # flag to put debug syms in .pdb file
-
 		# Jambase adds /MT to C++FLAGS, even when we don't want it.
 		# We'll set the right flags below.
 		C++FLAGS = [ FRemoveAny $(C++FLAGS) : /MT ] ;
@@ -1487,11 +1279,21 @@
 		    C++FLAGS += /FC ;
 		}
 
+		local _Z = /Zi ; # flag to put debug syms in .pdb file
+
 		# Visual Studio 8 and earlier choke when writing .pdb files
 		# to a networked drive; this variable provides a way to
 		# override the pdb filename.  Visual Studio 9
 		# (VS2008) and later apparently are ok.
 		PDBFILENAME ?= $(EXEC)\\ ;
+
+		if [ FVersionCmp $(MSVSVER) : 12 ] >= 0
+		{
+			# If using parallel builds, VS12 will abort due to multiple
+			# simultaneous accesses to the pdb file unless you serialize
+			# accesses with this flag.
+			$(GENFLAGS) += /FS ;
+		}
 
 		if $(JAMFAST)
 		{
@@ -1761,18 +1563,7 @@
 			}
 
 		case * : # GCC
-			# If cross compiling on one platform for another, set
-			# CROSS_COMPILE to the prefix of the cross tools.  For example,
-			# to build for SPARC using an X86 host, set
-			# CROSS_COMPILE=sparc-sun-solaris2.10-, OS=SOLARIS, and
-			# OSPLAT=SPARC.
-			#
-			# COMPILER_SUFFIX is used to specify special versions of the
-			# compiler, e.g. when needing to use gcc-3.4.6 vs gcc-4.5.3.
-
-			CC        = $(CROSS_COMPILE:E)gcc$(COMPILER_SUFFIX:E) ;
-			C++       = $(CROSS_COMPILE:E)g++$(COMPILER_SUFFIX:E) ;
-			LINK      = $(CROSS_COMPILE:E)gcc$(COMPILER_SUFFIX:E) ;
+			SetCommonCompiler $(OSCOMP:E=gcc) ;
 
 			switch $(OSPLAT:U)
 			{
@@ -2114,17 +1905,28 @@
 		Main $(<) : $(>) ;
 		Strip $(<) ;
 
+		# Things get a little messy with supc++/stdc++ depending on the
+		# compiler front end used for linking.
 		if $(<) in $(LINK_WITH_STDC++)
 		{
-			# Only needed if using gcc front end rather than g++ (or non-gnu compiler)
-			switch $(LINK)
+			if $(STATIC_LIBSTDC++) = yes
 			{
-			case *gcc* :
-				local _lib = -lstdc++ ;
-				if $(STATIC_LIBSTDC++) = yes { _lib = -Wl,-Bstatic $(_lib) -Wl,-Bdynamic ; }
+				local _lib = -Wl,-Bstatic -lstdc++ -Wl,-Bdynamic ;
 
 				OnTargetVarDelete $(<)$(SUFEXE) : LINKLIBS : -lsupc++ ;
 				OnTargetVarAppend $(<)$(SUFEXE) : LINKLIBS : $(_lib)  ;
+			}
+			else
+			{
+				OnTargetVarDelete $(<)$(SUFEXE) : LINKLIBS : -lsupc++ ;
+				if [ on $(<) return $(LINK) ] = [ on $(<) return $(CC) ]
+				{
+					# If using the CC front end to link by default, but we need
+					# STL (not necessarily stdc++, e.g. when using clang on
+					# freebsd, which has a different C++ runtime), use the C++
+					# front end for this target instead.
+					LINK on $(<) = [ on $(<) return $(C++) ] ;
+				}
 			}
 		}
 	}
@@ -3233,7 +3035,7 @@
 			return ;
 		}
 
-		switch $(OS)-$(OSVER:E)-$(OSPLAT:E)-$(OSCOMP:E)
+        switch $(OS)-$(OSVER:E)-$(OSPLAT:E)-$(OSCOMP:E)
 		{
 		case NT-*-*-* :
 			local _64 dyn d ;
@@ -3243,20 +3045,51 @@
 			case X64    : _64 = 64 ;
 			case IA64   : _64 = 64 ;
 			}
-			if $(TYPE_DYNAMIC) { dyn = \\dyn ; }
+			if $(TYPE_DYNAMIC) { dyn = dyn ; }
 			if $(TYPE_DEBUG)   { d   = d   ; }
+			local suflib = $(_64:E=32)$(d:E).lib ;
 
-			SSLLIB    ?= $(EXEC_LIB)\\vs$(MSVSVER:E)$(dyn:E)\\libeay$(_64:E=32)$(d:E).lib ;
-			CRYPTOLIB ?= $(EXEC_LIB)\\vs$(MSVSVER:E)$(dyn:E)\\ssleay$(_64:E=32)$(d:E).lib ;
+			SetDefaultDirName SSLLIBDIR : [ FDirName $(SSLPREFIX) lib.$(EXEC_SUB_TOKENS[1]) vs$(MSVSVER) $(dyn) ] ;
+
+			SSLLIB    ?= [ FDirName $(SSLLIBDIR) libeay$(_64:E=32)$(d:E).lib ] ;
+			CRYPTOLIB ?= [ FDirName $(SSLLIBDIR) ssleay$(_64:E=32)$(d:E).lib ] ;
 
 		case *-*-*-* :
-			SSLLIB    ?= $(EXEC_LIB)/libssl.a    ;
-			CRYPTOLIB ?= $(EXEC_LIB)/libcrypto.a ;
+			SetDefaultDirName SSLLIBDIR : [ FDirName $(SSLPREFIX) lib.$(EXEC_SUB_TOKENS[1]) ] ;
+
+			SSLLIB    ?= [ FDirName $(SSLLIBDIR) libssl.a    ] ;
+			CRYPTOLIB ?= [ FDirName $(SSLLIBDIR) libcrypto.a ] ;
 		}
 
 		local e = [ FAppendSuffix $(<) : $(SUFEXE) ] ;
 		OnTargetVarPrepend $(e) : LINKLIBS : $(CRYPTOLIB) ;
 		OnTargetVarPrepend $(e) : LINKLIBS : $(SSLLIB) ;
+	}
+
+	rule LinkLDAP
+	{
+		if $(LDAPSTUB) != no { return ; } # short circuit all this
+
+		switch $(OS)-$(OSVER:E)-$(OSPLAT:E)-$(OSCOMP:E)
+		{
+		case NT-*-*-* :
+			# We use the Windows SDK on NT.
+			LDAPLIB ?= Wldap32.lib Crypt32.lib ;
+
+		case *-*-*-* :
+			# Everywhere else we use OpenLDAP.
+			# OpenLDAP is linked against CyrusSASL and OpenSSL
+			if $(SSL) = yes && $(SSLSTUB) != yes
+			{
+				# If we don't have OpenSSL, this will fail!
+				LDAPLIB ?= $(OPENLDAPLIBDIR)/libldap.a
+				           $(OPENLDAPLIBDIR)/liblber.a
+				           $(CYRUSSASLPLIBDIR)/libsasl2.a ;
+			}
+		}
+
+		local e = [ FAppendSuffix $(<) : $(SUFEXE) ] ;
+		OnTargetVarPrepend $(e) : LINKLIBS : $(LDAPLIB) ;
 	}
 
 
@@ -5132,7 +4965,7 @@
 #################################################
 
 	# Point to the root of the boost hierarchy.  c.f. BoostHdrs rule.
-	BOOSTDIR ?= [ FDirName $(AllP4) .. import boost 1.47.0 ] ;
+	SetDefaultDirName BOOSTDIR : [ FSubDirPath AllP4 .. import boost 1.47.0 ] ;
 
 	# The old boost rule - still used in p4sandbox and server code
 	rule BoostHdrs
@@ -5580,10 +5413,9 @@ else if $(NT)
 	# Numerous client packages use this variable: p4-dtg, p4-convert,
 	# the scripted APIs, etc.
 	#  We can't set this in Section 1 because the rule isn't defined yet.
-	if ! $(P4APIDIR)
 	{
 		local _apidir = [ P4APIDirName p4api ] ;
-		P4APIDIR = [ FDirName $(EXEC) $(_apidir[1]) ] ;
+		SetDefaultDirName P4APIDIR : [ FDirName $(EXEC) $(_apidir[1]) ] ;
 	}
 	if $(USE_P4APIDIR) && ! [ FileIsDir $(P4APIDIR) ]
 	{

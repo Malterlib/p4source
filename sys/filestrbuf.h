@@ -31,6 +31,7 @@ class FileStrPtr : public FileSys
 	int	Stat() { return FSF_EXISTS; }
 	int	StatModTime() { return 0; }
 	void	Truncate( Error *e ) {};
+	void	Truncate( offL_t offset, Error *e ) {};
 	void	Unlink( Error *e = 0 ) {};
 	void	Rename( FileSys *target, Error *e ) {};
 	void	Chmod( FilePerm perms, Error *e ) {};

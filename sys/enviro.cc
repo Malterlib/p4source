@@ -40,6 +40,9 @@
 
 Enviro enviro;
 
+const char p4passwd[] = "P4PASSWD";
+const char p4enviro[] = "P4ENVIRO";
+
 // Cheesy -- known env vars
 // Keep alpha sort.
 // Keep in sync with HelpEnvironment in msgs/msghelp.cc
@@ -59,6 +62,7 @@ const static char *const envVars[] = {
 	"P4DIFF",
 	"P4DIFFUNICODE",
 	"P4EDITOR",
+	p4enviro,
 	"P4FTPCHANGE",
 	"P4FTPDEBUG",
 	"P4FTPLOG",
@@ -77,7 +81,7 @@ const static char *const envVars[] = {
 	"P4MERGEUNICODE",
 	"P4NAME",
 	"P4PAGER",
-	"P4PASSWD",
+	p4passwd,
 	"P4PCACHE",
 	"P4PFSIZE",
 	"P4POPTIONS",
@@ -170,8 +174,7 @@ Enviro::BeServer( const StrPtr *name, int checkName )
 	if( name )
 	{
 	    // cache service name for NetSslCredentials constructor
-	    if( !sServiceNameStrP )
-		sServiceNameStrP = name;
+	    sServiceNameStrP = name;
 
 	    // Variables under service 'name'
 	    serviceName.Set( *name );
@@ -340,8 +343,11 @@ Enviro::Set( const char *var, const char *value, Error *e )
 {
 	// Make sure symbol tab is there
 
-	if( !symbolTab )
-	    symbolTab = new EnviroTable;
+	Setup();
+
+	// Do not set p4passwd in enviro file
+	if( var && stricmp( var, p4passwd ) && !SetEnviro( var, value, e ) )
+	    return;
 
 	// Get from registry
 
@@ -800,13 +806,15 @@ Enviro::ReadItemPlatform( ItemType type, const char *var, EnviroItem * a )
 void
 Enviro::Set( const char *var, const char *value, Error *e )
 {
-	if ( !var || !strcasecmp( var, "P4PASSWD" ) || !HasCFPreferences() )
+	if ( !var || !strcasecmp( var, p4passwd ) || !HasCFPreferences() )
 	    return;
 
 	// Make sure symbol tab is there
 
-	if( !symbolTab )
-	    symbolTab = new EnviroTable;
+	Setup();
+
+	if( !SetEnviro( var, value, e ) )
+	    return;
 
 	// Get from preferences
 	CFStringRef domainRef     = kCFPreferencesCurrentUser;
@@ -902,6 +910,7 @@ Enviro::~Enviro()
 int
 Enviro::BeServer( const StrPtr *name, int checkName )
 {
+	sServiceNameStrP = name;
 	return 1;
 }
 
@@ -918,7 +927,11 @@ Enviro::Reload()
 void
 Enviro::Set( const char *var, const char *value, Error *e )
 {
-	e->Set( MsgSupp::NoUnixReg );
+	if ( !var || !strcasecmp( var, p4passwd ) )
+	    return;
+
+	if( SetEnviro( var, value, e ) )
+	    e->Set( MsgSupp::NoUnixReg );
 }
 
 bool
@@ -1025,6 +1038,9 @@ Enviro::IsKnown( const char *nm )
 	for( i = envVars; *i; i++ )
 	    if( !name.SCompare( StrRef( *i ) ) )
 	        return 1;
+	if( !strncmp( name.Text(), "P4_", 3 ) &&
+		name.EndsWith( "_CHARSET", 8 ) )
+	    return 1;
 	return 0;
 }
 
@@ -1066,8 +1082,7 @@ Enviro::GetItem( const char *var )
 {
 	// Make sure symbol tab is there
 
-	if( !symbolTab )
-	    symbolTab = new EnviroTable;
+	Setup();
 
 	// attempt to return cached value
 	// null string means unset
@@ -1109,7 +1124,8 @@ Enviro::FromRegistry( const char *var )
 	return( a->type == SVC || a->type == USER || a->type == SYS );
 }
 
-void Enviro::Update( const char *var, const char *value )
+void
+Enviro::Update( const char *var, const char *value )
 {
 	EnviroItem *a = GetItem( var );
 
@@ -1142,6 +1158,9 @@ Enviro::Format( const char *var, StrBuf *sb )
 	case CONFIG:
 		*sb << a->var.Text() << "=" << a->value.Text() << " (config)";
 		break;
+	case ENVIRO:
+		*sb << a->var.Text() << "=" << a->value.Text() << " (enviro)";
+		break;
 	case SVC:
 		*sb << a->var.Text() << "=" << a->value.Text() << " (set -S)";
 		break;
@@ -1157,6 +1176,56 @@ Enviro::Format( const char *var, StrBuf *sb )
 	}
 	if( isSet && a->var == "P4CONFIG" )
 	    *sb << " (config '" << GetConfig() << "')";
+}
+
+void
+Enviro::ReadConfig( FileSys *f, Error *e, int checkSyntax, Enviro::ItemType ty )
+{
+	StrBuf line, var;
+
+	while( f->ReadLine( &line, e ) )
+	{
+	    line.TruncateBlanks();
+
+	    char *equals = strchr( line.Text(), '=' );
+	    if( !equals ) continue;
+
+	    // tunable ?
+
+	    p4debug.SetLevel( line.Text() );
+
+	    // Just variable name
+
+	    var.Set( line.Text(), equals - line.Text() );
+
+	    if( checkSyntax &&
+	            var.Text()[0] != '#' && !IsKnown( var.Text() ) &&
+	            !p4tunable.IsKnown( var.Text() ) )
+	    {
+		StrBuf errBuf;
+		e->Set( MsgSupp::NoSuchVariable ) << var;
+		e->Fmt( &errBuf );
+		p4debug.printf( "%s", errBuf.Text() );
+		e->Clear();
+	    }
+
+	    // Set as config'ed
+
+	    EnviroItem *a = GetItem( var.Text() );
+	    a->value.Set( equals + 1 );
+	    a->type = ty;
+	}
+}
+
+void
+Enviro::Setup()
+{
+	if( !symbolTab )
+	{
+	    symbolTab = new EnviroTable;
+
+	    LoadEnviro( 0 );
+	}
 }
 
 void
@@ -1181,8 +1250,7 @@ Enviro::LoadConfig( const StrPtr &cwd, int checkSyntax )
 
 	// Make sure symbol tab is there
 
-	if( !symbolTab )
-	    symbolTab = new EnviroTable;
+	Setup();
 
 	// client up the directory tree, looking for setFile
 
@@ -1198,8 +1266,6 @@ Enviro::LoadConfig( const StrPtr &cwd, int checkSyntax )
 	    f->SetCharSetPriv( charset );
 	}
 # endif
-
-	StrBuf line, var;
 
 	// Start with current dir
 
@@ -1222,38 +1288,7 @@ Enviro::LoadConfig( const StrPtr &cwd, int checkSyntax )
 
 	    // Slurp contents into client name
 
-	    while( f->ReadLine( &line, &e ) )
-	    {
-	        line.TruncateBlanks();
-
-		char *equals = strchr( line.Text(), '=' );
-		if( !equals ) continue;
-
-	        // tunable ?
-
-	        p4debug.SetLevel( line.Text() );
-
-		// Just variable name
-
-		var.Set( line.Text(), equals - line.Text() );
-
-	        if( checkSyntax &&
-	            var.Text()[0] != '#' && !IsKnown( var.Text() ) &&
-	            !p4tunable.IsKnown( var.Text() ) )
-	        {
-	            StrBuf errBuf;
-	            e.Set( MsgSupp::NoSuchVariable ) << var;
-		    e.Fmt( &errBuf );
-		    p4debug.printf( "%s", errBuf.Text() );
-		    e.Clear();
-	        }
-
-		// Set as config'ed
-
-		EnviroItem *a = GetItem( var.Text() );
-		a->value.Set( equals + 1 );
-		a->type = CONFIG;
-	    }
+	    ReadConfig( f, &e, checkSyntax, CONFIG );
 
 	    f->Close( &e );
 	    break;
@@ -1267,15 +1302,205 @@ Enviro::LoadConfig( const StrPtr &cwd, int checkSyntax )
 	delete p;
 }
 
+void
+Enviro::LoadEnviro( int checkSyntax )
+{
+	Error e;
+
+	const StrPtr *envFile = GetEnviroFile();
+
+	if( !envFile )
+	    return;
+
+	// client up the directory tree, looking for setFile
+
+	FileSys *f = FileSys::Create( FileSysType( FST_TEXT|FST_L_CRLF ) );
+
+# if defined(OS_NT)
+	if( charset )
+	    f->SetCharSetPriv( charset );
+# endif
+
+	// Can we find the file?
+
+	e.Clear();
+	f->Set( *envFile );
+	f->Open( FOM_READ, &e );
+
+	if( !e.Test() )
+	{
+	    // Slurp contents into symbol table
+
+	    ReadConfig( f, &e, checkSyntax, ENVIRO );
+
+	    f->Close( &e );
+	}
+
+	// free & clear
+
+	delete f;
+}
+
+static void
+WriteItem( FileSys *newf, const char *var, const char *value, Error *e )
+{
+	newf->Write( var, strlen( var ), e );
+	newf->Write( "=", 1, e );
+	newf->Write( value, strlen( value ), e );
+	newf->Write( "\n", 1, e );
+}
 
 void
-Enviro::Save( const char *const *vars, Error *e )
+Enviro::SetEnviroFile( const char *f )
 {
-	for( ; *vars; vars++ ) {
-		Set( *vars, Get( *vars ), e );
-		if( e->Test() )
-			break;
+	enviroFile.Set( f ? f : "" );
+}
+
+const StrPtr *
+Enviro::GetEnviroFile()
+{
+	// If BeServer, do not use enviroment file at all
+	if( sServiceNameStrP )
+	    return NULL;
+
+	if( !enviroFile.Length() )
+	{	    
+	    char *setFile = Get( p4enviro );
+
+	    if( setFile )
+	    {
+		enviroFile.Set( setFile );
+	    }
+	    else
+	    {
+# if defined( OS_NT ) || defined( OS_DARWIN ) || defined( OS_MACOSX )
+		return NULL;
+# else
+		// defaults for Unix platforms...
+		setFile = Get( "HOME" );
+		if( setFile )
+		{
+		    enviroFile.Set( setFile );
+		    enviroFile.Append( "/.p4enviro" );
+		}
+		else
+		    return NULL;
+# endif
+	    }
 	}
+	return &enviroFile;
+}
+
+int
+Enviro::SetEnviro( const char *var, const char *value, Error *e )
+{
+	int didwrite = 0;
+	const StrPtr *envFile = GetEnviroFile();
+
+	if( !envFile )
+	    return 1;
+
+	// client up the directory tree, looking for setFile
+
+	FileSys *f = FileSys::Create( FileSysType( FST_TEXT|FST_L_CRLF ) );
+	FileSys *newf = FileSys::Create( FileSysType( FST_TEXT|FST_L_CRLF ) );
+
+# if defined(OS_NT)
+	if( charset )
+	{
+	    f->SetCharSetPriv( charset );
+	    newf->SetCharSetPriv( charset );
+	}
+# endif
+
+	// Can we find the file?
+
+	e->Clear();
+	f->Set( *envFile );
+	f->Open( FOM_READ, e );
+
+	if( !e->Test() )
+	{
+	    newf->MakeLocalTemp( envFile->Text() );
+	    newf->SetDeleteOnClose();
+	    newf->Perms( FPM_RW );
+
+	    newf->Open( FOM_WRITE, e );
+
+	    if( !e->Test() )
+	    {
+		// got both files - do the work
+
+		StrBuf line, filevar;
+		StrRef svar( var );
+
+		while( !e->Test() && f->ReadLine( &line, e ) )
+		{
+		    line.TruncateBlanks();
+
+		    char *equals = strchr( line.Text(), '=' );
+		    if( !didwrite && equals && line.Text()[0] != '#')
+		    {
+			// Just variable name
+
+			filevar.Set( line.Text(), equals - line.Text() );
+			if( !filevar.SCompare( svar ) )
+			{
+			    // This is the one!
+			    if( value && *value )
+				WriteItem( newf, var, value, e );
+
+			    didwrite = 1;
+
+			    // do not duplicate this line in the temp file
+			    continue;
+			}
+		    }
+		    line.Extend( '\n' );
+		    newf->Write( line.Text(), line.Length(), e );
+		}
+
+		if( !didwrite && value && *value )
+		{
+		    WriteItem( newf, var, value, e );
+		    didwrite = 1;
+		}
+
+		newf->Close( e );
+	    }
+
+	    f->Close( e );
+
+	    if( !e->Test() && didwrite )
+	    {
+		newf->Rename( f, e );
+
+		if( !e->Test() )
+		    newf->ClearDeleteOnClose();
+	    }
+	}
+	else
+	{
+	    // could not open the enviro file, try to write it...
+	    e->Clear();
+	    f->Perms( FPM_RW );
+	    f->Open( FOM_WRITE, e );
+	    if( !e->Test() )
+	    {
+		WriteItem( f, var, value, e );
+		didwrite = 1;
+		f->Close( e );
+	    }
+	}
+
+	delete newf;
+	delete f;
+
+	// warn the user if the env variable is also set.
+	if( value && getenv( var ) )
+	    e->Set( MsgSupp::HidesVar ) << var;
+
+	return e->Test() || !didwrite;
 }
 
 const StrPtr &

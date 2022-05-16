@@ -47,6 +47,19 @@
 # include "netutils.h"
 # include "netsupport.h"
 
+# ifdef OS_NT
+#    ifndef SIO_KEEPALIVE_VALS
+        struct tcp_keepalive {
+          unsigned long onoff;
+          unsigned long keepalivetime;
+          unsigned long keepaliveinterval;
+        };
+#       define SIO_KEEPALIVE_VALS _WSAIOW(IOC_VENDOR,4)
+#    else
+#        include <mstcpip.h>
+#    endif
+# endif // OS_NT
+
 # define PEEK_TIMEOUT 200 /* 200 milliseconds */
 
 NetTcpTransport::NetTcpTransport( int t, bool fromClient )
@@ -83,6 +96,68 @@ NetTcpTransport::~NetTcpTransport()
 	delete selector;
 }
 
+# ifdef OS_NT
+/*
+ * Set the keepalive parameters on Windows
+ * - enable/disable keepalives can be set via setsockopt
+ * - On Windows Vista and later the keepalive count is fixed at 10
+ * - both the idle time and the interval time must be set in the same call
+ * - this routine sets only idle and interval, and only if both are positive
+ * - quietly return success if the default values (both 0) are used
+ * - else complain and return failure if either are negative
+ */
+bool
+NetTcpTransport::SetWin32KeepAlives(
+	int		socket,
+	const SOCKOPT_T	ka_idlesecs,
+	const int	ka_intvlsecs)
+{
+	// default values -- don't set, don't complain, and return success
+	if( (ka_idlesecs == 0) && (ka_intvlsecs == 0) )
+	{
+	    return true;
+	}
+
+	// if either are non-positive, complain and return failure without setting
+	if( (ka_idlesecs <= 0) || (ka_intvlsecs <= 0) )
+	{
+	    TRANSPORT_PRINTF( DEBUG_CONNECT,
+		"NetTcpTransport: not setting TCP keepalive idle = %d secs, interval = %d secs"
+		" because both must be positive", ka_idlesecs, ka_intvlsecs );
+	    return false;
+	}
+
+	DWORD	retcnt;
+	struct tcp_keepalive
+		keepalive_opts;
+
+	int	ka_idle_msecs = ka_idlesecs * 1000;
+	int	ka_intvl_msecs = ka_intvlsecs * 1000;
+
+	// count is fixed to 10
+	keepalive_opts.onoff = 1;
+	keepalive_opts.keepalivetime = ka_idle_msecs;
+	keepalive_opts.keepaliveinterval = ka_intvl_msecs;
+
+	TRANSPORT_PRINTF( DEBUG_CONNECT,
+	    "NetTcpTransport: setting TCP keepalive idle = %d secs, interval = %d secs",
+		ka_idlesecs, ka_intvlsecs );
+
+	int rv = WSAIoctl( socket, SIO_KEEPALIVE_VALS, &keepalive_opts,
+		sizeof(keepalive_opts), NULL, 0, &retcnt, NULL, NULL );
+	if( rv )	// error
+	{
+	    StrBuf errnum;
+	    Error::StrNetError( errnum );
+	    p4debug.printf(
+	    	"NetTcpTransport WSAIoctl(idle=%d, interval=%d) failed, error = %s\n",
+		keepalive_opts.keepalivetime, keepalive_opts.keepaliveinterval, errnum.Text() );
+	}
+
+	return rv == 0;
+}
+# endif // OS_NT
+
 void
 NetTcpTransport::SetupKeepAlives( int t )
 {
@@ -104,6 +179,11 @@ NetTcpTransport::SetupKeepAlives( int t )
 	    TRANSPORT_PRINT( DEBUG_CONNECT, "NetTcpTransport: enabling TCP keepalives" );
 
 	    do_setsockopt( "NetTcpTransport", t, SOL_SOCKET, SO_KEEPALIVE, &one, sizeof( one ) );
+# ifdef OS_NT
+	    const SOCKOPT_T ka_idlesecs = p4tunable.Get( P4TUNE_NET_KEEPALIVE_IDLE );
+	    const int ka_intvlsecs = p4tunable.Get( P4TUNE_NET_KEEPALIVE_INTERVAL );
+	    SetWin32KeepAlives( t, ka_idlesecs, ka_intvlsecs );
+# else // OS_NT
 
 	    // set tcp keepalive count if user requested
 	    const SOCKOPT_T ka_keepcount = p4tunable.Get( P4TUNE_NET_KEEPALIVE_COUNT );
@@ -147,6 +227,7 @@ NetTcpTransport::SetupKeepAlives( int t )
 			"NetTcpTransport: this system does not support setting TCP keepalive interval" );
 # endif // TCP_KEEPINTVL
 	    }
+# endif // OS_NT
 	}
 # else
 	TRANSPORT_PRINTF( DEBUG_CONNECT,

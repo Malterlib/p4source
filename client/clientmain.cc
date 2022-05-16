@@ -104,6 +104,18 @@ static const char long_usage[] =
 "    For further information, visit the documentation at www.perforce.com.\n"
 "\n";
 
+static void
+BadCharset()
+{
+	printf( "Character set must be one of:\n"
+        "none, auto, utf8, utf8-bom, iso8859-1, shiftjis, eucjp, iso8859-15,\n"
+        "iso8859-5, macosroman, winansi, koi8-r, cp949, cp1251,\n"
+        "utf16, utf16-nobom, utf16le, utf16le-bom, utf16be,\n"
+        "utf16be-bom, utf32, utf32-nobom, utf32le, utf32le-bom, utf32be,\n"
+	"cp936, cp950, cp850, cp858, cp1253, iso8859-7 or utf32be-bom\n"
+        "Check P4CHARSET and your '-C' option.\n" );
+}
+
 /* Some forwards */
 
 int clientMain( int argc, char **argv, int &uidebug, Error *e );
@@ -191,7 +203,7 @@ clientMain( int argc, char **argv, int &uidebug, Error *e )
 
 	Options opts;
 	int longOpts[] = { Options::Client, Options::Batchsize, Options::User,
-	                   Options::Host, Options::Charset, Options::Host,
+	                   Options::Host, Options::Charset,
 	                   Options::Help, Options::Port, Options::Password,
 	                   Options::CmdCharset, Options::Retries,
 	                   Options::Quiet, Options::Progress,
@@ -296,14 +308,7 @@ clientMain( int argc, char **argv, int &uidebug, Error *e )
 	    if( (int)cs == -1 )
 	    {
 		// bad charset specification
-		printf( "Character set must be one of:\n"
-		        "none, utf8, utf8-bom, iso8859-1, shiftjis, eucjp, iso8859-15,\n"
-		        "iso8859-5, macosroman, winansi, koi8-r, cp949, cp1251,\n"
-		        "utf16, utf16-nobom, utf16le, utf16le-bom, utf16be,\n"
-		        "utf16be-bom, utf32, utf32-nobom, utf32le, utf32le-bom, utf32be,\n"
-			"cp936, cp950, cp850, cp858, cp1253, \n"
-			"iso8859-7 or utf32be-bom\n"
-		        "Check P4CHARSET and your '-C' option.\n" );
+		BadCharset();
 		return 1;
 	    }
 	    else
@@ -781,13 +786,7 @@ clientTickets( int argc, char **argv, Options &global_opts, Error *e )
 	    if( (int)cs == -1 )
 	    {
 		// bad charset specification
-		printf( "Character set must be one of:\n"
-		        "none, utf8, utf8-bom, iso8859-1, shiftjis, eucjp, iso8859-15,\n"
-		        "iso8859-5, macosroman, winansi, koi8-r, cp949, cp1251,\n"
-		        "utf16, utf16-nobom, utf16le, utf16le-bom, utf16be,\n"
-		        "utf16be-bom, utf32, utf32-nobom, utf32le, utf32le-bom, utf32be,\n"
-			"cp936, cp950, cp850, cp858, or utf32be-bom\n"
-		        "Check P4CHARSET and your '-C' option.\n" );
+		BadCharset();
 		return 1;
 	    }
 	    else
@@ -866,16 +865,53 @@ clientSet( int argc, char **argv, Options &global_opts, Error *e )
 
 	// Blast out message.
 
+	Enviro enviro;
 	HostEnv h;
 	StrBuf cwd;
+
+	if( opts[ 's' ] )
+	    enviro.BeServer();
+
+	if( opts[ 'S' ] )
+	{
+	    int serviceExists = enviro.BeServer( opts[ 'S' ], !argc );
+	    if( !serviceExists )
+	    {
+	        printf( "Perforce service '%s' does not exist.\n",
+	                opts[ 'S' ]->Text() );
+	        return 1;
+	    }
+	}
+	    
 	if( global_opts[ 'd' ] )
 	    cwd.Set( global_opts[ 'd' ] );
 	else
-	    h.GetCwd( cwd );
-	Enviro enviro;
+	    h.GetCwd( cwd, &enviro );
+
+	StrBuf charsetVar;
+
 	const char *lc;
 	StrPtr *s;
 	enviro.LoadConfig( cwd, argc == 0 );
+
+	if( s = global_opts[ 'p' ] )
+	    lc = s->Text();
+	else if( ! ( lc = enviro.Get( "P4PORT" ) ) )
+	    lc = "perforce:1666";
+
+	charsetVar.Set( "P4_" );
+	if( strchr( lc, '=' ) )
+	{
+	    // If the port contains an equals we replace it
+	    // since environment names can not have an equals
+	    StrBuf tmp( lc );
+
+	    StrOps::Sub( tmp, '=', '@' );
+	    charsetVar.Append( &tmp );
+	}
+	else
+	    charsetVar.Append( lc );
+	charsetVar.Append( "_CHARSET" );
 
 	if( ( s = opts[ 'l' ] ) || ( s = opts[ 'C' ] ) )
 	{
@@ -884,6 +920,8 @@ clientSet( int argc, char **argv, Options &global_opts, Error *e )
 	else
 	{
 	    lc = enviro.Get( "P4CHARSET" );
+	    if( !lc )
+		lc = enviro.Get( charsetVar.Text() );
 	}
 
 	if( lc )
@@ -893,14 +931,8 @@ clientSet( int argc, char **argv, Options &global_opts, Error *e )
 	    if( (int)cs == -1 )
 	    {
 		// bad charset specification
-		printf( "Character set must be one of:\n"
-		        "none, utf8, utf8-bom, iso8859-1, shiftjis, eucjp, iso8859-15,\n"
-		        "iso8859-5, macosroman, winansi, koi8-r, cp949, cp1251,\n"
-		        "utf16, utf16-nobom, utf16le, utf16le-bom, utf16be,\n"
-		        "utf16be-bom, utf32, utf32-nobom, utf32le, utf32le-bom, utf32be,\n"
-			"cp936, cp950, cp850, cp858, or utf32be-bom\n"
-		        "Check P4CHARSET and your '-C' option.\n"
-			"Continuing as if not set.\n" );
+		BadCharset();
+		printf(	"Continuing as if not set.\n" );
 	    }
 	    else
 	    {
@@ -933,23 +965,12 @@ clientSet( int argc, char **argv, Options &global_opts, Error *e )
 	    }
 	}
 
-	if( opts[ 's' ] )
-	    enviro.BeServer();
-
-	if( opts[ 'S' ] )
-	{
-	    int serviceExists = enviro.BeServer( opts[ 'S'], !argc );
-	    if( !serviceExists )
-	    {
-	        printf( "Perforce service '%s' does not exist.\n",
-	                opts[ 'S' ]->Text() );
-	        return 1;
-	    }
-	}
-	    
 	if( !argc )
 	{
 	    enviro.List();
+
+	    enviro.Print( charsetVar.Text() );
+
 	    int o = 0;
 	    while( p4tunable.GetName( o ) )
 	    {
@@ -967,7 +988,8 @@ clientSet( int argc, char **argv, Options &global_opts, Error *e )
 	    {
 		var.Set( *argv, equals - *argv );
 		++equals;
-		if( var == "P4CHARSET" && *equals )
+		if( ( var == "P4CHARSET" || var.EndsWith( "_CHARSET", 8 ) )
+		    && *equals )
 		{
 		    CharSetApi::CharSet cs = CharSetCvt::Lookup( equals );
 		    if( (int)cs == -1 )

@@ -42,10 +42,7 @@ class MsgHelp {
 	static ErrorId HelpChanges;
 	static ErrorId HelpClient;
 	static ErrorId HelpClients;
-#ifdef CLUSTERHELP
-// off for 13.2, document in 14.1
 	static ErrorId HelpCluster;
-#endif
 	static ErrorId HelpConfigure;
 	static ErrorId HelpConfigurables;
 	static ErrorId HelpCopy;
@@ -90,6 +87,7 @@ class MsgHelp {
 	static ErrorId HelpJob;
 	static ErrorId HelpJobs;
 	static ErrorId HelpJobSpec;
+	static ErrorId HelpJournalcopy;
 	static ErrorId HelpJournaldbchecksums;
 	static ErrorId HelpJournals;
 	static ErrorId HelpKey;
@@ -98,6 +96,8 @@ class MsgHelp {
 	static ErrorId HelpLabels;
 	static ErrorId HelpLabelsync;
 	static ErrorId HelpLegal;
+	static ErrorId HelpLdap;
+	static ErrorId HelpLdaps;
 	static ErrorId HelpLicense;
 	static ErrorId HelpList;
 	static ErrorId HelpLock;
@@ -126,6 +126,7 @@ class MsgHelp {
 	static ErrorId HelpProtect;
 	static ErrorId HelpProtects;
 	static ErrorId HelpProxy;
+	static ErrorId HelpPrune;
 	static ErrorId HelpPull;
 	static ErrorId HelpReload;
 	static ErrorId HelpRename;

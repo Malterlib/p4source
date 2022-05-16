@@ -25,6 +25,9 @@
 # include <lockfile.h>
 # include <largefile.h>
 
+# include <share.h>
+# include <mbstring.h>
+
 # include "filesys.h"
 # include "pathsys.h"
 # include "fileio.h"
@@ -38,7 +41,12 @@ extern int global_umask;
 // The REPARSE_DATA_BUFFER is part of the "Windows Driver Kit" according to
 // the MSDN docs, so for the time being we just copy the structure here:
 //
-# ifndef OS_MINGW
+// For MinGW builds, the mingw x86 version grouped the DDK into the
+// winnt.h header.  The newer mingw-w64 is more like Visual Studio
+// in that you must include ddk/ntifs.h for the reparse structure.
+// We defined the reparse structure only for OS_NT and OS_MINGWW64.
+//
+# if defined( OS_MINGWW64 ) == defined( OS_MINGW )
 typedef struct _REPARSE_DATA_BUFFER {
 	ULONG  ReparseTag;
 	USHORT ReparseDataLength;
@@ -63,9 +71,8 @@ typedef struct _REPARSE_DATA_BUFFER {
 			WCHAR  PathBuffer[1];
 		} MountPointReparseBuffer;
 		
-		// Just bulks up the structure so I can allocate it on the stack
 		struct {
-			UCHAR DataBuffer[MAX_PATH * 4];
+			UCHAR DataBuffer[1];
 		} GenericReparseBuffer;
 	} ;
 } REPARSE_DATA_BUFFER, *PREPARSE_DATA_BUFFER;
@@ -87,62 +94,392 @@ typedef struct _REPARSE_DATA_BUFFER {
 # ifndef SYMBOLIC_LINK_FLAG_DIRECTORY 
 # define SYMBOLIC_LINK_FLAG_DIRECTORY 1
 # endif
+# ifndef MAXIMUM_REPARSE_DATA_BUFFER_SIZE
+# define MAXIMUM_REPARSE_DATA_BUFFER_SIZE ( 16 * 1024 )
+# endif
 
-typedef BOOLEAN (WINAPI *CreateSymbolicLinkProc)(LPCSTR,LPCSTR,DWORD);
+typedef BOOLEAN (WINAPI *CreateSymbolicLinkAProc)(LPCSTR,LPCSTR,DWORD);
+typedef BOOLEAN (WINAPI *CreateSymbolicLinkWProc)(LPCWSTR,LPCWSTR,DWORD);
 
-static CreateSymbolicLinkProc CreateSymbolicLink_func = 0;
+static CreateSymbolicLinkAProc CreateSymbolicLinkA_func = 0;
+static CreateSymbolicLinkWProc CreateSymbolicLinkW_func = 0;
 static int functionHandlesLoaded = 0;
 
-int
-nt_makelink( const char *target, const char *name )
+// Handle the Unicode and LFN file name translation.
+// Caller to nt_wname() must free the memory.
+//
+void
+nt_free_wname( const wchar_t *wname )
 {
-	int result = -1;
+	delete [] (char *)wname;
+}
 
-	if( !FileSys::SymlinksSupported() )
-	    return result;
-	char tgt[MAX_PATH];
-	char *p = tgt;
-	while( *target )
+const wchar_t *
+nt_wname( StrPtr *fname, int lfn, int *newlen )
+{
+	CharSetCvtUTF816 cvt;
+	wchar_t *wname;
+	StrBuf lfname;
+	const char *filename;
+	int namelen;
+
+	// We want one of these two long filename forms.
+	//   lfn==1: \\?\c:\path
+	//   lfn==2: \\?\UNC\host\share\path
+	// In the UNC case, fname will have two leading back slashes.
+	// Use an offset to eliminate one leading slash in fname.
+	//
+	if( lfn )
 	{
-	    *p = *target == '/' ? '\\' : *target;
-	    p++;
-	    target++;
+	    if( lfn == 2 )
+		lfname.Set( "\\\\?\\UNC" );
+	    else
+		lfname.Set( "\\\\?\\" );
+
+	    if( FileSys::IsRelative( *fname ) )
+	    {
+		StrBuf cwd;
+		cwd.Alloc( _MAX_PATH );
+		_getcwd( cwd.Text(), cwd.Length() );
+		cwd.SetLength();
+
+		PathSys *p = PathSys::Create();
+		p->SetLocal( cwd, *fname );
+		lfname.Append( p->Text() );
+		delete p;
+	    }
+	    else
+	    {
+		if( lfn == 2 )
+		    lfname.Append( &(fname->Text()[1]) );
+		else
+		    lfname.Append( fname->Text() );
+	    }
+
+	   for(int len=0 ; len < lfname.Length(); ++len )
+	   {
+		if( lfname.Text()[len] == '/' )
+		    lfname.Text()[len] = '\\';
+	   }
+
+	    filename = lfname.Text();
+	    namelen = lfname.Length();
 	}
-	*p = '\0';
-
-	// Since the target may be relative, cd to the source's directory
-	char curDir[1024];
-	_getcwd( curDir, sizeof( curDir ) );
-	PathSys *pth = PathSys::Create();
-	pth->Set( StrRef( name ) );
-	pth->ToParent();
-	_chdir( pth->Text() );
-
-	struct stat sb;
-	DWORD dwFlags = 0;
-	if( stat( tgt, &sb ) >= 0 )
+	else
 	{
-	    if( S_ISDIR( sb.st_mode ) )
-	        dwFlags = SYMBOLIC_LINK_FLAG_DIRECTORY;
+	    filename = fname->Text();
+	    namelen = fname->Length();
 	}
-	if( (*CreateSymbolicLink_func)( name, tgt, (DWORD)dwFlags ) )
-	    result = 0;
-	_chdir( curDir );
-	delete pth;
 
-	return result;
+	// wname is allocated as a char *, use nt_free_wname when done.
+	//
+	if( newlen != NULL )
+	    wname = (wchar_t *)cvt.CvtBuffer( filename, namelen, newlen );
+	else
+	    wname = (wchar_t *)cvt.CvtBuffer( filename, namelen );
+
+	// No error structure, instead return a NULL.
+	if ( cvt.LastErr() != CharSetCvt::NONE )
+	{
+	    // Right now we are not treating a conversion error as fatal.
+	    // We do not set error codes which allows them to linger.
+	    if( wname )
+		nt_free_wname( wname );
+	    return NULL;
+	}
+
+	return wname;
 }
 
 int
-nt_islink( const char *fname )
+nt_convtime( SYSTEMTIME *systime )
 {
-	DWORD fileAttributes = GetFileAttributes( fname );
+	struct tm u_tm;
+	time_t t;
+
+	// Do the converstion twice.  First time gets the TZ from
+	// the systime.  Second time we have the correct TZ to
+	// produce the correct time_t.
+	//
+
+	u_tm.tm_sec   = systime->wSecond;
+	u_tm.tm_min   = systime->wMinute; u_tm.tm_hour  = systime->wHour;
+	u_tm.tm_mday  = systime->wDay;
+	u_tm.tm_mon   = systime->wMonth - 1;
+	u_tm.tm_year  = systime->wYear - 1900;
+	u_tm.tm_wday  = 0;
+	u_tm.tm_yday  = 0;
+	u_tm.tm_isdst = 0;
+
+	t = mktime( &u_tm );
+
+	u_tm.tm_sec   = systime->wSecond;
+	u_tm.tm_min   = systime->wMinute;
+	u_tm.tm_hour  = systime->wHour;
+	u_tm.tm_mday  = systime->wDay;
+	u_tm.tm_mon   = systime->wMonth - 1;
+	u_tm.tm_year  = systime->wYear - 1900;
+	u_tm.tm_wday  = 0;
+	u_tm.tm_yday  = 0;
+
+	t = mktime( &u_tm );
+
+	return t;
+}
+
+// This function is only for LFN support.
+// This function does not handle wild cards, neither does the MS version.
+// We do not fabricate c:/ or //host/share/
+// This only handles absolute path names with a drive spec.
+// Mostly taken from VS vc/crt/src/stat.c
+//
+// Limit this function to the VS2013 compiler.
+//
+int
+nt_wstati64( const wchar_t *wname, struct statbL *sb )
+{
+# if (_MSC_VER >= 1800)
+	HANDLE findhandle;
+	WIN32_FIND_DATAW findbuf;
+
+	errno = 0;
+
+	findhandle = FindFirstFileExW (
+			wname,
+			FindExInfoStandard,
+			&findbuf,
+			FindExSearchNameMatch,
+			NULL, 0);
+
+	// File does not exist.
+	if( findhandle == INVALID_HANDLE_VALUE )
+	{
+	    errno = ENOENT;
+	    return -1;
+	}
+
+	FindClose( findhandle );
+
+	if( (findbuf.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) &&
+	    (findbuf.dwReserved0 == IO_REPARSE_TAG_SYMLINK) )
+	{
+	    int fd = -1;
+	    errno_t e;
+	    int oflag = _O_RDONLY;
+	    int ret=0;
+
+	    if( findbuf.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY )
+		oflag |= _O_OBTAIN_DIR;
+
+	    e = _wsopen_s( &fd, wname, oflag, _SH_DENYNO, 0 );
+	    if( e != 0 || fd == -1 )
+		return -1;
+
+	    ret = _fstati64( fd, sb );
+
+	    close( fd );
+	    return ret;
+	}
+
+	// Sort out file times.
+	//
+	SYSTEMTIME SysTime;
+
+	// Range testing on SystemTimeToTzSpecificLocalTime()
+	// Lowest date which will convert correctly
+	//   quad=0x430e234000, highpart=0x43, lowpart=0xe234000
+	//   quad=288000000000, highpart=67, lowpart=237191168
+	// Highest date which will convert correctly
+	//   quad=0x7fff35f4f06c8000, highpart=0x7fff35f4, lowpart=0xf06c8000
+	//   quad=9223149888000000000, highpart=2147431924, lowpart=4033642496
+	//
+	// Range testing on FileTimeToSystemTime()
+	//   Lowest is quad=0
+	//   Highest is quad=0x8000000000000000
+	//
+	// Both failure conditions return this error,
+	//   WinAPI - ERROR_INVALID_PARAMETER
+	//   CRT - EINVAL
+
+	if( findbuf.ftLastWriteTime.dwLowDateTime ||
+	    findbuf.ftLastWriteTime.dwHighDateTime )
+	{
+	    if( !FileTimeToSystemTime( &findbuf.ftLastWriteTime, &SysTime ) ||
+		!SystemTimeToTzSpecificLocalTime( NULL, &SysTime, &SysTime ) )
+	    {
+		errno = EINVAL;
+		return -1;
+	    }
+	    sb->st_mtime = nt_convtime( &SysTime );
+	}
+	if( findbuf.ftLastAccessTime.dwLowDateTime ||
+	    findbuf.ftLastAccessTime.dwHighDateTime )
+        {
+	    if( !FileTimeToSystemTime( &findbuf.ftLastAccessTime, &SysTime ) ||
+		!SystemTimeToTzSpecificLocalTime( NULL, &SysTime, &SysTime ) )
+	    {
+		errno = EINVAL;
+		return -1;
+	    }
+	    sb->st_atime = nt_convtime( &SysTime );
+	}
+	if( findbuf.ftCreationTime.dwLowDateTime ||
+	    findbuf.ftCreationTime.dwHighDateTime )
+        {
+	    if( !FileTimeToSystemTime( &findbuf.ftCreationTime, &SysTime ) ||
+		!SystemTimeToTzSpecificLocalTime( NULL, &SysTime, &SysTime ) )
+	    {
+		errno = EINVAL;
+		return -1;
+	    }
+	    sb->st_ctime = nt_convtime( &SysTime );
+	}
+
+	// A=0, B=1, etc.
+	//
+	const wchar_t *p;
+	if( p = wcschr(wname, L':') )
+	    sb->st_rdev = sb->st_dev = (_dev_t)(_mbctolower(*--p) - 0x61);
+	else
+	    sb->st_rdev = sb->st_dev = 0;
+
+	// Sort out the Unix style file modes.
+	//
+	unsigned short uxmode = 0;
+
+	// Watch out, a directory can have FILE_ATTRIBUTE_ARCHIVE set.
+	//
+	if( findbuf.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY )
+	    uxmode |= _S_IFDIR|_S_IEXEC;
+	else
+	if( findbuf.dwFileAttributes & FILE_ATTRIBUTE_NORMAL ||
+		findbuf.dwFileAttributes & FILE_ATTRIBUTE_ARCHIVE )
+	{
+	    uxmode |= _S_IFREG;
+	}
+
+	if( findbuf.dwFileAttributes & FILE_ATTRIBUTE_READONLY )
+	    uxmode |= _S_IREAD;
+	else
+	    uxmode |= _S_IREAD|_S_IWRITE;
+
+	// The correct way to determine if a file is executable is to
+	// use Access Control Lists, ACLs.  This is nasty stuff and you
+	// can dive in a bit by using the icacls command line tool.
+	// Apparently Cygwin does a better job with ACLs, hence job032715.
+	// The code below is basically a MS hack to simulate S_IEXEC.
+	//
+	if( p = wcsrchr(wname, L'.') )
+	{
+	    if( _wcsicmp(p, L".exe") == 0 ||
+		_wcsicmp(p, L".cmd") == 0 ||
+		_wcsicmp(p, L".bat") == 0 ||
+		_wcsicmp(p, L".com") == 0 )
+		    uxmode |= _S_IEXEC;
+	}
+	uxmode |= (uxmode & 0700) >> 3;
+	uxmode |= (uxmode & 0700) >> 6;
+
+	sb->st_mode = uxmode;
+
+	// You can use GetFileInformationByHandle() to get the hardlink
+	// count.  We don't have a file handle here.  We do the same
+	// thing as MS, just set st_nlink to 1.
+	//
+	sb->st_nlink = 1;
+
+	// 64bit file size.
+	//
+	sb->st_size = ((__int64)(findbuf.nFileSizeHigh)) * (0x100000000i64) +
+                    (__int64)(findbuf.nFileSizeLow);
+
+	// Windows doesn't really have a uid or gid.  Using ACLs it is
+	// possible to come up with these numbers.  Although they will not
+	// be in the ranges as you have on Unix.  So we do the smae thing
+	// as MS, and assign them to 0.  You can get a file ID by using
+	// GetFileInformationByHandle(), it is a 64bit value.
+	//
+	sb->st_uid = sb->st_gid = sb->st_ino = 0;
+
+	return 0;
+# else
+	return -1;
+# endif
+}
+
+int
+ntw_islink( StrPtr *fname, DWORD *dwFlags, int lfn )
+{
+	DWORD fileAttributes;
+	const wchar_t *wname;
+
+	wname = nt_wname( fname, lfn, NULL );
+	if( !wname )
+	    return -1;
+
+	fileAttributes = GetFileAttributesW( wname );
+	if( fileAttributes == INVALID_FILE_ATTRIBUTES )
+	{
+	    nt_free_wname( wname );
+	    return -1;
+	}
+
+	if( !(fileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) )
+	{
+	    nt_free_wname( wname );
+	    return 0;
+	}
+
+	if( dwFlags )
+	{
+	    *dwFlags = 0;
+	    if( fileAttributes & FILE_ATTRIBUTE_DIRECTORY )
+		*dwFlags = SYMBOLIC_LINK_FLAG_DIRECTORY;
+	}
+
+
+	HANDLE fH;
+	WIN32_FIND_DATAW findFileDataW;
+
+	fH = FindFirstFileW( wname, &findFileDataW );
+	nt_free_wname( wname );
+
+	if( fH == INVALID_HANDLE_VALUE )
+	    return -1;
+	FindClose( fH );
+	if( findFileDataW.dwReserved0 == IO_REPARSE_TAG_SYMLINK ||
+	    findFileDataW.dwReserved0 == IO_REPARSE_TAG_MOUNT_POINT )
+		return 1;
+
+	return 0;
+}
+
+int
+nt_islink( StrPtr *fname, DWORD *dwFlags, int dounicode, int lfn )
+{
+	// Allow unicode to fall through.
+	if( dounicode || lfn )
+	{
+	    int ret;
+	    if( (ret = ntw_islink( fname, dwFlags, lfn )) >= 0 || lfn )
+		return ret;
+	}
+
+	DWORD fileAttributes = GetFileAttributes( fname->Text() );
 	if( fileAttributes == INVALID_FILE_ATTRIBUTES )
 	    return -1;
+
+	if( dwFlags )
+	{
+	    *dwFlags = 0;
+	    if( fileAttributes & FILE_ATTRIBUTE_DIRECTORY )
+		*dwFlags = SYMBOLIC_LINK_FLAG_DIRECTORY;
+	}
+
 	if( fileAttributes & FILE_ATTRIBUTE_REPARSE_POINT )
 	{
 	    WIN32_FIND_DATA findFileData;
-	    HANDLE fH = FindFirstFile( fname, &findFileData );
+	    HANDLE fH = FindFirstFile( fname->Text(), &findFileData );
 	    if( fH == INVALID_HANDLE_VALUE )
 	        return -1;
 	    FindClose( fH );
@@ -153,25 +490,89 @@ nt_islink( const char *fname )
 	return 0;
 }
 
+// Open the file in Unicode mode, hand control back to nt_readlink().
+// Return the file handle.
+//
+HANDLE
+ntw_readlink( StrPtr *name, StrBuf &targetBuf, int lfn )
+{
+	HANDLE fH;
+	const wchar_t *wname;
+
+	wname = nt_wname( name, lfn, NULL );
+	if( !wname )
+	    return INVALID_HANDLE_VALUE;
+
+	fH = CreateFileW( wname,
+			    GENERIC_READ, FILE_SHARE_READ,
+			    0, OPEN_EXISTING,
+			    (FILE_FLAG_BACKUP_SEMANTICS|
+				FILE_FLAG_OPEN_REPARSE_POINT),
+			    0);
+	nt_free_wname( wname );
+
+	return fH;
+}
+
 // Reads what the symlink points to, puts the data into targetBuf.
 // Returns the number of bytes read.
 //
 int
-nt_readlink( const char *name, char *targetBuf, int bufSize )
+nt_readlink( StrPtr *name, StrBuf &targetBuf, int dounicode, int lfn )
 {
-	HANDLE fH = CreateFile( name, GENERIC_READ, FILE_SHARE_READ,
+	HANDLE fH = INVALID_HANDLE_VALUE;
+
+	// Allow unicode to fall through.
+	if( dounicode || lfn )
+	{
+	    fH = ntw_readlink( name, targetBuf, lfn );
+	    if( fH == INVALID_HANDLE_VALUE && lfn )
+		return -1;
+	}
+	if( fH == INVALID_HANDLE_VALUE )
+	{
+	    fH = CreateFile( name->Text(), GENERIC_READ, FILE_SHARE_READ,
 		0, OPEN_EXISTING,
 		(FILE_FLAG_BACKUP_SEMANTICS|FILE_FLAG_OPEN_REPARSE_POINT), 0);
+	}
 	if( fH == INVALID_HANDLE_VALUE )
 	    return -1;
-	REPARSE_DATA_BUFFER reparseBuffer;
+
+	// If the extra memory allocated at the end of REPARSE_DATA_BUFFER
+	// is not large enough, the code ERROR_MORE_DATA is returned.
+	//
+	// The MS docs for DeviceIoControl() indicate that when the
+	// error code ERROR_MORE_DATA is returned, "Your application
+	// should call DeviceIoControl again with the same operation,
+	// specifying a new starting point".
+	//
+	// MS confirmed that this comment is not valid when using
+	// DeviceIoControl() for collecting the symlink target.  The
+	// extra memory must be enough for the symlink target.  Also
+	// DeviceIoControl() will not tell you the required buffer size.
+	// MS admits that the error code ERROR_INSUFFICIENT_BUFFER
+	// would have been a better return code.
+	//
+	// So we allocate the maximum allowed extra memory at the end
+	// of the REPARSE_DATA_BUFFER, 16k.  This equates to a maximum
+	// of 4096 in length for a Windows symlink target.  Testing
+	// symlink creation with a mixture of targets confirms this.
+	// 
+	REPARSE_DATA_BUFFER *reparseBuffer;
+	// The REPARSE_DATA_BUFFER size and room for the symlink target.
+	DWORD struct_siz = sizeof(REPARSE_DATA_BUFFER) +
+				MAXIMUM_REPARSE_DATA_BUFFER_SIZE;
+	reparseBuffer = (REPARSE_DATA_BUFFER *) malloc( struct_siz );
+	reparseBuffer->ReparseDataLength = MAXIMUM_REPARSE_DATA_BUFFER_SIZE;
 	DWORD returnedLength;
 	DWORD result = DeviceIoControl( fH, FSCTL_GET_REPARSE_POINT, 0, 0,
-			&reparseBuffer, sizeof(reparseBuffer),
-			&returnedLength, 0 );
+			reparseBuffer, struct_siz, &returnedLength, 0 );
 	CloseHandle( fH );
 	if( !result )
+	{
+	    free( reparseBuffer );
 	    return -1;
+	}
 
 	int len, off;
 	WCHAR *wp;
@@ -184,20 +585,21 @@ nt_readlink( const char *name, char *targetBuf, int bufSize )
 	// docs about that magic string prefix, and have been successfully
 	// using the PrintName representation instead.
 	//
-	if( reparseBuffer.ReparseTag == IO_REPARSE_TAG_SYMLINK )
+	if( reparseBuffer->ReparseTag == IO_REPARSE_TAG_SYMLINK )
 	{
-	    len = reparseBuffer.SymbolicLinkReparseBuffer.PrintNameLength;
-	    off = reparseBuffer.SymbolicLinkReparseBuffer.PrintNameOffset;
-	    wp  = reparseBuffer.SymbolicLinkReparseBuffer.PathBuffer;
+	    len = reparseBuffer->SymbolicLinkReparseBuffer.PrintNameLength;
+	    off = reparseBuffer->SymbolicLinkReparseBuffer.PrintNameOffset;
+	    wp  = reparseBuffer->SymbolicLinkReparseBuffer.PathBuffer;
 	}
-	else if( reparseBuffer.ReparseTag == IO_REPARSE_TAG_MOUNT_POINT )
+	else if( reparseBuffer->ReparseTag == IO_REPARSE_TAG_MOUNT_POINT )
 	{
-	    len = reparseBuffer.MountPointReparseBuffer.PrintNameLength;
-	    off = reparseBuffer.MountPointReparseBuffer.PrintNameOffset;
-	    wp  = reparseBuffer.MountPointReparseBuffer.PathBuffer;
+	    len = reparseBuffer->MountPointReparseBuffer.PrintNameLength;
+	    off = reparseBuffer->MountPointReparseBuffer.PrintNameOffset;
+	    wp  = reparseBuffer->MountPointReparseBuffer.PathBuffer;
 	}
 	else
 	{
+	    free( reparseBuffer );
 	    return -1;
 	}
 
@@ -206,19 +608,47 @@ nt_readlink( const char *name, char *targetBuf, int bufSize )
 	wp += off;
 
 	int retlen = len;
-	char *o = targetBuf;
+	targetBuf.Alloc( len );
+	char *o = targetBuf.Text();
 	while( len-- )
 	{
 	    char c = *wp++;
+	    // Use forward slashes, storing in Unix format.
 	    *o++ = c == '\\' ? '/' : c;
 	}
 	*o = 0;
+	targetBuf.SetLength();
+	free( reparseBuffer );
 	return retlen;
 }
 
 
 static int
-nt_open( const char *fname, int flags, int mode, int dounicode )
+ntw_open( StrPtr *fname, int flags, int mode, int lfn )
+{
+	int newlen = 0;
+	const wchar_t *wname;
+
+	wname = nt_wname( fname, lfn, &newlen );
+	if( !wname )
+	    return -1;
+
+	// Length check for unicode.
+	// If LFN and Unicode are grouped, this can be removed.
+	if( !lfn && newlen > ( MAX_PATH * 2 ) )
+	{
+	    nt_free_wname( wname );
+	    SetLastError( ERROR_BUFFER_OVERFLOW );
+	    return -1;
+	}
+
+	int fd = _wopen( (const wchar_t *)wname, flags, mode );
+	nt_free_wname( wname );
+	return fd;
+}
+
+static int
+nt_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 {
 # ifdef O_NOINHERIT
 	// All files on Windows are set to no inherit.
@@ -226,102 +656,158 @@ nt_open( const char *fname, int flags, int mode, int dounicode )
 	flags |= O_NOINHERIT;
 # endif
 
-	if ( dounicode )
+	// Allow unicode to fall through.
+	if( dounicode || lfn )
 	{
-	    CharSetCvtUTF816 cvt;
-	    int newlen = 0;
-
-	    const char *wname = cvt.FastCvt( fname, strlen( fname ), &newlen );
-
-	    if( newlen > ( MAX_PATH * 2 ) )
-	    {
-		SetLastError( ERROR_BUFFER_OVERFLOW );
-		return -1;
-	    }
-
-	    if ( cvt.LastErr() == CharSetCvt::NONE )
-	    {
-		return _wopen( (const wchar_t *)wname, flags, mode );
-	    }
+	    int fd;
+	    if( (fd = ntw_open( fname, flags, mode, lfn ) ) >= 0 || lfn )
+		return fd;
 	}
 
-	if( strlen( fname ) > MAX_PATH )
+	if( fname->Length() > MAX_PATH )
 	{
 	    SetLastError( ERROR_BUFFER_OVERFLOW );
 	    return -1;
 	}
 
-	return ::open(fname, flags, mode);
+	return ::open(fname->Text(), flags, mode);
 }
 
 static int
-nt_stat( const char *fname, struct statbL *sb, int dounicode )
+ntw_stat( StrPtr *fname, struct statbL *sb, int lfn )
 {
 	int ret;
+	int newlen = 0;
+	const wchar_t *wname;
 
-	if ( dounicode )
+	wname = nt_wname( fname, lfn, &newlen );
+	if ( !wname )
+	    return -1;
+
+	// Length check for unicode.
+	// If LFN and Unicode are grouped, this can be removed.
+	if( !lfn && newlen > ( MAX_PATH * 2 ) )
 	{
-	    CharSetCvtUTF816 cvt;
-	    int newlen = 0;
-
-	    const char *wname = cvt.FastCvt( fname, strlen( fname ), &newlen );
-
-	    if( newlen > ( MAX_PATH * 2 ) )
-	    {
-		SetLastError( ERROR_BUFFER_OVERFLOW );
-		return -1;
-	    }
-
-	    if ( cvt.LastErr() == CharSetCvt::NONE )
-	    {
-		ret = _wstati64( (const wchar_t *)wname, sb );
-		if ( ret >= 0 || errno != ENOENT )
-		    return ret;
-	    }
+	    nt_free_wname( wname );
+	    SetLastError( ERROR_BUFFER_OVERFLOW );
+	    return -1;
 	}
 
-	if( strlen( fname ) > MAX_PATH )
+	if( lfn )
+	    ret = nt_wstati64( wname, sb );  // LFN
+	else
+	    ret = _wstati64( wname, sb );   // Unicode
+	nt_free_wname( wname );
+	return ret;
+}
+
+static int
+nt_stat( StrPtr *fname, struct statbL *sb, int dounicode, int lfn )
+{
+	// Allow unicode to fall through.
+	if( dounicode || lfn )
+	{
+	    int ret;
+	    if( (ret = ntw_stat( fname, sb, lfn ) ) >= 0 || lfn )
+		return ret;
+	}
+
+	if( fname->Length() > MAX_PATH )
 	{
 	    SetLastError( ERROR_BUFFER_OVERFLOW );
 	    return -1;
 	}
 
-	return ::_stati64( fname, sb );
+	return ::_stati64( fname->Text(), sb );
 }
 
 static int
-nt_unlink( const char *fname, int dounicode )
+ntw_unlink( StrPtr *fname, int lfn )
 {
-	int ret;
+	DWORD dwFlags;
+	const wchar_t *wname=NULL;
 
-	if ( dounicode )
+	wname = nt_wname( fname, lfn, NULL );
+	if ( !wname )
+	    return -1;
+
+	if( ntw_islink( fname, &dwFlags, lfn ) >= 0 )
 	{
-	    CharSetCvtUTF816 cvt;
-	    const char *wname = cvt.FastCvt( fname, strlen( fname ) );
-	    if ( cvt.LastErr() == CharSetCvt::NONE )
+	    if( dwFlags == SYMBOLIC_LINK_FLAG_DIRECTORY )
 	    {
-		ret = _wunlink( (const wchar_t *)wname );
-		if ( ret >= 0 || errno != ENOENT )
-		    return ret;
+		BOOL bRet = RemoveDirectoryW( wname );
+		nt_free_wname( wname );
+		return bRet ? 0 : -1;
+	    }
+	    else
+	    {
+		int ret = _wunlink( wname );
+		nt_free_wname( wname );
+		return ret;
 	    }
 	}
-	if( nt_islink( fname ) > 0 && RemoveDirectory( fname ) )
+	else
+	    nt_free_wname( wname );
+	return -1;
+}
+
+static int
+nt_unlink( StrPtr *fname, int dounicode, int lfn )
+{
+	DWORD dwFlags;
+
+	// Allow unicode to fall through.
+	if( dounicode || lfn )
+	{
+	    int ret;
+	    if( (ret = ntw_unlink( fname, lfn )) >= 0 || lfn )
+	    	return ret;
+	}
+
+	// no error returned if directory is not removed.
+	if( nt_islink( fname, &dwFlags, dounicode, lfn ) > 0 &&
+	    dwFlags == SYMBOLIC_LINK_FLAG_DIRECTORY &&
+	    RemoveDirectory( fname->Text() ) )
 	        return 0;
 
-	return ::_unlink( fname );
+	return ::_unlink( fname->Text() );
 }
 
-static HANDLE nt_openHandleW( const wchar_t *wname)
+static HANDLE
+nt_openDirOrFileHandleW( StrPtr *fname, DWORD flags, int lfn )
 {
-	return CreateFileW( wname,
+	HANDLE fH;
+	const wchar_t *wname;
+
+	wname = nt_wname( fname, lfn, NULL );
+	if( !wname )
+	    return INVALID_HANDLE_VALUE;
+
+	fH = CreateFileW( wname,
 	        FILE_WRITE_ATTRIBUTES,
 	        ( FILE_SHARE_READ | FILE_SHARE_WRITE ),
 	        NULL,
 	        OPEN_EXISTING,
 	        FILE_ATTRIBUTE_NORMAL,
 	        NULL);
+
+	nt_free_wname( wname );
+	return fH;
 }
-static HANDLE nt_openDirOrFileHandle( const char *fname, DWORD flags )
+static HANDLE
+nt_openHandleW( StrPtr *fname, int lfn )
+{
+	return nt_openDirOrFileHandleW( fname, FILE_ATTRIBUTE_NORMAL, lfn );
+}
+static HANDLE
+nt_openDirHandleW( StrPtr *fname, int lfn )
+{
+	return nt_openDirOrFileHandleW( fname,
+		( FILE_FLAG_BACKUP_SEMANTICS | FILE_ATTRIBUTE_NORMAL ), lfn );
+}
+
+static HANDLE
+nt_openDirOrFileHandle( const char *fname, DWORD flags )
 {
 	return CreateFile( fname,
 	        FILE_WRITE_ATTRIBUTES,
@@ -331,16 +817,22 @@ static HANDLE nt_openDirOrFileHandle( const char *fname, DWORD flags )
 	        flags,
 	        NULL);
 }
-static HANDLE nt_openHandle( const char *fname )
+static HANDLE
+nt_openHandle( const char *fname )
 {
 	return nt_openDirOrFileHandle( fname, FILE_ATTRIBUTE_NORMAL );
 }
-static HANDLE nt_openDirHandle( const char *fname )
+static HANDLE
+nt_openDirHandle( const char *fname )
 {
 	return nt_openDirOrFileHandle( fname,
 		( FILE_FLAG_BACKUP_SEMANTICS | FILE_ATTRIBUTE_NORMAL ) );
 }
 
+// This code corrected a DST datetime problem, job039200
+// As of Visual Studio 2013, the problem has been fixed.
+// Keep this fix as we still build with older Visual Studios.
+//
 static int nt_convertToFileTime( time_t t32, FILETIME *ft)
 {
 	SYSTEMTIME st;
@@ -381,63 +873,187 @@ nt_setFileTimes( HANDLE hFile, time_t t32 )
 }
 
 static int
-nt_utime( const char *fname, struct utimbufL *ut, int dounicode )
+ntw_utime( StrPtr *fname, struct utimbufL *ut, int lfn )
 {
-	if ( dounicode )
-	{
-	    CharSetCvtUTF816 cvt;
-	    const char *wname = cvt.FastCvt( fname, strlen( fname ) );
-	    if ( cvt.LastErr() == CharSetCvt::NONE )
-	    {
-	        return nt_setFileTimes(
-	            nt_openHandleW( (const wchar_t *)wname ),
-	            ut->modtime );
-	    }
-	}
-	return nt_setFileTimes( nt_openHandle( fname ), ut->modtime );
+	const wchar_t *wname;
+	int ret;
+
+	wname = nt_wname( fname, lfn, NULL );
+	if( !wname )
+	    return -1;
+
+	ret = nt_setFileTimes( nt_openHandleW( fname, lfn ), ut->modtime );
+	nt_free_wname( wname );
+	return ret;
 }
 
 static int
-nt_chmod( const char *fname, int m, int dounicode )
+nt_utime( StrPtr *fname, struct utimbufL *ut, int dounicode, int lfn)
 {
-	int ret;
-
-	if ( dounicode )
+	// Allow unicode to fall through.
+	if( dounicode || lfn )
 	{
-	    CharSetCvtUTF816 cvt;
-	    const char *wname = cvt.FastCvt( fname, strlen( fname ) );
-	    if ( cvt.LastErr() == CharSetCvt::NONE )
-	    {
-		ret = _wchmod( (const wchar_t *)wname, m );
-		if ( ret >= 0 || errno != ENOENT )
-		    return ret;
-	    }
+	    int ret;
+	    if ( (ret = ntw_utime( fname, ut, lfn ) ) >= 0 || lfn )
+		return ret;
 	}
-	return ::_chmod( fname, m );
+
+	return nt_setFileTimes( nt_openHandle( fname->Text() ), ut->modtime );
 }
 
 static int
-nt_rename( const char *fname, const char *nname, int dounicode )
+ntw_chmod( StrPtr *fname, int m, int lfn )
 {
+	const wchar_t *wname;
 	int ret;
 
-	if ( dounicode )
+	wname = nt_wname( fname, lfn, NULL );
+	if( !wname )
+	    return -1;
+
+	ret = _wchmod( (const wchar_t *)wname, m );
+	nt_free_wname( wname );
+	return ret;
+}
+
+static int
+nt_chmod( StrPtr *fname, int m, int dounicode, int lfn )
+{
+	// Allow unicode to fall through.
+	if( dounicode || lfn )
 	{
-	    CharSetCvtUTF816 cvt;
-	    const char *wname = cvt.FastCvt( fname, strlen( fname ) );
-	    if ( cvt.LastErr() == CharSetCvt::NONE )
-	    {
-		wchar_t *wnname = FileIO::UnicodeName( nname, strlen( nname ) );
-		if ( wnname )
-		{
-		    ret = _wrename( (const wchar_t *)wname, wnname );
-		    delete [] (char *)wnname;
-		    if ( ret >= 0 || errno != ENOENT )
-			return ret;
-		}
-	    }
+	    int ret;
+	    if ((ret = ntw_chmod( fname, m, lfn )) >= 0 || lfn )
+		return ret;
 	}
-	return ::rename( fname, nname );
+
+	return ::_chmod( fname->Text(), m );
+}
+
+static int
+ntw_rename( StrPtr *fname, StrPtr *nname, int lfn )
+{
+	const wchar_t *wname;
+	const wchar_t *wnname;
+	int ret;
+
+	wname = nt_wname( fname, lfn, NULL );
+	if( !wname )
+	    return -1;
+
+	wnname = nt_wname( nname, lfn, NULL );
+	if( !wnname )
+	{
+	    nt_free_wname( wname );
+	    return -1;
+	}
+
+	ret = _wrename( wname, wnname );
+	nt_free_wname( wname );
+	nt_free_wname( wnname );
+	return ret;
+}
+
+static int
+nt_rename( StrPtr *fname, StrPtr *nname, int dounicode, int lfn )
+{
+	// Allow unicode to fall through.
+	if( dounicode || lfn )
+	{
+	    int ret;
+	    if( (ret=ntw_rename( fname, nname, lfn )) >= 0 || lfn )
+	    	return ret;
+	}
+
+	return ::rename( fname->Text(), nname->Text() );
+}
+
+// This code is only used on the client.
+// Target must be absolute, can not chdir for LFN.
+// Must call this function through nt_makelink().
+int
+ntw_makelink( StrBuf &target, StrPtr *name, DWORD dwFlags, int lfn )
+{
+	int result = -1;
+
+	// For the symlink target we do not want a LFN path.
+	const wchar_t *wtarget = nt_wname( &target, 0, NULL );
+	if( !wtarget )
+	    return -1;
+	const wchar_t *wname = nt_wname( name, lfn, NULL );
+	if( !wname )
+	{
+	    nt_free_wname( wtarget );
+	    return -1;
+	}
+
+	if( (*CreateSymbolicLinkW_func)( wname, wtarget, dwFlags ) )
+	    result = 0;
+
+	nt_free_wname( wtarget );
+	nt_free_wname( wname );
+
+	return result;
+}
+
+// This code is only used on the client.
+int
+nt_makelink( StrBuf &target, StrPtr *name, int dounicode, int lfn )
+{
+	int result = -1;
+	StrBuf n_tgt;
+	StrBuf abs_tgt;
+
+	if( !FileSys::SymlinksSupported() )
+	    return result;
+
+	// Copy and normalize the target of the symlink for Windows.
+	char *symlink = target.Text();
+	n_tgt.Set( target.Text() );
+	char *p = n_tgt.Text();
+	while( *symlink )
+	{
+	    if( *symlink == '/' ) *p = '\\';
+	    p++;
+	    symlink++;
+	}
+	*p = '\0';
+
+	// Create an absolute target for the stat().
+	if( FileSys::IsRelative( n_tgt ) )
+	{
+	    PathSys *pth = PathSys::Create();
+	    pth->Set( name->Text() );
+	    pth->ToParent();
+	    pth->SetLocal( StrRef( pth->Text() ), n_tgt );
+	    abs_tgt.Set( pth->Text() );
+	}
+	else
+	    abs_tgt.Set( n_tgt.Text() );
+
+	struct statbL sb;
+	DWORD dwFlags = 0;
+	// Try to stat the target of the symlink, directory or file.
+	// If the stat fails, we assume a file symlink.
+	if( nt_stat( &abs_tgt, &sb, dounicode, lfn ) >= 0 )
+	{
+	    if( S_ISDIR( sb.st_mode ) )
+	        dwFlags = SYMBOLIC_LINK_FLAG_DIRECTORY;
+	}
+
+	// Allow unicode to fall through.
+	// Using target maintains relative symlinks.
+	if( dounicode || lfn )
+	{
+	    int ret;
+	    if( (ret = ntw_makelink( n_tgt, name, dwFlags, lfn )) >= 0 || lfn )
+	    	return ret;
+	}
+
+	if( (*CreateSymbolicLinkA_func)(name->Text(), n_tgt.Text(), dwFlags) )
+	    result = 0;
+
+	return result;
 }
 
 void
@@ -458,7 +1074,8 @@ FileIO::Rename( FileSys *target, Error *e )
 
 	// Remember original perms of target so we can reset on failure.
 
-	FilePerm oldPerms = Stat() | FSF_WRITEABLE ? FPM_RW : FPM_RO;
+	FilePerm oldPerms =
+	            ( target->Stat() & FSF_WRITEABLE ) ? FPM_RW : FPM_RO;
 
 	// One customer (in Iceland) wanted this for IRIX as well.
 	// You need if you are you running NFS aginst NT as well
@@ -475,7 +1092,7 @@ FileIO::Rename( FileSys *target, Error *e )
 	    target->Unlink( 0 ); // yeech - must not exist to rename
 	}
 
-	if( nt_rename( Name(), target->Name(), DOUNICODE ) < 0 )
+	if( nt_rename( Path(), target->Path(), DOUNICODE, LFN ) < 0 )
 	{
 	    // nasty hack coming up.
 	    // one customer is suffering from a rename() problem
@@ -483,7 +1100,7 @@ FileIO::Rename( FileSys *target, Error *e )
 	    // the rename() 10 times with 1 second interval and
 	    // log any failure.
 
-	    int ret;
+	    int ret = 0;
 	    int renameMax  = p4tunable.Get( P4TUNE_SYS_RENAME_MAX );
 	    int renameWait = p4tunable.Get( P4TUNE_SYS_RENAME_WAIT );
 
@@ -493,7 +1110,7 @@ FileIO::Rename( FileSys *target, Error *e )
 
 	        target->Unlink( 0 );
 
-	        ret = nt_rename( Name(), target->Name(), DOUNICODE );
+	        ret = nt_rename( Path(), target->Path(), DOUNICODE, LFN );
 
 	        if( ret >= 0 )
 	            break;
@@ -530,29 +1147,25 @@ FileIO::Rename( FileSys *target, Error *e )
 void
 FileIO::Unlink( Error *e )
 {
+	int ret;
 	// yeech - must be writable to remove
 
 	if( *Name() )
-	    nt_chmod( Name(), PERM_0666  & ~global_umask, DOUNICODE );
+	    nt_chmod( Path(), PERM_0666  & ~global_umask, DOUNICODE, LFN );
 
-	if( *Name() && nt_unlink( Name(), DOUNICODE ) < 0 && e )
+	if( *Name() && nt_unlink( Path(), DOUNICODE, LFN ) < 0 && e )
 	    e->Sys( "unlink", Name() );
 }
 
+// Caller must free the memory.
 wchar_t *
-FileIO::UnicodeName( const char* fname, int flen )
+FileIO::UnicodeName( StrBuf *fname, int lfn )
 {
 	wchar_t *ret;
 
-	CharSetCvtUTF816 cvt;
-
-	ret = (wchar_t *) cvt.CvtBuffer( fname, flen );
-
-	if ( cvt.LastErr() != CharSetCvt::NONE )
-	{
-	    delete [] (char *)ret;
-	    ret = NULL;
-	}
+	ret = (wchar_t *)nt_wname( fname, lfn, NULL );
+	if( !ret )
+	    return NULL;
 
 	return ret;
 }
@@ -565,8 +1178,63 @@ FileIO::ChmodTime( int modTime, Error *e )
 	t.actime = 0; // This is ignored by nt_utime
 	t.modtime = DateTime::Localize( modTime );
 
-	if( nt_utime( Name(), &t, DOUNICODE ) < 0 )
+	if( nt_utime( Path(), &t, DOUNICODE, LFN ) < 0 )
 	    e->Sys( "utime", Name() );
+}
+
+void
+FileIO::Truncate( offL_t offset, Error *e )
+{
+	// Don't bother if non-existent.
+
+	if( !( Stat() & FSF_EXISTS ) )
+	    return;
+
+	int success = 1;
+
+# ifdef HAVE_TRUNCATE
+
+	HANDLE hFile;
+
+	if( DOUNICODE || LFN )
+	{
+	    const wchar_t *wname;
+	    wname = nt_wname( Path(), LFN, NULL );
+	    if( !wname )
+	    {
+		e->Sys( "truncate", Name() );
+		return;
+	    }
+	    hFile = CreateFileW( wname, GENERIC_WRITE, FILE_SHARE_WRITE,
+				NULL, OPEN_EXISTING,
+				FILE_ATTRIBUTE_NORMAL, NULL );
+	    nt_free_wname( wname );
+	}
+	else
+	{
+	    hFile = CreateFile( Name(), GENERIC_WRITE, FILE_SHARE_WRITE,
+				NULL, OPEN_EXISTING,
+				FILE_ATTRIBUTE_NORMAL, NULL );
+	}
+
+	if (hFile == INVALID_HANDLE_VALUE)
+	{
+	    e->Sys( "truncate", Name() );
+	    return;
+	}
+	
+	LARGE_INTEGER offset_li;
+	offset_li.QuadPart = offset;
+
+	success = SetFilePointerEx( hFile, offset_li, 0, FILE_BEGIN ) &&
+	          SetEndOfFile( hFile );
+			
+	CloseHandle( hFile );
+
+# endif // HAVE_TRUNCATE
+
+	if( !success )
+	    e->Sys( "truncate", Name() );
 }
 
 void
@@ -581,8 +1249,8 @@ FileIO::Truncate( Error *e )
 	// then open O_TRUNC.
 	
 	int fd;
-
-	if( ( fd = nt_open( Name(), O_WRONLY|O_TRUNC, PERM_0666, DOUNICODE ) ) >= 0 )
+	if( ( fd = nt_open( Path(), O_WRONLY|O_TRUNC, PERM_0666,
+				DOUNICODE, LFN ) ) >= 0 )
 	{
 	    close( fd );
 	    return;
@@ -602,19 +1270,35 @@ FileIO::Stat()
 
 	int flags = 0;
 	struct statbL sb;
+	StrBuf abs_tgt;
 
-	if( FileSys::SymlinksSupported() && nt_islink( Name() ) > 0 )
+	if( FileSys::SymlinksSupported() &&
+	    nt_islink( Path(), NULL, DOUNICODE, LFN ) > 0 )
 	{
-	    char linkTarget[ MAX_PATH ];
-	    if( nt_readlink( Name(), linkTarget, sizeof( linkTarget ) ) < 0 )
-	        return flags;
+	    StrBuf linkTarget;
+	    // The StrBuf allocation is done in nt_readlink().
+	    if( nt_readlink( Path(), linkTarget, DOUNICODE, LFN ) < 0 )
+		return flags;
 	    flags = FSF_SYMLINK;
-	    if( nt_stat( linkTarget, &sb, DOUNICODE ) >= 0 )
-	        flags |= FSF_EXISTS;
+
+	    // Create an absolute path for the symlink target.
+	    if( FileSys::IsRelative( linkTarget ) )
+	    {
+		PathSys *pth = PathSys::Create();
+		pth->Set( Name() );
+		pth->ToParent();
+		pth->SetLocal( StrRef( pth->Text() ), linkTarget );
+		abs_tgt.Set( pth->Text() );
+	    }
+	    else
+		abs_tgt.Set( Name() );
+
+	    if( nt_stat( &abs_tgt, &sb, DOUNICODE, LFN ) >= 0 )
+		flags |= FSF_EXISTS;
 	    return flags;
 	}
 
-	if( nt_stat( Name(), &sb, DOUNICODE ) < 0 )
+	if( nt_stat( Path(), &sb, DOUNICODE, LFN ) < 0 )
 	    return flags;
 
 	flags |= FSF_EXISTS;
@@ -633,19 +1317,34 @@ FileIO::GetOwner()
 {
 	int uid = 0;
 	struct statbL sb;
+	StrBuf abs_tgt;
 
-	if( FileSys::SymlinksSupported() && nt_islink( Name() ) > 0 )
+	if( FileSys::SymlinksSupported() &&
+	    nt_islink( Path(), NULL, DOUNICODE, LFN ) > 0 )
 	{
-	    char linkTarget[ MAX_PATH ];
-	    if( nt_readlink( Name(), linkTarget, sizeof( linkTarget ) ) < 0 )
-	        return uid;
+	    StrBuf linkTarget;
+	    // The StrBuf allocation is done in nt_readlink().
+	    if( nt_readlink( Path(), linkTarget, DOUNICODE, LFN ) < 0 )
+		return uid;
 
-	    if( nt_stat( linkTarget, &sb, DOUNICODE ) >= 0 )
-	        uid = sb.st_uid;
+	    // Create an absolute path for the target.
+	    if( FileSys::IsRelative( *Path() ) )
+	    {
+		PathSys *pth = PathSys::Create();
+		pth->Set( Name() );
+		pth->ToParent();
+		pth->SetLocal( StrRef( pth->Text() ), linkTarget );
+		abs_tgt.Set( pth->Text() );
+	    }
+	    else
+		abs_tgt.Set( Name() );
+
+	    if( nt_stat( &abs_tgt, &sb, DOUNICODE, LFN ) >= 0 )
+		uid = sb.st_uid;
 	    return uid;
 	}
 
-	if( nt_stat( Name(), &sb, DOUNICODE ) >= 0 )
+	if( nt_stat( Path(), &sb, DOUNICODE, LFN ) >= 0 )
 	    uid = sb.st_uid;
 	return uid;
 }
@@ -664,7 +1363,7 @@ FileIO::HasOnlyPerm( FilePerm perms )
 	struct statbL sb;
 	int modeBits = 0;
 
-	if( nt_stat( Name(), &sb, DOUNICODE ) < 0 )
+	if( nt_stat( Path(), &sb, DOUNICODE, LFN ) < 0 )
 	    return false;
 
 	switch (perms)
@@ -704,7 +1403,8 @@ FileIO::HasOnlyPerm( FilePerm perms )
 
 # ifdef OS_MINGW
 
-static int nt_getLastModifiedTime( HANDLE hFile )
+static int
+nt_getLastModifiedTime( HANDLE hFile )
 {
 	// Convert file timestamp to local time, then to time_t.
 	// This is because MINGW doesn't have _mkgmtime, but does have mktime.
@@ -712,12 +1412,15 @@ static int nt_getLastModifiedTime( HANDLE hFile )
 	SYSTEMTIME stUTC;
 	struct tm u_tm;
 	FILETIME cTime, aTime, mTime;
+	BOOL bRet;
 
 	if (hFile == INVALID_HANDLE_VALUE)
 	    return -1;
-	if( !GetFileTime( hFile, &cTime, &aTime, &mTime ) )
-	    return -1;
+	// Avoid leaking the handle.
+	bRet = GetFileTime( hFile, &cTime, &aTime, &mTime );
 	CloseHandle( hFile );
+	if( !bRet )
+	    return -1;
 
 	FileTimeToSystemTime( &mTime, &stUTC );
 	SystemTimeToTzSpecificLocalTime( NULL, &stUTC, &st );
@@ -737,17 +1440,25 @@ static int nt_getLastModifiedTime( HANDLE hFile )
 
 # else
 
-static int nt_getLastModifiedTime( HANDLE hFile )
+// This code corrected a DST datetime problem, job039200
+// As of Visual Studio 2013, the problem has been fixed.
+// We must keep this fix since we still build with older Visual Studios.
+//
+static int
+nt_getLastModifiedTime( HANDLE hFile )
 {
 	SYSTEMTIME st;
 	struct tm u_tm;
 	FILETIME cTime, aTime, mTime;
+	BOOL bRet;
 
 	if (hFile == INVALID_HANDLE_VALUE)
 	    return -1;
-	if( !GetFileTime( hFile, &cTime, &aTime, &mTime ) )
-	    return -1;
+	// Avoid leaking the handle.
+	bRet = GetFileTime( hFile, &cTime, &aTime, &mTime );
 	CloseHandle( hFile );
+	if( !bRet )
+	    return -1;
 
 	FileTimeToSystemTime( &mTime, &st );
 
@@ -769,19 +1480,27 @@ static int nt_getLastModifiedTime( HANDLE hFile )
 int
 FileIO::StatModTime()
 {
-	const char *fname = Name();
+	HANDLE fH;
+	StrPtr *fname = Path();
 
-	if ( DOUNICODE )
+	if( DOUNICODE || LFN )
 	{
-	    CharSetCvtUTF816 cvt;
-	    const char *wname = cvt.FastCvt( fname, strlen( fname ) );
-	    if ( cvt.LastErr() == CharSetCvt::NONE )
-	        return nt_getLastModifiedTime(
-				nt_openHandleW( (const wchar_t *)wname ) );
+	    // nt_openHandleW() does the unicode filename translation.
+	    if( nt_islink( fname, NULL, DOUNICODE, LFN ) > 0 )
+		fH = nt_openHandleW( fname, LFN );
+	    else
+		fH = nt_openDirHandleW( fname, LFN );
+	    if( fH != INVALID_HANDLE_VALUE )
+		return nt_getLastModifiedTime( fH );
+
+	    // We know LFN can not fall through and succeed.
+	    // Unicode case continues to fall through.
+	    if( LFN )
+		return -1;
 	}
-	if( nt_islink( fname ) > 0 )
-	    return nt_getLastModifiedTime( nt_openDirHandle( fname ) );
-	return nt_getLastModifiedTime( nt_openHandle( fname ) );
+	if( nt_islink( fname, NULL, DOUNICODE, LFN ) > 0 )
+	    return nt_getLastModifiedTime( nt_openDirHandle( fname->Text() ) );
+	return nt_getLastModifiedTime( nt_openHandle( fname->Text() ) );
 }
 
 void
@@ -802,9 +1521,10 @@ FileIO::Chmod( FilePerm perms, Error *e )
 	case FPM_ROO: bits &= ~PERM_0266; break;
 	case FPM_RWO: bits = PERM_0600; break; // for key file, set exactly to rwo
 	case FPM_RXO: bits = PERM_0500; break;
+	case FPM_RWXO: bits = PERM_0700; break;
 	}
 
-	if( nt_chmod( Name(), bits & ~global_umask, DOUNICODE ) >= 0 )
+	if( nt_chmod( Path(), bits & ~global_umask, DOUNICODE, LFN ) >= 0 )
 	    return;
 
 	// Can be called with e==0 to ignore error.
@@ -858,7 +1578,7 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 
 	    fd = openModes[ mode ].standard;
 	}
-	else if( ( fd = nt_open( Name(), bits, PERM_0666, DOUNICODE ) ) < 0 )
+	else if( (fd = nt_open( Path(), bits, PERM_0666, DOUNICODE, LFN )) <0 )
 	{
 	    e->Sys( openModes[ mode ].modeName, Name() );
 # ifdef O_EXCL
@@ -895,30 +1615,9 @@ offL_t
 FileIOBinary::GetSize()
 {
 	struct _stati64 sb;
+	int ret;
 
-	if ( DOUNICODE )
-	{
-	    CharSetCvtUTF816 cvt;
-	    int newlen = 0;
-
-	    const char *wname = cvt.FastCvt( Name(), strlen(Name()), &newlen );
-
-	    if ( cvt.LastErr() == CharSetCvt::NONE )
-	    {
-		if( _wstati64( (const wchar_t *)wname, &sb ) < 0 )
-		    return -1;
-	    }
-
-	    if( newlen > ( MAX_PATH * 2 ) )
-	    {
-		SetLastError( ERROR_BUFFER_OVERFLOW );
-		return -1;
-	    }
-
-	    return sb.st_size;
-	}
-
-	if( _stati64( Name(), &sb ) < 0 )
+	if( nt_stat( Path(), &sb, DOUNICODE, LFN ) < 0 )
 	    return -1;
 
 	return sb.st_size;
@@ -945,13 +1644,14 @@ FileIOAppend::Open( FileOpenMode mode, Error *e )
 	{
 	    fd = openModes[ mode ].standard;
 	}
-	else if( ( fd = nt_open( Name(), openModes[ mode ].aflags,
-				 PERM_0666, DOUNICODE ) ) < 0 )
+	else if( ( fd = nt_open( Path(), openModes[ mode ].aflags,
+				PERM_0666, DOUNICODE, LFN ) ) < 0 )
 	{
 	    e->Sys( openModes[ mode ].modeName, Name() );
 	}
 }
 
+// Should work with unicode and LFN.
 offL_t
 FileIOAppend::GetSize()
 {
@@ -1010,6 +1710,7 @@ FileIOAppend::Rename( FileSys *target, Error *e )
 	Truncate( e );
 }
 
+// Initialize both multibyte and wide char operations.
 int
 FileSys::SymlinksSupported()
 {
@@ -1017,32 +1718,42 @@ FileSys::SymlinksSupported()
 	{
 	    functionHandlesLoaded = 1;
 
-	    CreateSymbolicLink_func = (CreateSymbolicLinkProc)
+	    CreateSymbolicLinkA_func = (CreateSymbolicLinkAProc)
 		    GetProcAddress(
 	                GetModuleHandle("kernel32.dll"),
 	                "CreateSymbolicLinkA");
 
-	    if( CreateSymbolicLink_func != 0 )
+	    CreateSymbolicLinkW_func = (CreateSymbolicLinkWProc)
+		    GetProcAddress(
+	                GetModuleHandle("kernel32.dll"),
+	                "CreateSymbolicLinkW");
+
+	    if( CreateSymbolicLinkA_func != 0 &&
+		CreateSymbolicLinkW_func != 0 )
 	    {
 		const char *tempdir = getenv("TEMP");
 		if( !tempdir )
 		{
-	            CreateSymbolicLink_func = 0;
+	            CreateSymbolicLinkA_func = 0;
+	            CreateSymbolicLinkW_func = 0;
 		    return 0;
 		}
 		StrBuf testLink;
 		StrBuf testTarget;
 		testLink << tempdir << "\\p4_test_symlink";
 		testTarget << tempdir << "\\p4_test_target";
-	        nt_chmod( testLink.Text(), PERM_0666  & ~global_umask, 0 );
-		nt_unlink( testLink.Text(), 0 );
-		int result = nt_makelink( testTarget.Text(), testLink.Text() );
-		nt_unlink( testLink.Text(), 0 );
+		nt_chmod( &testLink, PERM_0666  & ~global_umask, 0, 0 );
+		nt_unlink( &testLink, 0, 0 );
+		int result = nt_makelink( testTarget, &testLink, 0, 0 );
+		nt_unlink( &testLink, 0, 0 );
 		if( result < 0 )
-	            CreateSymbolicLink_func = 0;
+		{
+	            CreateSymbolicLinkA_func = 0;
+	            CreateSymbolicLinkW_func = 0;
+		}
 	    }
 	}
-	return CreateSymbolicLink_func != 0;
+	return CreateSymbolicLinkA_func != 0;
 }
 
 

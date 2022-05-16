@@ -188,7 +188,7 @@ class MultiThreader : public Threader {
 
 	    e.Set( MsgServer::Quiescing ) 
 		<< dt.Text()
-		<< Pid().GetID()
+		<< Pid().GetProcID()
 		<< GetThreadCount();
 	    AssertLog.Report( &e );
 
@@ -201,7 +201,7 @@ class MultiThreader : public Threader {
 	    e.Clear();
 	    e.Set( MsgServer::QuiesceFailed )
 		<< dt.Text()
-		<< Pid().GetID();
+		<< Pid().GetProcID();
 	    AssertLog.Report( &e );
 	}
 
@@ -225,7 +225,7 @@ class MultiThreader : public Threader {
 
 		e.Set( MsgServer::ReDowngrade ) 
 		    << dt.Text()
-		    << Pid().GetID();
+		    << Pid().GetProcID();
 		AssertLog.Report( &e );
 
 	        restarted = 0;
@@ -337,7 +337,7 @@ HandleSigChld( int flag )
 	int status;
 	pid_t pid;
 
-# ifdef OS_CYGWIN
+# if defined(OS_CYGWIN) || defined(OS_LINUX26)
 	// Cygwin (2.95.3) doesn't restore errno on return from interrupt.
 	// This leads accept() to return ECHILD rather than EINTR.
 
@@ -370,7 +370,7 @@ HandleSigChld( int flag )
 	    }
 	}
 
-# ifdef OS_CYGWIN
+# if defined(OS_CYGWIN) || defined(OS_LINUX26)
 	errno = save_errno;
 # endif
 
@@ -583,9 +583,27 @@ class MultiThreader : public Threader {
 	     * group. When p4d is restarting we want to kill all child processes but
 	     * keep the p4zk process going. (If invoking shutdown, p4zk will notice
 	     * when connection to p4d closes and will exit)
+	     *
+	     * We now signal SIGTERM periodically in order to encourage our
+	     * children to die; this avoids a deadlock during shutdown or restart
+	     * when the parent has locked db.* but a child is trying to lock one
+	     * of them.  The parent was waiting for the child to die, and the child
+	     * was waiting for the parent to release the lock.
 	     */
-	    while( waitpid( (pid_t)0, &status, 0 ) > 0 )
-		;
+	    int pid = 0;
+	    int error = 0;
+
+	    do
+	    {
+		errno = 0;
+		pid = waitpid( (pid_t)0, &status, WNOHANG );
+		error = errno;
+		if( pid == 0 )	// sleep only if no child exited this time around
+		{
+		    kill( 0, SIGTERM );		// die! die! my darling!
+		    msleep( 50 );
+		}
+	    } while( (pid >= 0) || (error != ECHILD) );
 	}
 
 	int GetThreadCount()

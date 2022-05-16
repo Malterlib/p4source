@@ -11,6 +11,7 @@
 # define WIN32_LEAN_AND_MEAN
 # include <windows.h>
 # include <winsock.h>
+# include <errno.h>
 # endif  /* OS_NT */
 
 # define NEED_ERRNO
@@ -39,8 +40,8 @@ extern int errno;
 # endif
 
 # ifdef OS_NT
-extern const char *nt_sock_errlist[115];  // for WSABASEERR + 1 to 115
-extern const char *nt_sock_errlist2[5];  // for WSABASEERR + 1000 to 1005
+extern const char *nt_sock_errlist[];  // for WSABASEERR + 1 to 112, start=0
+extern const char *nt_sock_errlist2[];  // for WSABASEERR + 1001 to 1004
 # endif /* OS_NT */
 
 /*
@@ -82,6 +83,18 @@ Error::StrNetError(StrBuf &buf)
 StrPtr &
 Error::StrError(StrBuf &buf, int errnum)
 {
+	// For when the posix library doesn't SetLastError().
+	if (errnum == ERROR_SUCCESS)
+	{
+	    extern int errno;
+	    switch (errno)
+	    {
+	    case EMFILE:
+		errnum = ERROR_TOO_MANY_OPEN_FILES;
+		break;
+	    }
+	}
+
 	if( GlobalCharSet::Get() == CharSetApi::UTF_8 )
 	{
 	    const DWORD size = 257;
@@ -139,9 +152,9 @@ Error::Net(
 	// errnum == 0 means we don't have the actual error
 	if( errnum == 0 )
 	    Set( MsgOs::NetUn ) << op << arg << 0;
-	else if( e >= 1001 && e <= 1005 ) 
-	    Set( MsgOs::Net ) << op << arg << nt_sock_errlist2[ e - 1000 ];
-	else if( e >= 1 && e <= 115 )
+	else if( e >= 1001 && e <= 1004 ) 
+	    Set( MsgOs::Net ) << op << arg << nt_sock_errlist2[ e - 1001 ];
+	else if( e >= 1 && e <= 112 )
 	    Set( MsgOs::Net ) << op << arg << nt_sock_errlist[ e ];
 	else 
 	    Set( MsgOs::NetUn ) << op << arg << (int)e;

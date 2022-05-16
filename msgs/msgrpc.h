@@ -78,8 +78,11 @@ class MsgRpc {
 	static ErrorId ZksRecv;
 	static ErrorId ZksDisconnect;
 	static ErrorId ZksState;
+	static ErrorId ZksNoZK;
 
 	static ErrorId UnixDomainOpen;
+	static ErrorId BadP4Port;
+	static ErrorId NoHostnameForPort;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can communicate with older servers

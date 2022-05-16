@@ -34,6 +34,10 @@ ReadFile::ReadFile()
 	fp = 0;
 	mapped = 0;
 	maddr = (unsigned char *)-1;
+	mlen = 0;
+	mptr = mend = 0;
+	size = 0;
+	offset = 0;
 }
 
 ReadFile::~ReadFile()

@@ -5,13 +5,14 @@
  */
 
 // Socket errors for NT
-const char *nt_sock_errlist[] = // for WSABASEERR + 1 to 115,
+// nt_sock_errlist is used for WSABASEERR + 1 to 112, contains a 0th entry
+const char *nt_sock_errlist[] =
 {
+	"NO_ERROR", // WSABASEERR + 0
 	"NO_ERROR",
 	"NO_ERROR",
 	"NO_ERROR",
-	"NO_ERROR",
-	"WSAEINTR", //4
+	"WSAEINTR", // WSABASEERR + 4
 	"NO_ERROR",
 	"NO_ERROR",
 	"NO_ERROR",
@@ -122,9 +123,9 @@ const char *nt_sock_errlist[] = // for WSABASEERR + 1 to 115,
 	"WSAEREFUSED" //112
 };
 
-const char *nt_sock_errlist2[] = // for WSABASEERR + 1000 to 1005
+const char *nt_sock_errlist2[] = // for WSABASEERR + 1001 to 1004
 {
-	"WSAHOST_NOT_FOUND",
+	"WSAHOST_NOT_FOUND", //WSABASEERR + 1001
 	"WSATRY_AGAIN",
 	"WSANO_RECOVERY",
 	"WSANO_DATA"

@@ -35,9 +35,30 @@ Client::GetCharset()
 	{
 	    return charset;
 	}
-	else if( c = enviro->Get( "P4CHARSET" ) )
+	else if( ( c = enviro->Get( "P4CHARSET" ) ) )
 	{
 	    charset = c;
+	}
+	else
+	{
+	    charsetVar.Set( "P4_" );
+
+	    const StrPtr *p = &GetPort();
+	    if( strchr( p->Text(), '=' ) )
+	    {
+		// If the port contains an equals we replace it
+		// since environment names can not have an equals
+		StrBuf tmp( *p );
+
+		StrOps::Sub( tmp, '=', '@' );
+		charsetVar.Append( &tmp );
+	    }
+	    else
+		charsetVar.Append( p );
+
+	    charsetVar.Append( "_CHARSET" );
+	    if( ( c = enviro->Get( charsetVar.Text() ) ) )
+		charset = c;
 	}
 
 	return charset;
@@ -266,8 +287,6 @@ const StrPtr &
 Client::GetPort()
 {
 	char *c;
-
-	// cwd - current working directory
 
 	if( port.Length() )
 	{

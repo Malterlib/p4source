@@ -29,7 +29,7 @@
 
 /* Use the dumb version */
 
-Rusage::Rusage() { }
+Rusage::Rusage() : tc( 0 ) { }
 Rusage::~Rusage() { }
 void Rusage::Start() { }
 int Rusage::Time() { return 0; }

@@ -412,12 +412,10 @@ DiffbReader::Equal(LineNo lineA, Sequence *B, LineNo lineB)
 
 	    // Load next char
 
-	    ca = src->Get();
-	    cb = Bs->src->Get();
-
-	    // used ca, cb
-
-	    --la, --lb;
+	    if( --la )
+	        ca = src->Get();
+	    if( --lb )
+	        cb = Bs->src->Get();
 	}
 
 	// Any mismatching chars? (whitespace/newline characters don't count)
@@ -516,12 +514,10 @@ DiffwReader::Equal(LineNo lineA, Sequence *B, LineNo lineB)
 
 	    // Load next char
 
-	    ca = src->Get();
-	    cb = Bs->src->Get();
-
-	    // used ca, cb
-
-	    --la, --lb;
+	    if( --la )
+	        ca = src->Get();
+	    if( --lb )
+	        cb = Bs->src->Get();
 	}
 
 	// Any mismatching chars? (whitespace/newline characters don't count)

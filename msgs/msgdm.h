@@ -83,6 +83,7 @@ class MsgDm {
 	static ErrorId UnloadNotPossible;
 	static ErrorId UnloadData;
 	static ErrorId ReloadData;
+	static ErrorId ReloadSuspicious;
 	static ErrorId DepotVsDomains;
 	static ErrorId RevVsRevCx;
 	static ErrorId NoPrevRev;
@@ -146,6 +147,7 @@ class MsgDm {
 	static ErrorId InvalidEscape;
 	static ErrorId UserOrGroup;
 	static ErrorId CantChangeUser;
+	static ErrorId CantChangeUserAuth;
 	static ErrorId CantChangeUserType;
 	static ErrorId Passwd982;
 	static ErrorId NoClearText;
@@ -437,6 +439,20 @@ class MsgDm {
 	static ErrorId LabelSyncReplace;
 	static ErrorId LabelSyncUpdate;
 
+	static ErrorId LdapConfBadPerms;
+	static ErrorId LdapConfBadOwner;
+	static ErrorId BadPortNumber;
+	static ErrorId LdapData;
+	static ErrorId LdapSave;
+	static ErrorId LdapNoChange;
+	static ErrorId LdapDelete;
+	static ErrorId NoSuchLdap;
+	static ErrorId LdapRequiredField0;
+	static ErrorId LdapRequiredField1;
+	static ErrorId LdapRequiredField2;
+	static ErrorId LdapRequiredField3;
+
+
 	static ErrorId LicenseSave;
 	static ErrorId LicenseNoChange;
 
@@ -490,12 +506,14 @@ class MsgDm {
 	static ErrorId OpenWarnOpenStream;
 	static ErrorId OpenWarnOpenNotStream;
 	static ErrorId OpenWarnFileNotMapped;
+	static ErrorId OpenWarnChangeMap;
 	static ErrorId OpenOtherDepot;
 	static ErrorId OpenTaskNotMapped;
 	static ErrorId OpenExclOrphaned;
 	static ErrorId OpenExclLocked;
 	static ErrorId OpenExclOther;
 	static ErrorId OpenAttrRO;
+	static ErrorId OpenHasResolve;
 
 	static ErrorId PopulateDesc;
 	static ErrorId PopulateTargetExists;
@@ -615,11 +633,13 @@ class MsgDm {
 	static ErrorId StreamEndSlash;
 	static ErrorId StreamsData;
 	static ErrorId StreamVsDomains;
+	static ErrorId StreamVsTemplate;
 	static ErrorId StreamPathRooted;
 	static ErrorId StreamPathSlash;
 	static ErrorId StreamHasChildren;
 	static ErrorId StreamHasClients;
 	static ErrorId StreamOwnerReq;
+	static ErrorId ClientNoSwitch;
 
 	static ErrorId SubmitUpToDate;
 	static ErrorId SubmitWasAdd;
@@ -678,6 +698,7 @@ class MsgDm {
 	static ErrorId UnshelveResolve;
 	static ErrorId UnshelveNotTask;
 	static ErrorId UnshelveFromRemote;
+	static ErrorId UnshelveBadChangeView;
 
 	static ErrorId UserSave;
 	static ErrorId UserNoChange;
@@ -789,6 +810,8 @@ class MsgDm {
 
 	static ErrorId ResourceAlreadyLocked;
 	static ErrorId NoSuchResource;
+
+	static ErrorId ServersJnlAckData;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

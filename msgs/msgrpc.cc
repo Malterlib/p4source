@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgRpc error code is: 68
+ * Current high value for a MsgRpc error code is: 72
  * 03/01/12 - main high value : 49,  nimble (2012.2) start at 60
  */
 
@@ -36,7 +36,7 @@ ErrorId MsgRpc::NoPoss                 = { ErrorOf( ES_RPC, 5, E_FAILED, EV_COMM
 ErrorId MsgRpc::NotP4                  = { ErrorOf( ES_RPC, 6, E_FAILED, EV_COMM, 0 ), "RpcTransport: partner is not a Perforce client/server." } ;
 ErrorId MsgRpc::Operat                 = { ErrorOf( ES_RPC, 7, E_FAILED, EV_COMM, 1 ), "Operation '%operation%' failed." } ;
 ErrorId MsgRpc::Read                   = { ErrorOf( ES_RPC, 8, E_FAILED, EV_COMM, 0 ), "RpcTransport: partial message read" } ;
-ErrorId MsgRpc::Select                 = { ErrorOf( ES_RPC, 61, E_FAILED, EV_COMM, 0 ), "Select call failed with error: %error%." } ;
+ErrorId MsgRpc::Select                 = { ErrorOf( ES_RPC, 61, E_FAILED, EV_COMM, 1 ), "Select call failed with error: %error%." } ;
 ErrorId MsgRpc::Reconn                 = { ErrorOf( ES_RPC, 9, E_FATAL, EV_COMM, 0 ), "Can't connect an existing connection!" } ;
 ErrorId MsgRpc::Stdio                  = { ErrorOf( ES_RPC, 10, E_FATAL, EV_COMM, 0 ), "Can't make outbound connection via stdio!" } ;
 ErrorId MsgRpc::TcpAccept              = { ErrorOf( ES_RPC, 11, E_FAILED, EV_COMM, 0 ), "TCP connection accept failed." } ;
@@ -53,7 +53,7 @@ ErrorId MsgRpc::UnReg                  = { ErrorOf( ES_RPC, 19, E_FATAL, EV_COMM
 ErrorId MsgRpc::Unconn                 = { ErrorOf( ES_RPC, 20, E_FATAL, EV_COMM, 0 ), "Connection attempt on unopened rpc!" } ;
 ErrorId MsgRpc::Break                  = { ErrorOf( ES_RPC, 21, E_FAILED, EV_COMM, 0 ), "TCP receive interrupted by client." } ;
 ErrorId MsgRpc::MaxWait                = { ErrorOf( ES_RPC, 39, E_FAILED, EV_COMM, 2 ), "TCP %operation% exceeded maximum configured duration of %seconds% seconds." } ;
-ErrorId MsgRpc::NameResolve            = { ErrorOf( ES_RPC, 37, E_FAILED, EV_COMM, 2 ), "%errortext%" } ;  //  unique error for name resolution failure
+ErrorId MsgRpc::NameResolve            = { ErrorOf( ES_RPC, 37, E_FAILED, EV_COMM, 1 ), "%errortext%" } ;  //  unique error for name resolution failure
 ErrorId MsgRpc::SslAccept              = { ErrorOf( ES_RPC, 38, E_FAILED, EV_COMM, 1 ), "SSL connection accept failed %error%.\n\tClient must add SSL protocol prefix to P4PORT." } ;
 ErrorId MsgRpc::SslConnect             = { ErrorOf( ES_RPC, 23, E_FAILED, EV_COMM, 2 ), "SSL connect to %host% failed %error%.\n\tRemove SSL protocol prefix from P4PORT." } ;
 ErrorId MsgRpc::SslListen              = { ErrorOf( ES_RPC, 24, E_FAILED, EV_COMM, 1 ), "SSL listen on %service% failed." } ;
@@ -68,7 +68,6 @@ ErrorId MsgRpc::SslCleartext           = { ErrorOf( ES_RPC, 33, E_FAILED, EV_COM
 ErrorId MsgRpc::SslCertGen             = { ErrorOf( ES_RPC, 34, E_FATAL, EV_COMM, 0 ), "Unable to generate certificate or private key for server." } ;
 ErrorId MsgRpc::SslNoSsl               = { ErrorOf( ES_RPC, 35, E_FATAL, EV_COMM, 0 ), "Trying to use SSL when SSL library has not been compiled into program." } ;
 ErrorId MsgRpc::SslBadKeyFile          = { ErrorOf( ES_RPC, 36, E_FATAL, EV_COMM, 0 ), "Either privatekey.txt or certificate.txt files do not exist." } ;
-
 
 
 ErrorId MsgRpc::SslGetPubKey           = { ErrorOf( ES_RPC, 40, E_FATAL, EV_COMM, 0 ), "Unable to get public key for token generation." } ;
@@ -101,11 +100,13 @@ ErrorId MsgRpc::SslKeyNotRSA           = { ErrorOf( ES_RPC, 55, E_FAILED, EV_COM
 
 ErrorId MsgRpc::WakeupInit             = { ErrorOf( ES_RPC, 62, E_FAILED, EV_COMM, 2 ), "Fail to setup wake-up socket during %function% with error: %error%." } ;
 ErrorId MsgRpc::WakeupAttempt          = { ErrorOf( ES_RPC, 63, E_FAILED, EV_COMM, 2 ), "Fail wake-up attempt in %function% with error: %error%." } ;
-ErrorId MsgRpc::ZksInit                = { ErrorOf( ES_RPC, 64, E_FATAL, EV_COMM, 2 ), "Fail to setup ZKS socket during %function% with error: %error%." } ;
-ErrorId MsgRpc::ZksSend                = { ErrorOf( ES_RPC, 65, E_FAILED, EV_COMM, 1 ), "Fail to send on ZKS socket with error: %error%." } ;
-ErrorId MsgRpc::ZksRecv                = { ErrorOf( ES_RPC, 66, E_FAILED, EV_COMM, 1 ), "Fail to receive on ZKS socket with error: %error%." } ;
-ErrorId MsgRpc::ZksDisconnect          = { ErrorOf( ES_RPC, 67, E_FATAL, EV_COMM, 0 ),  "Cluster lifeline connection to ZKS closed, must shutdown." } ;
-ErrorId MsgRpc::ZksState               = { ErrorOf( ES_RPC, 68, E_FAILED, EV_COMM, 3 ), "ZKS connection state incorrect for %function%, expected %state1%, found %state2%" } ;
+ErrorId MsgRpc::ZksInit                = { ErrorOf( ES_RPC, 64, E_FATAL, EV_COMM, 2 ), "Fail to setup p4zk socket during %function% with error: %error%." } ;
+ErrorId MsgRpc::ZksSend                = { ErrorOf( ES_RPC, 65, E_FAILED, EV_COMM, 1 ), "Fail to send on p4zk socket with error: %error%." } ;
+ErrorId MsgRpc::ZksRecv                = { ErrorOf( ES_RPC, 66, E_FAILED, EV_COMM, 1 ), "Fail to receive on p4zk socket with error: %error%." } ;
+ErrorId MsgRpc::ZksDisconnect          = { ErrorOf( ES_RPC, 67, E_FATAL, EV_COMM, 0 ),  "Cluster lifeline connection to p4zk closed, must shutdown." } ;
+ErrorId MsgRpc::ZksState               = { ErrorOf( ES_RPC, 68, E_FAILED, EV_COMM, 3 ), "p4zk connection state incorrect for %function%, expected %state1%, found %state2%" } ;
+ErrorId MsgRpc::ZksNoZK                = { ErrorOf( ES_RPC, 72, E_FATAL, EV_COMM, 1 ), "p4zk unable to register with Zookeeper Servers: %place%." } ;
 ErrorId MsgRpc::UnixDomainOpen         = { ErrorOf( ES_RPC, 69, E_FATAL, EV_COMM, 2 ), "Fail to setup Unix-domain socket during %function% with error: %error%." } ;
-
+ErrorId MsgRpc::BadP4Port              = { ErrorOf( ES_RPC, 70, E_FATAL, EV_COMM, 1 ), "P4PORT for this server is not valid: %p4port%." } ;
+ErrorId MsgRpc::NoHostnameForPort      = { ErrorOf( ES_RPC, 71, E_FATAL, EV_COMM, 0 ), "Cannot find hostname to use for P4PORT." } ;
 // ErrorId graveyard: retired/deprecated ErrorIds. 

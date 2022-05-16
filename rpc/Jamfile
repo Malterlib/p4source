@@ -2,7 +2,7 @@ SubDir P4 rpc ;
 
 SubDirHdrs $(P4) net ;
 
-SubDirC++Flags -I$(SSLINCLUDE) ;
+SubDirC++Flags -I$(SSLINCDIR) ;
 
 P4Library $(RPCLIB) :
 	rpc.cc
@@ -14,7 +14,7 @@ P4Library $(RPCLIB) :
 	rpctrans.cc
 	;
 
-if $(ZK) = yes 
+if $(ZK) = yes
 {
 	P4DLibrary $(RPCLIB) :
 		rpczksclient.cc
