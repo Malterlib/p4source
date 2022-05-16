@@ -100,11 +100,23 @@ class ServerHelper : public ClientUserProgress
 	
 	void		SetDefaultStream( const StrPtr *s, Error *e );
 
+	void		SetApplication( const StrPtr *a ){ app.Set( a ); }
+
 	void		SetCaseFlag( const StrPtr *c, Error *e );
 	StrPtr		GetCaseFlag() { return caseFlag; }
 
 	void		SetUnicode( int u ) { unicode = u; }
 	int		Unicode() { return unicode; }
+	
+	
+	StrPtr		&GetCharset()                 { return charset; }
+	void		SetCharset( const char *c )   { charset.Set( c ); }
+	void		SetCharset( const StrPtr *c ) { charset.Set( c ); }
+	void		SetTrans( int output, int content = -2,
+			          int fnames = -2, int dialog = -2 );
+	int		GetTrans( int &output, int &content, int &fnames,
+			          int &dialog );
+
 
 	// Discovered only data accessors
 	StrPtr		UserName()	{ return userName; }
@@ -151,6 +163,15 @@ class ServerHelper : public ClientUserProgress
 	StrBuf		p4client;
 	StrBuf		p4passwd;
 	int		state;
+	
+	void		SetupUnicode( Client *client, Error *e );
+	StrBuf		charset;
+	int		hasTrans;
+	int		outputTrans;
+	int		contentTrans;
+	int		fnamesTrans;
+	int		dialogTrans;
+	StrBuf		app;
 
 	// p4 server context
 	StrBuf		pwd;

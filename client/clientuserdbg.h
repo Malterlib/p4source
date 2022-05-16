@@ -12,6 +12,11 @@ class ClientUserDebug : public ClientUser {
 
     public:
 
+	ClientUserDebug()
+	{
+	    outputTaggedWithErrorLevel = 1;
+	}
+
 	void		OutputTag( const char *tag, 
 				const char *data, int length );
 
@@ -59,7 +64,7 @@ class ClientUserMunge : public ClientUser {
 
     public:
 
-	ClientUserMunge( Options &opts );
+	ClientUserMunge( Options &opts, int autoLoginPrompt = 0 );
 	void		OutputStat( StrDict *dict );
 
 	static void	Munge( StrDict *spec, StrPtrArray *fields, 
@@ -68,4 +73,5 @@ class ClientUserMunge : public ClientUser {
     private:
 
 	StrPtrArray fields;
+	int done;
 };

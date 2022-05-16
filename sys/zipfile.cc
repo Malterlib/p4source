@@ -29,6 +29,8 @@ ZipFile::ZipFile()
 
 ZipFile::~ZipFile()
 {
+	if( zf )
+	    Close();
 }
 
 void
@@ -56,6 +58,7 @@ void
 ZipFile::Close()
 {
 	zipClose( zf, 0 );
+	zf = 0;
 }
 
 offL_t	
@@ -120,6 +123,8 @@ UnzipFile::UnzipFile()
 
 UnzipFile::~UnzipFile()
 {
+	if( zf )
+	    Close();
 }
 
 void
@@ -147,6 +152,7 @@ void
 UnzipFile::Close()
 {
 	unzClose( zf );
+	zf = 0;
 }
 
 offL_t	

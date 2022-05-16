@@ -119,6 +119,7 @@ class ClientUser;
 class CharSetCvt;
 class Ignore;
 class Enviro;
+class StrBufDict;
 
 enum EnvVarType
 {
@@ -230,10 +231,11 @@ class Client : public Rpc {
 	const StrPtr	&GetLanguage();
 	const StrPtr	&GetOs();
 	const StrPtr	&GetPassword();
-	const StrPtr	&GetPassword( const StrPtr *user );
+	const StrPtr	&GetPassword( const StrPtr *user, int forceTFile = 0 );
 	const StrPtr	&GetPassword2();
 	const StrPtr	&GetPort();
 	const StrPtr	&GetUser();
+	const StrPtr	&GetTempPath();
 	const StrPtr	&GetTicketFile();
 	const StrPtr	&GetTrustFile();
 	const StrPtr	&GetConfig();
@@ -262,6 +264,10 @@ class Client : public Rpc {
 
 	void		Dispatcher( RpcDispatch *d )
 			{ service.Dispatcher( d ); }
+	
+	StrPtr		*GetEVar( const char *k );
+	StrPtr		*GetEVar( const StrPtr *k );
+	void		SetEVar( const StrPtr *k, const StrPtr *v );
 
     public:
 	// for use by the client service implementation
@@ -272,6 +278,9 @@ class Client : public Rpc {
 	Ignore*		GetIgnore() { return ignore; }
 	void		Confirm( const StrPtr *confirm );
 	ClientUser *	GetUi() { return tags[ lowerTag ]; }
+	
+	void		FstatPartialAppend( StrDict *part );
+	void		FstatPartialClear();
 
 	void		SetError() { errors++; }
 	int		GetErrors() { return errors; }
@@ -284,7 +293,7 @@ class Client : public Rpc {
 
 	void		NewHandler();
 	CharSetCvt	*fromTransDialog, *toTransDialog;
-        StrDict		*translated, *transfname;
+        StrDict		*translated, *transfname, *fstatPartial;
 	int		unknownUnicode;
 	int		content_charset; // file content charset
 	int		output_charset;  // result output charset
@@ -337,10 +346,12 @@ class Client : public Rpc {
 	RpcService	service;
 	int		errors;
 	int		fatals;
+	Error		transErr;	// Last translation error
 
 	StrBuf		charset;	// character set
 	StrBuf		client;		// client's name
 	StrBuf		clientPath;	// Authorized areas of the filesystem
+	StrBuf		tempPath;	// Temp file directory
 	StrBuf		cwd;		// current directory
 	StrBuf		host;		// client host name
 	StrBuf		os;		// client's OS
@@ -366,6 +377,7 @@ class Client : public Rpc {
 
 	Enviro		*enviro;	// environment vars
 	Ignore		*ignore;	// naughty list
+	StrBufDict	*extraVars;
 	int      	ignoreList;	// environment vars to ignore
 	int		is_unicode;	// talking in unicode mode
 	int		hostprotoset;

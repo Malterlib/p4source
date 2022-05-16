@@ -88,9 +88,9 @@
  *	ClientApi::SetLanguage()
  *	ClientApi::SetPassword()
  *	ClientApi::SetPort()
- *	ClientApi::SetUser() - set client, current directory, host, port, or 
- *		user, overridding all defaults.  SetPort() must be called 
- *		before Init() in order to take effect.  The others must be 
+ *	ClientApi::SetUser() - set client, current directory, host, port, or
+ *		user, overridding all defaults.  SetPort() must be called
+ *		before Init() in order to take effect.  The others must be
  *		set before Run() to take effect.
  *
  *		SetCwd() additionally searches for a new P4CONFIG file.
@@ -105,11 +105,14 @@
  *
  *	ClientApi::SetVersion() - sets the version string of the application.
  *		If not called, the version defaults to protocolClient. This
- *		will be appended to the program name in 'p4 monitor' and 
+ *		will be appended to the program name in 'p4 monitor' and
  *		server log output.  It should be called after Init() and
  *		before each call to Run().
  *
  *	ClientApi::SetTicketFile() - set the location of the users ticketfile,
+ *		must be the full pathname to the file and not a directory.
+ *
+ *	ClientApi::SetTrustFile() - set the location of the trustfile,
  *		must be the full pathname to the file and not a directory.
  *
  *	ClientApi::SetExecutable() - set the location of the physical client
@@ -139,16 +142,16 @@
  *	ClientApi::GetPort()
  *	ClientApi::GetUser() - get current directory, client, OS, port or user,
  *		as determined by defaults or by corresponding set value.
- *		GetClient()/GetHost() are not valid until after Init() 
- *		establishes the connection, because the hostname of the 
+ *		GetClient()/GetHost() are not valid until after Init()
+ *		establishes the connection, because the hostname of the
  *		local endpoint may serve as the default client name.
  *
  *	Client::GetConfig() - get the filename pointed to by P4CONFIG, as
  *		determined by enviro::Config().
  *
- *	ClientApi::SetIgnorePassword() - This function ignores passwords 
- *		that are found in the registry (NT), host environments or 
- *		configuration files.  If this function is set then only 
+ *	ClientApi::SetIgnorePassword() - This function ignores passwords
+ *		that are found in the registry (NT), host environments or
+ *		configuration files.  If this function is set then only
  *		passwords supplied through SetPassword() will be honored.
  *		Tickets continue to work as normal. Must be called before
  *		Init() in order to take affect.
@@ -196,6 +199,7 @@ class ClientApi : public StrDict {
 	void		SetProg( const char *c );
 	void		SetVersion( const char *c );
 	void		SetTicketFile( const char *c );
+	void		SetTrustFile( const char *c );
 	void		SetEnviroFile( const char *c );
 
 	void		SetCharset( const StrPtr *c );
@@ -212,6 +216,7 @@ class ClientApi : public StrDict {
 	void		SetProg( const StrPtr *c );
 	void		SetVersion( const StrPtr *c );
 	void		SetTicketFile( const StrPtr *c );
+	void		SetTrustFile( const StrPtr *c );
 	void		SetEnviroFile( const StrPtr *c );
 
 	void		SetBreak( KeepAlive *k );
@@ -245,6 +250,9 @@ class ClientApi : public StrDict {
 	Ignore *	GetIgnore();
 
 	void		SetIgnorePassword();
+
+	StrPtr 		*GetEVar( const StrPtr &var );
+	void		SetEVar( const StrPtr &var, const StrPtr &val );
 
     public:
 	// The old interface, where ui was held from the start

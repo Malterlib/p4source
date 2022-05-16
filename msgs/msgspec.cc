@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSpec error code is: 17
+ * Current high value for a MsgSpec error code is: 18
  */
 
 # include <error.h>
@@ -63,7 +63,7 @@ ErrorId MsgSpec::SpecClient = { ErrorOf( ES_SPEC, 2, E_INFO, EV_NONE, 0  ),
 "#                      %'revertunchanged/revertunchanged+reopen'%\n"
 "#                      %'leaveunchanged/leaveunchanged+reopen'%\n"
 "#  %'LineEnd'%:     Text file line endings on client: %'local/unix/mac/win/share'%.\n"
-"#  %'Type'%:        Type of client: %'writeable/readonly'%.\n"
+"#  %'Type'%:        Type of client: %'writeable/readonly/partitioned'%.\n"
 "#  %'Backup'%:      Client's participation in backup %'enable/disable'%. If not\n"
 "#               specified backup of a writable client defaults to enabled.\n"
 "#  %'ServerID'%:    If set, restricts access to the named server.\n"
@@ -263,6 +263,9 @@ ErrorId MsgSpec::SpecGroup = { ErrorOf( ES_SPEC, 6, E_INFO, EV_NONE, 0  ),
 "#               The LDAP query used to identify the members of the group.\n"
 "#  %'LdapUserAttribute'%:\n"
 "#               The LDAP attribute that represents the user's username.\n"
+"#  %'LdapUserDNAttribute'%:\n"
+"#               The LDAP attribute in the group object that contains the\n"
+"#               DN of the user object.\n"
 "#  %'Subgroups'%:   Other groups automatically included in this group.\n"
 "#  %'Owners'%:      Users allowed to change this group without requiring super\n"
 "#               access permission.\n"
@@ -271,13 +274,19 @@ ErrorId MsgSpec::SpecGroup = { ErrorOf( ES_SPEC, 6, E_INFO, EV_NONE, 0  ),
 ErrorId MsgSpec::SpecProtect = { ErrorOf( ES_SPEC, 7, E_INFO, EV_NONE, 0  ),
 "# %'Perforce Protections'% Specification.\n"
 "#\n"
-"#  Each line contains a protection mode, a group/user indicator, the\n"
-"#  group/user name, client host id and a depot file path pattern.\n"
-"#  A user gets the highest privilege granted on any line.\n"
+"#  %'SubPath'%:     The root path of the sub-protections table (only used when\n"
+"#               editing a sub-prorections table).\n"
 "#\n"
-"#  %'Mode'%:        The permission level or right being granted or denied.  Each\n"
-"#               permission level includes all the permissions above it,\n"
-"#               except for '%'review'%'.  Each permission right only includes\n"
+"#  %'Update'%:      The date this specification was last modified (read-only).\n"
+"#\n"
+"#  %'Protections'%:\n"
+"#      Each line contains a protection mode, a group/user indicator, the\n"
+"#      group/user name, client host id and a depot file path pattern.\n"
+"#      A user gets the highest privilege granted on any line.\n"
+"#\n"
+"#      %'Mode'%:    The permission level or right being granted or denied.  Each\n"
+"#               permission level includes all the permissions above it, except\n"
+"#               for '%'review'%' and '%'owner'%'.  Each permission right only includes\n"
 "#               the specific right and not all the lesser rights. Modes\n"
 "#               preceded by '=' are rights; all other modes are levels.\n"
 "#\n"
@@ -293,6 +302,9 @@ ErrorId MsgSpec::SpecProtect = { ErrorOf( ES_SPEC, 7, E_INFO, EV_NONE, 0  ),
 "#\n"
 "#               %'admin'%  - permits those administrative commands and command\n"
 "#                        options that don't affect the server's security\n"
+"#\n"
+"#               %'owner'%  - allows access to the '%'p4 protect'%' command, for\n"
+"#                        the specified path.\n"
 "#\n"
 "#               %'super'%  - allows access to the '%'p4 protect'%' command\n"
 "#\n"
@@ -311,15 +323,15 @@ ErrorId MsgSpec::SpecProtect = { ErrorOf( ES_SPEC, 7, E_INFO, EV_NONE, 0  ),
 "#               %'=write'%  - if this right is denied, users cannot submit open\n"
 "#                         files\n"
 "#\n"
-"#  %'Group/User'% indicator: either '%'group'%' or '%'user'%'.\n"
+"#      %'Group/User'% indicator: either '%'group'%' or '%'user'%'.\n"
 "#\n"
-"#  %'Name'%:        A %'Perforce'% group or user name; may be wildcarded.\n"
+"#      %'Name'%:    A %'Perforce'% group or user name; may be wildcarded.\n"
 "#\n"
-"#  %'Host'%:        The %'IP'% address of a client host; may be wildcarded, or\n"
+"#      %'Host'%:    The %'IP'% address of a client host; may be wildcarded, or\n"
 "#               may instead use %'CIDR'% syntax, e.g. %'172.16.0.0/16'% would match\n"
 "#               all %'IPv4'% addresses which start with %'172.16'%.\n"
 "#\n"
-"#  %'Path'%:        The part of the depot being granted access.\n" };
+"#      %'Path'%:    The part of the depot being granted access.\n" };
 
 ErrorId MsgSpec::SpecServer = { ErrorOf( ES_SPEC, 15, E_INFO, EV_NONE, 0  ), 
 "# A %'Perforce Server'% Specification.\n"
@@ -520,5 +532,18 @@ ErrorId MsgSpec::SpecRemote = { ErrorOf( ES_SPEC, 17, E_INFO, EV_NONE, 0  ),
 "#  %'ArchiveLimits'%: Lines to limit the archives fetched (optional)\n"
 "#\n"
 "#                   See 'p4 help remote' for detailed information.\n" };
+
+ErrorId MsgSpec::SpecRepo = { ErrorOf( ES_SPEC, 18, E_INFO, EV_NONE, 0  ), 
+"# A %'Perforce Repo'% Specification.\n"
+"#\n"
+"#  %'Name'%:        The name of this repo.\n"
+"#  %'Owner'%:       The user who created this repo.\n"
+"#  %'Created'%:     The date this specification was created.\n"
+"#  %'Pushed'%:      The date of the last '%'push'%' to this repo.\n"
+"#  %'ForkedFrom'%:  The name of the repo from which this repo was forked.\n"
+"#  %'Description'%: A short description of the remote server (optional).\n"
+"#  %'DefaultBranch'%: The default branch to clone.\n"
+"#\n"
+"#                   See 'p4 help repo' for detailed information.\n" };
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 

@@ -971,7 +971,7 @@ NetTcpEndPoint::Accept( KeepAlive *keep, Error *e )
 			}
 			rd = 1;
 			int sr;
-			if( ( sr = selector->Select( rd, wr, 500 ) ) == 0 )
+			if( ( sr = selector->Select( rd, wr, 500000 ) ) == 0 )
 				continue;
 			if( sr == -1 )
 			{

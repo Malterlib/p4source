@@ -31,11 +31,29 @@
 # define RSA void
 # define SSL_METHOD void
 # define SSL void
-# define SSL_CTX void
+# ifndef SSL_CTX
+# define SSL_CTX int
+# endif // SSL_CTX
 # ifndef X509
 # define X509 void
 # endif //X509
 # define X509_STORE_CTX void
+
+# ifndef SHA_CTX
+#    define SHA_CTX	void
+# endif // SHA_CTX
+
+# ifndef SHA256_CTX
+#    define SHA256_CTX	void
+# endif // SHA256_CTX
+
+// needed for our TLS version selection code:
+//	NetSslTransport::CreateAndInitializeSslContext()
+# define SSL_OP_NO_SSLv2                                 0x01000000L
+# define SSL_OP_NO_SSLv3                                 0x02000000L
+# define SSL_OP_NO_TLSv1                                 0x04000000L
+# define SSL_OP_NO_TLSv1_2                               0x08000000L
+# define SSL_OP_NO_TLSv1_1                               0x10000000L
 
 // Constants
 # define SSL_CTRL_MODE                  33
@@ -89,6 +107,10 @@ const SSL_METHOD * TLSv1_method (void);
 const char  * SSL_get_cipher_list(const SSL *s,int n);
 int	SSL_set_cipher_list(SSL *s, const char *str);
 
+const SSL_METHOD *SSLv23_method(void);
+long SSL_CTX_set_options(SSL_CTX *ctx, long options);
+const char *SSL_get_version(const SSL *ssl);
+
 int EVP_PKEY_print_private(BIO *out, const EVP_PKEY *pkey,
 				int indent, ASN1_PCTX *pctx);
 unsigned long SSLeay(void);
@@ -103,4 +125,13 @@ void CRYPTO_set_dynlock_lock_callback(void (*dyn_lock_function)
         const char *file, int line));
 void CRYPTO_set_dynlock_destroy_callback(void (*dyn_destroy_function)
         (struct CRYPTO_dynlock_value *l, const char *file, int line));
+
+int SHA1_Init(SHA_CTX *c);
+int SHA1_Update(SHA_CTX *c, const void *data, unsigned long len);
+int SHA1_Final(unsigned char *md, SHA_CTX *c);
+
+int SHA256_Init(SHA256_CTX *c);
+int SHA256_Update(SHA256_CTX *c, const void *data, size_t len);
+int SHA256_Final(unsigned char *md, SHA256_CTX *c);
+unsigned char *SHA256(const unsigned char *d, size_t n, unsigned char *md);
 #endif // HEADER_SSL_H 

@@ -27,5 +27,6 @@ class KeepAlive {
 	virtual ~KeepAlive() {};
 
 	virtual int	IsAlive() = 0;
+	virtual void	Clear(){};
 
 };

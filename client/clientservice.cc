@@ -35,6 +35,7 @@
 
 # include <filesys.h>
 # include <pathsys.h>
+# include <fileio.h>
 # include <enviro.h>
 # include <ticket.h>
 
@@ -227,7 +228,8 @@ ClientSvc::FileFromPath( Client *client, const char *vName, Error *e )
 
 	if( !clientPath->Compare( client->GetTicketFile() ) ||
 	    !clientPath->Compare( client->GetTrustFile() ) ||
-	    !f->IsUnderPath( client->GetClientPath() ) )
+	    !f->IsUnderPath( client->GetClientPath() ) &&
+	    !f->IsUnderPath( client->GetTempPath() ) )
 	{
 	    e->Set( MsgClient::NotUnderPath )
 		    << f->Name() << client->GetClientPath();
@@ -1073,6 +1075,7 @@ clientCheckFile( Client *client, Error *e )
 	StrPtr *fileSize = client->GetVar( P4Tag::v_fileSize );
 	StrPtr *scanSize = client->GetVar( P4Tag::v_scanSize );
 	StrPtr *ignore = client->GetVar( P4Tag::v_ignore );
+	StrPtr *checkLinks = client->GetVar( P4Tag::v_checkLinks );
 
 	if( e->Test() && !e->IsFatal() )
 	{
@@ -1087,6 +1090,62 @@ clientCheckFile( Client *client, Error *e )
 	// For flush,  checkSize is an optimization check on binary files.
 
 	offL_t checkSize = fileSize ? fileSize->Atoi64() : 0;
+
+	// Check for symbolic link in path
+
+	if( checkLinks )
+	{
+	    PathSys *ps = PathSys::Create();
+	    FileSys *fs = client->GetUi()->File( FST_BINARY );
+	    ps->Set( clientPath );
+
+	    // Don't allow opening a file for add if it is a symlink to
+	    // a directory.
+
+	    fs->Set( *ps );
+	    if( fs->Stat() & FSF_SYMLINK )
+	    {
+		FileSys *fl = new FileIOSymlink;
+		fl->Set( fs->Name() );
+		fl->Open( FOM_READ, e );
+		if( fl->Stat() & FSF_DIRECTORY )
+		{
+		    Error msg;
+		    msg.Set( MsgClient::CheckFileBadPath )
+			     << clientPath << fs->Name();
+		    client->GetUi()->Message( &msg );
+		    client->SetError();
+		    delete fl;
+		    delete fs;
+		    delete ps;
+		    return;
+		}
+		delete fl;
+	    }
+
+	    while( ps->ToParent() )
+	    {
+	        fs->Set( *ps );
+	        if( fs->Stat() & FSF_SYMLINK )
+	        {
+	            Error msg;
+	            msg.Set( MsgClient::CheckFileBadPath )
+		             << clientPath << fs->Name();
+	            client->GetUi()->Message( &msg );
+	            client->SetError();
+	            delete fs;
+	            delete ps;
+	            return;
+	        }
+
+	        // Don't walk above clientroot
+
+	        if( !ps->Compare( *checkLinks ) )
+	            break;
+	    }
+	    delete fs;
+	    delete ps;
+	}
 
 	// 2012.1 server asks the client to do ignore checks (on add), in the
 	// case of forced client type, ignore == ack, do quick confirm
@@ -1253,9 +1312,7 @@ clientCheckFile( Client *client, Error *e )
 	    delete f;
 	}
 
-	// tell the server 
-
-    // set the charset here?
+        // set the charset here?
 
 	client->SetVar( P4Tag::v_type, ntype );
 	client->SetVar( P4Tag::v_status, status );
@@ -1736,6 +1793,7 @@ clientSendFile( Client *client, Error *e )
 	StrPtr *serverDigest = client->GetVar( "serverDigest" );
 	StrPtr *pendingDigest = client->GetVar( "pendingDigest" );
 	StrPtr *revertUnchanged = client->GetVar( P4Tag::v_revertUnchanged );
+	StrPtr *depotTime = client->GetVar( P4Tag::v_depotTime );
 	StrPtr *reopen = client->GetVar( P4Tag::v_reopen );
 	StrPtr *skipDigestCheck = client->GetVar( "skipDigestCheck" );
 
@@ -1757,6 +1815,10 @@ clientSendFile( Client *client, Error *e )
 	    return;
 	}
 
+	// 2016.2 submit + reopen chmod +RW upon success
+
+	int chmodReopen = ( client->protocolServer >= 42 );
+
 	// 2014.2 submit --forcenoretransfer skips file transfer to call 
 	// dmsubmitfile directly, only fixing up file perms as needed.
 
@@ -1769,8 +1831,16 @@ clientSendFile( Client *client, Error *e )
 	    // Ignore failure to chmod file since the file may not exist
 
 	    Error te;
-	    if( perms )
+
+	    if( !chmodReopen && perms )
 		f->Chmod2( perms->Text(), &te );
+	    else if( chmodReopen )
+	    {
+		if( perms && !reopen )
+		    f->Chmod2( perms->Text(), &te );
+		else if( reopen )
+		    f->Chmod2( FPM_RW, e );
+	    }
 	    delete f;
 	    return;
 	}
@@ -1807,7 +1877,19 @@ clientSendFile( Client *client, Error *e )
 	        client->SetVar( P4Tag::v_digest, &localDigest );
 	        client->Confirm( confirm );
 	        if( !e->Test() && perms && revertUnchanged )
-	            f->Chmod2( perms->Text(), e );
+		{
+		    if( depotTime && ( f->Stat() & FSF_WRITEABLE ) )
+		    {
+			// Refresh modtime from depot rev, the same
+			// way clientChmodFile() does
+
+			f->ModTime( depotTime );
+			f->ChmodTime( e );
+		    }
+
+		    if( !e->Test() )
+			f->Chmod2( perms->Text(), e );
+		}
 	        delete f;
 	        return;
 	    }
@@ -1913,6 +1995,8 @@ clientSendFile( Client *client, Error *e )
 
 	if( !e->Test() && perms && !reopen )
 	    f->Chmod2( perms->Text(), e );
+	else if( !e->Test() && chmodReopen && reopen )
+	    f->Chmod2( FPM_RW, e );
 
     bail:
 	// close it down
@@ -2037,6 +2121,7 @@ clientInputData( Client *client, Error *e )
 void
 clientPrompt( Client *client, Error *e )
 {
+	client->FstatPartialClear();
 	client->NewHandler();
 	StrPtr *data = client->translated->GetVar( P4Tag::v_data, e );
 	StrPtr *confirm = client->GetVar( P4Tag::v_confirm, e );
@@ -2332,6 +2417,7 @@ clientSingleSignon( Client *client, Error *e )
 void
 clientErrorPause( Client *client, Error *e )
 {
+	client->FstatPartialClear();
 	client->NewHandler();
 	StrPtr *data = client->translated->GetVar( P4Tag::v_data, e );
 
@@ -2344,6 +2430,7 @@ clientErrorPause( Client *client, Error *e )
 void
 clientHandleError( Client *client, Error *e )
 {
+	client->FstatPartialClear();
 	client->NewHandler();
 	StrPtr *data = client->translated->GetVar( P4Tag::v_data, e );
 
@@ -2370,6 +2457,7 @@ clientHandleError( Client *client, Error *e )
 void
 clientMessage( Client *client, Error *e )
 {
+	client->FstatPartialClear();
 	client->NewHandler();
 
 	/* Unpack the error and hand it to the user. */
@@ -2414,6 +2502,7 @@ clientMessage( Client *client, Error *e )
 void
 clientOutputError( Client *client, Error *e )
 {
+	client->FstatPartialClear();
 	client->NewHandler();
 	StrPtr *data = client->translated->GetVar( P4Tag::v_data, e );
 	StrPtr *warn = client->GetVar( P4Tag::v_warning );
@@ -2436,6 +2525,7 @@ clientOutputError( Client *client, Error *e )
 void
 clientOutputInfo( Client *client, Error *e )
 {
+	client->FstatPartialClear();
 	client->NewHandler();
 	StrPtr *data = client->translated->GetVar( P4Tag::v_data, e );
 	StrPtr *level = client->GetVar( P4Tag::v_level );
@@ -2454,13 +2544,14 @@ clientOutputInfo( Client *client, Error *e )
 void
 clientOutputText( Client *client, Error *e )
 {
+	client->FstatPartialClear();
 	client->NewHandler();
 	StrPtr *trans = client->GetVar( P4Tag::v_trans );
 	StrPtr *data;
 
 	if ( trans && *trans == "no" )
 	    data = client->GetVar( P4Tag::v_data, e );
-        else
+	else
 	    data = client->translated->GetVar( P4Tag::v_data, e );
 
 	if( e->Test() )
@@ -2476,6 +2567,7 @@ clientOutputText( Client *client, Error *e )
 void
 clientOutputBinary( Client *client, Error *e )
 {
+	client->FstatPartialClear();
 	StrPtr *data = client->GetVar( P4Tag::v_data, e );
 
 	if( e->Test() )
@@ -2536,17 +2628,39 @@ clientProgress( Client *client, Error *e )
 
 //
 // clientFstatInfo
+// clientFstatPartial
 //
 
 void
 clientFstatInfo( Client *client, Error *e )
 {
 	// Rpc has a StrDict interface
-
 	client->NewHandler();
+
 	// XXX hmmm... since we potentially have different translations
 	// which one should we choose
-	client->GetUi()->OutputStat( client->translated );
+
+	// Append the final fstat partial to the existing partials
+	client->FstatPartialAppend( client->translated );
+
+	client->GetUi()->OutputStat( client->fstatPartial );
+	client->FstatPartialClear();
+}
+
+void
+clientFstatPartial( Client *client, Error *e )
+{
+	// Rpc has a StrDict interface
+	client->NewHandler();
+
+	// XXX hmmm... since we potentially have different translations
+	// which one should we choose
+
+	// Append the partial to the existing partials
+	client->FstatPartialAppend( client->translated );
+
+	if( client->GetUi()->OutputStatPartial( client->fstatPartial ) )
+	    client->FstatPartialClear();
 }
 
 //
@@ -2638,8 +2752,16 @@ clientCrypto( Client *client, Error *e )
 	StrPtr *serverID = client->GetVar( P4Tag::v_serverAddress );
 	StrPtr *usrName = client->GetVar( P4Tag::v_user );
 
+	// Get these from the extra variable stash
+	StrPtr *ipAddr = client->GetEVar( P4Tag::v_ipaddr );
+	StrPtr *svrName = client->GetEVar( P4Tag::v_svrname );
+	StrPtr *svcPass = client->GetEVar( P4Tag::v_password );
+	StrPtr *daddr = client->GetEVar( P4Tag::v_port );
+
 	if( e->Test() )
 	    return;
+
+	int pxAuth = ( ipAddr && svrName ) ? 1 : 0;
 
 	StrBuf u;
 	if( usrName )
@@ -2649,11 +2771,20 @@ clientCrypto( Client *client, Error *e )
 	        StrOps::Lower( u );
 	}
 
+	StrBuf s;
+	if( svrName )
+	{
+	    s = *svrName;
+	    if( client->protocolNocase )
+	        StrOps::Lower( s );
+	}
+
 	// Set the normalized server address (2007.2) 
 
 	client->SetServerID( serverID ? serverID->Text() : "" );
 
-	StrPtr *daddr = client->GetPeerAddress( RAF_PORT );
+	if( !daddr || !pxAuth )
+	    daddr = client->GetPeerAddress( RAF_PORT );
 	if( daddr )
 	    client->SetVar( P4Tag::v_daddr, *daddr );
 
@@ -2662,10 +2793,13 @@ clientCrypto( Client *client, Error *e )
 	// Yes, the password itself must be digested first.
 
 	StrBuf result;
-	const StrPtr &password = client->GetPassword( usrName ? &u : 0 );
+	const StrPtr &password  = client->GetPassword( usrName ? &u : 0 );
 	const StrPtr &password2 = client->GetPassword2();
 
-	if( !password.Length() )
+	if( pxAuth )
+	    client->SetVar( P4Tag::v_caddr, *ipAddr );
+
+	if( !password.Length() && !pxAuth )
 	{
 	    client->SetVar( P4Tag::v_token, &result );
 	    client->Invoke( confirm->Text() );
@@ -2675,7 +2809,8 @@ clientCrypto( Client *client, Error *e )
 	// send 2 passwords (token,token2) if both ticket and P4PASSWD
 	// are set (2007.2).
 
-	int max = password2.Length() && password != password2 ? 2 : 1;
+	int max = !password.Length() ? 0 :
+	          password2.Length() && password != password2 ? 2 : 1;
 
 	for( int i = 0; i < max; ++i )
 	{
@@ -2743,6 +2878,32 @@ clientCrypto( Client *client, Error *e )
 
 	    if( i == 0 ) client->SetVar( P4Tag::v_token, &result );
 	            else client->SetVar( P4Tag::v_token2, &result );
+	}
+
+	if( pxAuth )
+	{
+	    const StrPtr &svcTicket = svcPass ? *svcPass
+	                          : client->GetPassword( svrName ? &s : 0, 1 );
+	    StrPtr *daddr0 = client->GetPeerAddress( RAF_PORT );
+	    if( daddr0 )
+	    {
+		StrBuf phash;
+		MD5 md5;
+		if( svrName->Length() )
+		{
+		    md5.Update( *svrName );
+		    client->SetVar( P4Tag::v_svrname, 0, *svrName );
+		}
+		if( svcTicket.Length() )
+		    md5.Update( svcTicket );
+		md5.Update( *token );
+
+		md5.Update( *daddr0 );
+		client->SetVar( P4Tag::v_daddr, 0, *daddr0 );
+
+		md5.Final( phash );
+		client->SetVar( P4Tag::v_dhash, 0, phash );
+	    }
 	}
 
 	client->Invoke( confirm->Text() );
@@ -3002,6 +3163,7 @@ const RpcDispatch clientDispatch[] = {
 	P4Tag::c_OutputText,	RpcCallback(clientOutputText),
 	P4Tag::c_OutputBinary,	RpcCallback(clientOutputBinary),
 	P4Tag::c_FstatInfo,	RpcCallback(clientFstatInfo),
+	P4Tag::c_FstatPartial,	RpcCallback(clientFstatPartial),
 
 	P4Tag::c_Ack,		RpcCallback(clientAck),
 	P4Tag::c_Ping,		RpcCallback(clientPing),

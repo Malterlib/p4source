@@ -35,6 +35,8 @@ enum P4DebugType {
 	DT_ZK,		// p4zk related
 	DT_LDAP,	// LDAP related
 	DT_DVCS,	// DVCS related
+	DT_GRAPH,	// GRAPH related
+	DT_GCONN,	// gconn related
 	DT_LAST
 }  ;
 

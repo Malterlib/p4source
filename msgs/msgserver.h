@@ -414,6 +414,8 @@ class MsgServer {
 	static ErrorId UseLdapt;
 	static ErrorId UseLdaps;
 	static ErrorId UseLdapSync;
+	static ErrorId UseLdapSyncG;
+	static ErrorId UseLdapSyncU;
 	static ErrorId UseLdapsa;
 	static ErrorId UseLdapst;
 	static ErrorId UseLicense;
@@ -518,6 +520,7 @@ class MsgServer {
 	static ErrorId UseTransmit;
 	static ErrorId UseTriggers;
 	static ErrorId UseTypeMap;
+	static ErrorId UseUndo;
 	static ErrorId UseUnload;
 	static ErrorId UseUnlock;
 	static ErrorId UseUnshelve;
@@ -596,6 +599,7 @@ class MsgServer {
 	static ErrorId PullNotReplica;
 	static ErrorId CommandRunning;
 	static ErrorId PullOnDemand;
+	static ErrorId NoUpdateForwarding;
 	static ErrorId JournalCopyBadJnlState;
 	static ErrorId JournalCopyAppendFailed;
 	static ErrorId JournalStateVsSize;
@@ -617,6 +621,7 @@ class MsgServer {
 	static ErrorId NeedFilePath;
 	static ErrorId NoSuchField;
 	static ErrorId EmptyTypeList;
+	static ErrorId NotGraphReady;
 	static ErrorId NotStreamReady;
 	static ErrorId NotStreamOwner;
 	static ErrorId VersionedStream;
@@ -719,6 +724,10 @@ class MsgServer {
 	static ErrorId LdapNoSearchConfig;
 	static ErrorId LdapNoAttrConfig;
 	static ErrorId LdapNoAttrsFound;
+	static ErrorId LdapSyncUserAdd;
+	static ErrorId LdapSyncUserUpdate;
+	static ErrorId LdapSyncUserDel;
+	static ErrorId LdapSyncUserNoChange;
 
 	static ErrorId LicenceInputOnly;
 

@@ -403,6 +403,86 @@ DateTime::FmtUnifiedDiff( char *buf ) const
 }
 
 /*
+ * DateTime::SetGit() - parse a date in Git internal format.
+ *
+ * From https://git-scm.com/docs/git-commit-tree:
+ *
+ * Git internal format
+ *
+ * It is <unix timestamp> <time zone offset>, where <unix timestamp> is
+ * the number of seconds since the UNIX epoch. <time zone offset> is a
+ * positive or negative offset from UTC. For example CET (which is 2
+ * hours ahead UTC) is +0200.
+ *
+ * Note that the time zone offset is not used to "correct" the timestamp; the
+ * timestamp is already in UTC.
+ */
+void
+DateTime::SetGit( const StrPtr &s, Error *e )
+{
+	tval = 0;
+
+	const char *p = s.Text();
+	while( isAdigit( p ) )
+	{
+	    tval = ( tval * 10 ) + ( *p - '0' );
+	    p++;
+	}
+
+	if( *p != ' ' )
+	{
+	    e->Set( MsgSupp::InvalidDate ) << s;
+	    return;
+	}
+
+	p++;
+
+	int sign = 1;
+	int seconds = 0, hours = 0, minutes = 0;
+
+	if( *p == '-' )
+	{
+	    sign = -1;
+	    p++;
+	}
+	else if( *p == '+' )
+	{
+	    p++;
+	}
+
+	// 4 valid digits?
+	if( isAdigit( &p[0] ) && isAdigit( &p[1] ) &&
+	    isAdigit( &p[2] ) && isAdigit( &p[3] ) )
+	{
+	    hours = p[0] - '0';
+	    hours = hours * 10 + p[1] - '0';
+	    minutes = p[2] - '0';
+	    minutes = minutes * 10 + p[3] - '0';
+	    seconds = hours * 3600 + minutes * 60;
+	}
+	else
+	{
+	    e->Set( MsgSupp::InvalidDate ) << s;
+	    return;
+	}
+}
+
+void
+DateTime::FmtGit( StrBuf &buf ) const
+{
+	int isdst = 0;
+	int ofst = TzOffset( &isdst );
+
+	int minutesOff = ofst / 60;
+	minutesOff += 40 * ( minutesOff / 60 );
+
+	sprintf( buf.Alloc( DateTimeZoneBufSize ),
+	        "%ld %+05d", (long)tval, minutesOff );
+
+	buf.SetLength( strlen( buf.Text() ) );
+}
+
+/*
  * CentralOffset - what's time_t's offset from midnight 1/1/70 GMT?
  *
  * Perforce time is always seconds since midnight 1/1/70 GMT, but some

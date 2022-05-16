@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSupp error code is: 284
+ * Current high value for a MsgSupp error code is: 288
  */
 
 # include <error.h>
@@ -288,7 +288,11 @@ ErrorId MsgSupp::OptionForceNoRetransfer    = { ErrorOf( ES_SUPP, 251, E_INFO, E
 ErrorId MsgSupp::OptionDurableOnly     = { ErrorOf( ES_SUPP, 252, E_INFO, EV_NONE, 0 ), "%'--durable-only'%: deliver only durable journal records." } ;
 ErrorId MsgSupp::OptionNonAcknowledging= { ErrorOf( ES_SUPP, 253, E_INFO, EV_NONE, 0 ), "%'--non-acknowledging'%: this request does not acknowledge previous journal records." } ;
 ErrorId MsgSupp::OptionReplicationStatus= { ErrorOf( ES_SUPP, 254, E_INFO, EV_NONE, 0 ), "%'--replication-status (-J)'%: show the replication status of the server and of its replicas." } ;
-ErrorId MsgSupp::OptionGroupMode       = { ErrorOf( ES_SUPP, 255, E_INFO, EV_NONE, 0 ), "%'--groups (-g)'%: updated Perforce group users with LDAP group members." } ;
+ErrorId MsgSupp::OptionGroupMode       = { ErrorOf( ES_SUPP, 255, E_INFO, EV_NONE, 0 ), "%'--groups (-g)'%: updates Perforce group users with LDAP group members." } ;
+ErrorId MsgSupp::OptionUserMode        = { ErrorOf( ES_SUPP, 285, E_INFO, EV_NONE, 0 ), "%'--users (-u)'%: updates Perforce users from LDAP user." } ;
+ErrorId MsgSupp::OptionUserModeCreate  = { ErrorOf( ES_SUPP, 286, E_INFO, EV_NONE, 0 ), "%'--create (-c)'%: creates new users found in LDAP." } ;
+ErrorId MsgSupp::OptionUserModeUpdate  = { ErrorOf( ES_SUPP, 287, E_INFO, EV_NONE, 0 ), "%'--update (-U)'%: updates existing users found in LDAP." } ;
+ErrorId MsgSupp::OptionUserModeDelete  = { ErrorOf( ES_SUPP, 288, E_INFO, EV_NONE, 0 ), "%'--delete (-d)'%: deletes users not found in LDAP." } ;
 ErrorId MsgSupp::OptionBypassExlusiveLock = { ErrorOf( ES_SUPP, 256, E_INFO, EV_NONE, 0 ), "%'--bypass-exclusive-lock'%: allow command on (+l) filetype even if already exclusively opened." } ;
 ErrorId MsgSupp::OptionRetainLbrRevisions = { ErrorOf( ES_SUPP, 261, E_INFO, EV_NONE, 0 ), "%'--retain-lbr-revisions'%: don't rename library archive files with the renamed changelist number." } ;
 ErrorId MsgSupp::OptionCreate             = { ErrorOf( ES_SUPP, 257, E_INFO, EV_NONE, 0 ), "%'--create (-c)'%: Create a new stream and populate it with files from the current stream. (dvcs only)" } ;
@@ -297,7 +301,8 @@ ErrorId MsgSupp::OptionMainline           = { ErrorOf( ES_SUPP, 259, E_INFO, EV_
 ErrorId MsgSupp::OptionMoveChanges        = { ErrorOf( ES_SUPP, 260, E_INFO, EV_NONE, 0 ), "%'--movechanges (-r)'%: Move open files to the stream you are switching to, instead of shelving and reverting them." } ;
 ErrorId MsgSupp::OptionJavaProtocol       = { ErrorOf( ES_SUPP, 262, E_INFO, EV_NONE, 0 ), "%'--java'%: enable Java support via the rsh protocol." } ;
 ErrorId MsgSupp::OptionPullBatch          = { ErrorOf( ES_SUPP, 263, E_INFO, EV_NONE, 0 ), "%'--batch'%: pull N archives in a single request to master." } ;
-ErrorId MsgSupp::OptionDepotType= { ErrorOf( ES_SUPP, 265, E_INFO, EV_NONE, 0 ), "%'--type (-t)'%: specifies the type of depot" } ;
+ErrorId MsgSupp::OptionDepotType= { ErrorOf( ES_SUPP, 265, E_INFO, EV_NONE, 0 ), "%'--depot-type (-t)'%: specifies the type of depot" } ;
+ErrorId MsgSupp::OptionClientType         = { ErrorOf( ES_SUPP, 280, E_INFO, EV_NONE, 0 ), "%'--client-type'%: specifies the type of client." } ;
 ErrorId MsgSupp::OptionGlobalLock= { ErrorOf( ES_SUPP, 266, E_INFO, EV_NONE, 0 ), "%'--global (-g)'%: reports or changes global locks from Edge Server" } ;
 ErrorId MsgSupp::OptionEnableDVCSTriggers = { ErrorOf( ES_SUPP, 267, E_INFO, EV_NONE, 0 ), "%'--enable-dvcs-triggers'%: fires any push-* triggers for changelists imported by this unzip command." } ;
 ErrorId MsgSupp::OptionUsers	          = { ErrorOf( ES_SUPP, 269, E_INFO, EV_NONE, 0 ), "%'--users (-u)'%: show the user who modifed the line." } ;
@@ -308,6 +313,11 @@ ErrorId MsgSupp::OptionAliases            = { ErrorOf( ES_SUPP, 273, E_INFO, EV_
 ErrorId MsgSupp::OptionField		  = { ErrorOf( ES_SUPP, 274, E_INFO, EV_NONE, 0 ), "%'--field'%: Modify spec fields from the command line." } ;
 ErrorId MsgSupp::OptionTab                = { ErrorOf( ES_SUPP, 275, E_INFO, EV_NONE, 0 ), "%'--tab[=N] (-T)'%: Align output to tab stops." } ;
 ErrorId MsgSupp::OptionForceDelete                = { ErrorOf( ES_SUPP, 277, E_INFO, EV_NONE, 0 ), "%'--force-delete'%: delete entity from protects and groups." } ;
+ErrorId MsgSupp::OptionStorageType                = { ErrorOf( ES_SUPP, 278, E_INFO, EV_NONE, 0 ), "%'--type'% (-T): specifies the type of client (writeable/readonly/graph)." } ;
+ErrorId MsgSupp::OptionAtomicPush         = { ErrorOf( ES_SUPP, 279, E_INFO, EV_NONE, 0 ), "%'--atomic'%: specifies that all references must pass their checks in order for any reference updates to occur." } ;
+ErrorId MsgSupp::OptionColor              = { ErrorOf( ES_SUPP, 281, E_INFO, EV_NONE, 0 ), "%'--color'%: Force color output on the command line." } ;
+ErrorId MsgSupp::OptionChangeFiles        = { ErrorOf( ES_SUPP, 282, E_INFO, EV_NONE, 0 ), "%'--show-files'%: specifies to display the individual files." } ;
+ErrorId MsgSupp::OptionDiscardArchives    = { ErrorOf( ES_SUPP, 283, E_INFO, EV_NONE, 0 ), "%'--discard-archives=N'%: specifies to discard any packfiles received more than N days ago. Specifying N=0 discards all packfiles except the one(s) just received by this command." } ;
 ErrorId MsgSupp::OptionLicenseInfo        = { ErrorOf( ES_SUPP, 284, E_INFO, EV_NONE, 0 ), "%'--license-info'%: report license status information." } ;
 
 ErrorId MsgSupp::TooManyLockTrys	  = { ErrorOf( ES_SUPP, 268, E_FATAL, EV_FAULT, 1 ), "Too many trys to get lock %file%." } ;

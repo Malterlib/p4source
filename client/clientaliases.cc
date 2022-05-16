@@ -1606,10 +1606,11 @@ AliasSubstitution::GetValue( StrPtr &var, StrBuf *val )
  * and can then give that output to a subsequent command for its use.    *
  *************************************************************************/
 
-ClientUserStrBuf::ClientUserStrBuf( Options &opts )
-	: ClientUserMunge( opts )
+ClientUserStrBuf::ClientUserStrBuf( Options &opts, int autoLoginPrompt )
+	: ClientUserMunge( opts, autoLoginPrompt )
 {
 	severity = E_EMPTY;
+	autoLogin = 0;
 }
 
 ClientUserStrBuf::~ClientUserStrBuf()
@@ -1651,7 +1652,15 @@ ClientUserStrBuf::OutputInfo( char level, const char *data )
 void
 ClientUserStrBuf::OutputText( const char *data, int length )
 {
-	Append( data );
+	StrRef text( data, length );
+	if( length && data[length-1] == '\n' )
+	    text.Set( (char *)data, --length );
+	if( length && data[length-1] == '\r' )
+	    text.Set( (char *)data, --length );
+
+	if( output.Length() > 0 )
+	    output << "\n";
+	output << text;
 }
 
 void
@@ -1659,6 +1668,14 @@ ClientUserStrBuf::HandleError( Error *err )
 {
 	Message( err );
 }
+
+static ErrorId BadPasswordWarn   = { ErrorOf( 7, 21,  E_WARN, 0x24, 0 ), "" };
+static ErrorId LoggedOutWarn     = { ErrorOf( 7, 318, E_WARN, 0x04, 0 ), "" };
+static ErrorId LoggingUserIn     = { ErrorOf( 7, 859, E_INFO, 0x00, 2 ), "" };
+static ErrorId LoginExpiredWarn  = { ErrorOf( 7, 312, E_WARN, 0x04, 0 ), "" };
+static ErrorId LoginUser         = { ErrorOf( 7, 325, E_INFO, 0x00, 1 ), "" };
+static ErrorId BadPassword0      = { ErrorOf( 7, 38,  E_FAILED, 0x04, 0 ), ""};
+static ErrorId PasswordExpired   = { ErrorOf( 7, 455, E_FAILED, 0x04, 0 ), ""};
 
 void
 ClientUserStrBuf::Message( Error *err )
@@ -1669,6 +1686,31 @@ ClientUserStrBuf::Message( Error *err )
 	//     ...
 	// else
 	//     ...
+
+	// Special case for autoLogin messages (print them)
+	// Same for authentication errors (warnings = autoLogin retrt atempt)
+	if( err->CheckId( LoggingUserIn ) ||
+	    ( autoLogin && err->CheckId( LoginUser ) ) ||
+	    err->CheckId( BadPasswordWarn ) ||
+	    err->CheckId( LoggedOutWarn ) ||
+	    err->CheckId( LoginExpiredWarn ) ||
+	    err->CheckId( BadPassword0 )||
+	    err->CheckId( PasswordExpired ) )
+	{
+	    if( err->IsWarning() || err->CheckId( LoggingUserIn ) )
+	        autoLogin = 1;
+	    else if( autoLogin && err->CheckId( LoginUser ) )
+	        autoLogin = 0;
+	    else if( err->IsError() )
+	    {
+	        severity = E_FAILED;
+	        autoLogin = 0;
+	    }
+
+	    ClientUser cu;
+	    cu.Message( err );
+	    return;
+	}
 
 	if( err->GetSeverity() > severity )
 	    severity = err->GetSeverity();

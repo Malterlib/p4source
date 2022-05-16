@@ -16,6 +16,8 @@
 # include <strbuf.h>
 # include <i18napi.h>
 # include <charcvt.h>
+# include <debug.h>
+# include <tunable.h>
 
 # include "filesys.h"
 # include "fileio.h"
@@ -177,14 +179,30 @@ FileIOUTF16::Translator( CharSetCvt * )
 FileIOUTF8::FileIOUTF8( LineType lineType )
     : FileIOUTF16( lineType )
 {
-	SetContentCharSetPriv( (int)CharSetApi::UTF_8_BOM );
+	SetCharSetPriv();
 }
 
 void
 FileIOUTF8::Set( const StrPtr &name, Error *e )
 {
 	FileIOUnicode::Set( name, e );
-	SetContentCharSetPriv( (int)CharSetApi::UTF_8_BOM );
+
+	SetCharSetPriv();
+}
+
+void
+FileIOUTF8::SetCharSetPriv()
+{
+	int c = p4tunable.Get( P4TUNE_FILESYS_UTF8BOM );
+	int f = (int)CharSetApi::UTF_8_BOM;
+# ifdef OS_NT
+	if( c == 0 )
+	    f = (int)CharSetApi::UTF_8;
+# else
+	if( c != 1 ) // meaning either 0 or 2
+	    f = (int)CharSetApi::UTF_8;
+# endif
+	SetContentCharSetPriv( f );
 }
 
 void
@@ -195,7 +213,12 @@ FileIOUTF8::Open( FileOpenMode mode, Error *e )
 	if( mode == FOM_READ )
 	    cvt = new CharSetCvtUTF8UTF8( -1, UTF8_VALID_CHECK );
 	else
-	    cvt = new CharSetCvtUTF8UTF8( 1, UTF8_WRITE_BOM );
+	{
+	    int f = 0;
+	    if( GetContentCharSetPriv() == (int)CharSetApi::UTF_8_BOM )
+		f = UTF8_WRITE_BOM;
+	    cvt = new CharSetCvtUTF8UTF8( 1, f );
+	}
 
 	FileIOUnicode::Open( mode, e );
 

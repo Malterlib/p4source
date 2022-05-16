@@ -266,6 +266,10 @@ class Options
 			Test           , // ldap -t, ldaps -t
 			Active         , // ldaps -A
 			GroupMode      , // ldapsync -g
+			UserMode       , // ldapsync -u
+			UserModeCreate, // ldapsync -u -c
+			UserModeUpdate, // ldapsync -u -U
+			UserModeDelete, // ldapsync -u -d
 			Create         , // switch -c
 			List           , // switch -l
 			Mainline       , // switch -m
@@ -300,6 +304,12 @@ class Options
 			P4UserUser     , // --me
 			Aliases        , // --aliases
 			Field          , // --field
+			StorageType    , // --type
+			AtomicPush     , // receive-pack --atomic
+			ClientType     , // clients --client-type=graph
+	                Color          , // --color
+	                ChangeFiles    , // changes --show-files
+	                DiscardArchives, // graph recieve-pack --discard-archives=N
 	                LicenseInfo,
 
 			UnusedLastOption

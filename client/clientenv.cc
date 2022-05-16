@@ -119,6 +119,25 @@ Client::GetClientPath()
 }
 
 const StrPtr &
+Client::GetTempPath()
+{
+	char *c;
+
+	if( tempPath.Length() )
+	    return tempPath;
+	else if( c = enviro->Get( "TEMP" ) )
+	    tempPath = c;
+	else if( c = enviro->Get( "TMP" ) )
+	    tempPath = c;
+	else {
+	    // Unix centric I know.  Windows will have TEMP set.
+	    // we no longer support VMS or other platforms
+	    tempPath = "/tmp";
+	}
+	return tempPath;
+}
+
+const StrPtr &
 Client::GetCwd()
 {
 	HostEnv h;
@@ -205,9 +224,9 @@ Client::GetPassword()
 }
 
 const StrPtr &
-Client::GetPassword( const StrPtr *usrName )
+Client::GetPassword( const StrPtr *usrName, int forceTFile )
 {
-	if( password.Length() && ticketKey == serverID )
+	if( !forceTFile && password.Length() && ticketKey == serverID )
 	    return password;
 
 	// A 2007.2 server will send the serverID to use as the ticket key.

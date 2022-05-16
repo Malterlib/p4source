@@ -268,16 +268,18 @@ NetStdioTransport::Receive( char *buffer, int length, Error *e )
 
 #ifdef OS_NT
 
-	    DWORD readable = 1;
+	    DWORD readable = 0;
 
-	    // 500 is .5 seconds.
+	    int count = 0; // 500 * 0.001 seconds = .5 seconds
+	    bool res = true;
 
-	    const int tv = 500;
-
-	    bool res = PeekNamedPipe( (HANDLE)_get_osfhandle( r ),
-	                              NULL, 0, NULL, &readable, NULL );
-	    if( res && !readable )
-	        Sleep( tv );
+	    while( count++ < 500 && res && !readable )
+	    {
+	        res = PeekNamedPipe( (HANDLE) _get_osfhandle( r ),
+	                             NULL, 0, NULL, &readable, NULL );
+	        if( res && !readable )
+	            Sleep( 1 ); // 1 is .001 seconds.
+	    }
 
 	    if( !res )
 	    {

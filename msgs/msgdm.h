@@ -582,12 +582,21 @@ class MsgDm {
 
 	static ErrorId ProtectSave;
 	static ErrorId ProtectNoChange;
+	static ErrorId ProtectNoOwner;
 
 	static ErrorId ProtectsData;
 	static ErrorId ProtectsMaxData;
 	static ErrorId ProtectsEmpty;
 	static ErrorId ProtectsNoSuper;
 	static ErrorId ProtectsNotCompatible;
+	static ErrorId ProtectsBadPerm;
+	static ErrorId ProtectsPathOutOfScope;
+	static ErrorId ProtectsOwnerEnds;
+	static ErrorId ProtectsOwnerWildcards;
+	static ErrorId ProtectsOwnerPath;
+	static ErrorId ProtectsDuplicateOwner;
+	static ErrorId ProtectsOwnerTooWide;
+	static ErrorId ProtectsOwnerUnmap;
 
 	static ErrorId PurgeSnapData;
 	static ErrorId PurgeDeleted;
@@ -941,6 +950,13 @@ class MsgDm {
 	static ErrorId RevChangedDuringPush;
 	static ErrorId UnknownReadonlyDir;
 	static ErrorId ShelveNotSubmittable;
+	static ErrorId NoSplitMoves;
+	static ErrorId CallerMustForward;
+	static ErrorId CantForwardDelete;
+	static ErrorId LogFilenameInvalid;
+	static ErrorId LogFormatInvalid;
+	static ErrorId LogNumericInvalid;
+	static ErrorId LogEventsUnmatched;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

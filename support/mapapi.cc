@@ -3,6 +3,7 @@
 #include <stdhdrs.h>
 #include <strbuf.h>
 #include <vararray.h>
+#include <strarray.h>
 #include <error.h>
 #include <maptable.h>
 #include <maphalf.h>
@@ -96,6 +97,9 @@ void MapApi::Insert( const StrPtr& l, const StrPtr& r, MapType t )
 	case MapOverlay:
 		f = MfRemap;
 		break;
+	case MapOneToMany:
+		f = MfAndmap;
+		break;
 	}
 
 	table->Insert( l, r, f );
@@ -113,6 +117,29 @@ int MapApi::Translate( const StrPtr& from, StrBuf& to, MapDir d )
 		return 1;
 	else
 		return 0;
+}
+
+int MapApi::Translate( const StrPtr& from, StrArray& to, MapDir d )
+{
+	MapTableT dir = ( d == MapRightLeft ? RHS : LHS );
+	to.Clear();
+
+	Disambiguate();
+	MapItemArray *mia = table->Explode( dir, from );
+
+	if( !mia || !mia->Count() )
+	{
+	    if( mia )
+	        delete mia;
+	    return 0;
+	}
+
+	StrPtr *tmp;
+	for( int i = 0; ( tmp = mia->GetTranslation( i ) ); i++ )
+	    to.Put()->Set( tmp );
+
+	delete mia;
+	return 1;
 }
 
 MapApi* MapApi::Join( MapApi* m1, MapDir d1, MapApi* m2, MapDir d2 )

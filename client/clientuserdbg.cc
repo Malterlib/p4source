@@ -125,11 +125,13 @@ ClientUserFmt::OutputStat( StrDict *dict )
  * ClientUserMunge -- user-specified munging ("--field" global opt)
  */
 
-ClientUserMunge::ClientUserMunge( Options &opts )
+ClientUserMunge::ClientUserMunge(Options &opts, int autoLoginPrompt) :
+	ClientUser( autoLoginPrompt )
 {
 	// Get the list of field substitutions from the Options.
 	
 	const StrPtr *s;
+	done = 0;
 
 	for( int i = 0 ; s = opts.GetValue( Options::Field, i ) ; i++ )
 	    fields.Put( *s );
@@ -138,7 +140,13 @@ ClientUserMunge::ClientUserMunge( Options &opts )
 void 
 ClientUserMunge::OutputStat( StrDict *dict )
 {
+	if( done )
+	    return;
+
 	Munge( dict, &fields, this );
+
+	done = 1; // prevent us from spitting multiple error messages
+		  // when the user runs the wrong command
 }
 
 void
@@ -146,8 +154,11 @@ ClientUserMunge::Munge( StrDict *dict, StrPtrArray *fields, ClientUser *ui )
 {
 	StrPtr *specdef = dict->GetVar( "specdef" );
 	if( !specdef )
-	    return ui->OutputError( "This command did not return a spec."
+	{
+	    ui->OutputError( "This command did not return a spec."
 				    "  Try 'p4 (spectype) -o'?\n" );
+	    return;
+	}
 
 	Error e;
 

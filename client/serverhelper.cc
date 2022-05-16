@@ -38,6 +38,7 @@
 # include <runcmd.h>
 
 # include <msgclient.h>
+# include <msgsupp.h>
 # include <p4tags.h>
 
 # include "client.h"
@@ -47,6 +48,33 @@
 
 
 static void LockCheck( Error * );
+
+static int
+Translate( CharSetCvt *cvt, int charset, StrPtr *in, StrBuf &out, Error *e )
+{
+	int translen;
+	const char *transbuf;
+
+	cvt->ResetErr();
+	transbuf = cvt->FastCvt(in->Text(), in->Length(), &translen);
+	if( transbuf )
+	{
+	    out.Set( transbuf, translen );
+	    out.Terminate();
+	}
+
+	int err = cvt->LastErr();
+
+	if( err )
+	{
+	    e->Set( MsgSupp::ConvertFailed ) << in
+	        << CharSetApi::Name( ( CharSetCvt::CharSet )charset )
+	        << CharSetApi::Name( CharSetCvt::UTF_8 );
+	    return 0;
+	}
+
+	return 1;
+}
 
 /*
  * The ServerHelper class
@@ -70,6 +98,13 @@ ServerHelper::ServerHelper( Error *e )
 	ignore.Set( INIT_IGNORE );
 	serverExe.Set( INIT_P4DEXE );
 
+	charset.Clear();
+	hasTrans = 0;
+	outputTrans = 0;
+	contentTrans = -2;
+	fnamesTrans = -2;
+	dialogTrans = -2;
+
 	version.Clear();
 	prog.Set( "p4api" );
 	version << ID_REL "/" << ID_OS << "/" << ID_PATCH;
@@ -84,6 +119,29 @@ ServerHelper::ServerHelper( Error *e )
 
 	HostEnv h;
 	h.GetCwd( pwd, &enviro );
+}
+
+void
+ServerHelper::SetTrans( int output, int content, int fnames, int dialog )
+{
+	hasTrans = 1;
+	outputTrans = output;
+	contentTrans = content;
+	fnamesTrans = fnames;
+	dialogTrans = dialog;
+}
+
+int
+ServerHelper::GetTrans( int &output, int &content, int &fnames, int &dialog )
+{
+	if( !hasTrans )
+	    return 0;
+
+	output = outputTrans;
+	content = contentTrans;
+	fnames = fnamesTrans;
+	dialog = dialogTrans;
+	return 1;
 }
 
 /*
@@ -300,6 +358,11 @@ ServerHelper::InitClient( Client *client, int useEnv, Error *e )
 	client->SetProtocol( P4Tag::v_tag );
 	client->SetProtocol( P4Tag::v_enableStreams );
 
+	if( app.Length() )
+	    client->SetProtocolV( app.Text() );
+
+	SetupUnicode( client, e );
+
 	client->SetCwd( &dir );
 
 	if( p4passwd.Length() )
@@ -308,8 +371,26 @@ ServerHelper::InitClient( Client *client, int useEnv, Error *e )
 	client->SetProg( &prog );
 	client->SetVersion( &version );
 
+
 	client->Init( e );
 }
+
+void
+ServerHelper::SetupUnicode( Client *client, Error *e )
+{
+	if( hasTrans )
+	    client->SetTrans( outputTrans, contentTrans, fnamesTrans,
+	                      dialogTrans );
+	else if( charset.Length() )
+	{
+	    int cs = CharSetApi::Lookup( charset.Text() );
+	    if( cs >= 0 )
+	        client->SetTrans( cs );
+	    else if( e )
+	        e->Set( MsgClient::UnknownCharset ) << charset;
+	}
+}
+
 
 /*
  * Runs 'p4 info' to discover configuration details from a remote server
@@ -721,19 +802,60 @@ ServerHelper::CreateLocalServer( ClientUser *ui, Error *e )
 	StrBuf res;
 	Error e1;
 	int ecode = 1;
+	StrBuf clientName = p4client;
 
-	// Move to the .p4root directory
-	curdir->SetLocal( dir, StrRef( INIT_ROOT ) );
+# ifndef OS_NT
+	int oldumask = umask( 077 );
+# endif
 
 	ra << serverExe;
 
-	// Handle unicode
-	if( unicode ) ra << "-xn";
-	         else ra << "-xnn";
-
+	// Move to the .p4root directory
+	curdir->SetLocal( dir, StrRef( INIT_ROOT ) );
 	ra << "-r" << *curdir;
 
-	ra << "-u" << p4user;
+	// Handle unicode
+
+	if( unicode )
+	{
+	    int out = 0;
+	    Client client;
+	    if( hasTrans )
+	        out = fnamesTrans;
+	    else if( charset.Length() )
+	        out = CharSetApi::Lookup( charset.Text(), client.GetEnviro() );
+	    else
+	        out = CharSetApi::Lookup( "auto", client.GetEnviro() );
+
+	    StrBuf user = p4user;
+	    CharSetCvt *cvt = CharSetCvt::FindCvt( (CharSetCvt::CharSet)out,
+	                                           CharSetCvt::UTF_8);
+
+	    if( cvt )
+	    {
+	        int err = 0;
+	        err += !Translate( cvt, out, &p4user, user, e );
+	        err += !Translate( cvt, out, &p4client, clientName, e );
+
+	        delete cvt;
+	        if( err )
+	            goto finish;
+	    }
+
+	    StrBuf euser;
+	    StrOps::EncodeNonPrintable( user, euser, 1, 1 );
+	    if( user != euser )
+	        ra << "-xne";
+	    else
+	        ra << "-xn";
+
+	    ra << "-u" << euser;
+	}
+	else
+	{
+	    ra << "-xnn";
+	    ra << "-u" << p4user;
+	}
 
 	// Handle case flags
 	ra << caseFlag;
@@ -744,10 +866,6 @@ ServerHelper::CreateLocalServer( ClientUser *ui, Error *e )
 
 	curdir->SetLocal( *curdir, StrRef( "file" ) );
 	fsys->Set( *curdir );
-
-# ifndef OS_NT
-	int oldumask = umask( 077 );
-# endif
 
 	fsys->MkDir( e );
 
@@ -764,7 +882,7 @@ ServerHelper::CreateLocalServer( ClientUser *ui, Error *e )
 	if( e->Test() )
 	    goto finish;
 
-	fsys->Write( p4client, e );
+	fsys->Write( clientName, e );
 	fsys->Write( "\n", 1, e );
 	fsys->Close( e );
 

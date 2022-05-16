@@ -38,6 +38,13 @@
 		p4debug.printf( "%s " msg "\n", isAccepted? "-> ": "<- "); \
 	} while(0);
 
+# define TRANSPORT_PRINT_VAR(level, msg) \
+	do \
+	{ \
+	    if( level ) \
+		p4debug.printf( "%s %s\n", isAccepted? "-> ": "<- ", msg ); \
+	} while(0);
+
 # define TRANSPORT_PRINTF( level, msg, ... ) \
 	do \
 	{ \

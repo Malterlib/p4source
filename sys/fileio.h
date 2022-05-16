@@ -169,6 +169,9 @@ class FileIOUTF8 : public FileIOUTF16 {
 
 	virtual void	Set( const StrPtr &name, Error *e );
 	virtual void	Open( FileOpenMode mode, Error *e );
+
+    private:
+	void	SetCharSetPriv();
 };
 
 class FileIOAppend : public FileIOBuffer {

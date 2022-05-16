@@ -81,6 +81,8 @@ clientReceiveFiles( Client *client, Error *e )
 	for( int i = 0; i < nThreads; i++ )
 	{
 	    tc[i].args.AddArg( exe );
+	    if( client->GetUi()->IsOutputTaggedWithErrorLevel() )
+	        tc[i].args.AddArg( "-s" );
 	    tc[i].args.AddArg( "-p" );
 	    tc[i].args.AddArg( client->GetPort() );
 	    tc[i].args.AddArg( "-u" );

@@ -495,7 +495,10 @@ StrBuf::Grow( p4size_t oldlen )
 	if( buffer != nullStrBuf )
 	{
 	    // geometric growth
-	    size = ( size + 30 ) * 3 / 2;
+	    if( size >= 0x70000000 )
+	        size =  0xffffffff;
+	    else
+	        size = ( size + 30 ) * 3 / 2;
 	    char *o = buffer;
 	    buffer = new char[ size ];
 	    memcpy( buffer, o, oldlen );

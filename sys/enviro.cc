@@ -58,6 +58,7 @@ const static char *const envVars[] = {
 	"P4CHARSET",
 	"P4CLIENT",
 	"P4CLIENTPATH",
+	"P4COLORS",
 	"P4COMMANDCHARSET",
 	"P4CONFIG",
 	"P4DEBUG",

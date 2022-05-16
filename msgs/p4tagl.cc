@@ -56,8 +56,9 @@
 // client protocol 78: 2015.1
 // client protocol 79: 2015.2
 // client protocol 80: 2016.1
+// client protocol 81: 2016.2
 
-const char P4Tag::l_client[] = "80"; // Also update knownReleases in dmtypes.cc
+const char P4Tag::l_client[] = "81"; // Also update knownReleases in dmtypes.cc
 
 // see server/rhmain.cc
 
@@ -102,10 +103,11 @@ const char P4Tag::l_client[] = "80"; // Also update knownReleases in dmtypes.cc
 // server level 39: 2015.1
 // server level 40: 2015.2
 // server level 41: 2016.1
+// server level 42: 2016.2
 
 const char P4Tag::l_xfiles[] = "7"; // see clientservice.cc
 const char P4Tag::l_server[] = "3"; // 97.3 GUI is stuck here!
-const char P4Tag::l_server2[] = "41"; // generic server level
+const char P4Tag::l_server2[] = "42"; // generic server level
 
 // proxy level 4: 2006.1	p4 print w/o -o via proxy
 // proxy level 5: 2007.3	submit cacheing

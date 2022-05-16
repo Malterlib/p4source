@@ -54,7 +54,8 @@ Client::Client( Enviro *e ) : Rpc( &service )
 	is_unicode = 0;
 	unknownUnicode = 1;
 	content_charset = 0;
-        output_charset = 0;
+	output_charset = 0;
+	transErr.Clear();
 	ignore = new Ignore;
 	lowerTag = upperTag = 0;
 	authenticated = 0;
@@ -63,6 +64,8 @@ Client::Client( Enviro *e ) : Rpc( &service )
 	hostprotoset = 0;
 	syncTime = 0;
 	ownCwd = 1;
+	fstatPartial = 0;
+	extraVars = 0;
 
 	protocolXfiles = -1;
 	protocolNocase = 0;
@@ -103,7 +106,9 @@ Client::~Client()
 	CleanupTrans();
 	if( ownEnviro )
 	    delete enviro;
+	delete fstatPartial;
 	delete ignore;
+	delete extraVars;
 }
 
 void
@@ -118,6 +123,9 @@ Client::Init( Error *e )
 	// unicode setup if possible
 	if( unknownUnicode )
 	    SetupUnicode( e );
+
+	if( GetEVar( P4Tag::v_ipaddr ) && GetEVar( P4Tag::v_svrname ) )
+	    SetProtocol( P4Tag::v_ipaddr, GetEVar( P4Tag::v_ipaddr )->Text() );
 
 	if( !e->Test() )
 	    service.SetEndpoint( GetPort().Text(), e );
@@ -347,9 +355,15 @@ Client::GetEnv()
 	const StrPtr &initroot = GetInitRoot();
 
 	translated->SetVar( P4Tag::v_client, GetClient() );
-	translated->SetVar( P4Tag::v_cwd, GetCwd() );
+	transfname->SetVar( P4Tag::v_cwd, GetCwd() );
+	if( transErr.Test() && translated != transfname )
+	    translated->SetVar( P4Tag::v_cwd, GetCwd() );
 	if( initroot.Length() )
-	    translated->SetVar( P4Tag::v_initroot, initroot );
+	{
+	    transfname->SetVar( P4Tag::v_initroot, initroot );
+	    if( transErr.Test() && translated != transfname )
+	        translated->SetVar( P4Tag::v_initroot, initroot );
+	}
 	else
 	    SetVar( P4Tag::v_host, GetHost() );
 	if( lang.Length() ) translated->SetVar( P4Tag::v_language, lang );
@@ -519,4 +533,48 @@ const StrPtr *
 Client::GetEnviroFile()
 {
 	return enviro->GetEnviroFile();
+}
+
+void
+Client::FstatPartialAppend( StrDict *part )
+{
+	if( !fstatPartial )
+	    fstatPartial = new StrBufDict;
+
+	StrRef var, val;
+
+	for( int i = 0; part->GetVar( i, var, val ); i++ )
+	    fstatPartial->SetVar( var, val );
+}
+
+void
+Client::FstatPartialClear()
+{
+	delete fstatPartial;
+	fstatPartial = 0;
+}
+
+StrPtr *
+Client::GetEVar( const char *k )
+{
+	StrRef key( k );
+	return GetEVar( &key );
+}
+
+StrPtr *
+Client::GetEVar( const StrPtr *k )
+{
+	if( !extraVars )
+	    return NULL;
+
+	return extraVars->GetVar( *k );
+}
+
+void
+Client::SetEVar( const StrPtr *k, const StrPtr *v )
+{
+	if( !extraVars )
+	    extraVars = new StrBufDict;
+
+	extraVars->SetVar( *k, *v );
 }

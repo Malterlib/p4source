@@ -356,7 +356,7 @@
 			# For OSX 10.7 and later, sdk lives deep under xcode.app
 			if [ FVersionCmp $(OSVER) : 107 ] >= 0 { XCODE_PREFIX ?= $(_xcode) ; }
 
-			local _v = [ MATCH ([0-9]+)([0-9])$ : $(OSVER) ] ;
+			local _v = [ MATCH ([0-9][0-9])([0-9]*)$ : $(OSVER) ] ;
 			_sdkver ?= $(_v:J=.) ;
 		}
 		if $(_sdkver) = 10.4 { _sdkver = $(_sdkver)u ; }  # "10.4u.sdk"
@@ -940,6 +940,14 @@
 		$(GENFLAGS) += $(_mflags) -pipe ;
 		LINKFLAGS   += $(_mflags) ;
 
+		# With FreeBSD 10.3 ...
+		# binutils now operates in deterministic mode by default,
+		# meaning it doesn't record timestamps in the archives. We
+		# could override that by always running 'ar U', but instead
+		# we chose to tell Jam not to scan the archives.
+
+		NOARSCAN = true ;
+
 	case HPUX11 :
 		switch $(OSPLAT:EU)-$(OSCOMP:E)
 		{
@@ -1089,6 +1097,13 @@
 		LINKFLAGS   += $(_mflags) ;
 
 		QTOPENGL ?= no ;
+
+		# binutils now operates in deterministic mode by default,
+		# meaning it doesn't record timestamps in the archives. We
+		# could override that by always running 'ar U', but instead
+		# we chose to tell Jam not to scan the archives on Linux.
+
+		NOARSCAN = true ;
 
 	case MACOSX :
 		Exit Set OSVER to 104, 105, 106, ... for MACOSX ;

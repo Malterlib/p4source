@@ -50,7 +50,8 @@ class ClientUserStrBuf : public ClientUserMunge
 {
 
     public:
-	                ClientUserStrBuf( Options &opts );
+	                ClientUserStrBuf( Options &opts,
+	                                  int autoLoginPrompt = 1 );
 	                ~ClientUserStrBuf();
 
 	virtual void	OutputInfo( char level, const char *data );
@@ -77,8 +78,9 @@ class ClientUserStrBuf : public ClientUserMunge
 	StrBuf		input;
 	StrBuf		output;
 	StrBuf		format;
-
+	
 	int		severity;
+	int		autoLogin;
 } ;
 
 /*

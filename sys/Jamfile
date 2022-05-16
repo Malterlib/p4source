@@ -39,7 +39,10 @@ P4Library $(SUPPORTLIB) :
 	stdhdrs.cc
 	threading.cc
 	timer.cc
+	zfilestream.cc
 	zipfile.cc
+	zlinflater.cc
+	zlmeminflater.cc
 	;
 
 if $(OS) = MACOSX

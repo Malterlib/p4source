@@ -1,6 +1,7 @@
 class MapTable;
 class StrPtr;
 class StrBuf;
+class StrArray;
 
 enum MapType { MapInclude, MapExclude, MapOverlay, MapOneToMany };
 enum MapDir  { MapLeftRight, MapRightLeft };
@@ -24,6 +25,7 @@ public:
 
 	//Functions for doing interesting things with the mapping.
 	int Translate( const StrPtr& from, StrBuf& to, MapDir d = MapLeftRight );
+	int Translate( const StrPtr& from, StrArray& to, MapDir d = MapLeftRight );
 
 	static MapApi* Join( MapApi* left, MapApi* right )
 		{ return Join( left, MapLeftRight, right, MapLeftRight ); }

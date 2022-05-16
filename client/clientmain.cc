@@ -52,6 +52,7 @@
 # include "client.h"
 # include "clientmerge.h"
 # include "clientuser.h"
+# include "clientusercolor.h"
 # include "clientuserdbg.h"
 # include "clientusermsh.h"
 # include "clientaliases.h"
@@ -229,7 +230,8 @@ static int clientLongOpts[] = { Options::Client,
 	                   Options::Quiet, Options::Progress,
 	                   Options::MessageType, Options::Directory,
 	                   Options::Variable, Options::Xargs, 
-	                   Options::Aliases, Options::Field, 0 };
+	                   Options::Aliases, Options::Field,
+	                   Options::Color, 0 };
 
 static const char *clientOptFlags =
 	"?b:c:C:d:eE:F:GRhH:M:p:P:l:L:qQ:r#sIu:v:Vx:z:Z:"; 
@@ -504,6 +506,7 @@ clientRunCommand(
 
 	client.SetProtocol( P4Tag::v_api, "99999" );
 	client.SetProtocol( P4Tag::v_enableStreams );
+	client.SetProtocol( P4Tag::v_enableGraph );
 	client.SetProtocol( P4Tag::v_expandAndmaps );
 
 	// Set the client program name
@@ -545,6 +548,8 @@ clientRunCommand(
 	    ui = new ClientUserPhp;
 	else if( opts[ 'I' ] )
 	    ui = new ClientUserProgress( 1 );
+	else if( enviro.Get( "P4COLORS" ) && strlen(enviro.Get( "P4COLORS" )) )
+	    ui = new ClientUserColor( opts[ Options::Color ] ? 1 : 0 );
 	else
 	    ui = new ClientUser( 1 );
 
@@ -563,10 +568,11 @@ clientRunCommand(
 	{
 	    // Normal invocation.
 
+	    setVarsAndArgs( client, argc, argv, opts );
+
 	    if( ui->CanAutoLoginPrompt() )
 		client.SetVarV( P4Tag::v_autoLogin );
 
-	    setVarsAndArgs( client, argc, argv, opts );
 	    client.Run( argv[0], ui );
 	}
 	else if( argc == 1 && !strcmp( argv[0], "run" ) )
@@ -1347,7 +1353,6 @@ clientIgnores( int argc, char **argv, Options &global_opts, Error *e )
 
 	    // Move onto the next one
 
-	    FileSys *f = FileSys::Create( FST_BINARY );
 	    if( argc-- )
 	    {
 	        f->Set( argv++[0] );

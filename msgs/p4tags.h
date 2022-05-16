@@ -40,6 +40,7 @@ struct P4Tag {
 	static const char c_EditData[];
 	static const char c_ErrorPause[];
 	static const char c_FstatInfo[];
+	static const char c_FstatPartial[];
 	static const char c_HandleError[];
 	static const char c_InputData[];
 	static const char c_Message[];
@@ -110,6 +111,7 @@ struct P4Tag {
 	static const char v_changeType[];
 	static const char v_charset[];
 	static const char v_checkpoint[];
+	static const char v_checkLinks[];
 	static const char v_clientAddress[];
 	static const char v_clientCase[];
 	static const char v_clientCwd[];
@@ -131,6 +133,7 @@ struct P4Tag {
 	static const char v_data2[];		// p4 passwd
 	static const char v_dbstat[];
 	static const char v_decline[];
+	static const char v_depotTime[];
 	static const char v_desc[];
 	static const char v_descKey[];		// original CL#
 	static const char v_dhash[];
@@ -138,6 +141,7 @@ struct P4Tag {
 	static const char v_digest[];
 	static const char v_dir[];
 	static const char v_enableStreams[];
+	static const char v_enableGraph[];
 	static const char v_endFromRev[];
 	static const char v_endToRev[];
 	static const char v_erev[];
@@ -261,10 +265,12 @@ struct P4Tag {
 	static const char v_rUserResult[];
 	static const char v_rcvbuf[];
 	static const char v_reason[];
+	static const char v_ref[];
 	static const char v_remap[];
 	static const char v_remoteFunc[];
 	static const char v_remoteMap[];
 	static const char v_remoteRange[];
+	static const char v_repo[];
 	static const char v_reresolvable[];
 	static const char v_resolved[];
 	static const char v_resolveFlag[];
@@ -274,6 +280,7 @@ struct P4Tag {
 	static const char v_rmdir[];
 	static const char v_rseq[];
 	static const char v_scanSize[];
+	static const char v_scope[];
 	static const char v_security[];
 	static const char v_sndbuf[];
 	static const char v_sendspec[];
@@ -428,6 +435,7 @@ struct P4Tag {
 	static const char u_diff2[];
 	static const char u_dirs[];
 	static const char u_edit[];
+	static const char u_fetch[];
 	static const char u_filelog[];
 	static const char u_files[];
 	static const char u_fix[];
@@ -453,11 +461,15 @@ struct P4Tag {
 	static const char u_passwd[];
 	static const char u_print[];
 	static const char u_protect[];
+	static const char u_push[];
 	static const char u_reconcile[];
+	static const char u_remote[];
+	static const char u_remotes[];
 	static const char u_rename[];
 	static const char u_reopen[];
 	static const char u_resolve[];
 	static const char u_resolved[];
+	static const char u_resubmit[];
 	static const char u_revert[];
 	static const char u_review[];
 	static const char u_reviews[];
@@ -465,14 +477,19 @@ struct P4Tag {
 	static const char u_stream[];
 	static const char u_streams[];
 	static const char u_submit[];
+	static const char u_switch[];
 	static const char u_sync[];
 	static const char u_triggers[];
 	static const char u_typemap[];
+	static const char u_undo[];
 	static const char u_unlock[];
+	static const char u_unsubmit[];
+	static const char u_unzip[];
 	static const char u_user[];
 	static const char u_users[];
 	static const char u_verify[];
 	static const char u_where[];
+	static const char u_zip[];
 
 	// server-p4zk message fields
 	static const char z_clusterid[];

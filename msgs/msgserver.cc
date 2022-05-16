@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgServer error code is: 870
+ * Current high value for a MsgServer error code is: 878
  */
 # include <error.h>
 # include <errornum.h>
@@ -352,7 +352,7 @@ ErrorId MsgServer::UseChangeU          = { ErrorOf( ES_SERVER, 651, E_FAILED, EV
 ErrorId MsgServer::UseChangeUt         = { ErrorOf( ES_SERVER, 652, E_FAILED, EV_USAGE, 0 ), "Usage: %'change -U user -t restricted | public [ -f ] changelist#'%" } ;
 ErrorId MsgServer::UseChanges          = { ErrorOf( ES_SERVER, 213, E_FAILED, EV_USAGE, 0 ), "Usage: %'changes [-i -t -l -L -f -c client -e changelist# -m count -s status -u user] [files...]'%" } ;
 ErrorId MsgServer::UseClean            = { ErrorOf( ES_SERVER, 674, E_FAILED, EV_USAGE, 0 ), "Usage: %'clean [ -a -d -e -I -l -n ] [ files... ]'%" } ;
-ErrorId MsgServer::UseClient           = { ErrorOf( ES_SERVER, 214, E_FAILED, EV_USAGE, 0 ), "Usage: %'client [ -d -f -Fs -i -o -s ] [ -t template | -S stream ] [ -c change ] [ clientname ]'%" } ;
+ErrorId MsgServer::UseClient           = { ErrorOf( ES_SERVER, 214, E_FAILED, EV_USAGE, 0 ), "Usage: %'client [ -d -f -Fs -i -o -s ] [ -T type ] [ -t template | -S stream ] [ -c change ] [ clientname ]'%" } ;
 ErrorId MsgServer::UseCliento          = { ErrorOf( ES_SERVER, 215, E_FAILED, EV_USAGE, 0 ), "Usage: %'client -o [ -t template ] clientname'%" } ;
 ErrorId MsgServer::UseClientS          = { ErrorOf( ES_SERVER, 510, E_FAILED, EV_USAGE, 0 ), "Usage: %'client -S stream [ [ -c change ] -o ] [ clientname ]'%" } ;
 ErrorId MsgServer::UseClientd          = { ErrorOf( ES_SERVER, 216, E_FAILED, EV_USAGE, 0 ), "Usage: %'client -d [ -f [ -Fs ] ] clientname'%" } ;
@@ -374,7 +374,7 @@ ErrorId MsgServer::UseDepot            = { ErrorOf( ES_SERVER, 220, E_FAILED, EV
 ErrorId MsgServer::UseDepoto           = { ErrorOf( ES_SERVER, 221, E_FAILED, EV_USAGE, 0 ), "Usage: %'depot -o depotname'%" } ;
 ErrorId MsgServer::UseDepotd           = { ErrorOf( ES_SERVER, 222, E_FAILED, EV_USAGE, 0 ), "Usage: %'depot -d depotname'%" } ;
 ErrorId MsgServer::UseDepoti           = { ErrorOf( ES_SERVER, 223, E_FAILED, EV_USAGE, 0 ), "Usage: %'depot -i'%" } ;
-ErrorId MsgServer::UseDepots           = { ErrorOf( ES_SERVER, 224, E_FAILED, EV_USAGE, 0 ), "Usage: %'depots'%" } ;
+ErrorId MsgServer::UseDepots           = { ErrorOf( ES_SERVER, 224, E_FAILED, EV_USAGE, 0 ), "Usage: %'depots [ --depot-type=graph ]'%" } ;
 ErrorId MsgServer::UseDescribe         = { ErrorOf( ES_SERVER, 225, E_FAILED, EV_USAGE, 0 ), "Usage: %'describe [-d<flags> -m max -s -S -f -O -I] changelist# ...'%" } ;
 ErrorId MsgServer::UseDiff             = { ErrorOf( ES_SERVER, 226, E_FAILED, EV_USAGE, 0 ), "Usage: %'diff [ -d<flags> -f -m max -Od -s<flag> -t ] [files...]'%" } ;
 ErrorId MsgServer::UseDiff2            = { ErrorOf( ES_SERVER, 227, E_FAILED, EV_USAGE, 0 ), "Usage: %'diff2 [ -d<flags> -Od -q -t -u ] [ -b branchName ] [ -S stream ] [ -P parent ] file file2'%" } ;
@@ -438,7 +438,9 @@ ErrorId MsgServer::UseLdapt            = { ErrorOf( ES_SERVER, 684, E_FAILED, EV
 ErrorId MsgServer::UseLdaps            = { ErrorOf( ES_SERVER, 685, E_FAILED, EV_USAGE, 0 ), "Usage: %'ldaps [ -A | -t username [ -s ] ]'%" } ;
 ErrorId MsgServer::UseLdapsa           = { ErrorOf( ES_SERVER, 686, E_FAILED, EV_USAGE, 0 ), "Usage: %'ldaps -A'%" } ;
 ErrorId MsgServer::UseLdapst           = { ErrorOf( ES_SERVER, 687, E_FAILED, EV_USAGE, 0 ), "Usage: %'ldaps -t username [ -s ]'%" } ;
-ErrorId MsgServer::UseLdapSync         = { ErrorOf( ES_SERVER, 771, E_FAILED, EV_USAGE, 0 ), "Usage: %'ldapsync -g [ -n ] [ -i <N> ] [ groups ... ]'%" } ;
+ErrorId MsgServer::UseLdapSync         = { ErrorOf( ES_SERVER, 771, E_FAILED, EV_USAGE, 0 ), "Usage: %'ldapsync [ -g | -u  [ -c -U -d ] ] [ -n ] [ -i <N> ] [ groups | ldapname ... ]'%" } ;
+ErrorId MsgServer::UseLdapSyncG        = { ErrorOf( ES_SERVER, 878, E_FAILED, EV_USAGE, 0 ), "Usage: %'ldapsync -g [ -n ] [ -i <N> ] [ groups ... ]'%" } ;
+ErrorId MsgServer::UseLdapSyncU        = { ErrorOf( ES_SERVER, 877, E_FAILED, EV_USAGE, 0 ), "Usage: %'ldapsync -u [ -c -U -d ] [ -n ] [ -i <N> ] [ ldapname ... ]'%" } ;
 ErrorId MsgServer::UseLicense          = { ErrorOf( ES_SERVER, 343, E_FAILED, EV_USAGE, 0 ), "Usage: %'license [ -i | -o | -u ]'%" } ;
 ErrorId MsgServer::UseList             = { ErrorOf( ES_SERVER, 587, E_FAILED, EV_USAGE, 0 ), "Usage: %'list [-l label [-d]] [-C] [-M] files...'%" } ;
 ErrorId MsgServer::UseLock             = { ErrorOf( ES_SERVER, 260, E_FAILED, EV_USAGE, 0 ), "Usage: %'lock [-c changelist# -g] [files...]'%" } ;
@@ -545,6 +547,7 @@ ErrorId MsgServer::UseTransmit         = { ErrorOf( ES_SERVER, 714, E_FAILED, EV
 ErrorId MsgServer::UseTraiti           = { ErrorOf( ES_SERVER, 435, E_FAILED, EV_USAGE, 0 ), "Usage: %'attribute -i [-e -f -p] -n name [file]'%" } ;
 ErrorId MsgServer::UseTriggers         = { ErrorOf( ES_SERVER, 278, E_FAILED, EV_USAGE, 0 ), "Usage: %'triggers [ -i | -o ]'%" } ;
 ErrorId MsgServer::UseTypeMap          = { ErrorOf( ES_SERVER, 279, E_FAILED, EV_USAGE, 0 ), "Usage: %'typemap [ -i | -o ]'%" } ;
+ErrorId MsgServer::UseUndo             = { ErrorOf( ES_SERVER, 872, E_FAILED, EV_USAGE, 0 ), "Usage: %'undo [ -n ] [ -c change ] file[revRange]'%" } ;
 ErrorId MsgServer::UseUnload           = { ErrorOf( ES_SERVER, 611, E_FAILED, EV_USAGE, 0 ), "Usage: %'unload [ -f -L -p -z ] [ -c client | -l label | -s stream ] | [ -a | -al | -ac ] [ -d date | -u user ] [ -o output ]'%" } ;
 ErrorId MsgServer::UseUnlock           = { ErrorOf( ES_SERVER, 280, E_FAILED, EV_USAGE, 0 ), "Usage: %'unlock [ -f ] [-c | -s changelist# | -x ] [ -r ] [files...]'%" } ;
 ErrorId MsgServer::UseUnshelve         = { ErrorOf( ES_SERVER, 403, E_FAILED, EV_USAGE, 0 ), "Usage: %'unshelve -s changelist# [ -f -n ] [-c changelist#] [-b branch|-S stream [-P parent]] [file ...]'%" } ;
@@ -638,6 +641,7 @@ ErrorId MsgServer::CommandRunning  = { ErrorOf( ES_SERVER, 678, E_FAILED, EV_USA
 ErrorId MsgServer::TransferCancelled   = { ErrorOf( ES_SERVER, 643, E_INFO, EV_NONE, 0 ), "The file content transfer was cancelled." } ;
 ErrorId MsgServer::NoSuchTransfer      = { ErrorOf( ES_SERVER, 644, E_FAILED, EV_ADMIN, 2 ), "File %lbrFile% revision %lbrRev% is not currently scheduled to be transferred." } ;
 ErrorId MsgServer::PullOnDemand        = { ErrorOf( ES_SERVER, 645, E_FAILED, EV_ADMIN, 0 ), "This command is not used with a replica server which uses lbr.replication=shared." } ;
+ErrorId MsgServer::NoUpdateForwarding  = { ErrorOf( ES_SERVER, 871, E_FAILED, EV_ADMIN, 0 ), "A forwarding replica may not specify db.replication=update." } ;
 ErrorId MsgServer::JournalCopyBadJnlState = { ErrorOf( ES_SERVER, 718, E_FAILED, EV_ADMIN, 0 ), "This command must be used with a standby replica." } ;
 ErrorId MsgServer::JournalCopyAppendFailed = { ErrorOf( ES_SERVER, 720, E_FAILED, EV_ADMIN, 1 ), "JournalCopy error: '%file%' append failed." } ; //NOTRANS
 ErrorId MsgServer::JournalStateVsSize  = { ErrorOf( ES_SERVER, 722, E_FAILED, EV_ADMIN, 3 ), "JournalCopy: '%file%' size mismatch vs statejcopy %journal%/%sequence%." } ; //NOTRANS
@@ -659,6 +663,7 @@ ErrorId MsgServer::JournalCounterMismatch  = { ErrorOf( ES_SERVER, 531, E_WARN, 
 ErrorId MsgServer::NeedFilePath        = { ErrorOf( ES_SERVER, 532, E_FAILED, EV_USAGE, 1 ), "Empty file path not allowed in '%filespec%'." } ;
 ErrorId MsgServer::NoSuchField         = { ErrorOf( ES_SERVER, 444, E_FAILED, EV_UNKNOWN, 1 ), "Field %field% doesn't exist." } ;
 ErrorId MsgServer::EmptyTypeList       = { ErrorOf( ES_SERVER, 445, E_FAILED, EV_UNKNOWN, 0 ), "The list of fields may not be empty." } ;
+ErrorId MsgServer::NotGraphReady       = { ErrorOf( ES_SERVER, 883, E_FAILED, EV_USAGE, 1 ), "Client '%client%' requires an application that can fully support graph clients." } ;
 ErrorId MsgServer::NotStreamReady      = { ErrorOf( ES_SERVER, 447, E_FAILED, EV_USAGE, 1 ), "Client '%client%' requires an application that can fully support streams." } ;
 ErrorId MsgServer::NotStreamOwner      = { ErrorOf( ES_SERVER, 473, E_FAILED, EV_USAGE, 2 ), "Currently only user '%user%' can submit to stream '%stream%'." } ;
 ErrorId MsgServer::VersionedStream     = { ErrorOf( ES_SERVER, 599, E_FAILED, EV_USAGE, 1 ), "Can't submit from a noncurrent stream client '%stream%'." } ;
@@ -684,7 +689,7 @@ ErrorId MsgServer::NoReparentingTask   = { ErrorOf( ES_SERVER, 654, E_FAILED, EV
 ErrorId MsgServer::UnloadDepotMissing  = { ErrorOf( ES_SERVER, 612, E_FAILED, EV_USAGE, 0 ), "No unload depot has been defined for this server." } ;
 ErrorId MsgServer::UnloadOtherUser     = { ErrorOf( ES_SERVER, 617, E_FAILED, EV_USAGE, 0 ), "Specify the '%'-f'%' flag in order to unload clients or labels owned by another user." } ;
 ErrorId MsgServer::CantUnloadLocked    = { ErrorOf( ES_SERVER, 630, E_FAILED, EV_USAGE, 2 ), "Specify the '%'-L'%' flag in order to unload locked %domainType% %domainName%." } ;
-ErrorId MsgServer::CantUnloadReadOnly  = { ErrorOf( ES_SERVER, 830, E_FAILED, EV_USAGE, 1 ), "Can't unload partitioned readonly client %domainName%." } ;
+ErrorId MsgServer::CantUnloadReadOnly  = { ErrorOf( ES_SERVER, 830, E_FAILED, EV_USAGE, 1 ), "Can't unload partitioned client %domainName%." } ;
 ErrorId MsgServer::BoundClientExists   = { ErrorOf( ES_SERVER, 580, E_FAILED, EV_USAGE, 1 ), "Client %client% already exists." } ;
 ErrorId MsgServer::RemoteClientExists  = { ErrorOf( ES_SERVER, 783, E_FAILED, EV_USAGE, 1 ), "Client %client% appears to be a valid client on this server. The 'unlock -r' command should only be used to unlock files left locked by a failed push from a remote server, or from a failed unlock -g or submit from an edge server." } ;
 ErrorId MsgServer::NewUserExists       = { ErrorOf( ES_SERVER, 702, E_FAILED, EV_USAGE, 1 ), "User %user% already exists." } ;
@@ -752,6 +757,10 @@ ErrorId MsgServer::LdapMustBeEnabled   = { ErrorOf( ES_SERVER, 794, E_FAILED, EV
 ErrorId MsgServer::LdapNoSearchConfig  = { ErrorOf( ES_SERVER, 841, E_FAILED, EV_ILLEGAL, 0 ), "User search details missing from LDAP configuration!" } ;
 ErrorId MsgServer::LdapNoAttrConfig    = { ErrorOf( ES_SERVER, 842, E_FAILED, EV_ILLEGAL, 0 ), "User attribute information missing from LDAP configuration!" } ;
 ErrorId MsgServer::LdapNoAttrsFound    = { ErrorOf( ES_SERVER, 843, E_WARN, EV_NONE, 0 ), "None of the specified attributes were found!" };
+ErrorId MsgServer::LdapSyncUserAdd     = { ErrorOf( ES_SERVER, 873, E_INFO, EV_NONE, 3 ), "User %user% added as '%name%' (%email%)" } ;
+ErrorId MsgServer::LdapSyncUserUpdate  = { ErrorOf( ES_SERVER, 874, E_INFO, EV_NONE, 5 ), "User %user% updated from '%oldName%' (%oldEmail%) to '%newName%' (%newEmail%)" };
+ErrorId MsgServer::LdapSyncUserDel     = { ErrorOf( ES_SERVER, 875, E_INFO, EV_NONE, 1 ), "User %user% deleted." } ;
+ErrorId MsgServer::LdapSyncUserNoChange= { ErrorOf( ES_SERVER, 876, E_INFO, EV_NONE, 0 ), "No changes made to users." } ;
 
 ErrorId MsgServer::LicenceInputOnly    = { ErrorOf( ES_SERVER, 870, E_FAILED, EV_USAGE, 0 ), "Only '%'p4 license -i'%' and '%'p4 license -u'%' may be used until a license is installed." };
 

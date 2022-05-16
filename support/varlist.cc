@@ -117,7 +117,7 @@ VarListNode::PutNext( void *v )
 void
 VarListNode::SetPrev( VarListNode *n )
 {
-	if( n == this )
+	if( !n || n == this )
 	    return;
 
 	n->prev->next = n->next;
@@ -133,7 +133,7 @@ VarListNode::SetPrev( VarListNode *n )
 void
 VarListNode::SetNext( VarListNode *n )
 {
-	if( n == this )
+	if( !n || n == this )
 	    return;
 
 	n->prev->next = n->next;

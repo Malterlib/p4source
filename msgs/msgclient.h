@@ -23,6 +23,7 @@ class MsgClient {
 	static ErrorId Eof;
 	static ErrorId CantEdit;
 	static ErrorId NoMerger;
+	static ErrorId CheckFileBadPath;
 
 	static ErrorId ToolServer2;
 	static ErrorId ToolServer;

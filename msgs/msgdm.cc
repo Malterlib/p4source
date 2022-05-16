@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgDm error code is: 937
+ * Current high value for a MsgDm error code is: 955
  */
 
 # include <error.h>
@@ -164,7 +164,7 @@ ErrorId MsgDm::BadMappedFileName       = { ErrorOf( ES_DM, 73, E_FAILED, EV_USAG
 ErrorId MsgDm::JobNameJob              = { ErrorOf( ES_DM, 74, E_FAILED, EV_USAGE, 0 ), "The job name 'job' is reserved." } ;
 ErrorId MsgDm::JobDescMissing          = { ErrorOf( ES_DM, 75, E_FAILED, EV_USAGE, 1 ), "'%field%' field blank.  You must provide it." } ;
 ErrorId MsgDm::JobHasChanged           = { ErrorOf( ES_DM, 434, E_FAILED, EV_UNKNOWN, 0 ), "Job has been modified by another user, clear date field to overwrite." } ;
-ErrorId MsgDm::JobFieldAlways        = { ErrorOf( ES_DM, 441, E_FAILED, EV_USAGE, 2 ), "%field% is a read-only always field and can't be changed from '%value%'.\nThe job may have been updated while you were editing." } ;
+ErrorId MsgDm::JobFieldAlways          = { ErrorOf( ES_DM, 441, E_FAILED, EV_USAGE, 2 ), "%field% is a read-only always field and can't be changed from '%value%'.\nThe [%spec%|job] may have been updated while you were editing." } ;
 ErrorId MsgDm::BadSpecType             = { ErrorOf( ES_DM, 412, E_FAILED, EV_USAGE, 1 ), "Unknown spec type %type%." } ;
 ErrorId MsgDm::LameCodes               = { ErrorOf( ES_DM, 410, E_FAILED, EV_USAGE, 3 ), "Field codes must be between %low%-%hi% for %type% specs." } ;
 ErrorId MsgDm::JobFieldReadOnly        = { ErrorOf( ES_DM, 77, E_FAILED, EV_USAGE, 2 ), "%field% is read-only and can't be changed from '%value%'." } ;
@@ -205,7 +205,7 @@ ErrorId MsgDm::AlreadyUnloaded         = { ErrorOf( ES_DM, 705, E_FAILED, EV_CON
 ErrorId MsgDm::CantChangeUnloadedOpt   = { ErrorOf( ES_DM, 706, E_FAILED, EV_USAGE, 0 ), "The autoreload/noautoreload option may not be modified." } ;
 ErrorId MsgDm::NoUnloadedAutoLabel     = { ErrorOf( ES_DM, 717, E_FAILED, EV_USAGE, 0 ), "An automatic label may not specify the autoreload option." } ;
 ErrorId MsgDm::StreamIsUnloaded        = { ErrorOf( ES_DM, 748, E_FAILED, EV_CONFIG, 2 ), "Client %client% cannot be used with unloaded stream %stream%, switch to another stream or reload it." } ;
-ErrorId MsgDm::NoStorageDir            = { ErrorOf( ES_DM, 886, E_FAILED, EV_CONFIG, 1 ), "'%'readonly'%' client type has not been configured for this server.\nStorage location '%'client.readonly.dir'%' needs to be set by the administrator." } ;
+ErrorId MsgDm::NoStorageDir            = { ErrorOf( ES_DM, 886, E_FAILED, EV_CONFIG, 1 ), "'%type%' client type has not been configured for this server.\nStorage location '%'client.readonly.dir'%' needs to be set by the administrator." } ;
 ErrorId MsgDm::NotAsService            = { ErrorOf( ES_DM, 571, E_FAILED, EV_CONFIG, 0 ), "Command not allowed for a service user." } ;
 ErrorId MsgDm::LockedClient            = { ErrorOf( ES_DM, 94, E_FAILED, EV_PROTECT, 2 ), "Locked client '%client%' can only be used by owner '%user%'." } ;
 ErrorId MsgDm::LockedHost              = { ErrorOf( ES_DM, 95, E_FAILED, EV_PROTECT, 2 ), "Client '%client%' can only be used from host '%host%'." } ;
@@ -355,7 +355,7 @@ ErrorId MsgDm::StreamNotRelative	 = { ErrorOf( ES_DM, 872, E_FAILED, EV_NONE, 0)
 ErrorId MsgDm::StreamPathRooted          = { ErrorOf( ES_DM, 578, E_FAILED, EV_NONE, 1), "View '%view%' must be relative and not contain leading slashes "  } ;
 ErrorId MsgDm::StreamPathSlash           = { ErrorOf( ES_DM, 579, E_FAILED, EV_NONE, 1), "Imported path '%view%' requires leading slashes in full depot path "  } ;
 ErrorId MsgDm::StreamHasChildren        = { ErrorOf( ES_DM, 580, E_FAILED, EV_NOTYET, 1 ), "Stream '%stream%' has child streams; cannot delete until they are removed." } ;
-ErrorId MsgDm::StreamHasClients         = { ErrorOf( ES_DM, 581, E_FAILED, EV_NOTYET, 1 ), "Stream '%stream%' has active clients; cannot delete until they are removed." } ;
+ErrorId MsgDm::StreamHasClients         = { ErrorOf( ES_DM, 581, E_FAILED, EV_NOTYET, 1 ), "Stream '%stream%' has %type% clients; cannot delete until they are removed." } ;
 ErrorId MsgDm::StreamIncompatibleP      = { ErrorOf( ES_DM, 583, E_FAILED, EV_CONTEXT, 4 ), "Stream '%stream%' (%type%) not compatible with Parent %parent% (%parentType%); use -u to force update." } ;
 ErrorId MsgDm::StreamIncompatibleC      = { ErrorOf( ES_DM, 584, E_FAILED, EV_CONTEXT, 3 ), "Stream '%stream%' (%oldType% -> %type%) not compatible with child streams; use -u to force update." } ;
 ErrorId MsgDm::StreamOwnerUpdate           = { ErrorOf( ES_DM, 586, E_FAILED, EV_NONE, 2), "Stream '%stream%' owner '%owner%' required for -u force update."  } ;
@@ -605,12 +605,22 @@ ErrorId MsgDm::PopulateMultipleStreams = { ErrorOf( ES_DM, 728, E_FAILED, EV_ILL
 
 ErrorId MsgDm::ProtectSave             = { ErrorOf( ES_DM, 306, E_INFO, EV_NONE, 0 ), "Protections saved." } ;
 ErrorId MsgDm::ProtectNoChange         = { ErrorOf( ES_DM, 307, E_INFO, EV_NONE, 0 ), "Protections not changed." } ;
+ErrorId MsgDm::ProtectNoOwner          = { ErrorOf( ES_DM, 951, E_FAILED, EV_ADMIN, 0 ), "No 'owner' entry matching provided path." } ;
 
 ErrorId MsgDm::ProtectsData            = { ErrorOf( ES_DM, 440, E_INFO, EV_NONE, 6 ), "%perm% %isgroup% %user% %ipaddr% %mapFlag%%depotFile%" };
 ErrorId MsgDm::ProtectsMaxData         = { ErrorOf( ES_DM, 452, E_INFO, EV_NONE, 1 ), "%perm%" };
 ErrorId MsgDm::ProtectsEmpty           = { ErrorOf( ES_DM, 456, E_FAILED, EV_ADMIN, 0 ), "Protections table is empty." } ;
 ErrorId MsgDm::ProtectsNoSuper         = { ErrorOf( ES_DM, 469, E_FAILED, EV_ADMIN, 0 ), "Can't delete last valid 'super' entry from protections table." } ;
 ErrorId MsgDm::ProtectsNotCompatible   = { ErrorOf( ES_DM, 587, E_FAILED, EV_ADMIN, 0 ), "Helix P4Admin tool not compatible with '##' comments in protection table.\nIf you wish to continue using Helix P4Admin to administer the protection table please remove all '##' comments." } ;
+
+ErrorId MsgDm::ProtectsBadPerm         = { ErrorOf( ES_DM, 939, E_FAILED, EV_ADMIN, 0 ), "Can't add '%perm%' entry to sub-protections table." } ;
+ErrorId MsgDm::ProtectsPathOutOfScope  = { ErrorOf( ES_DM, 940, E_FAILED, EV_ADMIN, 0 ), "All paths in sub-protections table must be under path '%path%'." } ;
+ErrorId MsgDm::ProtectsOwnerEnds       = { ErrorOf( ES_DM, 941, E_FAILED, EV_ADMIN, 0 ), "Paths in 'owner' entries must end with '/...'." } ;
+ErrorId MsgDm::ProtectsOwnerWildcards  = { ErrorOf( ES_DM, 942, E_FAILED, EV_ADMIN, 0 ), "Can't add 'owner' entry with embedded wildcards in path." } ;
+ErrorId MsgDm::ProtectsOwnerPath       = { ErrorOf( ES_DM, 943, E_FAILED, EV_ADMIN, 0 ), "No 'owner' entry matching path '%path%'." } ;
+ErrorId MsgDm::ProtectsDuplicateOwner  = { ErrorOf( ES_DM, 944, E_FAILED, EV_ADMIN, 0 ), "Multiple 'owner' entries matching path '%path%' found." } ;
+ErrorId MsgDm::ProtectsOwnerTooWide    = { ErrorOf( ES_DM, 954, E_FAILED, EV_ADMIN, 0 ), "Paths in 'owner' entries must be more specific than '//...'." } ;
+ErrorId MsgDm::ProtectsOwnerUnmap      = { ErrorOf( ES_DM, 955, E_FAILED, EV_ADMIN, 0 ), "Can't add exclusionary 'owner' entries." } ;
 
 ErrorId MsgDm::PurgeSnapData           = { ErrorOf( ES_DM, 308, E_INFO, EV_NONE, 4 ), "%depotFile%%depotRev% - copy from %lbrFile% %lbrRev%" } ;
 ErrorId MsgDm::PurgeDeleted            = { ErrorOf( ES_DM, 309, E_INFO, EV_NONE, 6 ), "Deleted [%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ][and added %synInteg% integration ]record(s)." } ;
@@ -965,6 +975,13 @@ ErrorId MsgDm::JoinMax1TooSmall	       = { ErrorOf( ES_DM, 922, E_FAILED, EV_FAU
 ErrorId MsgDm::RevChangedDuringPush    = { ErrorOf( ES_DM, 923, E_FAILED, EV_USAGE, 2 ), "Conflict: A concurrent modification to %depotFile%%depotRev% occurred during this push/fetch/unzip operation, causing the import step to be halted." } ;
 ErrorId MsgDm::UnknownReadonlyDir      = { ErrorOf( ES_DM, 936, E_FAILED, EV_ADMIN, 1 ), "Client %clientName% cannot be accessed, because clients of type %'readonly'% are unavailable if the %'client.readonly.dir'% configuration variable is invalid or unset." } ;
 ErrorId MsgDm::ShelveNotSubmittable    = { ErrorOf( ES_DM, 937, E_FAILED, EV_NOTYET, 1 ), "Shelved file %depotFile% has no submitted revisions. Perhaps the file was obliterated after the shelf was created, or perhaps the shelf was pushed from another server where the underlying file exists. You may unshelve the file and resolve it to specify that the new file should be added, or you may remove the file from the shelf, or you may submit the underlying revision first, but you may not submit this shelf as-is." } ;
+ErrorId MsgDm::NoSplitMoves            = { ErrorOf( ES_DM, 938, E_FAILED, EV_NOTYET, 4 ), "Change %change% performs a %action% on %file%%rev%, but the parameters of this fetch, push, or zip command include only part of the full action. Specify a wider view to include both the source and target of the change, or specify a narrower view to exclude both the source and target of the change." } ;
+ErrorId MsgDm::CallerMustForward       = { ErrorOf( ES_DM, 945, E_FATAL, EV_FAULT, 0 ), "Client requires forwarding." }; // NOTRANS
+ErrorId MsgDm::CantForwardDelete       = { ErrorOf( ES_DM, 946, E_FAILED, EV_USAGE, 0 ), "Delete operation cancelled, main server is not reachable at the moment, try again later!" } ;
+ErrorId MsgDm::LogFilenameInvalid      = { ErrorOf( ES_DM, 947, E_FAILED, EV_USAGE, 0 ), "Log filename is invalid." } ;
+ErrorId MsgDm::LogFormatInvalid        = { ErrorOf( ES_DM, 948, E_FAILED, EV_USAGE, 0 ), "Log format is invalid." } ;
+ErrorId MsgDm::LogNumericInvalid       = { ErrorOf( ES_DM, 949, E_FAILED, EV_USAGE, 1 ), "Log %property% must be numeric." } ;
+ErrorId MsgDm::LogEventsUnmatched      = { ErrorOf( ES_DM, 950, E_FAILED, EV_USAGE, 0 ), "Log captures no events." } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 

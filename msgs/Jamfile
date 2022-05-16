@@ -8,6 +8,7 @@ P4Library $(SUPPORTLIB) :
 	msgclient.cc
 	msgdb.cc
 	msgdm.cc
+	msggraph.cc
 	msglbr.cc
 	msgos.cc
 	msgrpc.cc

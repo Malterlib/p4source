@@ -83,6 +83,8 @@ class VVarArray : public VarArray {
 
 	enum Op { OpDiff, OpIntersect, OpMerge };
 
+			VVarArray() : VarArray() { }
+			VVarArray( int max ) : VarArray( max ) { }
 	virtual		~VVarArray() {};
 	virtual int	Compare( const void *, const void * ) const = 0;
 	virtual void	Destroy( void * ) const = 0;

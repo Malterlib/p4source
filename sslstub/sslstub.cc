@@ -93,6 +93,97 @@ BIO_s_mem(void)
 	return NULL;
 }
 
+BIO *
+BIO_new_mem_buf(void *buf, int len)
+{
+	return NULL;
+}
+
+size_t
+BIO_ctrl_pending(BIO *b)
+{
+	return 0;
+}
+
+int
+BIO_read(BIO *b, void *buf, int len)
+{
+	return 0;
+}
+
+int
+BIO_write(BIO *b, const void *buf, int len)
+{
+	return 0;
+}
+
+void
+BIO_set_flags(BIO *b, int flags)
+{
+	return;
+}
+
+BIO *
+BIO_push(BIO *b,BIO *append)
+{
+	return NULL;
+}
+
+int
+BIO_flush(BIO *b)
+{
+	return 0;
+}
+
+BIO_METHOD *
+BIO_f_base64(void)
+{
+	return NULL;
+}
+
+int
+SHA1_Init(SHA_CTX *c)
+{
+	return 0;
+}
+
+int
+SHA1_Update(SHA_CTX *c, const void *data, unsigned long len)
+{
+	return 0;
+}
+
+int
+SHA1_Final(unsigned char *md, SHA_CTX *c)
+{
+	return 0;
+}
+
+int
+SHA256_Init(SHA256_CTX *c)
+{
+	return 0;
+}
+
+int
+SHA256_Update(SHA256_CTX *c, const void *data, unsigned long len)
+{
+	return 0;
+}
+
+int
+SHA256_Final(unsigned char *md, SHA256_CTX *c)
+{
+	return 0;
+}
+
+unsigned char *
+SHA256(const unsigned char *d, size_t n, unsigned char *md)
+{
+	return NULL;
+}
+
+
 ////////////////////////////////////////////////////////////////////////////
 //	STATIC MEMBERS, DEFINES, GLOBAL METHODS				  //
 ////////////////////////////////////////////////////////////////////////////
@@ -467,6 +558,24 @@ int
 SSL_set_cipher_list(SSL *s, const char *str)
 {
 	return 0;
+}
+
+const SSL_METHOD *
+SSLv23_method(void)
+{
+	return NULL;
+}
+
+long
+SSL_CTX_set_options(SSL_CTX *ctx, long options)
+{
+	return 0;
+}
+
+const char *
+SSL_get_version(const SSL *ssl)
+{
+	return "";
 }
 
 int

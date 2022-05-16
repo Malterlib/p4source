@@ -486,7 +486,7 @@ StrOps::OtoX( const StrPtr &octet, StrBuf &hex )
 }
 
 void
-StrOps::OtoX( const unsigned char *octet, int octetLen, StrBuf &hex )
+StrOps::OtoX( const unsigned char *octet, p4size_t octetLen, StrBuf &hex )
 {
 	char *b = hex.Alloc( 2 * octetLen );
 
@@ -494,6 +494,32 @@ StrOps::OtoX( const unsigned char *octet, int octetLen, StrBuf &hex )
 	{
 	    *b++ = OtoX( ( octet[i] >> 4 ) & 0x0f );
 	    *b++ = OtoX( ( octet[i] >> 0 ) & 0x0f );
+	}
+
+	hex.Terminate();
+}
+
+char
+StrOps::OtoXlower( unsigned char o )
+{
+	return o >= 10 ? o - 10 + 'a' : o + '0';
+}
+
+void
+StrOps::OtoXlower( const StrPtr &octet, StrBuf &hex )
+{
+	OtoXlower( (const unsigned char *)octet.Text(), octet.Length(), hex );
+}
+
+void
+StrOps::OtoXlower( const unsigned char *octet, p4size_t octetLen, StrBuf &hex )
+{
+	char *b = hex.Alloc( 2 * octetLen );
+
+	for( int i = 0; i < octetLen; i++ )
+	{
+	    *b++ = OtoXlower( ( octet[i] >> 4 ) & 0x0f );
+	    *b++ = OtoXlower( ( octet[i] >> 0 ) & 0x0f );
 	}
 
 	hex.Terminate();
@@ -543,6 +569,19 @@ StrOps::IsDigest( const StrPtr &hex )
 	    return 0;
 
 	for( int i = 0; i < 32; i++ )
+	    if( !IsX( hex.Text()[i] ) )
+		return 0;
+
+	return 1;
+}
+
+int
+StrOps::IsSha1( const StrPtr &hex )
+{
+	if( hex.Length() < 6 || hex.Length() > 40 )
+	    return 0;
+
+	for( int i = 0; i < hex.Length(); i++ )
 	    if( !IsX( hex.Text()[i] ) )
 		return 0;
 
@@ -1295,7 +1334,7 @@ StrOps::StripNewline( StrBuf &o )
 }
 
 void
-StrOps::EncodeNonPrintable( const StrPtr &i, StrBuf &o )
+StrOps::EncodeNonPrintable( const StrPtr &i, StrBuf &o, int maskp, int cmdSafe)
 {
 	o.Clear();
 
@@ -1309,7 +1348,11 @@ StrOps::EncodeNonPrintable( const StrPtr &i, StrBuf &o )
 
 	    while( *p )
 	    {
-	        if( !isAprint( p ) )
+	        if( !cmdSafe && !isAprint( p ) )
+	            break;
+	        else if( cmdSafe && ( isAhighchar( p ) || !isAalnum( p ) ) )
+	            break;
+	        else if( maskp && *p == '%' )
 	            break;
 
 	        ++p;

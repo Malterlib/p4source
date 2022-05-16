@@ -37,6 +37,8 @@ void	ClientApi::WaitTag( ClientUser *u ) { client->WaitTag( u ); }
 
 StrPtr  *ClientApi::VGetVar( const StrPtr &var ) { return client->translated->GetVar( var ); }
 void    ClientApi::VSetVar( const StrPtr &var, const StrPtr &val ) { client->translated->SetVar( var, val ); }
+StrPtr  *ClientApi::GetEVar( const StrPtr &var ) { return client->GetEVar( &var ); }
+void    ClientApi::SetEVar( const StrPtr &var, const StrPtr &val ) { client->SetEVar( &var, &val ); }
 
 void 	ClientApi::SetCharset( const char *c ) { client->SetCharset( c ); }
 void 	ClientApi::SetClient( const char *c ) { client->SetClient( c ); }
@@ -51,6 +53,7 @@ void 	ClientApi::SetUser( const char *c ) { client->SetUser( c ); }
 void 	ClientApi::SetProg( const char *c ) { client->SetProg( c ); }
 void	ClientApi::SetVersion( const char *c ) { client->SetVersion( c ); }
 void 	ClientApi::SetTicketFile( const char *c ) { client->SetTicketFile( c ); }
+void 	ClientApi::SetTrustFile( const char *c ) { client->SetTrustFile( c ); }
 void 	ClientApi::SetEnviroFile( const char *c ) { client->SetEnviroFile( c ); }
 
 void 	ClientApi::SetCharset( const StrPtr *c ) { client->SetCharset( c ); }
@@ -67,6 +70,7 @@ void 	ClientApi::SetUser( const StrPtr *c ) { client->SetUser( c ); }
 void 	ClientApi::SetProg( const StrPtr *c ) { client->SetProg( c ); }
 void	ClientApi::SetVersion( const StrPtr *c ) { client->SetVersion( c ); }
 void 	ClientApi::SetTicketFile( const StrPtr *c ) { client->SetTicketFile( c ); }
+void 	ClientApi::SetTrustFile( const StrPtr *c ) { client->SetTrustFile( c ); }
 void 	ClientApi::SetEnviroFile( const StrPtr *c ) { client->SetEnviroFile( c ); }
 
 void	ClientApi::SetBreak( KeepAlive *k ) { client->SetBreak( k ); }

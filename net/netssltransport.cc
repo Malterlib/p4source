@@ -117,6 +117,32 @@ static HANDLE *mutexArray = NULL;
 static pthread_mutex_t *mutexArray = NULL;
 # endif
 
+typedef struct {
+    int		value;
+    const char	*name;
+} SslErrorNames;
+
+SslErrorNames	sslErrorNames[] = {
+    {SSL_ERROR_NONE,			" (None)"},		// 0
+    {SSL_ERROR_SSL,			" (SSL)"},		// 1
+    {SSL_ERROR_WANT_READ,		" (Want_Read)"},	// 2
+    {SSL_ERROR_WANT_WRITE,		" (Want_Write)"},	// 3
+    {SSL_ERROR_WANT_X509_LOOKUP,	" (Want_X509_Lookup)"},	// 4
+    {SSL_ERROR_SYSCALL,			" (Syscall)"},		// 5
+    {SSL_ERROR_ZERO_RETURN,		" (Zero_Return)"},	// 6
+    {SSL_ERROR_WANT_CONNECT,		" (Want_Connect)"},	// 7
+    {SSL_ERROR_WANT_ACCEPT,		" (Want_Accept)"}	// 8
+};
+
+const char *
+GetSslErrorName(int err)
+{
+    if( err < SSL_ERROR_NONE || err > SSL_ERROR_WANT_ACCEPT )
+	return "";
+
+    return sslErrorNames[err].name;
+}
+
 ////////////////////////////////////////////////////////////////////////////
 //  MutexLocker                                                           //
 ////////////////////////////////////////////////////////////////////////////
@@ -220,6 +246,151 @@ NetSslTransport::~NetSslTransport()
 	Close();
 }
 
+// MS Visual Studio didn't implement snprintf until VS 2015.  Sigh.
+# ifdef _MSC_VER
+  #define SNPRINTF1(buf, len, msg, arg1)	sprintf(buf, msg, arg1)
+  #define SNPRINTF2(buf, len, msg, arg1, arg2)	sprintf(buf, msg, arg1)
+# else
+  #define SNPRINTF1(buf, len, msg, arg1)	snprintf(buf, len, msg, arg1)
+  #define SNPRINTF2(buf, len, msg, arg1, arg2)	snprintf(buf, len, msg, arg1, arg2)
+# endif
+
+SSL_CTX *
+NetSslTransport::CreateAndInitializeSslContext(const char *conntypename)
+{
+    char	msgbuf[128];
+    size_t	bufsize = sizeof(msgbuf) - 1;
+
+    SNPRINTF1( msgbuf, bufsize,
+	    "NetSslTransport::Ssl%sInit - Initializing CTX structure.",
+	    conntypename );
+    TRANSPORT_PRINT_VAR( SSLDEBUG_FUNCTION, msgbuf );
+
+    /*
+     * In OpenSSL v1.1.0 we can use
+     *	TLS_method()
+     *	SSL_CTX_set_min_proto_version()
+     *	SSL_CTX_set_max_proto_version()
+     * instead of the deprecated
+     * 	SSLv23_method()
+     * and the not-recommended
+     *	SSL_CTX_set_options( SSL_OP_NO_xxx )
+     * but we still build with OpenSSL v1.0.x, so for now we'll stay
+     * with the old way of doing things.
+     *
+     * See https://www.openssl.org/docs/man1.1.0/ssl/SSLv23_method.html
+     * Note:
+     *	"Clients should avoid creating "holes" in the set of protocols they support.
+     *	When disabling a protocol, make sure that you also disable either all
+     *	previous or all subsequent protocol versions. In clients, when a protocol
+     *	version is disabled without disabling all previous protocol versions,
+     *	the effect is to also disable all subsequent protocol versions."
+     */
+
+    /*
+     * Start by allowing all protocol versions
+     */
+
+    SSL_CTX	*ctxp = SSL_CTX_new( SSLv23_method() );
+    SNPRINTF1( msgbuf, bufsize, "NetSslTransport::Ssl%sInit SSL_CTX_new", conntypename );
+    TRANSPORT_PRINT_VAR( SSLDEBUG_FUNCTION, msgbuf );
+
+    SSL_CTX_set_mode(
+	ctxp,
+	SSL_MODE_ENABLE_PARTIAL_WRITE | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER );
+    SNPRINTF1( msgbuf, bufsize, "NetSslTransport::Ssl%sInit SSL_CTX_set_mode", conntypename );
+    SSLLOGFUNCTION( msgbuf );
+
+    /*
+     * Now disable SSLv2 and SSLv3 (but still allow TLSv1.0 and later)
+     */
+
+    SSL_CTX_set_options( ctxp, SSL_OP_NO_SSLv2 );
+    SNPRINTF1( msgbuf, bufsize, "NetSslTransport::Ssl%sInit SSL_CTX_set_options(NO_SSLv2)", conntypename );
+    SSLLOGFUNCTION( msgbuf );
+
+    SSL_CTX_set_options( ctxp, SSL_OP_NO_SSLv3 );
+    SNPRINTF1( msgbuf, bufsize, "NetSslTransport::Ssl%sInit SSL_CTX_set_options(NO_SSLv3)", conntypename );
+    SSLLOGFUNCTION( msgbuf );
+
+    /*
+     * Let the customer disable any protocols they don't want.
+     * Allow only TLS versions in the (closed) range [tlsmin, tlsmax].
+     */
+    int	tlsmin = p4tunable.Get( P4TUNE_SSL_TLS_VERSION_MIN );
+    int	tlsmax = p4tunable.Get( P4TUNE_SSL_TLS_VERSION_MAX );
+
+    struct TlsVersion {
+	int		value;		// tunable value
+	int		proto;		// OpenSSL protocol version value
+	const char	*name;		// OpenSSL protocol version name
+    };
+
+    /*
+     * Expand this table if and when new TLS protocol versions are available.
+     * This table *must* be ordered by the "value" field
+     * and terminated by a "value" of 0.
+     */
+    static TlsVersion	tlsVersions[] = {
+	{ 10,	SSL_OP_NO_TLSv1,	"NO_TLSv1.0" },
+	{ 11,	SSL_OP_NO_TLSv1_1,	"NO_TLSv1.1" },
+	{ 12,	SSL_OP_NO_TLSv1_2,	"NO_TLSv1.2" },
+	{ 0,	0,			NULL}
+    };
+
+    /*
+     * Pin the value to the legal range.
+     * Update this code if new values are added to tlsVersions[].
+     */
+    if( tlsmin < 10 )
+	tlsmin = 10;
+    if( tlsmin > 12 )
+	tlsmin = 12;
+
+    if( tlsmax < 10 )
+	tlsmax = 10;
+    if( tlsmax > 12 )
+	tlsmax = 12;
+
+    if( SSLDEBUG_FUNCTION )
+    {
+	p4debug.printf( "NetSslTransport::Ssl%sInit tlsmin=%d, tlsmax=%d\n",
+	    conntypename, tlsmin, tlsmax );
+    }
+
+    // disallow protocols below the requested minimum
+    for( TlsVersion *vp = tlsVersions; vp->value; vp++ )
+    {
+	if( vp->value < tlsmin )
+	{
+	    SSL_CTX_set_options( ctxp, vp->proto );
+	    SNPRINTF2( msgbuf, bufsize,
+		"NetSslTransport::Ssl%sInit SSL_CTX_set_options(%s)",
+		conntypename, vp->name );
+	    SSLLOGFUNCTION( msgbuf );
+	}
+    }
+
+    // disallow protocols above the requested maximum
+    for( TlsVersion *vp = tlsVersions; vp->value; vp++ )
+    {
+	if( vp->value > tlsmax )
+	{
+	    SSL_CTX_set_options( ctxp, vp->proto );
+	    SNPRINTF2( msgbuf, bufsize,
+		"NetSslTransport::Ssl%sInit SSL_CTX_set_options(%s)",
+		conntypename, vp->name );
+	    SSLLOGFUNCTION( msgbuf );
+	}
+    }
+
+    return ctxp;
+
+fail:
+    delete ctxp;
+    return NULL;
+}
+
 /**
  * NetSslTransport::SslClientInit
  *
@@ -254,10 +425,6 @@ NetSslTransport::SslClientInit(Error *e)
 	    if( e->Test())
 		return;
 #endif // OS_NT
-
-	    TRANSPORT_PRINT( SSLDEBUG_FUNCTION,
-		"NetSslTransport::SslClientInit - Initializing client CTX structure." );
-
 
 	    ValidateRuntimeVsCompiletimeSSLVersion( e );
 	    if( e->Test() )
@@ -298,15 +465,12 @@ NetSslTransport::SslClientInit(Error *e)
 
 	    // WSAstartup code in NetTcpEndPoint constructor
 
-	    sClientCtx = SSL_CTX_new( TLSv1_method() );
-	    SSLNULLHANDLER( sClientCtx, e,
-                        "NetSslTransport::SslClientInit SSL_CTX_new",
-                        fail );
-
-	    SSL_CTX_set_mode(
-		sClientCtx,
-		SSL_MODE_ENABLE_PARTIAL_WRITE | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER );
-	    SSLLOGFUNCTION( "NetSslTransport::SslClientInit SSL_CTX_set_mode" );
+	    /*
+	     * Allow TLSv1.0 and later but disable SSLv2 and SSLv3
+	     * - Allow customers to further filter TLS protocol versions
+	     */
+	    if( (sClientCtx = CreateAndInitializeSslContext("Client")) == NULL )
+		goto fail;
 	}
 	return;
 
@@ -362,9 +526,6 @@ NetSslTransport::SslServerInit(StrPtr *hostname, Error *e)
 		return;
 #endif // OS_NT
 
-	    TRANSPORT_PRINT( SSLDEBUG_FUNCTION,
-		"NetSslTransport::SslServerInit - Initializing server CTX structure." );
-
 	    /*
 	     * Added due to job084753: Swarm is a web app that reuses client processes.
 	     * See the SslClientInit code for more info.
@@ -407,17 +568,12 @@ NetSslTransport::SslServerInit(StrPtr *hostname, Error *e)
 	    credentials.ReadCredentials(e);
 	    P4CHECKERROR( e, "NetSslTransport::SslServerInit ReadCredentials", fail );
 
-
-	    sServerCtx = SSL_CTX_new( TLSv1_method() );
-	    SSLNULLHANDLER( sServerCtx, e,
-                        "NetSslTransport::SslServerInit SSL_CTX_new",
-                        fail );
-
-	    SSL_CTX_set_mode(
-		sServerCtx,
-		SSL_MODE_ENABLE_PARTIAL_WRITE | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER );
-	    SSLLOGFUNCTION( "NetSslTransport::SslServerInit SSL_CTX_set_mode" );
-
+	    /*
+	     * Allow TLSv1.0 and later but disable SSLv2 and SSLv3
+	     * - Allow customers to further filter TLS protocol versions
+	     */
+	    if( (sServerCtx = CreateAndInitializeSslContext("Server")) == NULL )
+		goto fail;
 
 	    SSL_CTX_use_PrivateKey( sServerCtx, credentials.GetPrivateKey() );
 	    SSLLOGFUNCTION(
@@ -651,6 +807,8 @@ NetSslTransport::SslHandshake( Error *e )
 	    {
 	    case SSL_ERROR_NONE:
 		done = true;
+		TRANSPORT_PRINTF( SSLDEBUG_CONNECT,
+		    "NetSslTransport::SslHandshake protocol=%s", SSL_get_version(ssl) );
 		break;
 
 	    case SSL_ERROR_WANT_READ:
@@ -730,10 +888,12 @@ NetSslTransport::SslHandshake( Error *e )
 		/* underlying protocol error dump error to 
 		 * debug output
 		 */
-		char sslError[256];
-		ERR_error_string( ERR_get_error(), sslError );
-		TRANSPORT_PRINTF( SSLDEBUG_ERROR, "Handshake Failed: %s", sslError );
-		e->Net( "ssl handshake", sslError);
+
+		// buffer for ssl protocol errors
+		char	sslErrorBuf[256];
+		ERR_error_string( ERR_get_error(), sslErrorBuf );
+		TRANSPORT_PRINTF( SSLDEBUG_ERROR, "Handshake Failed: %s", sslErrorBuf );
+		e->Set( MsgRpc::SslProtocolError ) << sslErrorBuf;
 		return false;
 		break;
 	    default:
@@ -746,18 +906,26 @@ NetSslTransport::SslHandshake( Error *e )
 		    errBuf.Append( &tmp );
 		    errBuf.Append( ")" );
 		}
+		else
+		{
+		    StrBuf tmp;
+		    Error::StrError( tmp );
+		    errBuf.Set( " (" );
+		    errBuf.Append( &tmp );
+		    errBuf.Append( ")" );
+		}
 		if( isAccepted )
 		{
 		    TRANSPORT_PRINTF( SSLDEBUG_ERROR,
-			    "NetSslTransport::SslHandshake failed on server side: %d",
-			    errorRet );
+			"NetSslTransport::SslHandshake failed on server side: %d%s",
+			errorRet, GetSslErrorName(errorRet) );
 		    e->Set( MsgRpc::SslAccept) << errBuf;
 		}
 		else
 		{
 		    TRANSPORT_PRINTF( SSLDEBUG_ERROR,
-		 	"NetSslTransport::SslHandshake failed on client side: %d",
-		 	errorRet);
+		 	"NetSslTransport::SslHandshake failed on client side: %d%s",
+			errorRet, GetSslErrorName(errorRet) );
 		    e->Set( MsgRpc::SslConnect) << GetPortParser().String() << errBuf;
 		}
 		return false;

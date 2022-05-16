@@ -150,6 +150,12 @@ ServerHelperApi::SetDefaultStream( const StrPtr *s, Error *e )
 }
 
 void
+ServerHelperApi::SetApplication( const StrPtr *a )
+{
+	server->SetApplication( a );
+}
+
+void
 ServerHelperApi::SetDefaultStream( const char *s, Error *e )
 {
 	StrRef stream( s );
@@ -249,6 +255,12 @@ ServerHelperApi::SetVersion( const char *c )
 	server->SetVersion( c );
 }
 
+void
+ServerHelperApi::SetCharset( const char *c )
+{
+	server->SetCharset( c );
+}
+
 int
 ServerHelperApi::SetDvcsDir( const StrPtr *c, Error *e )
 {
@@ -319,6 +331,12 @@ ServerHelperApi::SetVersion( const StrPtr *c )
 	server->SetVersion( c );
 }
 
+void
+ServerHelperApi::SetCharset( const StrPtr *c )
+{
+	server->SetCharset( c );
+}
+
 const StrPtr &
 ServerHelperApi::GetDvcsDir()
 {
@@ -383,6 +401,11 @@ ServerHelperApi::ClearProtocol()
 	protocol.Clear();
 }
 
+void
+ServerHelperApi::SetTrans( int output, int content, int fnames, int dialog )
+{
+	server->SetTrans( output, content, fnames, dialog );
+}
 
 // Helpful client factory
 
@@ -412,6 +435,12 @@ ServerHelperApi::GetClient( Error *e )
 	    client->SetUser( &server->GetUser() );
 	if( server->GetClient().Length() )
 	    client->SetClient( &server->GetClient() );
+	if( server->GetCharset().Length() )
+	    client->SetCharset( &server->GetCharset() );
+
+	int output, content, fnames, dialog;
+	if( server->GetTrans( output, content, fnames, dialog ) )
+	    client->SetTrans( output, content, fnames, dialog );
 
 	StrRef var, val;
 	int i = 0;

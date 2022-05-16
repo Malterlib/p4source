@@ -106,6 +106,7 @@ class NetSslTransport : public NetTcpTransport
 	GetPeerFingerprint(StrBuf &value);
 
     private:
+	SSL_CTX *	CreateAndInitializeSslContext(const char *conntype);
 	void            SslClientInit( Error *e );
 	void            SslServerInit( StrPtr *hostname, Error *e );
 	void		ValidateRuntimeVsCompiletimeSSLVersion( Error *e );

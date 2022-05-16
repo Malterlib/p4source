@@ -16,6 +16,7 @@ class MsgHelp {
 	static ErrorId HelpPerforce;
 	static ErrorId HelpUsage;
 	static ErrorId HelpSimple;
+	static ErrorId HelpCheckPermission;
 	static ErrorId HelpCommands;
 	static ErrorId HelpUndoc;
 	static ErrorId HelpEnvironment;
@@ -78,6 +79,8 @@ class MsgHelp {
 	static ErrorId HelpFixes;
 	static ErrorId HelpForwardingreplica;
 	static ErrorId HelpFstat;
+	static ErrorId HelpGrantPermission;
+	static ErrorId HelpGraph;
 	static ErrorId HelpGrep;
 	static ErrorId HelpGroup;
 	static ErrorId HelpGroups;
@@ -136,6 +139,8 @@ class MsgHelp {
 	static ErrorId HelpProtects;
 	static ErrorId HelpProxy;
 	static ErrorId HelpPrune;
+	static ErrorId HelpPubKey;
+	static ErrorId HelpPubKeys;
 	static ErrorId HelpPull;
 	static ErrorId HelpPush;
 	static ErrorId HelpReload;
@@ -146,6 +151,8 @@ class MsgHelp {
 	static ErrorId HelpReconcile;
 	static ErrorId HelpReopen;
 	static ErrorId HelpReplication;
+	static ErrorId HelpRepo;
+	static ErrorId HelpRepos;
 	static ErrorId HelpResolve;
 	static ErrorId HelpResolved;
 	static ErrorId HelpRestore;
@@ -155,7 +162,9 @@ class MsgHelp {
 	static ErrorId HelpRevert;
 	static ErrorId HelpReview;
 	static ErrorId HelpReviews;
+	static ErrorId HelpRevokePermission;
 	static ErrorId HelpTunables;
+	static ErrorId HelpShowPermission;
 	static ErrorId HelpSearch;
 	static ErrorId HelpServer;
 	static ErrorId HelpServerid;
@@ -178,6 +187,7 @@ class MsgHelp {
 	static ErrorId HelpTriggers;
 	static ErrorId HelpTrust;
 	static ErrorId HelpTypeMap;
+	static ErrorId HelpUndo;
 	static ErrorId HelpUnload;
 	static ErrorId HelpUnlock;
 	static ErrorId HelpUnshelve;

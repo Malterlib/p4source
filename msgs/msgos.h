@@ -35,6 +35,11 @@ class MsgOs {
 	static ErrorId ZipNoEntry;
 	static ErrorId ZipOpenEntry;
 	static ErrorId ZipReadFailed;
+	static ErrorId ZlibInflateInit;
+	static ErrorId ZlibInflateEOF;
+	static ErrorId ZlibInflate;
+	static ErrorId ZlibDeflateInit;
+	static ErrorId ZlibInflateInitSeek;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

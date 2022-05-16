@@ -43,11 +43,11 @@ Client::SetTrans( int output,
 	// SetTrans called, don't do server mode discovery
 	unknownUnicode = 0;
 
-	if (dialog == -2)
+	if( dialog == -2 )
 	    dialog = output;
-	if (content == -2)
+	if( content == -2 )
 	    content = output;
-	if (fnames == -2)
+	if( fnames == -2 )
 	    fnames = content;
 
 	// if we were already in unicode mode, take that down
@@ -65,65 +65,65 @@ Client::SetTrans( int output,
 	// we are in unicode mode now...
 	is_unicode = 1;
 
-	enviro->SetCharSet(output);
+	enviro->SetCharSet( output );
 	content_charset = content;
 	output_charset = output;
-	GlobalCharSet::Set(fnames);
+	GlobalCharSet::Set( fnames );
 	// our concept of current directory could change at this point
 	if( ownCwd )
 	    cwd = "";
 	enviro->Config( GetCwd() );
 
-	if (output != 0)
+	if( output != 0 )
 	{
 	    converter = CharSetCvt::FindCvt( CharSetCvt::UTF_8,
-				     (CharSetCvt::CharSet)output );
-	    if (converter)
+	                                     (CharSetCvt::CharSet)output );
+	    if( converter )
 	    {
-                    // TransDict will delete the converter
-		translated = new TransDict( this, converter );
-                if (fnames == output)
-                    transfname = translated;
+	        // TransDict will delete the converter
+	        translated = new TransDict( this, converter, &transErr );
+	        if( fnames == output )
+	            transfname = translated;
 	    }
 	}
 	if( fnames != 0 && fnames != output )
 	{
 	    converter = CharSetCvt::FindCvt( CharSetCvt::UTF_8,
-				     (CharSetCvt::CharSet)fnames );
-	    if (converter)
+	                                     (CharSetCvt::CharSet)fnames );
+	    if( converter )
 	    {
-                // TransDict will delete the converter
-		transfname = new TransDict( this, converter );
+	        // TransDict will delete the converter
+	        transfname = new TransDict( this, converter, &transErr );
  	    }
 	}
-	if ( dialog != 0 )
+	if( dialog != 0 )
 	{
 	    fromTransDialog = CharSetCvt::FindCvt( CharSetCvt::UTF_8,
-					 (CharSetCvt::CharSet)dialog );
-	    if (fromTransDialog)
-		toTransDialog = fromTransDialog->ReverseCvt();
+	                                     (CharSetCvt::CharSet)dialog );
+	    if( fromTransDialog )
+	        toTransDialog = fromTransDialog->ReverseCvt();
 	}
 }
 
 void
 Client::CleanupTrans()
 {
-	if (transfname != this && transfname != translated)
+	if( transfname != this && transfname != translated )
 	    delete transfname;
-	if (translated != this)
+	if( translated != this )
 	    delete translated;
 
 	translated = this;
 	transfname = this;
 
-        delete fromTransDialog;
+	delete fromTransDialog;
 	delete toTransDialog;
 	fromTransDialog = toTransDialog = NULL;
 
 	is_unicode = 0;
 	content_charset = 0;
 	output_charset = 0;
- 	enviro->SetCharSet( 0 );
+	enviro->SetCharSet( 0 );
 }
 
 int
@@ -139,5 +139,5 @@ Client::ContentCharset()
 int
 Client::GuessCharset()
 {
-        return CharSetApi::Discover(enviro);
+	return CharSetApi::Discover( enviro );
 }

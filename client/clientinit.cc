@@ -245,6 +245,10 @@ clientInitInit( int ac, char **av, Options &preops, Error *e )
 	// Set the DVCS directory
 	if( ( sp = preops['d'] ) )
 	    ruser.SetDvcsDir( sp );
+	
+	// Set the P4CHARSET
+	if( ( sp = preops[ 'C' ] ) )
+	    ruser.SetCharset( sp );
 
 	if( ( sp = preops['v'] ) )
 	    ruser.DoDebug( sp );
@@ -431,6 +435,10 @@ clientInitClone( int ac, char **av, Options &preops, Error *e )
 	if( ( sp = preops[ 'P' ] ) )
 	    ruser.SetPassword( sp );
 
+	// Set the P4CHARSET
+	if( ( sp = preops[ 'C' ] ) )
+	    ruser.SetCharset( sp );
+
 	// turn-off quiet mode
 	if( ( sp = preops['v'] ) )
 	    ruser.DoDebug( sp );
@@ -442,6 +450,13 @@ clientInitClone( int ac, char **av, Options &preops, Error *e )
 	// Set the clone depth
 	if( ( sp = opts['m'] ) )
 	    depth = sp->Atoi();
+
+	// icmanage (-Zapp=icmanage)
+	for( int i = 0; sp = preops.GetValue( 'Z', i ); i++ )
+	{
+	    if( !strncmp( sp->Text(), "app=", 4 ) )
+	        ruser.SetApplication( sp );
+	}
 
 	// Set the username and client
 	// If null pointers are passed, the values come from the envrionment

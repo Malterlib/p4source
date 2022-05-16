@@ -19,8 +19,8 @@
 # include "charcvt.h"
 # include "transdict.h"
 
-TransDict::TransDict(StrDict *o, CharSetCvt *f)
-    : other(o), fromOther(f)
+TransDict::TransDict(StrDict *o, CharSetCvt *f, Error *e)
+    : other(o), fromOther(f), lastError(e)
 {
 	toOther = f->ReverseCvt();
 }
@@ -37,7 +37,7 @@ TransDict::VSetVar( const StrPtr &var, const StrPtr &val )
 	int translen;
 	const char *transbuf;
 
-	toOther->ResetErr();
+	ResetTransErr( toOther );
 	transbuf = toOther->FastCvt(val.Text(),	val.Length(), &translen);
 	if (transbuf)
 	{
@@ -50,23 +50,24 @@ TransDict::VSetVar( const StrPtr &var, const StrPtr &val )
 	    // what do we do if the translation fails????
 	    notransbuf = val;
 	}
-	transerr = toOther->LastErr();
+	SetTransErr( toOther, var );
 }
 
 StrPtr *
 TransDict::VGetVar( const StrPtr &var )
 {
-	fromOther->ResetErr();
+	ResetTransErr( toOther );
+	ResetTransErr( fromOther );
+
 	StrPtr *ret = StrBufDict::VGetVar( var );
 	if (!ret)
 	{
-	    toOther->ResetErr();
 	    const char *cp = toOther->FastCvt( var.Text(), var.Length() );
 
 	    if( !cp )
 	    {
-		transerr = toOther->LastErr();
 		notransbuf = var;
+		SetTransErr( toOther, var );
 		return NULL;
 	    }
 
@@ -94,7 +95,7 @@ TransDict::VGetVar( const StrPtr &var )
 		}
 	    }
 	}
-	transerr = fromOther->LastErr();
+	SetTransErr( fromOther, var );
 	return ret;
 }
 
@@ -102,12 +103,12 @@ int
 TransDict::VGetVarX( int x, StrRef &var, StrRef &val )
 {
 	int ret;
+	ResetTransErr( fromOther );
 
 	ret = other->GetVar( x, var, val );
 	if( ret )
 	{
 	    int translen;
-	    fromOther->ResetErr();
 	    const char *cp = fromOther->FastCvt( var.Text(),
 					       var.Length(),
 					       &translen );
@@ -119,7 +120,7 @@ TransDict::VGetVarX( int x, StrRef &var, StrRef &val )
 	    else {
 		notransbuf = var;
 		holdvar = StrVarName( StrRef( "variable" ), x );
-		transerr = fromOther->LastErr();
+		SetTransErr( fromOther, holdvar );
 	    }
 		
 	    const char *transbuf = fromOther->FastCvt( val.Text(),
@@ -136,7 +137,7 @@ TransDict::VGetVarX( int x, StrRef &var, StrRef &val )
 	    {
 		StrBufDict::VSetVar( holdvar, StrRef( "untranslatable" ) );
 		notransbuf = val;
-		transerr = fromOther->LastErr();
+		SetTransErr( fromOther, holdvar );
 	    }
 
 	    // XXX this is needed to get var and val pointing at
@@ -160,6 +161,29 @@ TransDict::VSetError( const StrPtr &var, Error *e )
 	    StrBufDict::VSetError( var, e );
 }
 
+void
+TransDict::ResetTransErr( CharSetCvt *cvt )
+{
+	cvt->ResetErr();
+
+	if( lastError )
+	    lastError->Clear();
+
+}
+
+void
+TransDict::SetTransErr( CharSetCvt *cvt, const StrPtr &var )
+{
+	transerr = cvt->LastErr();
+
+	if( !lastError )
+	    return;
+
+	lastError->Clear();
+	if( transerr )
+	    VSetError( var, lastError );
+}
+
 StrPtr *
 TransDictQues::VGetVar( const StrPtr &var )
 {
@@ -180,6 +204,29 @@ TransDictQues::VGetVar( const StrPtr &var )
 	    return ret;
 	}
 	return NULL;
+}
+
+
+int
+TransDictQues::VGetVarX( int x, StrRef &var, StrRef &val )
+{
+	int ret;
+	ret = other->GetVar( x, var, val );
+	if( !ret )
+	    return 0;
+	fromOther->ResetErr();
+	int translen;
+	const char *transbuf = fromOther->FastCvt( val.Text(),
+						    val.Length(),
+						    &translen );
+	if( transbuf )
+	{
+	    // XXX Set the translated value
+	    StrBufDict::VSetVar( var, StrRef( transbuf, translen ) );
+	    ret = StrBufDict::VGetVarX( GetCount() - 1, var, val );
+	    return ret;
+	}
+	return 0;
 }
 
 TransDictQues::~TransDictQues()

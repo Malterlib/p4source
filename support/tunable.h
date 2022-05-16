@@ -9,6 +9,7 @@ enum P4TunableName {
 	P4TUNE_CLUSTER_JOURNAL_SHARED = DT_LAST,// see db/dbjournal2.cc
 	P4TUNE_DB_ISALIVE,
 	P4TUNE_DB_JNLACK_SHARED,
+	P4TUNE_DB_MONITOR_INTERVAL,
 	P4TUNE_DB_MONITOR_SHARED,
 	P4TUNE_DB_PAGE_MIGRATE,
 	P4TUNE_DB_PEEKING,
@@ -49,6 +50,7 @@ enum P4TunableName {
 	P4TUNE_DM_INTEG_ENGINE,
 	P4TUNE_DM_INTEG_MAXACT,
 	P4TUNE_DM_INTEG_TWEAKS,
+	P4TUNE_DM_INTEG_UNDO,
 	P4TUNE_DM_ISALIVE,			// set dmcaller.cc
 	P4TUNE_DM_KEYS_HIDE,			// see dmcounters.cc
 	P4TUNE_DM_MAXKEY,			// see dmtypes.cc
@@ -63,6 +65,7 @@ enum P4TunableName {
 	P4TUNE_DM_QUICK_RESOLVE,
 	P4TUNE_DM_QUICK_REV,
 	P4TUNE_DM_QUICK_WORKING,
+	P4TUNE_DM_REPO_NOAUTOCREATE,		// see dmgraph.cc
 	P4TUNE_DM_RESOLVE_ATTRIB,
 	P4TUNE_DM_REVCX_THRESH1,
 	P4TUNE_DM_REVCX_THRESH2,
@@ -82,13 +85,16 @@ enum P4TunableName {
 	P4TUNE_FILESYS_BINARYSCAN,		// see filecheck.cc
 	P4TUNE_FILESYS_BUFSIZE,			// see filesys.h
 	P4TUNE_FILESYS_CACHEHINT,		// see filesys.cc
+	P4TUNE_FILESYS_CHECKLINKS,		// see clientservice.cc and useropen.cc
 	P4TUNE_FILESYS_DETECTUNICODE,		// see filesys.cc
+	P4TUNE_FILESYS_DETECTUTF8,		// see filecheck.cc
 	P4TUNE_FILESYS_LOCKDELAY,		// see filetmp.ccc
 	P4TUNE_FILESYS_LOCKTRY,			// see filetmp.cc
 	P4TUNE_FILESYS_MAKETMP,
 	P4TUNE_FILESYS_MAXMAP,			// see readfile.cc
 	P4TUNE_FILESYS_MAXSYMLINK,		// see fileiosym.cc
 	P4TUNE_FILESYS_MAXTMP,
+	P4TUNE_FILESYS_UTF8BOM,			// see fileiouni.cc
 	P4TUNE_FILESYS_EXTENDLOWMARK,
 	P4TUNE_FILESYS_WINDOWS_LFN,		// see filesys.cc
 	P4TUNE_FILESYS_CLIENT_NULLSYNC,		// see clientservice.cc
@@ -139,6 +145,9 @@ enum P4TunableName {
 	P4TUNE_RPC_HIMARK,
 	P4TUNE_RPC_LOWMARK,
 	P4TUNE_RPC_IPADDR_MISMATCH,		// see rhservice.cc, rpcfwd.cc
+	P4TUNE_RPL_ARCHIVE_GRAPH,		// see server / rpl.cc
+	P4TUNE_RPL_AWAITJNL_COUNT,		// See server / rmtservice.cc
+	P4TUNE_RPL_AWAITJNL_INTERVAL,		// See server / rmtservice.cc
 	P4TUNE_RPL_CHECKSUM_AUTO,
 	P4TUNE_RPL_CHECKSUM_CHANGE,
 	P4TUNE_RPL_CHECKSUM_TABLE,
@@ -148,8 +157,6 @@ enum P4TunableName {
 	P4TUNE_RPL_JNLWAIT_ADJUST,		// See server / rhservice.cc
 	P4TUNE_RPL_JNLWAIT_INTERVAL,		// See server / rhservice.cc
 	P4TUNE_RPL_JNLWAIT_MAX,			// See server / rhservice.cc
-	P4TUNE_RPL_AWAITJNL_INTERVAL,		// See server / rmtservice.cc
-	P4TUNE_RPL_AWAITJNL_COUNT,		// See server / rmtservice.cc
 	P4TUNE_RPL_JOURNAL_ACK,			// See server / rmtservice.cc
 	P4TUNE_RPL_JOURNAL_ACK_MIN,		// See server / rmtservice.cc
 	P4TUNE_RPL_LABELS_GLOBAL,		// See userlabel/userlabsync
@@ -164,6 +171,7 @@ enum P4TunableName {
 	P4TUNE_SERVER_FILECHARSET,
 	P4TUNE_SERVER_LOCKS_ARCHIVE,		// see userarchive.cc
 	P4TUNE_SERVER_LOCKS_SYNC,		// see usersync.cc
+	P4TUNE_SERVER_LOCKS_GLOBAL,		// see userlock.cc
 	P4TUNE_SERVER_ALLOWFETCH,		// DVCS feature enabling
 	P4TUNE_SERVER_ALLOWPUSH,		// DVCS feature enabling
 	P4TUNE_SERVER_ALLOWREMOTELOCKING,	// DVCS feature enabling
@@ -204,6 +212,8 @@ enum P4TunableName {
 	P4TUNE_RPL_PULL_RELOAD,			// see userpull.cc
 	P4TUNE_SSL_SECONDARY_SUITE,             // see netssltransport.cc
 	P4TUNE_SSL_CLIENT_TIMEOUT,		// see netssltransport.cc
+	P4TUNE_SSL_TLS_VERSION_MIN,		// see netssltransport.cc
+	P4TUNE_SSL_TLS_VERSION_MAX,		// see netssltransport.cc
 	P4TUNE_TRIGGERS_IO,			// see rhtrigger.cc
 	P4TUNE_ISTAT_MIMIC_ICHANGES,		// see dmistat.cc & DIOR_SPLIT
 	P4TUNE_INFO_P4AUTH_USERCHECK,		// see userinfo.cc

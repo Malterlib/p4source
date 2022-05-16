@@ -52,5 +52,6 @@ enum ErrorSubsystem {
 	ES_FTPD		= 12,	// P4FTP server
 	ES_BROKER	= 13,	// Perforce Broker
 	ES_P4QT		= 14,	// P4V and other Qt based clients
-	ES_X3SERVER	= 15	// P4X3 server
+	ES_X3SERVER	= 15,	// P4X3 server
+	ES_GRAPH	= 16	// graph depot messages
 } ;

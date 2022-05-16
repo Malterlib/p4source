@@ -857,3 +857,9 @@ ClientUser::CanAutoLoginPrompt()
 	    isatty( fileno( stdout ) ) &&
 	    isatty( fileno( stderr ) ) ? 1 : 0;
 }
+
+int
+ClientUser::IsOutputTaggedWithErrorLevel()
+{
+	return outputTaggedWithErrorLevel;
+}

@@ -38,6 +38,9 @@ class DateTime {
 	void 	FmtElapsed( char *buf, const DateTime &t2 );
 	void	FmtUnifiedDiff( char *buf ) const;
 
+	void	SetGit( const StrPtr &gitDate, Error *e );
+	void	FmtGit( StrBuf &buf ) const;
+
 	int	Value() const { return (int)tval; }
 	int	Tomorrow() const { return (int)tval + 24*60*60; }
 	int	IsWholeDay() const { return wholeDay; }

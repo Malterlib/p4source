@@ -81,7 +81,7 @@ class StrOps {
 
 	static void	OtoX( const StrPtr &octet, StrBuf &hex );
 	static void	XtoO( const StrPtr &hex, StrBuf &octet );
-	static void	OtoX( const unsigned char *octet, int len, StrBuf &x );
+	static void	OtoX( const unsigned char *octet, p4size_t len, StrBuf &x );
 	static void 	XtoO( char *x, unsigned char *octet, int octLen );
 
 	static char	OtoX( unsigned char o )
@@ -90,14 +90,21 @@ class StrOps {
 	static unsigned char XtoO( char h )
 			{ return h - ( h > '9' ? ( h >= 'a' ? 'a' - 10 : 'A' - 10 ) : '0' ); }
 
+	static void	OtoXlower( const StrPtr &octet, StrBuf &hex );
+	static void	OtoXlower( const unsigned char *, p4size_t len, StrBuf &x );
+	static char	OtoXlower( unsigned char o );
+
 	static int	IsDigest( const StrPtr &hex );
+	static int	IsSha1( const StrPtr &hex );
+
 	static void	WildToStr( const StrPtr &i, StrBuf &o );
 	static void	WildToStr( const StrPtr &i, StrBuf &o, const char *t );
 	static void	StrToWild( const StrPtr &i, StrBuf &o );
 	static void	StrToWild( const StrPtr &i, StrBuf &o, const char *t );
 	static void	WildCompat( const StrPtr &i, StrBuf &o );
 	static void	MaskNonPrintable( const StrPtr &i, StrBuf &o );
-	static void	EncodeNonPrintable( const StrPtr &i, StrBuf &o );
+	static void	EncodeNonPrintable( const StrPtr &i, StrBuf &o,
+			                    int maskp = 0, int cmdSafe = 0 );
 	static void	DecodeNonPrintable( const StrPtr &i, StrBuf &o );
 	static unsigned int	
 			HashStringToBucket( const StrPtr &in, int buckets );

@@ -34,6 +34,7 @@ ErrorId MsgClient::Eof                 = { ErrorOf( ES_CLIENT, 6, E_FAILED, EV_C
 ErrorId MsgClient::FileOpenError       = { ErrorOf( ES_CLIENT, 40, E_FAILED, EV_CLIENT, 0 ), "Error opening file." } ;
 ErrorId MsgClient::CantEdit            = { ErrorOf( ES_CLIENT, 7, E_FAILED, EV_CLIENT, 1 ), "%type% - can't edit this type of file!" } ;
 ErrorId MsgClient::NoMerger            = { ErrorOf( ES_CLIENT, 8, E_FAILED, EV_CLIENT, 0 ), "No merge program specified with $P4MERGE or $MERGE." } ;
+ErrorId MsgClient::CheckFileBadPath    = { ErrorOf( ES_CLIENT, 9, E_INFO, EV_CLIENT, 2 ), "%file% - symlink at '%dir%', file can't be added." };
 ErrorId MsgClient::ToolServer2         = { ErrorOf( ES_CLIENT, 10, E_FAILED, EV_CLIENT, 0 ), "Could not start another ToolServer.  Tool is running under ToolServer." } ;
 ErrorId MsgClient::ToolServer          = { ErrorOf( ES_CLIENT, 11, E_FAILED, EV_CLIENT, 0 ), "Could not start ToolServer." } ;
 ErrorId MsgClient::ToolCmdCreate       = { ErrorOf( ES_CLIENT, 12, E_FAILED, EV_CLIENT, 0 ), "Could not create command to send to ToolServer." } ;

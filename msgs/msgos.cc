@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgOs error code is: 20
+ * Current high value for a MsgOs error code is: 25
  */
 
 # include <error.h>
@@ -58,5 +58,10 @@ ErrorId MsgOs::ZipMissing              = { ErrorOf( ES_OS, 17, E_FAILED, EV_FAUL
 ErrorId MsgOs::ZipNoEntry              = { ErrorOf( ES_OS, 18, E_FAILED, EV_FAULT, 2 ), "Error %errorcode% locating entry %entry% in zip." } ;
 ErrorId MsgOs::ZipOpenEntry            = { ErrorOf( ES_OS, 19, E_FAILED, EV_FAULT, 2 ), "Error %errorcode% opening entry %entry% in zip." } ;
 ErrorId MsgOs::ZipReadFailed           = { ErrorOf( ES_OS, 20, E_FAILED, EV_FAULT, 2 ), "Error %errorcode% reading buffer of length %len% from zip." } ;
+ErrorId MsgOs::ZlibInflateInit         = { ErrorOf( ES_OS, 21, E_FAILED, EV_FAULT, 2 ), "inflateInit failed: for file %file%, inflateInit returned %retCode%." } ;
+ErrorId MsgOs::ZlibInflateEOF          = { ErrorOf( ES_OS, 22, E_FAILED, EV_FAULT, 1 ), "Premature end of compressed object data in file %file%" } ;
+ErrorId MsgOs::ZlibInflate             = { ErrorOf( ES_OS, 23, E_FAILED, EV_FAULT, 2 ), "inflate returned error: for file %file%, inflate returned %retCode%." } ;
+ErrorId MsgOs::ZlibDeflateInit         = { ErrorOf( ES_OS, 24, E_FAILED, EV_FAULT, 2 ), "deflateInit failed: for file %file%, deflateInit returned %retCode%." } ;
+ErrorId MsgOs::ZlibInflateInitSeek     = { ErrorOf( ES_OS, 25, E_FAILED, EV_FAULT, 3 ), "inflateInit failed: for file %file%, inflateInit returned %retCode% after seek to position %seekPos%." } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 

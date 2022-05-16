@@ -8,15 +8,28 @@
 # define NEED_STATFS
 # define NEED_STATVFS
 
+# ifdef OS_NT
+# undef _WIN32_WINNT
+# define _WIN32_WINNT 0x0600
+# include <windows.h>
+# if (_MSC_VER >= 1800)
+# include <fileapi.h>
+# endif
+# endif
 # include <stdhdrs.h>
 
 # include <error.h>
 # include <strbuf.h>
+# include <i18napi.h>
+# include <charcvt.h>
 # include <debug.h>
 # include <tunable.h>
 
 # include "filesys.h"
 # include "pathsys.h"
+# include "fileio.h"
+
+extern void nt_free_wname( const wchar_t *wname );
 
 /*
  * FileSys::GetDiskSpace -- fill in details about disk space usage.
@@ -39,51 +52,111 @@ FileSys::GetDiskSpace( DiskSpaceInfo *info, Error *e )
 {
 	info->fsType->Set( "unknown" );
 # ifdef OS_NT
-	char buffer[1024];
-	char *lpp;
 
-	if( !GetFullPathName( Name(), sizeof( buffer ), buffer, &lpp ) )
+	// Setup for a file or a directory.
+	FileSys *fs = FileSys::Create( FST_TEXT );
+	fs->Set( Name() );
+	int is_dir = ( fs->Stat() & (FSF_EXISTS|FSF_DIRECTORY)) ==
+			(FSF_EXISTS|FSF_DIRECTORY);
+	delete fs;
+
+	if( !is_dir )
 	{
-	    e->Sys( "GetFullPathName", Name() );
+	    PathSys *ps = PathSys::Create();
+	    ps->Set( Name() );
+	    ps->ToParent();
+	    Set( ps->Text() );
+	    delete ps;
+	}
+
+	// Force LFN on.
+	LFN = LFN_ENABLED;
+	if( IsUNC( *Path() ) )
+	    LFN |= LFN_UNCPATH;
+	if( DOUNICODE )
+	    LFN |= LFN_UTF8;
+
+	const wchar_t *wname = NULL;
+	if( ( wname = FileIO::UnicodeName( (StrBuf *)Path(), LFN ) ) == NULL )
+	{
+	    e->Sys( "UnicodeName", Name() );
 	    return;
 	}
-	if( lpp )
-	    *lpp = '\0';
 
 	ULARGE_INTEGER freeBytesAvailable;
 	ULARGE_INTEGER totalNumberOfBytes;
 	ULARGE_INTEGER totalNumberOfFreeBytes;
 
-	if( !GetDiskFreeSpaceEx( buffer,
+	BOOL bRet = GetDiskFreeSpaceExW( wname,
 				&freeBytesAvailable,
 				&totalNumberOfBytes,
-				&totalNumberOfFreeBytes ) )
+				&totalNumberOfFreeBytes );
+	if( !bRet )
 	{
-	    e->Sys( "GetDiskFreeSpaceEx", Name() );
+	    if( wname )
+		nt_free_wname( wname );
+	    e->Sys( "GetDiskFreeSpaceExW", Name() );
 	    return;
 	}
+
 	info->blockSize = -1;
 	info->freeBytes = freeBytesAvailable.QuadPart;
 	info->totalBytes= totalNumberOfBytes.QuadPart;
 
-	char vName[1024];
-	char fsName[1024];
-	char *which = 0;
-	if( buffer[1] == ':' )
+	// Open the directory so we can use the wide GetVolumeInformation
+	HANDLE fH;
+	fH = CreateFileW( wname,
+		GENERIC_READ,
+		FILE_SHARE_READ,
+		NULL,
+		OPEN_EXISTING,
+		FILE_FLAG_BACKUP_SEMANTICS,
+		NULL);
+	if( wname )
+	    nt_free_wname( wname );
+	if( fH == INVALID_HANDLE_VALUE )
 	{
-	    buffer[2] = '\\';
-	    buffer[3] = '\0';
-	    which = buffer;
-	}
-	if( !GetVolumeInformation( which, 
-				vName, sizeof( vName ),
-				(LPDWORD)0, (LPDWORD)0, (LPDWORD)0,
-				fsName, sizeof( fsName) ) )
-	{
-	    e->Sys( "GetVolumeInformation", Name() );
+	    e->Sys( "CreateFileW", Name() );
 	    return;
 	}
-	info->fsType->Set( fsName );
+
+# if !defined( OS_MINGW )
+	wchar_t vName[MAX_PATH+1];
+	wchar_t wfsType[MAX_PATH+1];
+	char fsType[MAX_PATH+1];
+
+	bRet = GetVolumeInformationByHandleW( fH, 
+				vName, (DWORD)MAX_PATH,
+				(LPDWORD)0, (LPDWORD)0, (LPDWORD)0,
+				wfsType, (DWORD)MAX_PATH );
+	CloseHandle( fH );
+	if( bRet == 0 )
+	{
+	    e->Sys( "GetVolumeInformationByHandleW", Name() );
+	    return;
+	}
+
+	// Convert unicode to multibyte.
+	bRet = WideCharToMultiByte (
+		CP_ACP,
+		(DWORD)0,	// Use default flags
+		wfsType,
+		-1,		// wfsType is NULL terminated
+		fsType,
+		MAX_PATH,
+		NULL,
+		NULL
+		);
+	if ( bRet == 0 )
+	{
+	    e->Sys( "WideCharToMultiByte", Name() );
+	    return;
+	}
+
+	info->fsType->Set( fsType );
+# else
+	info->fsType->Set( "NTFS" );
+# endif
 	info->usedBytes = info->totalBytes - info->freeBytes;
 	double usage = 1.0;
 	if( info->totalBytes > 0 )

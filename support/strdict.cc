@@ -128,7 +128,9 @@ StrDict::SetVarV( const char *arg )
 
 	if( p = strchr( arg, '=' ) )
 	{
-	    SetVar( StrRef( (char *)arg, p - arg ), StrRef( (char *)p + 1 ) );
+	    StrBuf var = StrRef( (char *) arg, p - arg );
+	    var.Terminate();
+	    SetVar( var, StrRef( (char *)p + 1 ) );
 	}
 	else
 	{

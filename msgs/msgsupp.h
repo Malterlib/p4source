@@ -154,6 +154,7 @@ class MsgSupp {
 	static ErrorId OptionUnchanged;
 	static ErrorId OptionDepot;
 	static ErrorId OptionDepotType;
+	static ErrorId OptionClientType;
 	static ErrorId OptionKeepHead;
 	static ErrorId OptionPurge;
 	static ErrorId OptionForceText;
@@ -273,6 +274,10 @@ class MsgSupp {
 	static ErrorId OptionNonAcknowledging;
 	static ErrorId OptionReplicationStatus;
 	static ErrorId OptionGroupMode;
+	static ErrorId OptionUserMode;
+	static ErrorId OptionUserModeCreate;
+	static ErrorId OptionUserModeUpdate;
+	static ErrorId OptionUserModeDelete;
 	static ErrorId OptionBypassExlusiveLock;
 	static ErrorId OptionCreate;
 	static ErrorId OptionList;
@@ -291,6 +296,11 @@ class MsgSupp {
 	static ErrorId OptionField;
 	static ErrorId OptionTab;
 	static ErrorId OptionForceDelete;
+	static ErrorId OptionStorageType;
+	static ErrorId OptionAtomicPush;
+	static ErrorId OptionColor;
+	static ErrorId OptionChangeFiles;
+	static ErrorId OptionDiscardArchives;
 	static ErrorId OptionLicenseInfo;
 
 	static ErrorId TooManyLockTrys;

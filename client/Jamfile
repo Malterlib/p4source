@@ -4,8 +4,8 @@ SubDirHdrs $(P4) diff ;
 SubDirHdrs $(P4) rpc ;
 SubDirHdrs $(P4) net ;
 SubDirHdrs $(P4) i18n ;
+SubDirHdrs $(P4) dbsupp ;
 
-P4Main p4 : clientmain.cc ;
 Ident clientmain.cc client.cc clientinit.cc serverhelper.cc ;
 
 if $(OS) = NT
@@ -19,6 +19,8 @@ LinkLibraries p4 :
 	$(RPCLIB)
 	$(SUPPORTLIB)
 	;
+
+P4Main p4 : clientmain.cc ;
 
 P4Library $(CLIENTLIB) : 
 	client.cc
@@ -38,6 +40,7 @@ P4Library $(CLIENTLIB) :
 	clientservicer.cc
 	clienttrust.cc
 	clientuser.cc
+	clientusercolor.cc
 	clientuserdbg.cc
 	clientusermsh.cc
 	clientusernull.cc

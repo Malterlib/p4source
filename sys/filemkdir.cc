@@ -319,11 +319,17 @@ FileSys::PurgeDir( const char *dir, Error *e )
 	FileSys *f = FileSys::Create( FST_BINARY );
 	f->Set( dir );
 
+	if( !( f->Stat() & FSF_EXISTS ) )
+	{
+	    delete f;
+	    return;
+	}
+
 	StrArray *a = f->ScanDir( e );
 
 	PathSys *p = PathSys::Create();
 
-	for( int i = 0; i < a->Count(); i++ )
+	for( int i = 0; !e->Test() && a && i < a->Count(); i++ )
 	{
 	    p->SetLocal( StrRef( dir ), *a->Get(i) );
 	    f->Set( *p );
@@ -339,7 +345,10 @@ FileSys::PurgeDir( const char *dir, Error *e )
 	delete p;
 	delete a;
 
-	f->Set( dir );
-	rmdir( f->Name() );
+	if( !e->Test() )
+	{
+	    f->Set( dir );
+	    rmdir( f->Name() );
+	}
 	delete f;
 }

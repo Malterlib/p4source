@@ -111,7 +111,7 @@ FileSys::CheckType( int scan )
 	    CharSetCvt *cvt;
 	    int rettype = FST_TEXT;
 	    // Always look for a utf8 bom...
-	    int utf8bomPresent = !memcmp( buf, "\xef\xbb\xbf", 3 );
+	    int utf8bomPresent = len >= 3 && !memcmp( buf, "\xef\xbb\xbf", 3 );
 
 	    if( utf8bomPresent )
 	    {
@@ -119,7 +119,8 @@ FileSys::CheckType( int scan )
 		    goto somebinary;
 
 		CharSetUTF8Valid utf8test;
-		if( utf8test.Valid( buf, len ) )
+		if( p4tunable.Get( P4TUNE_FILESYS_DETECTUTF8 ) > 0
+			&& utf8test.Valid( buf, len ) )
 		    rettype = FST_UTF8;
 	    }
 
@@ -141,11 +142,7 @@ FileSys::CheckType( int scan )
 		if( controlchar )
 		    goto somebinary;
 
-		if( highbit && utf8bomPresent )
-		{
-		    rettype = FST_UNICODE;
-		}
-		else if( highbit )
+		if( highbit && rettype == FST_TEXT )
 		{
 		    // run special UTF_8 validator...
 
@@ -287,7 +284,8 @@ FileSys::CheckType( int scan )
 		if( highbit )
 		{
 		    CharSetUTF8Valid utf8test;
-		    if( utf8test.Valid( buf, len ) )
+		    if( p4tunable.Get( P4TUNE_FILESYS_DETECTUTF8 ) == 1
+			    && utf8test.Valid( buf, len ) )
 			rettype = FST_UTF8;
 		}
 		if( rettype == FST_UNICODE &&
@@ -337,5 +335,3 @@ FileSys::CheckType( int scan )
 
 	return execbits ? FST_XBINARY : FST_BINARY;
 }
-
-

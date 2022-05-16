@@ -129,6 +129,9 @@
  *	    will be initialised with; however, this may be overriden a remote
  *	    spec created by MakeRemote() or loaded with LoadRemote().
  *
+ *	ServerHelperApi::SetApplication() - Sets the application name
+ *	    This is required for application based server licensing.
+ *
  *	ServerHelperApi::SetCaseFlag()	- Sets the case sensitivity flag
  *	    This sets the case sensitivity flag used when initialising a new
  *	    Perforce Server. It can be set to '-C0' or '-C1'. The value will be
@@ -220,6 +223,9 @@ class ServerHelperApi
 	void		SetDefaultStream( const char *s, Error *e );
 	void		SetDefaultStream( const StrPtr *s, Error *e );
 
+	// Sets the application (server is licensed only for a single application)
+	void		SetApplication( const StrPtr *a );
+
 	// Alternatives to Discover()
 	void		SetCaseFlag( const StrPtr *c, Error *e );
 	void		SetCaseFlag( const char *c, Error *e );
@@ -236,6 +242,7 @@ class ServerHelperApi
 	void		SetPassword( const char *c );
 	void		SetProg( const char *c );
 	void		SetVersion( const char *c );
+	void		SetCharset( const char *c );
 	
 	int		SetDvcsDir( const StrPtr *c, Error *e );
 	void		SetServerExecutable( const StrPtr *c );
@@ -245,6 +252,10 @@ class ServerHelperApi
 	void		SetPassword( const StrPtr *c );
 	void		SetProg( const StrPtr *c );
 	void		SetVersion( const StrPtr *c );
+	void		SetCharset( const StrPtr *c );
+
+	void		SetTrans( int output, int content = -2,
+			          int fnames = -2, int dialog = -2 );
 	
 	const StrPtr	&GetDvcsDir();
 	const StrPtr	&GetServerExecutable();

@@ -71,6 +71,7 @@ class MsgRpc {
 	static ErrorId SslCfgExpire;
 	static ErrorId SslCfgUnits;
 	static ErrorId SslKeyNotRSA;
+	static ErrorId SslProtocolError;
 
 	static ErrorId WakeupInit;
 	static ErrorId WakeupAttempt;

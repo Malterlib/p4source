@@ -459,6 +459,7 @@ NetSslCredentials::ParseConfig( Error *e )
 	{
 	    DEBUGPRINT( SSLDEBUG_FUNCTION, "NetSslCredentials::ParseConfig - config.txt file not found in P4SSLDIR." );
 	    e->Clear();
+	    delete f;
 	    return;
 	}
 
@@ -500,6 +501,8 @@ NetSslCredentials::ParseConfig( Error *e )
 		else
 		{
 		    e->Set( MsgRpc::SslCfgExpire ) << value;
+	            f->Close( e );
+	            delete f;
 		    return;
 		}
 	    }
@@ -525,6 +528,8 @@ NetSslCredentials::ParseConfig( Error *e )
 		else
 		{
 		    e->Set( MsgRpc::SslCfgUnits ) << value;
+	            f->Close( e );
+	            delete f;
 		    return;
 		}
 	    else
@@ -535,10 +540,13 @@ NetSslCredentials::ParseConfig( Error *e )
 	}
 	if( (SSL_X509_MAX_SECONDS / certUNITS) < certEX ) {
 	    e->Set( MsgRpc::SslCfgExpire ) << value;
+	    f->Close( e );
+	    delete f;
 	    return;
 	}
 
 	f->Close( e );
+	delete f;
 }
 
 void
@@ -836,7 +844,7 @@ NetSslCredentials::GetFingerprintFromCert( Error *e )
 failCleanBIO:
 	BIO_free_all(bio);
 	if( asn1pubKey )
-	    delete asn1pubKey;
+	    delete []asn1pubKey;
 fail:
 	/* nothing to clean up */
 	return;

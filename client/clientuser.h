@@ -112,6 +112,7 @@ class ClientUser {
 			    outputCharset = 0;
 			    quiet = 0;
 			    autoLogin = autoLoginPrompt;
+			    outputTaggedWithErrorLevel = 0;
 			}
 	virtual		~ClientUser();
 
@@ -125,6 +126,9 @@ class ClientUser {
 	virtual void 	OutputText( const char *data, int length );
 
 	virtual void	OutputStat( StrDict *varList );
+	virtual int	OutputStatPartial( StrDict * ) { return 0; };
+	// The above method returns 0 to carry the fstat partials or non-0
+	// to drop them (return 1 if you print them as you get them)
 
 	virtual void	Prompt( const StrPtr &msg, StrBuf &rsp, 
 				int noEcho, Error *e );
@@ -168,6 +172,7 @@ class ClientUser {
 	virtual void	DisableTmpCleanup();
 	virtual void	SetQuiet();
 	virtual int	CanAutoLoginPrompt();
+	virtual int	IsOutputTaggedWithErrorLevel();
 
 	// Output... and Help must use 'const char' instead of 'char'
 	// The following will cause compile time errors for using 'char'
@@ -186,9 +191,12 @@ class ClientUser {
 	int		binaryStdout;	// stdout is in binary mode
 	int		quiet;		// OutputInfo does nothing.
 	int		autoLogin;	// Can this implementation autoprompt
+
     protected:
 	int		outputCharset;	// P4CHARSET for output
 	StrBuf		editFile;
+	int		outputTaggedWithErrorLevel;	// "p4 -s cmd" yes/no
+
 } ;
 
 class ClientUserProgress : public ClientUser {
