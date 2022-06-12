@@ -26,7 +26,7 @@ Compile
 		PerforceOS define string
 		PerforceOS "MACOSX"
 		{
-			!!PlatformFamily "OSX"
+			!!PlatformFamily "macOS"
 		}
 		PerforceOS "LINUX"
 		{
@@ -158,23 +158,23 @@ Compile
 			
 			%File "sys/macfile.cc"
 			{
-				!!PlatformFamily "OSX"
+				!!PlatformFamily "macOS"
 			}
 			%File "sys/fileioappm.cc"
 			{
-				!!PlatformFamily "OSX"
+				!!PlatformFamily "macOS"
 			}
 			%File "sys/fileiomac.cc"
 			{
-				!!PlatformFamily "OSX"
+				!!PlatformFamily "macOS"
 			}
 			%File "sys/macutil.m"
 			{
-				!!PlatformFamily "OSX"
+				!!PlatformFamily "macOS"
 			}
 			%File "sys/fileioapp.cc"
 			{
-				!PlatformFamily "OSX"
+				!PlatformFamily "macOS"
 			}
 
 			%File "sys/fileiont.cc"
