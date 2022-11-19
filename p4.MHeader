@@ -1,5 +1,5 @@
 
-Property.AddIncludePaths_p4api define bool = false
+Property.AddIncludePaths_p4api: bool = false
 
 Compile
 {
@@ -23,7 +23,7 @@ Compile
 	Property
 	{
 		AddIncludePaths_p4api true
-		PerforceOS define string
+		PerforceOS: string
 		PerforceOS "MACOSX"
 		{
 			!!PlatformFamily "macOS"
