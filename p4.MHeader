@@ -230,4 +230,10 @@ Compile
 	{
 		Dependency.Indirect true
 	}
+	%Dependency "Lib_BoringSSL_decrepit"
+	{
+		!DocumentationEnabled true
+
+		Dependency.Indirect true
+	}
 }
