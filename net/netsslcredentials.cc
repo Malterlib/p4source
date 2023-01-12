@@ -87,6 +87,7 @@ extern "C"
 // Static Callback Function Implementation                                //
 ////////////////////////////////////////////////////////////////////////////
 
+#ifndef OPENSSL_IS_BORINGSSL
 static void
 PrintNodes( const char *name, STACK_OF(X509_POLICY_NODE) *nodes, BIO *bio,
             const char *sep )
@@ -125,6 +126,7 @@ PrintPolicies( X509_STORE_CTX *ctx, BIO *bio, const char *sep )
 	PrintNodes( "User", X509_policy_tree_get0_user_policies( tree ),
 	            bio, sep );
 }
+#endif
 
 static void
 PrintCertificateSubject( int depth, X509 *cert, BIO *bio, const char *sep )
@@ -166,7 +168,11 @@ PrintCertificateError( X509 *cert, int err, X509_STORE_CTX *ctx, BIO *bio,
 	    BIO_puts( bio, sep );
 	    break;
 	case X509_V_ERR_NO_EXPLICIT_POLICY:
+#ifndef OPENSSL_IS_BORINGSSL
 	    PrintPolicies( ctx, bio, sep );
+#else
+	    BIO_printf( bio, "X509_V_ERR_NO_EXPLICIT_POLICY%s", sep );
+#endif
 	    break;
 	default:
 	    break;
@@ -200,7 +206,13 @@ verify_callback(int ok, X509_STORE_CTX *ctx)
 	PrintCertificateError( err_cert, err, ctx, bio, "\n" );
 
 	if( err == X509_V_OK && ok == 2 )
+	{
+#ifndef OPENSSL_IS_BORINGSSL
 	    PrintPolicies( ctx, bio, "\n" );
+#else
+	    BIO_printf( bio, "Policy printing not supported\n" );
+#endif
+	}
 
 	if( ok )
 	    BIO_printf( bio, "verify return:%d\n", ok );
