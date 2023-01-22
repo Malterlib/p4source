@@ -65,6 +65,8 @@ Compile
 	Compile
 	{
 		!!CompileDialect "C"
+		Analyzer false
+
 		SearchPath += [
 			"../../External/zlib/contrib/minizip"->MakeAbsolute()
 			, "dbsupp"->MakeAbsolute()
