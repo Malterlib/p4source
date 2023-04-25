@@ -192,8 +192,29 @@ PrintCertificateError( X509 *cert, int err, X509_STORE_CTX *ctx, BIO *bio,
 	}
 }
 
-static int ossl_verify_cb_idx;
 
+#ifdef DMalterlib
+
+struct CVerifyIndex
+{
+	CVerifyIndex()
+		: m_Index(X509_STORE_CTX_get_ex_new_index( 0, 0, 0, 0, 0 ))
+	{
+	}
+
+	int m_Index;
+};
+
+constinit TCAggregate<CVerifyIndex, 128, CLowLevelLockAggregate> g_VerifyIndex = {DAggregateInit};
+
+int GetSSLVerifyCbIdx()
+{
+	return g_VerifyIndex->m_Index;
+}
+
+#else
+
+static int ossl_verify_cb_idx;
 # if OPENSSL_VERSION_NUMBER < 0x10100000L
 
 static int ossl_verify_cb_idx_once = 0;
@@ -227,6 +248,8 @@ int GetSSLVerifyCbIdx()
 	return ossl_verify_cb_idx;
 }
 # endif // OpenSSL >=1.1
+
+#endif // DMalterlib
 
 int
 verify_callback(int ok, X509_STORE_CTX *ctx)

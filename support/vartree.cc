@@ -206,7 +206,7 @@ VVarTree::Put( void* key, Error* e )
 	try
 	{
 	    n = new VarTreeNode( key, p, this );
-	} catch( const std::bad_alloc& err )
+	} catch( const std::bad_alloc& )
 	{
 	    e->Set( MsgDb::MaxMemory );
 	    return 0;

@@ -100,7 +100,6 @@ void P4Libraries::Initialize( const int libraries, Error* e )
 	    // This should be the first thing done in a process.
 	    rpmalloc_initialize();
 # endif
-	    x86_check_features();
 	    DateTime::Centralize( 0 );
 	    (*signaler).Init();
 	    NetUtils::InitNetwork();
