@@ -13,6 +13,10 @@
 
 // Must have a newer _WIN32_WINNT definition for this API.
 //
+# ifdef NTDDI_VERSION
+#  undef NTDDI_VERSION
+# endif
+
 # ifdef _WIN32_WINNT
 # undef _WIN32_WINNT
 # define _WIN32_WINNT 0xA01
