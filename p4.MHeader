@@ -154,6 +154,7 @@ Compile
 			%File "sys/rusage.cc"
 			%File "sys/signaler.cc"
 			%File "sys/stdhdrs.cc"
+			%File "sys/sysinfo.cc"
 			%File "sys/threading.cc"
 			%File "sys/timer.cc"
 			%File "sys/zipfile.cc"
@@ -180,6 +181,10 @@ Compile
 			}
 
 			%File "sys/fileiont.cc"
+			{
+				!!PlatformFamily "Windows"
+			}
+			%File "sys/fileiont2.cc"
 			{
 				!!PlatformFamily "Windows"
 			}
