@@ -134,8 +134,8 @@ MonItem::Display( StrBuf *b ) const
 	b->UAppend( "unknown type" );
 }
 
-MonInteger::MonInteger( const char *n, int f )
-    : MonItem( n, f )
+MonInteger::MonInteger( const char *n, int f, P4INT64 init )
+    : MonItem( n, f ), initialValue( init )
 {
 }
 
@@ -227,7 +227,7 @@ MonInteger::Value() const
 {
 	if( Active() )
 	    return *(p4_aint64_t const *)Data();
-	return 0;
+	return initialValue;
 }
 
 void
@@ -251,6 +251,7 @@ MonIntMax::DataSize() const
 void
 MonIntMax::Initialize()
 {
+	((p4_aint64_t *)Data())[0] = initialValue;
 	// -1 should be max neg int for int64
 	((p4_aint64_t *)Data())[1] = -1;
 }

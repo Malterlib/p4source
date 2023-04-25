@@ -25,6 +25,11 @@ extern void DumpError( Error &e, const char *func );
 # define DEBUG_SVR_WARN		( p4debug.GetLevel( DT_SERVER ) >= 2 )
 # define DEBUG_SVR_INFO		( p4debug.GetLevel( DT_SERVER ) >= 4 )
 
+// Topology debugging levels
+# define DEBUG_TOPO_ERROR	( p4debug.GetLevel( DT_TOPOLOGY ) >= 1 )
+# define DEBUG_TOPO_WARN	( p4debug.GetLevel( DT_TOPOLOGY ) >= 2 )
+# define DEBUG_TOPO_INFO	( p4debug.GetLevel( DT_TOPOLOGY ) >= 4 )
+
 # define RPC_DBG_PRINT( level, msg ) \
 	do \
 	{ \

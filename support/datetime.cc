@@ -547,7 +547,7 @@ CentralOffset()
 	tm.tm_sec = 0;
 	tm.tm_isdst = 0;
 
-	centralOffset = mktime( &tm );
+	time_t offset = mktime( &tm );
 
 	// mktime returns localtime; shift to GMT
 
@@ -561,7 +561,7 @@ CentralOffset()
 	// + = local epoc is earlier than central
 	// - = local epoc is after central (unlikely)
 
-	centralOffset -= mktime( tml );
+	centralOffset = offset - mktime( tml );
 
 	// printf("Central Offset %d\n", centralOffset );
 

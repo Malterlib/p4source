@@ -122,6 +122,10 @@ class MsgClient {
 	static ErrorId DirectoryNotEmpty;
 	static ErrorId CantRevertDirectoryNotEmpty;
 
+	static ErrorId BadFiletype;
+	static ErrorId BadLineEndingFlag;
+	static ErrorId BadUncompressFlag;
+
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 
 	// still sending these.

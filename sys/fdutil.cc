@@ -10,6 +10,8 @@
 # define NEED_FLOCK
 # define NEED_STAT
 # define NEED_WIN32FIO
+# define NEED_TIMER
+# define NEED_SIGNAL
 
 # include <stdhdrs.h>
 # include <largefile.h>
@@ -33,8 +35,22 @@ extern "C" status_t _klock_node_(int fd);
 extern "C" status_t _kunlock_node_(int fd);
 #endif
 
+# if defined( LOCK_UN ) && !defined( sgi ) && !defined( OS_QNX ) && \
+    !defined( OS_AIX ) && !defined( OS_NT ) && !defined( OS_OS2 ) && \
+    !defined( MAC_MWPEF ) && !defined( OS_VMS62 ) && !defined( OS_BEOS )
+static struct sigaction flockPrevSA;
+static volatile int alarmReceived = 0;
+static void
+flockAlarmCb (int signum)
+{
+	// Restore the previous handler
+	alarmReceived = 1;
+	sigaction( SIGALRM, &flockPrevSA, 0 );
+}
+# endif
+
 int
-lockFile( FD_TYPE fd, int flag )
+lockFile( FD_TYPE fd, int flag, int (*cb)(void *), void *arg )
 {
 
 # if defined( OS_OS2 ) || defined( MAC_MWPEF ) || defined( OS_VMS62 )
@@ -57,20 +73,67 @@ lockFile( FD_TYPE fd, int flag )
 # else
 # ifdef OS_NT
 
-	return lockFileByHandle( fd->fh, flag );
+	return lockFileByHandle( fd->fh, flag, cb, arg );
 # else
 # if defined(LOCK_UN) && !defined(sgi) && !defined(OS_QNX) && !defined(OS_AIX)
 
-	switch( flag )
+	if( !cb )
 	{
-	case LOCKF_UN:    return flock(fd, LOCK_UN); break;
-	case LOCKF_SH:    return flock(fd, LOCK_SH); break;
-	case LOCKF_SH_NB: return flock(fd, LOCK_SH|LOCK_NB); break;
-	case LOCKF_EX:    return flock(fd, LOCK_EX); break;
-	case LOCKF_EX_NB: return flock(fd, LOCK_EX|LOCK_NB); break;
-	}
+	    switch( flag )
+	    {
+	    case LOCKF_UN:    return flock( fd, LOCK_UN );         break;
+	    case LOCKF_SH:    return flock( fd, LOCK_SH );         break;
+	    case LOCKF_SH_NB: return flock( fd, LOCK_SH|LOCK_NB ); break;
+	    case LOCKF_EX:    return flock( fd, LOCK_EX );         break;
+	    case LOCKF_EX_NB: return flock( fd, LOCK_EX|LOCK_NB ); break;
+	    }
 
-	return -1;
+	    return -1;
+	}
+	else
+	{
+	    // Abort the lock based on a timeout, call the callback, try the lock again
+	    int res = 0;
+	    struct itimerval t;
+	    struct sigaction sa;
+	
+	    t.it_value.tv_sec = 1;
+	    t.it_value.tv_usec = 0;
+	    t.it_interval.tv_sec = 0;
+	    t.it_interval.tv_usec = 0;
+	
+	    while( true )
+	    {
+	        memset( &sa, 0, sizeof( sa ) );
+	        sa.sa_handler = &flockAlarmCb;
+	        sa.sa_flags = 0;
+	        sigemptyset( &sa.sa_mask );
+	        sigaction( SIGALRM, &sa, &flockPrevSA );
+	        alarmReceived = 0;
+	        setitimer( ITIMER_REAL, &t, 0 );
+
+	        switch( flag )
+	        {
+	        case LOCKF_UN:    res = flock( fd, LOCK_UN );         break;
+	        case LOCKF_SH:    res = flock( fd, LOCK_SH );         break;
+	        case LOCKF_SH_NB: res = flock( fd, LOCK_SH|LOCK_NB ); break;
+	        case LOCKF_EX:    res = flock( fd, LOCK_EX );         break;
+	        case LOCKF_EX_NB: res = flock( fd, LOCK_EX|LOCK_NB ); break;
+	        }
+
+	        if( res != -1 || !alarmReceived || !(*cb)( arg ) )
+	            break;
+	    }
+
+	    // cancel the alarm
+	    t.it_value.tv_sec = 0;
+	    t.it_value.tv_usec = 0;
+	    t.it_interval.tv_sec = 0;
+	    t.it_interval.tv_usec = 0;
+	    setitimer( ITIMER_REAL, &t, 0 );
+
+	    return res;
+	}
 
 # else 
 # if defined(OS_SOLARIS10)
@@ -291,7 +354,7 @@ checkStdio( FD_TYPE fd )
 // Primarily used from bt_fio.cc
 //
 int
-lockFileByHandle(HANDLE h, int flag )
+lockFileByHandle(HANDLE h, int flag, int (*cb)(void *), void *arg )
 {
 
 	/*
@@ -319,6 +382,60 @@ lockFileByHandle(HANDLE h, int flag )
 	                  return -1;
 	}
 
-	return LockFileEx(h, f, 0, 1, 0, &ol) ? 0 : -1;
+	bool ret = LockFileEx( h, f, 0, 1, 0, &ol );
+
+	if( !ret && cb )
+	{
+	    // If using overlapped IO, a failure may actually just
+	    // indicate that the IO is pending
+
+	    DWORD lastErr = GetLastError();
+
+	    while( lastErr == ERROR_IO_PENDING )
+	    {
+	        // IO is pending, wait 1s or until
+	        // the operation is complete.
+
+	        DWORD res = WaitForSingleObjectEx( h, 1000, true );
+
+	        // Lock was successful, return
+	        if( res == WAIT_OBJECT_0 )
+	            return 0;
+
+	        // Wait timed out
+	        if( res == WAIT_TIMEOUT )
+	        {
+	            // Invoke the callback, loop if true
+	            if( (*cb)( arg ) )
+	                continue;
+	            res = WAIT_FAILED;
+	        }
+
+	        // Something bad happened, exit gracefully
+	        if( res == WAIT_FAILED )
+	        {
+	            lastErr = GetLastError();
+	            CancelIo( h );
+	            UnlockFileEx( h, 0, 1, 0, &ol );
+	            SetLastError( lastErr );
+	            return -1;
+	        }
+	    }
+	}
+
+	if( !ret && !cb )
+	{
+	    // If using overlapped IO, a failure may actually just
+	    // indicate that the IO is pending
+	    DWORD count;
+	    if( GetLastError() == ERROR_IO_PENDING )
+	    {
+	        // IO is pending, but we just want to wait until
+	        // the operation is complete.
+	        ret = GetOverlappedResult( h, &ol, &count, true );
+	    }
+	}
+
+	return ret ? 0 : -1;
 }
 #endif

@@ -364,10 +364,12 @@ RpcCrypto::C2S( Rpc *client, Rpc *server )
 	MD5	md5;
 	StrPtr *daddr;
 	StrPtr *addr;
+	StrPtr *laddr;
 	int	clevel = 0;
 
 	StrRef	daddrref( P4Tag::v_daddr );
 	StrRef	caddrref( P4Tag::v_caddr );
+	StrRef	laddrref( P4Tag::v_laddr );
 
 	daddr = client->GetVar( P4Tag::v_ipaddr );
 
@@ -380,6 +382,9 @@ RpcCrypto::C2S( Rpc *client, Rpc *server )
 	    ++clevel;
 
 	addr = client->GetPeerAddress( 0 );
+	laddr = client->GetAddress( RAF_PORT );
+	DEBUGPRINTF( DEBUG_TOPO_INFO, "client server address - %s\n",
+	             laddr->Text() );
 
 	if( clevel )
 	{
@@ -387,6 +392,8 @@ RpcCrypto::C2S( Rpc *client, Rpc *server )
 	    daddr = client->GetVar( daddrref, clevel - 1 );
 	    if( addr )
 		server->SetVar( caddrref, clevel, *addr );
+	    if( laddr )
+		server->SetVar( laddrref, clevel, *laddr );
 	}
 	else
 	{
@@ -407,9 +414,11 @@ RpcCrypto::C2S( Rpc *client, Rpc *server )
 		addr = server->GetAddress( 0 );
 	    if( addr )
 		server->SetVar( caddrref, *addr );
+	    if( laddr )
+		server->SetVar( laddrref, *laddr );
 	}
 
-	if( daddr && ( addr = client->GetAddress( RAF_PORT ) ) )
+	if( daddr && ( addr = laddr ) )
 	{
 	    if( *addr != *daddr )
 	    {

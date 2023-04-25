@@ -20,6 +20,9 @@
  *	(eventually) another server request.  In the end, the final
  *	message sent to the client should be "release".
  */
+
+# define NEED_SLEEP
+
 # include <memory>
 # include <stdhdrs.h>
 
@@ -28,6 +31,7 @@
 # include <debug.h>
 # include <tunable.h>
 # include <strbuf.h>
+# include <strops.h>
 # include <strdict.h>
 # include <strarray.h>
 # include <strtable.h>
@@ -170,6 +174,34 @@ StrPtr *
 RpcService::GetListenAddress( int raf_flags )
 {
     return endPoint ? endPoint->GetListenAddress( raf_flags ) : 0;
+}
+
+bool
+RpcService::MakeAddrListenable( const StrPtr &oldAddr, StrBuf &newAddr, Error *e )
+{
+	StrBuf host( NetPortParser( oldAddr ).Host() );
+
+	if( host.Length() )
+	{
+	    Error le;
+	    RpcService checkService;
+
+	    checkService.SetEndpoint( oldAddr.Text(), &le );
+	    if( !le.Test() ) checkService.ListenCheck( &le );
+
+	    if( le.Test() )
+	    {
+	        /*
+	         * Unable to listen with the (likely foreign) host in
+	         * the address; removing the host is likely to make
+	         * the address more listenable.
+	         */
+	        StrOps::Replace( newAddr, oldAddr, host, StrRef( "" ) );
+	        return true;
+	    }
+	}
+
+	return false;	// nothing changed to make address any more listenable
 }
 
 void
@@ -627,6 +659,12 @@ Rpc::VClear()
 	sendBuffer->Clear();
 }
 
+void
+Rpc::VReset()
+{
+	sendBuffer->Reset();
+}
+
 StrPtr *
 Rpc::GetArgi( int i )
 {
@@ -782,6 +820,8 @@ Rpc::InvokeOne( const char *opName )
 	    return 0;
 	}
 
+	int delay = p4tunable.Get( P4TUNE_RPC_DELAY );
+
 	// Send off protocol if not yet sent.
 	// If we're using RpcForward we want to allow it
 	// to send its own protocol message.
@@ -810,6 +850,15 @@ Rpc::InvokeOne( const char *opName )
 
 	    timer->Start();
 
+	    if( delay )
+	    {
+	        p4debug.Event();
+	        p4debug.printf(
+	            "Delaying RPC send by %dms configured with 'rpc.delay'\n",
+	            delay );
+	        msleep( delay );
+	    }
+
 	    transport->Send( buf.GetBuffer(), &re, &se );
 
 	    sendTime += timer->Time();
@@ -829,6 +878,15 @@ Rpc::InvokeOne( const char *opName )
 	// Send the buffer to peer
 
 	timer->Start();
+	
+	if( delay )
+	{
+	    p4debug.Event();
+	    p4debug.printf(
+	        "Delaying RPC send by %dms configured with 'rpc.delay'\n",
+	        delay );
+	    msleep( delay );
+	}
 
 	transport->Send( sendBuffer->GetBuffer(), &re, &se );
 
@@ -1041,6 +1099,16 @@ Rpc::DispatchOne( RpcDispatcher *dispatcher, bool passError )
 	// Receive sender's buffer and then parse the variables out.
 	
 	timer->Start();
+
+	int delay = p4tunable.Get( P4TUNE_RPC_DELAY );
+	if( delay )
+	{
+	    p4debug.Event();
+	    p4debug.printf(
+	        "Delaying RPC receive by %dms configured with 'rpc.delay'\n",
+	        delay );
+	    msleep( delay );
+	}
 
 	int sz = transport->Receive( recvBuffer->GetBuffer(), &re, &se );
 

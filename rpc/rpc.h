@@ -170,6 +170,8 @@ class RpcService {
 	void		GetExpiration( StrBuf &buf );
 	const StrBuf	GetMyQualifiedP4Port( StrBuf &serverSpecAddr, Error &e ) const;
 	virtual StrPtr *GetListenAddress( int raf_flags );
+	static bool 	MakeAddrListenable( const StrPtr &oldAddr,
+	                                    StrBuf &newAddr, Error *e );
 
 	// Set Protocol varieties
 
@@ -264,6 +266,7 @@ class Rpc : public StrDict {
 	StrPtr *	VGetVar( const StrPtr &var );
 	int		VGetVarX( int x, StrRef &var, StrRef &val );
 	void		VClear();
+	void		VReset();
 	void		VRemoveVar( const StrPtr &var );
 
 	virtual int	GetArgc();

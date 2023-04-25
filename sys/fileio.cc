@@ -835,6 +835,9 @@ FileIOBinary::Read( char *buf, int len, Error *e )
 	else
 	    tellpos += l;
 
+	if( checksum && l > 0 )
+	    checksum->Update( StrRef( buf, l ) );
+
 	return l;
 }
 

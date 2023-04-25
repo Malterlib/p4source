@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgDm2 error code is: 58
+ * Current high value for a MsgDm2 error code is: 84
  *                                               Max code is 1023!!!
  */
 
@@ -64,7 +64,7 @@ ErrorId MsgDm2::EndUpgradeStep          = { ErrorOf( ES_DM2, 31, E_INFO, EV_NONE
 ErrorId MsgDm2::StreamNoCmtClientBadSave= { ErrorOf( ES_DM2, 32, E_FAILED, EV_UPGRADE, 1 ), "The stream specification for %stream% contains comments.\nThis client program is too old to update this stream spec.\nThe client program must be fully compatible with the 2020.2 server release in order to update a stream specification with comments." } ;
 ErrorId MsgDm2::ConnNeedsFwdCrypto      = { ErrorOf( ES_DM2, 33, E_FAILED, EV_UNKNOWN, 0 ), "Connection to upstream is already established without required authentication parameters!" } ;
 ErrorId MsgDm2::NoStreamTypeChangePV    = { ErrorOf( ES_DM2, 34, E_FAILED, EV_NOTYET, 2 ), "Failed to change stream %stream% to type %streamType% because it has a noinherit ParentView.  Change the ParentView to inherit with the command 'p4 stream parentview --inherit' first, then change the stream type.\nSee 'p4 help stream' for details." } ;
-ErrorId MsgDm2::PurgeTaskStream         = { ErrorOf( ES_DM2, 35, E_FAILED, EV_ILLEGAL, 1 ), "Use the '-T' option to include task stream paths - '%depotFile%'" } ;
+ErrorId MsgDm2::PurgeTaskStream         = { ErrorOf( ES_DM2, 35, E_FAILED, EV_ILLEGAL, 1 ), "One or more task stream paths will be obliterated.\nThe '-T' option is required for arguments which include task stream paths: %taskpath%" } ;
 ErrorId MsgDm2::PurgeCheckWldDelIgn     = { ErrorOf( ES_DM2, 36, E_INFO, EV_NONE, 7 ), "Would delete [%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ]ignoring [%onRevArchive% archived-revision ][and add %synInteg% integration ]record(s)." } ;
 ErrorId MsgDm2::PurgeCheckWldDel        = { ErrorOf( ES_DM2, 37, E_INFO, EV_NONE, 7 ), "Would delete [%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ][%onRevArchive% archived-revision ][and add %synInteg% integration ]record(s)." } ;
 ErrorId MsgDm2::PurgeCheckIgn           = { ErrorOf( ES_DM2, 38, E_INFO, EV_NONE, 7 ), "[%onHave% client ][%onLabel% label ][%onInteg% integration ][%onWorking% opened ][%onRev% revision ]Ignoring [%onRevArchive% archived-revision ][and add %synInteg% integration ]record(s)." } ;
@@ -79,9 +79,38 @@ ErrorId MsgDm2::RmtAddTopologyFailed    = { ErrorOf( ES_DM2, 46, E_FAILED, EV_FA
 ErrorId MsgDm2::RmtTopologyExists       = { ErrorOf( ES_DM2, 47, E_INFO, EV_NONE, 2 ), "Topology [SrcAddr:'%addr%' and DestAddr:'%daddr%'] already exists in this installation." } ;
 ErrorId MsgDm2::ImportDittoGraph        = { ErrorOf( ES_DM2, 48, E_FAILED, EV_USAGE, 0 ), "Import& Path is not allowed with any graph depot Path." } ;
 ErrorId MsgDm2::ReopenHasMoved          = { ErrorOf( ES_DM2, 49, E_INFO, EV_NONE, 2 ), "%depotFile%%haveRev% - has been moved, not reopened" } ;
-ErrorId MsgDm2::TopologyData            = { ErrorOf( ES_DM2, 50, E_INFO, EV_NONE, 7 ), "%address% %destaddress% %date% %serverID% %type% %encryption% %svcUser%" } ;
+ErrorId MsgDm2::TopologyData            = { ErrorOf( ES_DM2, 50, E_INFO, EV_NONE, 8 ), "%address% [%destaddress% ][%serverID% ]%date% [%type% ][%encryption% ][%svcUser% ][%lsDate%]" } ;
 ErrorId MsgDm2::StreamViewMatchData     = { ErrorOf( ES_DM2, 51, E_INFO, EV_NONE, 4 ), "Stream %stream% %pathtype% %viewPath% %depotPath%" } ;
 ErrorId MsgDm2::NoTopologyRecord        = { ErrorOf( ES_DM2, 52, E_WARN, EV_ADMIN, 3 ), "No entries made in db.topology for server address: '%address%', dest address: '%destaddress%' and serverID: '%svrId%'." } ;
 ErrorId MsgDm2::NoServerIDSet              = { ErrorOf( ES_DM2, 53, E_WARN, EV_ADMIN, 0 ), "ServerID for the server should be set." } ;
+ErrorId MsgDm2::NoPartitionedToReadonly    = { ErrorOf( ES_DM2, 54, E_FAILED, EV_USAGE, 0 ), "Cannot change client type from 'partitioned' to 'readonly'." } ;
+ErrorId MsgDm2::TopologyRecDeleted      = { ErrorOf( ES_DM2, 55, E_INFO, EV_NONE, 4 ), "Deleted Topology Record: Addr-'%address%' DestAddr-'%destaddress%' SvrID-'%serverID%' Date-'%date%'" } ;
+ErrorId MsgDm2::TopologyRecNotFound     = { ErrorOf( ES_DM2, 56, E_FAILED, EV_FAULT, 0 ), "Specified topology record not found" } ;
 ErrorId MsgDm2::LockNameNull            = { ErrorOf( ES_DM2, 57, E_FAILED, EV_ADMIN, 1 ), "ServerLock name is null. Lock type is %locktype%." } ;
 ErrorId MsgDm2::WorkRecNotFound         = { ErrorOf( ES_DM2, 58, E_FAILED, EV_ADMIN, 1 ), "The working record for %clientfile% not found." } ;
+ErrorId MsgDm2::StreamDeletedInChange   = { ErrorOf( ES_DM2, 59, E_FAILED, EV_CONTEXT, 2 ), "Stream '%stream%' was deleted in change %change%" } ;
+ErrorId MsgDm2::DomainObliterate        = { ErrorOf( ES_DM2, 60, E_INFO, EV_NONE, 2 ), "%domainType% %domainName% obliterated." } ;
+ErrorId MsgDm2::StreamNotModifiedAtChange = { ErrorOf( ES_DM2, 61, E_FAILED, EV_CONTEXT, 2 ), "Stream '%stream%' was neither edited nor deleted in change %change%." } ;
+ErrorId MsgDm2::PurgeStreamSpec          = { ErrorOf( ES_DM2, 62, E_INFO, EV_NONE, 7 ), "Would delete %count% stream revision(s)." } ;
+ErrorId MsgDm2::CannotDeleteShelvedStream= { ErrorOf( ES_DM2, 63, E_FAILED, EV_CONTEXT, 2 ), "Cannot delete/obliterate shelved stream '%stream%' (shelf %shelf%)." } ;
+ErrorId MsgDm2::RmtArchiveDeleteFailed      = { ErrorOf( ES_DM2, 64, E_FAILED, EV_FAULT, 3 ), "Failed to delete archive on the target server - lbrfile: %lbrFile% lbrRev: %lbrRev% lbrType: %lbrType%." } ;
+ErrorId MsgDm2::RmtDeleteEdgeArchiveFailed  = { ErrorOf( ES_DM2, 65, E_FAILED, EV_FAULT, 0 ), "Failed to delete remote archive." } ;
+ErrorId MsgDm2::ComponentStreamInvalid  = { ErrorOf( ES_DM2, 66, E_FAILED, EV_UNKNOWN, 1 ), "The component stream '%stream%' is not valid." } ;
+ErrorId MsgDm2::ComponentTypeNotAvailable = { ErrorOf( ES_DM2, 67, E_FAILED, EV_UNKNOWN, 1 ), "The component type '%type%' is not available." } ;
+ErrorId MsgDm2::TopologyDelPreview       = { ErrorOf( ES_DM2, 68, E_INFO, EV_NONE, 0 ), "This is in preview mode. For actual deletion, use '-y'." } ;
+ErrorId MsgDm2::StreamHasComponentsDelete = { ErrorOf( ES_DM2, 69, E_FAILED, EV_NOTYET, 2 ), "Stream '%stream%' is a defined as a component in consuming stream '%consumer%'; cannot delete until the component definition is removed." } ;
+ErrorId MsgDm2::StreamHasComponentsOblit = { ErrorOf( ES_DM2, 70, E_FAILED, EV_NOTYET, 2 ), "Stream '%stream%' is a defined as a component in consuming stream '%consumer%'; cannot obliterate until the component definition is removed." } ;
+ErrorId MsgDm2::ComponentInvalidIsStream = { ErrorOf( ES_DM2, 71, E_FAILED, EV_USAGE, 1 ), "Stream '%stream%' cannot be defined as a component of itself." } ;
+ErrorId MsgDm2::ComponentInvalidIsConsumer = { ErrorOf( ES_DM2, 72, E_FAILED, EV_USAGE, 2 ), "Stream '%component%' is a consumer of this stream, %stream%, and cannot be defined as a component." } ;
+ErrorId MsgDm2::ComponentInvalidIsRelative = { ErrorOf( ES_DM2, 73, E_FAILED, EV_USAGE, 2 ), "Stream '%component%' is a relative of this stream, %stream%, and cannot be defined as a component." } ;
+ErrorId MsgDm2::ReparentFailedParentIsComponent = { ErrorOf( ES_DM2, 74, E_FAILED, EV_USAGE, 2 ), "Cannot change Parent to '%parent%' since it is a component of this stream, %stream%." } ;
+ErrorId MsgDm2::ReparentFailedParentIsCompOfChild = { ErrorOf( ES_DM2, 75, E_FAILED, EV_USAGE, 3 ), "Cannot change Parent to '%parent%' since it is a component of a descendent, %descendent%, of this stream, %stream%." } ;
+ErrorId MsgDm2::ReparentFailedFamilyIsComponent = { ErrorOf( ES_DM2, 76, E_FAILED, EV_USAGE, 3 ), "Cannot change Parent to '%parent%' since a stream family member, %member%, is a component of this stream, %stream%." } ;
+ErrorId MsgDm2::ReparentFailedFamilyIsCompOfChild = { ErrorOf( ES_DM2, 77, E_FAILED, EV_USAGE, 4 ), "Cannot change Parent to '%parent%' since a member of the stream's family, %member%, is a component of a descendent, %descendent%, of this stream, %stream%." } ;
+ErrorId MsgDm2::ReparentFailedParentHasComponent = { ErrorOf( ES_DM2, 78, E_FAILED, EV_USAGE, 2 ), "Cannot change Parent to '%parent%' since it defines this stream, %stream%, as a component." } ;
+ErrorId MsgDm2::ReparentFailedFamilyHasComponent = { ErrorOf( ES_DM2, 79, E_FAILED, EV_USAGE, 3 ), "Cannot change Parent to '%parent%' since a stream family member, %member%, defines this stream, %stream%, as a component." } ;
+ErrorId MsgDm2::StreamDeletedInChangeWarn  = { ErrorOf( ES_DM2, 80, E_WARN, EV_CONTEXT, 2 ), "Stream '%stream%' was deleted in change %change%" } ;
+ErrorId MsgDm2::StreamLoopFound            = { ErrorOf( ES_DM2, 81, E_FAILED, EV_USAGE, 5 ), "Stream '%dependent%' is a %relation1% of %independent1% and a %relation2% of %independent2%." } ;
+ErrorId MsgDm2::ComponentInvalidIsDependent= { ErrorOf( ES_DM2, 82, E_FAILED, EV_USAGE, 4 ), "Stream '%dependent%' cannot be defined as a component.  It is a %relation% of %independent%, which is a relative or consumer of this stream %stream%." } ;
+ErrorId MsgDm2::TopologyThresholdOutOfRange       = { ErrorOf( ES_DM2, 83, E_FAILED, EV_USAGE, 0 ), "Threshold value provided has exceeded the maximum range (LLONG_MAX/86400)." } ;
+ErrorId MsgDm2::ProtectsMismatch                  = { ErrorOf( ES_DM2, 84, E_FAILED, EV_ILLEGAL, 2 ), "Path '%spath%' doesn't match command argument '%apath%'." };

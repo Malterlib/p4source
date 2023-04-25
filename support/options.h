@@ -141,6 +141,7 @@ class Options
 	                LabelName      , // list -l
 	                RunOnMaster    , // list -M
 	                LeaveKeywords  , // print -k
+	                LeaveKeywords2 , // sync -K, revert -K, integ -K...
 	                OutputFile     , // print -o
 	                Content        , // filelog -h
 	                OmitPromoted   , // filelog -p
@@ -299,6 +300,8 @@ class Options
 	                ForceFailover  , // failover -F
 	                IgnoreMaster   , // failover -i
 	                RequireMaster  , // failover -m
+	                FailbackYes    , // failback -y
+	                FailbackQuiesce, // failback -w
 	                FailoverYes    , // failover -y
 	                Failoverid     , // failover -s
 	                FailoverQuiesce, // failover -w
@@ -404,6 +407,10 @@ class Options
 			ShowRealtime    , // --show-realtime
 			CleanPurge      , // --purged-only
 			ViewMatch       , // --viewmatch
+			Obliterate      , // stream --obliterate
+			Offset          , // print --offset
+			Size            , // print --size
+			Compressed      , // verify --compressed=0/1
 #ifdef _DEBUG
 			DebugBreak,    // --debugbreak
 #endif

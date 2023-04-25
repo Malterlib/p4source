@@ -191,9 +191,21 @@ JnlTracker::ScanJournal( const char *p, int l, const char **xact )
 		    }
 		}
 		else if( c == '3' )
-	            sawJTrailer = 1;
+		{
+		    scanstate = 12;
+		    break;
+		}
 		else if( ckp && c == '1' )
-	            sawJTrailer = 1;
+		{
+		    scanstate = 12;
+		    break;
+		}
+		goto outstring;
+	    case 12:
+		if( c == ' ' )
+		{
+		    sawJTrailer = 1;
+		}
 		goto outstring;
 	    }
 	}

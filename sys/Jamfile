@@ -31,6 +31,7 @@ P4APILibrary $(SUPPORTLIB) :
 	fdutil.cc
 	memfile.cc
 	monitem.cc
+	microthread.cc
 	pathmac.cc
 	pathnt.cc
 	pathunix.cc

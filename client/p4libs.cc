@@ -13,6 +13,7 @@
 # include <i18napi.h>
 # include <charcvt.h>
 # include <msgclient.h>
+# include <datetime.h>
 # include "p4libs.h"
 
 # ifdef HAS_EXTENSIONS
@@ -68,6 +69,7 @@ void P4Libraries::Initialize( const int libraries, Error* e )
 	    rpmalloc_initialize();
 # endif
 	    x86_check_features();
+	    DateTime::Centralize( 0 );
 	    signaler.Init();
 	    NetUtils::InitNetwork();
 	    // Nothing for ErrorLog's global AssertLog instance.

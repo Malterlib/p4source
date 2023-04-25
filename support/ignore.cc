@@ -12,6 +12,7 @@
 # include <error.h>
 # include <strarray.h>
 # include <vararray.h>
+# include <vartree.h>
 # include <debug.h>
 
 # include <pathsys.h>
@@ -21,6 +22,8 @@
 
 # include "ignore.h"
 
+#include "maphalf.h"
+
 # ifdef OS_NT
 # define SLASH "\\"
 # else
@@ -29,6 +32,65 @@
 
 # define ELLIPSE "..."
 
+/*
+ * IgnoreArray -- VarArray of MapHalves
+ */
+
+class IgnoreMap
+{
+    public:
+	IgnoreMap() : exclude( false ) {}
+	MapHalf h;
+	bool exclude;
+};
+
+class IgnorePtrArray : public VVarArray {
+    public:
+			IgnorePtrArray() : VVarArray() {}
+	virtual		~IgnorePtrArray()
+			{
+			    // don't delete
+			}
+
+	virtual int	Compare( const void *a, const void *b ) const
+			{
+			    return ((IgnoreMap *)a)->h.Compare( ((IgnoreMap *)b)->h );
+			}
+
+	virtual void	Destroy( void *a ) const
+			{
+			    // don't delete
+			}
+	
+	virtual void	PutItem( IgnoreMap *h ) { Put( h ); }
+	IgnoreMap *	GetItem( int i ) { return (IgnoreMap *)Get( i ); }
+} ;
+
+class IgnoreArray : public IgnorePtrArray {
+    public:
+			IgnoreArray() : IgnorePtrArray() {}
+	virtual		~IgnoreArray()
+			{
+			    for( int i = 0; i < Count(); i++ )
+			        delete (IgnoreMap *)Get( i );
+			}
+
+	virtual void	Destroy( void *a ) const
+			{
+			    delete (IgnoreMap *)a;
+			}
+
+	void		Clear()
+			{
+			    for( int i = 0; i < Count(); i++ )
+			        delete (IgnoreMap *)Get( i );
+			    IgnorePtrArray::Clear();
+			}
+			
+	
+	virtual void	PutItem( IgnoreMap *h ) { *NewItem() = *h; }
+	IgnoreMap *	NewItem() { return (IgnoreMap *)Put( new IgnoreMap ); }
+} ;
 
 /*
  * IgnoreTable -- cached ignore rules
@@ -36,60 +98,88 @@
 
 class IgnoreItem {
     public:
-			IgnoreItem()  { ignoreList = new StrArray; }
+			IgnoreItem()  { ignoreList = new IgnoreArray(); }
 			~IgnoreItem() { delete ignoreList; }
 
-	void		AppendToList( StrArray *list )
+	void		AppendToList( IgnorePtrArray *list )
 			{
 			    for( int i = 0; i < ignoreList->Count(); i++ )
-			        list->Put()->Set( ignoreList->Get( i ) );
+			        list->PutItem( ignoreList->GetItem( i ) );
+			}
+
+	void		Copy( IgnoreItem *src )
+			{
+			    ignoreFile = src->ignoreFile;
+			    ignoreList->Clear();
+			    for( int i = 0; i < src->ignoreList->Count(); i++ )
+			        ignoreList->PutItem( src->ignoreList->GetItem( i ) );
 			}
 
 	StrBuf		ignoreFile;
-	StrArray*	ignoreList;
+	IgnoreArray*	ignoreList;
 } ;
 
-class IgnoreTable : public VarArray {
+class IgnoreTable : public VVarTree {
 
     public:
-			~IgnoreTable();
+			IgnoreTable() : VVarTree() {}
+			~IgnoreTable() { Clear(); }
+
+	int		Compare( const void *a, const void *b ) const;
+	void *		Copy( const void *src ) const;
+	void		Delete( void *a ) const;
+	void		Dump( void *a, StrBuf &buf ) const;
 
 	IgnoreItem	*GetItem( const StrRef &file );
-	IgnoreItem	*PutItem( const StrRef &file );
+	IgnoreItem	*PutItem( const StrRef &file, Error *e );
 } ;
 
-IgnoreTable::~IgnoreTable()
+int
+IgnoreTable::Compare( const void *a, const void *b ) const
 {
-	for( int i = 0; i < Count(); i++ )
-	    delete (IgnoreItem *) Get( i );
+	return ((IgnoreItem*)a)->ignoreFile.Compare(((IgnoreItem*)b)->ignoreFile);
 }
+
+void
+IgnoreTable::Delete( void *a ) const
+{
+	delete (IgnoreItem *)a;
+}
+void
+IgnoreTable::Dump( void *a, StrBuf &buf ) const
+{
+	buf = ((IgnoreItem *)a)->ignoreFile;
+}
+
+void *
+IgnoreTable::Copy( const void *src ) const
+{
+	IgnoreItem *ret = new IgnoreItem();
+	ret->Copy( (IgnoreItem *)src );
+
+	return ret;
+}
+
 
 IgnoreItem *
 IgnoreTable::GetItem( const StrRef &file )
 {
-	IgnoreItem *a;
+	IgnoreItem key;
+	key.ignoreFile = file;
 
-	for( int i = 0; i < Count(); i++ )
-	{
-	    a = (IgnoreItem *)Get(i);
-
-	    if( !a->ignoreFile.SCompare( file ) )
-	        return a;
-	}
-
-	return 0;
+	return (IgnoreItem *)Get( &key );
 }
 
 IgnoreItem *
-IgnoreTable::PutItem( const StrRef &file )
+IgnoreTable::PutItem( const StrRef &file, Error *e )
 {
 	IgnoreItem *a = GetItem( file );
 
 	if( !a )
 	{
-	    a = new IgnoreItem;
-	    a->ignoreFile.Set( file );
-	    VarArray::Put( a );
+	    IgnoreItem key;
+	    key.ignoreFile = file;
+	    a = (IgnoreItem *)Put( &key, e );
 	}
 
 	return a;
@@ -108,14 +198,16 @@ Ignore::Ignore()
 	ignoreTable = new IgnoreTable;
 	ignoreFiles = new StrArray;
 	ignoreList = 0;
+	relatives = 0;
+	defaultList = 0;
 }
 
 Ignore::~Ignore()
 {
+	delete ignoreList;
 	delete ignoreTable;
 	delete ignoreFiles;
-	if( ignoreList )
-	    delete ignoreList;
+	delete defaultList;
 }
 
 int
@@ -148,7 +240,13 @@ Ignore::List( const StrPtr &path,
 	Build( path, ignoreName, configName );
 
 	for( int j = 0; j < ignoreList->Count(); ++j )
-	    outList->Put()->Set( ignoreList->Get( j ) );
+	{
+	    StrBuf *out = outList->Put();
+	    IgnoreMap *i = ignoreList->GetItem(j);
+	    if( i->exclude )
+	        *out << "!";
+	    *out << i->h;
+	}
 
 	return outList->Count();
 }
@@ -188,6 +286,18 @@ Ignore::Build( const StrPtr &path,
 	const StrPtr &ignoreName,
 	const char *configName )
 {
+	if( ( !configName && !this->configName.Length() ) ||
+	    ( configName && this->configName != configName ) )
+	{
+	    delete ignoreList;
+	    ignoreList = 0;
+	    delete defaultList;
+	    defaultList = 0;
+	    this->configName.Clear();
+	    if( configName )
+	        this->configName = configName;
+	}
+
 	// If we don't have an ignore file, we can just load up the defaults
 	// and test against those. If we've already loaded them, lets not do
 	// it again and use the existing list instead.
@@ -195,10 +305,10 @@ Ignore::Build( const StrPtr &path,
 	if( !strcmp( ignoreName.Text(), "unset" ) )
 	{
 	    if( !ignoreList )
-	        ignoreList = new StrArray;
+	        ignoreList = new IgnorePtrArray;
 
 	    if( !ignoreList->Count() )
-	        InsertDefaults( ignoreList, configName );
+	        InsertDefaults( ignoreList );
 
 	    return 1;
 	}
@@ -207,8 +317,6 @@ Ignore::Build( const StrPtr &path,
 	PathSys *p = PathSys::Create();
 	p->Set( path );
 	p->ToParent();
-
-	StrBuf saveDepth;
 
 	// Try real hard not to regenerate the ignorelist, this
 	// optimization uses the current directory depth and the
@@ -220,35 +328,31 @@ Ignore::Build( const StrPtr &path,
 	    if( !dirDepth.SCompare( *p ) )
 	    {
 	        // matching depth bail early
+	        if( DEBUG_BUILD )
+	            p4debug.printf(
+	                "Ignore optimization - same directory: %s\n",
+	                p->Text() );
 
 	        delete p;
 	        return 1;
 	    }
-	    else if( !dirDepth.SCompareN( *p ) )
-	    {
-	        // descending directories can be shortcut.
 
-	        saveDepth << dirDepth;
+	    if( !dirDepth.SCompareN( *p ) )
+	    {
+	        // descending directories can't be shortcut.
+	        // ignoreList hasn't been populated this deep.
 	    }
 	    else if( !p->SCompareN( dirDepth ) &&
 	             foundDepth.Length() && !foundDepth.SCompareN( *p ) )
 	    {
 	        // ascending directories can be shortcut.
+	        // ignoreList doesn't have any ignore entries for the
+	        // directory we're stepping back out of.
 
-	        dirDepth.Set( *p );
-	        delete p;
-	        return 1;
-	    }
-	    else if( !dirDepth.SCompareN( *p ) )
-	    {
-	        // descending directories can be shortcut.
-
-	        saveDepth << dirDepth;
-	    }
-	    else if( !p->SCompareN( dirDepth ) &&
-	             foundDepth.Length() && !foundDepth.SCompareN( *p ) )
-	    {
-	        // ascending directories can be shortcut.
+	        if( DEBUG_BUILD )
+	            p4debug.printf( "Ignore optimization - higher directory, "
+	                "higher than last found ignorefile: %s vs %s\n",
+	                p->Text(), foundDepth.Text() );
 
 	        dirDepth.Set( *p );
 	        delete p;
@@ -265,6 +369,7 @@ Ignore::Build( const StrPtr &path,
 	StrBuf line;
 	StrBuf closestFound;
 	int found = 0;
+	int foundStatic = 0;
 	Error e;
 	PathSys *q = PathSys::Create();
 	FileSys *f = FileSys::Create( FileSysType( FST_TEXT|FST_L_CRLF ) );
@@ -274,11 +379,68 @@ Ignore::Build( const StrPtr &path,
 	closestFound.Clear();
 	dirDepth.Set( *p );
 
+	// Pre-test for any ignore files in any undiscovered directories
+
+	if( relatives && ignoreList )
+	{
+	    p->Set( path );
+	    p->ToParent();
+	    bool workToDo = false;
+	    bool dirhit;
+
+	    // Starting with the current directory, walk up to root
+	    do {
+	        // Check to see if we have to discard ignore lines
+	        if( foundDepth.Length() && foundDepth.SCompareN( *p ) )
+	            workToDo = true;
+
+	        // For each relative ignoreFile, see if we've already checked
+	        // checked for an ignoreFile at this level
+	        dirhit = true;
+	        for( int m = 0; !workToDo && m < ignoreFiles->Count(); m++ )
+	        {
+	            ignoreFile = ignoreFiles->Get( m );
+	            if( ignoreFile->Contains( StrRef( SLASH ) ) )
+	                continue;
+
+	            q->SetLocal( *p, *ignoreFile );
+	            if( ignoreTable->GetItem( *q ) )
+	                continue;
+
+	            if( FileSys::FileExists( q->Text() ) )
+	                workToDo = true;
+	            else
+	            {
+	                Error e;
+	                ignoreTable->PutItem( *q, &e );
+	                dirhit = false; // keep descending
+	            }
+	        }
+	    } while( !workToDo && !dirhit && p->ToParent() );
+
+	    if( !workToDo )
+	    {
+	        p->Set( path );
+	        p->ToParent();
+	        dirDepth.Set( *p );
+
+	        if( DEBUG_BUILD )
+	            p4debug.printf( "Ignore optimization - lower directory, "
+	                            "no additional ignorefiles: %s\n",
+	                            p->Text() );
+
+	        delete q;
+	        delete p;
+	        delete f;
+	        return 1;
+	    }
+	}
+
 	// No descending optimization, remove list we will recreate it
 
 
-	StrArray newList;
-	InsertDefaults( &newList, configName );
+	IgnorePtrArray newList;
+	InsertDefaults( &newList );
 
 	for( int m = 0; m < ignoreFiles->Count(); m++ )
 	{
@@ -291,17 +453,21 @@ Ignore::Build( const StrPtr &path,
 
 	        if( !( ignoreItem = ignoreTable->GetItem( *ignoreFile ) ) )
 	        {
-	            ignoreItem = ignoreTable->PutItem( *ignoreFile );
+	            Error e;
+	            ignoreItem = ignoreTable->PutItem( *ignoreFile, &e );
+	            if( !ignoreItem ) // Failed to cache. Out of memory?
+	                continue;
 
 	            f->Set( *ignoreFile );
 	            if( !ParseFile( f, "", ignoreItem->ignoreList ) )
 	                continue;
-
-	            found++;
 	        }
 
-	        ignoreItem->AppendToList( &newList );
+	        if( !ignoreItem->ignoreList->Count() )
+	            continue;
 
+	        foundStatic++;
+	        ignoreItem->AppendToList( &newList );
 	    }
 	    else
 	    {
@@ -317,40 +483,51 @@ Ignore::Build( const StrPtr &path,
 
 	            if( !( ignoreItem = ignoreTable->GetItem( *q ) ) )
 	            {
-	                ignoreItem = ignoreTable->PutItem( *q );
+	                Error e;
+	                ignoreItem = ignoreTable->PutItem( *q, &e );
+	                if( !ignoreItem ) // Failed to cache. Out of memory?
+	                    continue;
 
 	                f->Set( *q );
 	                if( !ParseFile( f, p->Text(), ignoreItem->ignoreList ) )
 	                    continue;
-
-	                found++;
-
-	                if( closestFound.Length() < p->Length() )
-	                    closestFound = *p;
 	            }
 
+	            if( !ignoreItem->ignoreList->Count() )
+	                continue;
+
+	            if( closestFound.Length() < p->Length() )
+	                closestFound = *p;
+
+	            found++;
 	            ignoreItem->AppendToList( &newList );
 
 	        } while( p->ToParent() );
 	    }
 	}
 
-	if( closestFound.Length() && !foundDepth.SCompareN( closestFound ) )
-	{
-	    found++;
-	    foundDepth = closestFound;
-	}
-
+	p->Set( path );
+	p->ToParent();
 	if( found || !ignoreList )
 	{
-	    if( ignoreList )
-	        delete ignoreList;
+	    if( DEBUG_BUILD )
+	        p4debug.printf(
+	            "Ignore %sbuilt - %d new files, %d lines: %s\n",
+	            ignoreList ? "re" : "", found + foundStatic,
+	            newList.Count(), p->Text() );
 
-	    ignoreList = new StrArray;
+	    delete ignoreList;
+	    ignoreList = new IgnorePtrArray;
 
 	    for( int i = 0; i < newList.Count(); i++ )
-	        ignoreList->Put()->Set( newList.Get( i ) );
+	        ignoreList->PutItem( newList.GetItem( i ) );
+
+	    foundDepth = closestFound;
 	}
+	else if( DEBUG_BUILD )
+	    p4debug.printf( "Ignore not rebuilt - no new files found: %s\n",
+	                    p->Text() );
+
 
 	delete q;
 	delete p;
@@ -361,8 +538,10 @@ Ignore::Build( const StrPtr &path,
 	    p4debug.printf( "\n\tIgnore list:\n\n" );
 	    for( int j = 0; j < ignoreList->Count(); ++j )
 	    {
-	         char *p = ignoreList->Get( j )->Text();
-	         p4debug.printf( "\t%s\n", p );
+	         IgnoreMap *i = ignoreList->GetItem( j );
+	         p4debug.printf( "\t%s%s\n",
+	                         i->exclude ? "!" : "",
+	                         i->h.Text() );
 	    }
 	    p4debug.printf( "\n" );
 	}
@@ -371,17 +550,26 @@ Ignore::Build( const StrPtr &path,
 }
 
 void
-Ignore::InsertDefaults( StrArray *list, const char *configName )
+Ignore::InsertDefaults( IgnorePtrArray *newList )
 {
+	if( defaultList )
+	{
+	    for( int i = 0; i < defaultList->Count(); i++ )
+	       newList->PutItem( defaultList->GetItem( i ) );
+	    return;
+	}
+
 	StrArray defaultsList;
 	int l = 0;
+	defaultList = new IgnoreArray;
 
 	StrBuf configDirLine;
 	configDirLine.Clear();
 
+
 	// Always add in .p4root and P4CONFIG to the top of new lists
 
-	if( configName )
+	if( configName.Length() )
 	{
 	    StrBuf line;
 	    line << "**/" << configName;
@@ -393,14 +581,15 @@ Ignore::InsertDefaults( StrArray *list, const char *configName )
 
 	// Add debug line
 
-	list->Put()->Set( StrRef( "#FILE - defaults" ) );
+	defaultsList.Put()->Set( StrRef( "#FILE - defaults" ) );
 
 	// Add the generated lines to the ignore list (in reverse)
 
 	StrBuf line;
 	for( int i = defaultsList.Count(); i > 0; --i )
 	{
-	    if( configName && *defaultsList.Get( i - 1 ) == configDirLine )
+	    if( configName.Length() &&
+	        *defaultsList.Get( i - 1 ) == configDirLine )
 	        continue;
 
 	    line.Set( defaultsList.Get( i - 1 ) );
@@ -410,12 +599,17 @@ Ignore::InsertDefaults( StrArray *list, const char *configName )
 
 	    StrOps::Sub( line, '\\', '/' );
 #endif
-	    list->Put()->Set( line );
+	    IgnoreMap *im = defaultList->NewItem();
+	    im->h = line;
 	}
+
+	for( int i = 0; i < defaultList->Count(); i++ )
+	    newList->PutItem( defaultList->GetItem( i ) );
 }
 
 void
-Ignore::Insert( StrArray *subList, const char *ignore, const char *cwd, int lineno )
+Ignore::Insert( StrArray *subList, const char *ignore, const char *cwd,
+		int lineno )
 {
 	StrBuf buf;
 	StrBuf buf2;
@@ -519,7 +713,7 @@ Ignore::Insert( StrArray *subList, const char *ignore, const char *cwd, int line
 }
 
 int
-Ignore::ParseFile( FileSys *f, const char *cwd, StrArray *list )
+Ignore::ParseFile( FileSys *f, const char *cwd, IgnoreArray *list )
 {
 	Error e;
 	StrBuf line;
@@ -557,14 +751,23 @@ Ignore::ParseFile( FileSys *f, const char *cwd, StrArray *list )
 
 	line.Clear();
 	line << "#FILE " << f->Name();
-	list->Put()->Set( line );
+	IgnoreMap *im = list->NewItem();
+	im->h = line;
 
 	
 	// Add the read lines to the target list (in reverse)
 
 	for( int i = tmpList.Count(); i > 0; --i )
 	{
-	    line.Set( tmpList.Get( i - 1 ) );
+	    bool exclude = false;
+	    char *tmp = tmpList.Get( i - 1 )->Text();
+	    if( tmp[0] == '!' )
+	    {
+	        exclude = true;
+	        tmp++;
+	    }
+
+	    line.Set( tmp );
 
 #ifdef OS_NT
 	    // On NT slash is \ but the matcher's * wildcard only uses /,
@@ -573,7 +776,9 @@ Ignore::ParseFile( FileSys *f, const char *cwd, StrArray *list )
 	    StrOps::Sub( line, '\\', '/' );
 #endif
 
-	    list->Put()->Set( line );
+	    IgnoreMap *im = list->NewItem();
+	    im->h = line;
+	    im->exclude = exclude;
 	}
 
 	return 1;
@@ -607,7 +812,8 @@ Ignore::RejectCheck( const StrPtr &path, int isDir, StrBuf *line )
 
 	for( int i = 0; i < ignoreList->Count(); ++i )
 	{
-	    char *p = ignoreList->Get( i )->Text();
+	    IgnoreMap *m = ignoreList->GetItem( i );
+	    char *p = m->h.Text();
 
 	    if( !strncmp( p, "#FILE ", 6 ) )
 	    {
@@ -621,18 +827,16 @@ Ignore::RejectCheck( const StrPtr &path, int isDir, StrBuf *line )
 	        continue;
 	    }
 
-	    int doAdd = ( *p == '!' );
-
-	    if( doAdd )
-	        ++p;
+	    int doAdd = m->exclude;
 
 	    // If we're checking against a directory and this is a reverse
 	    // include, it might allow files below this directory, even if
 	    // this directory is ignored. To deal with this, we need to look
 	    // both ways check match in either direction)
 
-	    if( MapTable::Match( StrRef( p ), cpath ) ||
-	        ( isDir && doAdd && dmap.JoinCheck( LHS, StrRef( p ) ) ) )
+	    MapParams params;
+	    if( m->h.Match( cpath, params ) ||
+	        ( isDir && doAdd && dmap.JoinCheck( LHS, m->h ) ) )
 	    {
 	        if( DEBUG_MATCH )
 	            p4debug.printf(
@@ -654,6 +858,11 @@ Ignore::RejectCheck( const StrPtr &path, int isDir, StrBuf *line )
 	    }
 	}
 
+	if( DEBUG_MATCH )
+	    p4debug.printf(
+	        "\n\t%s[%s]\n\tmatch[+NONE]KEEP\n\tignore[NONE]\n\n",
+	        isDir ? "dir" : "file", path.Text() );
+
 	return 0;
 }
 
@@ -663,6 +872,8 @@ Ignore::BuildIgnoreFiles( const StrPtr &ignoreNames )
 {
 	if( ignoreStr == ignoreNames )
 	    return;
+
+	relatives = 0;
 
 	if( ignoreFiles )
 	    delete ignoreFiles;
@@ -692,14 +903,28 @@ Ignore::BuildIgnoreFiles( const StrPtr &ignoreNames )
 	    while( ( c = strchr( n, ';' ) ) )
 	    {
 	        if( c > n )
-	            ignoreFiles->Put()->Set( StrRef( n, c - n ) );
+	        {
+	            StrBuf *file = ignoreFiles->Put();
+	            file->Set( StrRef(n, c - n) );
+	            if( !strchr( file->Text(), SLASH[0] ) )
+	                relatives++;
+	        }
 	        n = c + 1;
 	    }
 	    if( strlen( n ) )
-	        ignoreFiles->Put()->Set( StrRef( n, strlen( n ) ) );
+	    {
+	        StrBuf *file = ignoreFiles->Put();
+	        file->Set( StrRef( n, strlen( n ) ));
+	        if( !strchr( file->Text(), SLASH[0] ) )
+	            relatives++;
+	    }
 	}
 	else
+	{
 	    ignoreFiles->Put()->Set( ignoreNames );
+	    if( !strchr( ignoreNames.Text(), SLASH[0] ) )
+	        relatives++;
+	}
 
 	ignoreStr = ignoreNames;
 }

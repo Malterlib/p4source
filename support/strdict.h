@@ -82,8 +82,10 @@ class StrDict {
 	void	RemoveVar( const char *var );
 	void	RemoveVar( const StrPtr &var ) { VRemoveVar( var ); }
 
-	void	Clear()
-		{ VClear(); }
+	void	Clear()		// useful for clearing underlying storage,
+		{ VClear(); }	//   e.g. StrBuf::Clear()
+	void	Reset()		// useful for freeing underlying storage,
+		{ VReset(); }	//   e.g. StrBuf::Reset()
 	
 	int 	Save( FILE * out );
 	int 	Load( FILE * out );
@@ -98,5 +100,6 @@ class StrDict {
 	virtual int	VGetVarX( int x, StrRef &var, StrRef &val );
 	virtual void	VSetError( const StrPtr &var, Error *e );
 	virtual void	VClear();
+	virtual void	VReset();
 
 } ;

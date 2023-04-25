@@ -192,6 +192,7 @@ class MapTable {
 	int		HasOverlays() const { return hasOverlays; }
 	int		HasHavemaps() const { return hasHavemaps; }
 	int		HasAndmaps() const { return hasAndmaps; }
+	int		HasWild();
 	int		IsSingle() const;
 	void 		JoinOptimizer( MapTableT dir2 );
 	MapTable *	Join(  MapTableT dir1, MapTable *m2, 

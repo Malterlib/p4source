@@ -1,6 +1,5 @@
 /*
- * Copyright 1995, 1996 Perforce Software.  All rights reserved.
- *
+ * Copyright 1995, 1996 Perforce Software.  All rights reserved. *
  * This file is part of Perforce - the FAST SCM System.
  */
 
@@ -517,6 +516,10 @@ extern "C" int socketpair(int, int, int, int*);
 # include <time.h>
 # endif
 
+# if defined(NEED_TIMER) && !defined(OS_NT)
+# include <sys/time.h>
+# endif
+
 # if defined(NEED_TIME_HP)
 #    if defined( OS_LINUX )
 #       define HAVE_CLOCK_GETTIME
@@ -885,6 +888,14 @@ typedef int FD_PTR;
 # if !defined( HAS_CPP11 ) && !defined( LLONG_MIN )
 #  define LLONG_MIN (-9223372036854775807LL - 1)
 #  define LLONG_MAX   9223372036854775807LL
+# endif
+
+# if defined( HAS_CPP11 )
+#  if defined( NEED_THREAD ) && ( defined( OS_NT ) || !defined( USE_SMARTHEAP ) )
+#   define HAVE_THREAD
+#   include <thread>
+#   include <mutex>
+#  endif
 # endif
 
 # endif // P4STDHDRS_H

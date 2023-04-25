@@ -65,7 +65,7 @@ Client::SetTrans( int output,
 	// we are in unicode mode now...
 	is_unicode = 1;
 
-	enviro->SetCharSet( output );
+	enviro->SetCharSet( fnames );
 	content_charset = content;
 	output_charset = output;
 	GlobalCharSet::Set( fnames );

@@ -25,6 +25,7 @@ if $(OSPLAT) = X86_64 || $(OSPLAT) = X86 ||
 P4APILibrary $(SUPPORTLIB) :
 	base64.cc
 	bitarray.cc
+	contextpat.cc
 	datetime.cc
 	debug.cc
 	error.cc
@@ -71,6 +72,7 @@ P4APILibrary $(SUPPORTLIB) :
 	vararray.cc
 	varlist.cc
 	varqsort.cc
+	vartree.cc
 	trienode.cc ;
 
 Ident ident.cc ;

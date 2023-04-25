@@ -52,7 +52,6 @@ class MsgHelp {
 	static ErrorId HelpConfigure;
 	static ErrorId HelpConfigurables;
 	static ErrorId HelpCopy;
-	static ErrorId HelpCopyshelf;
 	static ErrorId HelpCounter;
 	static ErrorId HelpCounters;
 	static ErrorId HelpCstat;
@@ -78,6 +77,8 @@ class MsgHelp {
 	static ErrorId HelpExtension;
 	static ErrorId HelpClientExtensionIntro;
 	static ErrorId HelpServerExtensionIntro;
+	static ErrorId HelpFailback;
+	static ErrorId HelpFailbackintro;
 	static ErrorId HelpFailover;
 	static ErrorId HelpFiles;
 	static ErrorId HelpFilelog;

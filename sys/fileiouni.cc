@@ -46,6 +46,7 @@ FileIOUnicode::FillBuffer( Error *e )
 		ts = iobuf.Text();
 		trans->ResetErr();
 		trans->Cvt(&ss, tbuf.Text()+tsz, &ts, iobuf.Text()+iobuf.Length());
+		rcv = ts - iobuf.Text();
 		if (trans->LastErr() == CharSetCvt::NOMAPPING)
 		{
 		    // set an error
@@ -54,10 +55,17 @@ FileIOUnicode::FillBuffer( Error *e )
 		}
 		else if (trans->LastErr() == CharSetCvt::PARTIALCHAR)
 		{
-		    if( cnt < readlen )
+		    /*
+		     * ( iobuf.Length() - rcv ) is the size of the buffer that
+		     * is still free. If this free space is bigger than or equal
+		     * to the biggest unicode character, 4 bytes, it means the
+		     * error is not because of full buffer.
+		     */
+
+		    if( cnt < readlen && ( iobuf.Length() - rcv >= 4 ) )
 		    {
 		        /*
-		         * End of file and buffer still had room:
+		         * End of file and target-buffer still had room:
 		         * Read() has read a smaller number of bytes than
 		         * the size of the buffer that was supplied meaning
 		         * it reached the end of file. But cvt() reports
@@ -78,7 +86,7 @@ FileIOUnicode::FillBuffer( Error *e )
 		    e->Set( MsgSupp::PartialChar );
 		    return;
 		}
-		rcv = ts-iobuf.Text();
+		rcv = ts - iobuf.Text();
 		tsz += tbuf.Text()-ss;
 		if (tsz)
 		    memmove(tbuf.Text(), ss, tsz);
@@ -118,7 +126,7 @@ FileIOUnicode::FlushBuffer( Error *e )
 	    }
 	    else
 	    {
-		FileIOCompress::Write( tbuf.Text(), ts-tbuf.Text(), e );
+		FileIOCompress::WriteThrough( tbuf.Text(), ts-tbuf.Text(), e );
 		snd += iobuf.Text()-ss;
 		if (snd)
 		    memmove(iobuf.Text(), ss, snd);

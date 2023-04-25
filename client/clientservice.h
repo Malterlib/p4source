@@ -55,6 +55,9 @@ class ClientSvc
 	static FileSys		*File( Client *client, Error *e );
 	static FileSys		*FileFromPath( Client *client,
 				               const char *vName, Error *e );
+	static FileSys		*FileFromPath( Client *client,
+				               const char *vName,
+				               const char *vType, Error *e );
 	
 	static int		CheckFilePath( Client *client, FileSys *f,
 				               Error *e );

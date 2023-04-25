@@ -458,25 +458,25 @@ Spec::Format( SpecData *data, StrBuf *s )
 
 	        *s << d->tag << ":\n";
 
-		// This code is changed in p19.2 and forward ported to 20.1.
-		// For these servers, specific SpecMgrs handle
-		// the data strings SpecElems of type SDT_LLIST.
-		//
-		// Only customer custom spec SDT_LLIST fields invoke this code.
+	        // This code is changed in p19.2 and forward ported to 20.1.
+	        // For these servers, specific SpecMgrs handle
+	        // the data strings SpecElems of type SDT_LLIST/SDT_WLIST.
+	        //
+	        // Custom spec SDT_LLIST/SDT_WLIST fields invoke this code.
 	        // job102389 revealed that tabs were not inserted in the
-	        // output form for multiline SDT_LLIST elems.
+	        // output form for multiline SDT_LLIST/SDT_WLIST elems.
 	        //
 	        // The 'while()' section below appears to expect
 	        // SpecData->GetLine() to be used iteratively to return
 	        // '\n' separated substrings. It does not, and 
 	        // and instead returns the entire string.
 	        //
-	        // It is a larger task to fulfill that expectation.
-	        // So explicitly insert tabs after newlines for SDT_LLIST.
+	        // It is a larger task to fulfill that expectation, so 
+	        // explicitly insert tab after newline for SDT_LLIST/SDT_WLIST.
 	        // Were GetLine() to be fixed, the following fix is a NOOP.
 
-	        if( d->type == SDT_LLIST  &&  v->Contains( nl )
-	                && !v->Contains( nltab ) )
+	        if( v && ( d->type == SDT_LLIST || d->type == SDT_WLIST ) &&
+	            v->Contains( nl ) && !v->Contains( nltab ) )
 	        {
 	            StrOps::Replace( addTabs, *v, nl, nltab );
 	            v = &addTabs;

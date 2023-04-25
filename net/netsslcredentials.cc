@@ -48,6 +48,7 @@ extern "C"
 # include <openssl/err.h>
 # include <openssl/x509v3.h>
 # include <openssl/ssl.h>
+# include <openssl/crypto.h>
 }
 # include <stdio.h>
 # include "netdebug.h"
@@ -173,12 +174,47 @@ PrintCertificateError( X509 *cert, int err, X509_STORE_CTX *ctx, BIO *bio,
 	}
 }
 
-P4MT int ossl_verify_cb_idx;
+static int ossl_verify_cb_idx;
+
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
+
+static int ossl_verify_cb_idx_once = 0;
+
+int GetSSLVerifyCbIdx()
+{
+	if( !ossl_verify_cb_idx_once )
+	{
+	    // Potential race condition here, but this "should" still be
+	    // gracefully handled. Ideally noone's using OpenSSL 1.0.2...
+	    int newIdx = X509_STORE_CTX_get_ex_new_index( 0, 0, 0, 0, 0 );
+	    if( !ossl_verify_cb_idx_once++ )
+	        ossl_verify_cb_idx_once = newIdx;
+	}
+
+	return ossl_verify_cb_idx;
+}
+
+# else // OpenSSL >=1.1
+
+static CRYPTO_ONCE ossl_verify_cb_idx_once = CRYPTO_ONCE_STATIC_INIT;
+
+void SetSSLVerifyCbIdx()
+{
+	ossl_verify_cb_idx = X509_STORE_CTX_get_ex_new_index( 0, 0, 0, 0, 0 );
+}
+
+int GetSSLVerifyCbIdx()
+{
+	CRYPTO_THREAD_run_once(&ossl_verify_cb_idx_once, SetSSLVerifyCbIdx);
+	return ossl_verify_cb_idx;
+}
+# endif // OpenSSL >=1.1
+
 int
 verify_callback(int ok, X509_STORE_CTX *ctx)
 {
 	NetSslCredentials *credentials = (NetSslCredentials *)
-	    X509_STORE_CTX_get_ex_data( ctx,ossl_verify_cb_idx );
+	    X509_STORE_CTX_get_ex_data( ctx, GetSSLVerifyCbIdx() );
 	if( !credentials )
 	    return ok;
 
@@ -1136,10 +1172,7 @@ NetSslCredentials::SetCertificate( X509 *cert, stack_st_X509 *certChain,
 	{
 	    X509_STORE_CTX_set_verify_cb( csc, verify_callback );
 	    X509_STORE_CTX_set_flags( csc, 0 );
-	    if( !ossl_verify_cb_idx )
-	        ossl_verify_cb_idx =
-	            X509_STORE_CTX_get_ex_new_index( 0, 0, 0, 0, 0 );
-	    X509_STORE_CTX_set_ex_data( csc, ossl_verify_cb_idx, this );
+	    X509_STORE_CTX_set_ex_data( csc, GetSSLVerifyCbIdx(), this );
 	    X509_verify_cert( csc );
 	}
 	X509_STORE_CTX_free( csc );

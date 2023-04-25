@@ -127,6 +127,7 @@ class MsgSupp {
 	static ErrorId OptionUnloadLimit;
 	static ErrorId OptionOmitLazy;
 	static ErrorId OptionLeaveKeywords;
+	static ErrorId OptionLeaveKeywords2;
 	static ErrorId OptionOutputFile;
 	static ErrorId OptionExists;
 	static ErrorId OptionContent;
@@ -356,6 +357,8 @@ class MsgSupp {
 	static ErrorId OptionFailoverid;
 	static ErrorId OptionFailoverQuiesce;
 	static ErrorId OptionFailoverVerification;
+	static ErrorId OptionFailbackYes;
+	static ErrorId OptionFailbackQuiesce;
 	static ErrorId OptionInstall;
 	static ErrorId OptionCreateSampleExt;
 	static ErrorId OptionUndo;
@@ -418,6 +421,10 @@ class MsgSupp {
 	static ErrorId RenameDirNotEmpty;
 	static ErrorId OptionCleanPurge;
 	static ErrorId OptionViewMatch;
+	static ErrorId OptionObliterate;
+	static ErrorId OptionOffset;
+	static ErrorId OptionSize;
+	static ErrorId OptionCompressed;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

@@ -89,6 +89,8 @@ class RpcSendBuffer
 
 	void		Clear()
 			{ lastLength = 0; ioBuffer.Clear(); }
+	void		Reset()
+			{ lastLength = 0; ioBuffer.Reset(); }
 
 	void		SetVar( const StrPtr &var, const StrPtr &value );
 	void		SetVar( const char *var, const StrPtr &value );

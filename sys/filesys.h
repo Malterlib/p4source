@@ -279,6 +279,9 @@ class FileSys {
 
 	static bool	IsRelative( const StrPtr &p );
 
+	static bool	MakePathWriteable( const StrPtr &oldFile,
+	                                   StrBuf &newFile, Error *e );
+
 # ifdef OS_NT
 	static bool	IsUNC( const StrPtr &p );
 # endif

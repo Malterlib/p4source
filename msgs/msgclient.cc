@@ -18,7 +18,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgClient error code is: 94
+ * Current high value for a MsgClient error code is: 97
  */
 
 # include <error.h>
@@ -124,6 +124,11 @@ ErrorId MsgClient::PrivatekeyNotSecure = { ErrorOf( ES_CLIENT, 92, E_FAILED, EV_
 
 ErrorId MsgClient::DirectoryNotEmpty   = { ErrorOf( ES_CLIENT, 93, E_FAILED, EV_CLIENT, 1 ), "Directory %directory% is not empty." };
 ErrorId MsgClient::CantRevertDirectoryNotEmpty = { ErrorOf( ES_CLIENT, 94, E_FAILED, EV_CLIENT, 3 ), "Can't revert moved file %file%\nsince the original file %directory%\nis now a directory which contains more than just the moved file.\nRemove all files from %directory% and try again." };
+
+
+ErrorId MsgClient::BadFiletype         = { ErrorOf( ES_CLIENT, 95, E_FATAL, EV_ILLEGAL, 1 ), "Bad filetype code: %type%" };
+ErrorId MsgClient::BadLineEndingFlag   = { ErrorOf( ES_CLIENT, 96, E_FATAL, EV_ILLEGAL, 2 ), "Bad line ending flag (%flag%) in filetype code: %type%" };
+ErrorId MsgClient::BadUncompressFlag   = { ErrorOf( ES_CLIENT, 97, E_FATAL, EV_ILLEGAL, 2 ), "Bad uncompress flag (%flag%) in filetype code: %type%" };
 
 // ErrorId graveyard: retired/deprecated ErrorIds.
 

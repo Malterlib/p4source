@@ -104,14 +104,25 @@ FileIOCompress::Write( const char *buf, int len, Error *e )
 	    // util Compress() indicates input exhausted
 
 	    do if( gzip->OutputFull() )
-	       {
-		   FileIOBinary::Write( gzbuf->Text(),
-			gzip->os - gzbuf->Text(), e );
-		   gzip->os = gzbuf->Text();
-	       }
+	    {
+	        if( loop )
+	            loop->WriteLoop( gzbuf->Text(),
+	                             gzip->os - gzbuf->Text(), 0, e );
+	        else
+	            FileIOBinary::Write( gzbuf->Text(),
+	                                 gzip->os - gzbuf->Text(), e );
+
+	        gzip->os = gzbuf->Text();
+	    }
 	    while( !e->Test() && gzip->Uncompress( e ) && !gzip->InputEmpty() );
 	    break;
 	}
+}
+
+void
+FileIOCompress::WriteThrough( const char *buf, int len, Error *e )
+{
+	FileIOBinary::Write( buf, len, e );
 }
 
 int
@@ -186,8 +197,14 @@ FileIOCompress::Close( Error *e )
 	    // Flush & clear gzip 
 
 	    if( gzip && mode == FOM_WRITE && gzip->os - gzbuf->Text() )
-		FileIOBinary::Write( gzbuf->Text(),
-			gzip->os - gzbuf->Text(), e );
+	    {
+	        if( loop )
+	            loop->WriteLoop( gzbuf->Text(),
+	                             gzip->os - gzbuf->Text(), 1, e );
+	        else
+	            FileIOBinary::Write( gzbuf->Text(),
+	                                 gzip->os - gzbuf->Text(), e );
+	    }
 	    break;
 
 	case FIOC_PASS:

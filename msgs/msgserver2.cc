@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgServer2 error code is: 201
+ * Current high value for a MsgServer2 error code is: 246
  *                                                   Max code is 1023!!!
  *
  * The MsgServer2 class contains overflow messages from MsgServer.
@@ -52,7 +52,7 @@ ErrorId MsgServer2::SubmitBgNotConfigured  = { ErrorOf( ES_SERVER2, 130, E_INFO,
 ErrorId MsgServer2::UsePullt               = { ErrorOf( ES_SERVER2, 14, E_FAILED, EV_USAGE, 0 ), "Usage: %'pull -u -t target [ -b <N> -i <N> ]'%" } ;
 ErrorId MsgServer2::SubmitNoBackgroundThreads = { ErrorOf( ES_SERVER2, 15, E_FAILED, EV_NOTYET, 1 ), "Unable to launch background threads for change %change% --  cannot submit."} ;
 ErrorId MsgServer2::StorageNoUpgrade       = { ErrorOf( ES_SERVER2, 16, E_FAILED, EV_NONE, 0 ), "There is no storage upgrade in progress to restart." } ;
-ErrorId MsgServer2::FailoverForced         = { ErrorOf( ES_SERVER2, 17, E_WARN, EV_ADMIN, 0 ), "Attempting unsupported forced failover; attempting to continue through any errors encountered. This server might not be as expected after the forced failover." } ;
+ErrorId MsgServer2::FailoverForced         = { ErrorOf( ES_SERVER2, 17, E_WARN, EV_ADMIN, 2 ), "Attempting unsupported forced %failover%; attempting to continue through any errors encountered. This server might not be as expected after the forced %failover%." } ;
 ErrorId MsgServer2::FailoverWriteServerID  = { ErrorOf( ES_SERVER2, 49, E_INFO, EV_NONE, 2 ), "Failover from %serverID% %address%" } ;
 ErrorId MsgServer2::FailoverDetails        = { ErrorOf( ES_SERVER2, 131, E_INFO, EV_NONE, 6 ), "%action% from source: %serverID% (%serverType% %sourcePort%) to target: %targetID% (%targetPort%)." } ;
 ErrorId MsgServer2::StorageRestoreDigest   = { ErrorOf( ES_SERVER2, 18, E_INFO, EV_NONE, 2 ), "Warning: A file with a different digest value already exists for %file% %rev% - skipping archive." } ;
@@ -91,9 +91,24 @@ ErrorId MsgServer2::VerifyDataProblem      = { ErrorOf( ES_SERVER2, 47, E_FAILED
 ErrorId MsgServer2::VerifyData             = { ErrorOf( ES_SERVER2, 48, E_INFO, EV_NONE, 6 ), "%depotFile% %depotRev% - %rcount% (%type%) %digest%[ %status%]" } ; // NOTRANS
 ErrorId MsgServer2::FailoverServerIDBad    = { ErrorOf( ES_SERVER2, 50, E_FAILED, EV_ADMIN, 0 ), "Failover has occurred from this server, and the server ID must be changed. Use '%'p4d -xD'%' to change the server ID." } ;
 ErrorId MsgServer2::FailoverMasterTooOld   = { ErrorOf( ES_SERVER2, 83, E_FAILED, EV_USAGE, 0 ), "Server from which failover is to occur must be at version 2018.2 or above to participate in failover." } ;
-ErrorId MsgServer2::FailoverCfgCommit      = { ErrorOf( ES_SERVER2, 115, E_INFO, EV_NONE, 0 ), "Propagating configuration of the failed-over server ..." } ;
-ErrorId MsgServer2::FailoverUnCfgCommit    = { ErrorOf( ES_SERVER2, 116, E_INFO, EV_NONE, 0 ), "Undoing propagation of configuration for the failed-over server ..." } ;
-ErrorId MsgServer2::FailoverNeedYOK        = { ErrorOf( ES_SERVER2, 156, E_INFO, EV_NONE, 0 ), "No errors reported; use %'--yes or -y'% to execute the failover." } ;
+ErrorId MsgServer2::FailoverFBackOldWarn   = { ErrorOf( ES_SERVER2, 175, E_WARN, EV_ADMIN, 0 ), "The server from which failover is to occur must be at version 2022.1 or above in order to run failback after this failover.\nThat server must be upgraded, and '%'failbackconfigs'%' must be copied to its %'$P4ROOT'% as '%'failoverconfigs'%' prior to running '%'p4d -Fm'%' to prepare it for failback." } ;
+ErrorId MsgServer2::FailoverFConfigsBad    = { ErrorOf( ES_SERVER2, 178, E_FAILED, EV_ADMIN, 0 ), "The '%'failoverconfigs'%' file in the %'$P4ROOT'% directory has been corrupted." } ;
+ErrorId MsgServer2::FailoverCfgCommit      = { ErrorOf( ES_SERVER2, 115, E_INFO, EV_NONE, 1 ), "Propagating configuration of the %failed% server ..." } ;
+ErrorId MsgServer2::FailoverUnCfgCommit    = { ErrorOf( ES_SERVER2, 116, E_INFO, EV_NONE, 1 ), "Undoing propagation of configuration for the %failed% server ..." } ;
+ErrorId MsgServer2::FailoverWriteFConfigs  = { ErrorOf( ES_SERVER2, 176, E_INFO, EV_NONE, 0 ), "Writing %'failoverconfigs'% file ..." } ;
+ErrorId MsgServer2::FailoverDeleteFConfigs = { ErrorOf( ES_SERVER2, 177, E_INFO, EV_NONE, 0 ), "Removing %'failoverconfigs'% file ..." } ;
+ErrorId MsgServer2::FailoverNeedYOK        = { ErrorOf( ES_SERVER2, 156, E_INFO, EV_NONE, 1 ), "No errors reported; use %'--yes or -y'% to execute the %failover%." } ;
+ErrorId MsgServer2::FailbackStandbyRestrict= { ErrorOf( ES_SERVER2, 185, E_INFO, EV_NONE, 0 ), "Standby in restricted mode." } ;
+ErrorId MsgServer2::FailbackWriteServerID  = { ErrorOf( ES_SERVER2, 195, E_INFO, EV_NONE, 2 ), "Failback from %serverID% %address%" } ;
+ErrorId MsgServer2::UseFailback            = { ErrorOf( ES_SERVER2, 196, E_FAILED, EV_USAGE, 0 ), "Usage: %'failback [ -y ] [ -w <quiesce wait> ] [ -v <verification time> ] [ <failback message> ]'%" } ;
+ErrorId MsgServer2::FailbackMasterTooOld   = { ErrorOf( ES_SERVER2, 197, E_FAILED, EV_USAGE, 0 ), "Server from which failback is to occur must be at version 22.1 or above to participate in failback." } ;
+ErrorId MsgServer2::FailbackFConfigsMissing= { ErrorOf( ES_SERVER2, 198, E_FAILED, EV_ADMIN, 1 ), "The required '%failoverconfigs%' file generated by failover is missing from the $P4ROOT directory." } ;
+ErrorId MsgServer2::UseFailoverB           = { ErrorOf( ES_SERVER2, 199, E_FAILED, EV_USAGE, 0 ), "Usage: %'failover -B [ -y ] [ -w <quiesce wait> ] [ -v <verification time> ] [ <failback message> ]'%" } ;
+ErrorId MsgServer2::FailbackStandbyNotRestricted = { ErrorOf( ES_SERVER2, 200, E_FAILED, EV_ADMIN, 0 ), "Failback must be run from a restricted standby server. Use the 'p4d -Fm' command to create a restricted standby that will be ready for failback." } ;
+ErrorId MsgServer2::FailbackStandbyBad     = { ErrorOf( ES_SERVER2, 245, E_FAILED, EV_ADMIN, 0 ), "Failover or failback has occurred from this server. It cannot not be determined which occurred since both 'failoverconfigs' and 'failbackconfigs' were found. Use '%'p4d -Fm'%' to convert to a restricted standby if this is a failed over server, '%'p4d -Fs'%' command to convert to a standby if this is a failed back server, or '%'p4d -xD'%' to change the server ID and bypass the failback process." } ;
+ErrorId MsgServer2::FailoverRunFailback    = { ErrorOf( ES_SERVER2, 246, E_FAILED, EV_ADMIN, 0 ), "Failback, not failover, should be run from this server. Run '%'p4 failback'%' instead, or use '%'p4 failover --force'%' to run failover." } ;
+ErrorId MsgServer2::FailbackNeedsFm        = { ErrorOf( ES_SERVER2, 243, E_FAILED, EV_ADMIN, 0 ), "Failover has occurred from this server. Use the '%'p4d -Fm'%' command to convert this server into a restricted standby that will be ready for failback." } ;
+ErrorId MsgServer2::FailbackNeedsFs        = { ErrorOf( ES_SERVER2, 244, E_FAILED, EV_ADMIN, 0 ), "Failback has occurred from this server. Use the '%'p4d -Fs'%' command to convert this server into a standby for the failed back server." } ;
 ErrorId MsgServer2::ServerIDReused         = { ErrorOf( ES_SERVER2, 51, E_FAILED, EV_ADMIN, 1 ), "Cannot reuse server ID '%serverID%' after failover." } ;
 ErrorId MsgServer2::ExtensionPostInstallMsg ={ ErrorOf( ES_SERVER2, 52, E_INFO, EV_NONE, 4 ), "Perform the following steps to turn on the Extension:\n\n# Create a global configuration if one doesn't already exist.\np4 extension --configure %extension%\n\n# Create an instance configuration to enable the Extension.\np4 extension --configure %extension% --name %extension%-instanceName\n\nFor more information, visit:\nhttps://www.perforce.com/manuals/v%serverversion%/extensions/Content/Extensions/Home-extensions.html\n" } ;
 ErrorId MsgServer2::StreamShelfReadOnly    = { ErrorOf( ES_SERVER2, 53, E_FAILED, EV_NOTYET, 4 ), "Stream spec %stream% is shelved in change %change% and is not open.\nThe stream field in this change spec is read only and cannot be\nchanged until the stream is removed from the shelf.\nSwitch your client to %stream%, then use 'p4 shelve -d -As %change%'\nto remove the stream from shelf." } ;
@@ -198,11 +213,31 @@ ErrorId MsgServer2::UseVerifyR             = { ErrorOf( ES_SERVER2, 163, E_FAILE
 ErrorId MsgServer2::InfoCommitServer       = { ErrorOf( ES_SERVER2, 164, E_INFO, EV_NONE, 1 ), "Commit server ID: %commitServerId%" };
 ErrorId MsgServer2::InfoEdgeServer         = { ErrorOf( ES_SERVER2, 165, E_INFO, EV_NONE, 1 ), "Upstream edge server ID: %edgeServerId%" };
 ErrorId MsgServer2::MovePairSplit          = { ErrorOf( ES_SERVER2, 166, E_FAILED, EV_NOTYET, 0 ), "Cannot submit half of a moved file pair." } ;
-ErrorId MsgServer2::UseTopology            = { ErrorOf( ES_SERVER2, 167, E_FAILED, EV_USAGE, 0 ), "Usage: %'topology [ -a ]'%" } ;
+ErrorId MsgServer2::UseTopology            = { ErrorOf( ES_SERVER2, 167, E_FAILED, EV_USAGE, 0 ), "Usage: %'topology [ [ -a | -t #numOfDays ] [ -F filter ] [ -T field... ] ] | [ -d #date [ -y ] [ -e ] [ -s #serveraddress ] ]'%" } ;
 ErrorId MsgServer2::TopologyOnCurrentSvr   = { ErrorOf( ES_SERVER2, 168, E_INFO, EV_NONE, 1 ), "Topology command was run on server - %address%" } ;
 ErrorId MsgServer2::FileNoMatchStgDigest   = { ErrorOf( ES_SERVER2, 169, E_FAILED, EV_ADMIN, 2 ), "The archive does not match the storage digest %depotpath%#%rev%." } ;
 ErrorId MsgServer2::FileNoMatchStgSize     = { ErrorOf( ES_SERVER2, 170, E_FAILED, EV_ADMIN, 2 ), "The archive does not match the storage size %depotpath%#%rev%." } ;
 ErrorId MsgServer2::UseStreams2            = { ErrorOf( ES_SERVER2, 171, E_FAILED, EV_USAGE, 0 ), "Usage: %'streams --viewmatch //depotPath1 [ [--viewmatch //depotPathN] ... ] '%" } ;
 ErrorId MsgServer2::UnknownContext         = { ErrorOf( ES_SERVER2, 172, E_FATAL, EV_ILLEGAL, 0 ), "No context was found for this operation." } ;
+ErrorId MsgServer2::RplTooBig              = { ErrorOf( ES_SERVER2, 173, E_FAILED, EV_ADMIN, 3 ), "Replication request too large for available memory on '%serverID%'. Consider adding memory or decreasing 'rpl.jnl.batch.size' to less than %batchSize% for '%replicaID%'." } ;
+ErrorId MsgServer2::RplReduced             = { ErrorOf( ES_SERVER2, 174, E_WARN, EV_ADMIN, 2 ), "Replication successful using reduced batch size of %batchSize%. Consider adjusting 'rpl.jnl.batch.size' for '%replicaID%'." } ;
+ErrorId MsgServer2::UseP4dF                = { ErrorOf( ES_SERVER2, 179, E_FAILED, EV_USAGE, 0 ), "Usage: %'p4d -Fm | -Fs -r p4root [ -y ] masterServerID standbyServerID'%" } ;
+ErrorId MsgServer2::P4dFBadMaster          = { ErrorOf( ES_SERVER2, 180, E_FAILED, EV_ADMIN, 3 ), "The serverID '%id%' in the root directory '%s%' does not match the master argument '%masterId%' used in this command." } ;
+ErrorId MsgServer2::P4dFRefuseMissing      = { ErrorOf( ES_SERVER2, 181, E_FAILED, EV_ADMIN, 4 ), "The server '%id%' in the root directory '%root%' cannot be converted to a standby after %action%. It cannot be verified that this server participated in %action% with master participation." } ;
+ErrorId MsgServer2::P4dFFConfigsMissing    = { ErrorOf( ES_SERVER2, 182, E_FAILED, EV_ADMIN, 5 ), "The server '%id%' in the root directory '%root%' cannot be converted to a standby after %action%. The required '%failoverconfigs%' file generated by %action% is missing." } ;
+ErrorId MsgServer2::P4dFStandbyNotStandby  = { ErrorOf( ES_SERVER2, 183, E_FAILED, EV_ADMIN, 1 ), "The standby server argument '%standbyArg%' is not a standby server." } ;
+ErrorId MsgServer2::P4dFBadRplFrom         = { ErrorOf( ES_SERVER2, 184, E_FAILED, EV_ADMIN, 2 ), "The '%'ReplicatingFrom'%' server field of the server '%standby%' does not match the master server '%master%'" } ;
+ErrorId MsgServer2::P4dFPreview            = { ErrorOf( ES_SERVER2, 186, E_INFO, EV_NONE, 2 ), "Checking if reconfiguring '%master%' as '%standby%' might be possible..." } ;
+ErrorId MsgServer2::P4dFStarting           = { ErrorOf( ES_SERVER2, 187, E_INFO, EV_NONE, 2 ), "Reconfiguring '%master%' as '%standby%'..." } ;
+ErrorId MsgServer2::P4dFOK                 = { ErrorOf( ES_SERVER2, 188, E_INFO, EV_NONE, 0 ), "No errors reported; use -y to execute the command." } ;
+ErrorId MsgServer2::P4dFSuccess            = { ErrorOf( ES_SERVER2, 189, E_INFO, EV_NONE, 2 ), "Server '%master%' has been reconfigured as restricted standby '%standby%'." } ;
+ErrorId MsgServer2::P4dFFailbackNotRun     = { ErrorOf( ES_SERVER2, 190, E_FAILED, EV_ADMIN, 0 ), "Perhaps '%'p4 failback'%' has not yet been run?" } ;
+ErrorId MsgServer2::P4dFRestrictedStart    = { ErrorOf( ES_SERVER2, 191, E_INFO, EV_NONE, 0 ), "Standby replica starting in restricted mode..." } ;
 ErrorId MsgServer2::IntegTaskNoDirect      = { ErrorOf( ES_SERVER2, 192, E_FAILED, EV_USAGE, 0 ), "The direct integration option cannot be used with a target task stream." } ;
+ErrorId MsgServer2::ExtraPxcIDUsage        = { ErrorOf( ES_SERVER2, 193, E_FAILED, EV_USAGE, 0 ), "Usage: %'p4p -xD [ serverID ]'%" }; 
+ErrorId MsgServer2::BadPxcExtraFlag        = { ErrorOf( ES_SERVER2, 194, E_FAILED, EV_USAGE, 0 ), "Unknown %'-x'% operation.  Try '%'D'%'." } ;
 ErrorId MsgServer2::LbrDeletionFailed      = { ErrorOf( ES_SERVER2, 201, E_FAILED, EV_ADMIN, 3 ), "Unable to delete archive file - lbrFile-%lbrFile% lbrRev-%lbrRev% lbrType-%lbrType%." } ;
+ErrorId MsgServer2::BadJournalSubOpt       = { ErrorOf( ES_SERVER2, 206, E_FAILED, EV_ADMIN, 0 ), "Unsupported suboption to -j. Must be -jc[s|p], -jd[s|p|ps], -jr[p|F|c|pF|pc]." } ;
+ErrorId MsgServer2::InfoProxyCacheRoot     = { ErrorOf( ES_SERVER2, 208, E_INFO, EV_NONE, 1 ), "Proxy cacheRoot: %root%" } ;
+ErrorId MsgServer2::InfoProxyRoot          = { ErrorOf( ES_SERVER2, 209, E_INFO, EV_NONE, 1 ), "Proxy root: %root%" } ;
+ErrorId MsgServer2::UpgradeFeatureUnknown  = { ErrorOf( ES_SERVER2, 210, E_FAILED, EV_NONE, 1 ), "Upstream servers must be upgraded to at least %version% to use this feature." } ;

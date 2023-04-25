@@ -424,7 +424,7 @@
 		local _xflags  = $(2) ;       # additional flags to compiler+linker
 		local _uplats  = $(3:E=i386 x86_64) ;  # platforms for "universal" builds
 
-        switch $(OS:U)
+		switch $(OS:U)
 		{
 		case DARWIN :
 			if [ FVersionCmp $(OSVER) : 110 ] >= 0 { _prefix = $(_xcode)$(_legacy) ; }
@@ -442,7 +442,7 @@
 		}
 		if $(_sdkver) = 10.4 { _sdkver = $(_sdkver)u ; }  # "10.4u.sdk"
 
-		if ! [ FileIsDir $(_prefix) ]
+		if ! [ FileIsDir $(_prefix)/SDKs/MacOSX$(_sdkver).sdk ]
 		{
 			local _cltools = /Library/Developer/CommandLineTools ;
 			if [ FileIsDir $(_cltools) ] { _prefix = $(_cltools) ; }
@@ -458,6 +458,7 @@
 		case PPC    : _arch = -arch ppc    ;
 		case X86    : _arch = -arch i386   ;
 		case X86_64 : _arch = -arch x86_64 ;
+		case ARM64  : _arch = -arch arm64 ;
 		case U      :
 			for _elt in $(_uplats) { _arch += -arch $(_elt) ; }
 			NOARSCAN = true ; # can't scan "fat" archives
@@ -1503,9 +1504,9 @@
 
 	case MACOSX11* :  # 11.1 and above
 		SetCommonCompiler $(OSCOMP:E=clang) ;
-		SetOSXSdk 11.3 : -mmacosx-version-min=11.01 -fwrapv ;
+		SetOSXSdk 11.1 : -mmacosx-version-min=11.1 -fwrapv ;
 
-		LIBRARY_DEPOLYMENT_SDK = sdk11.3 ;
+		LIBRARY_DEPOLYMENT_SDK = sdk11.1 ;
 		STATIC_LIBSTDC++ = yes ;
 
 		# The -fvisibility-inlines-hidden option is a C++-only
@@ -2232,7 +2233,7 @@
 				{
 				    # Require 'production' here since normal dev builds will work
 				    # fine without specifying LIBC++DIR and we want that flexibility.
-				    if $(PRODUCTION)
+				    if $(PRODUCTION) && $(OSPLAT:U) != ARM64
 				    {
 				        if ! $(LIBC++DIR)
 				        {
@@ -2887,7 +2888,6 @@
 		CopyRec p4dtg-dist : $(topdir) plugins mysql5.so          : mysql5.so ;
 		CopyRec p4dtg-dist : $(topdir) plugins bugz3mysql5.so     : bugz3mysql5.so ;
 		CopyRec p4dtg-dist : $(topdir) plugins redminemysql5.so   : redminemysql5.so ;
-		CopyRec p4dtg-dist : $(topdir) plugins jiradtg.so         : jiradtg.so ;
 		CopyRec p4dtg-dist : $(topdir) plugins jirarest.so        : jirarest.so ;
 
 		CopyRec p4dtg-dist : $(topdir) p4dtg-config.png           : $(P4DTG) src p4dtg-config p4dtg-config.png ;
@@ -2914,14 +2914,8 @@
 		CopyRec p4dtg-dist : $(redmine_docdir) README.txt         : $(P4DTG) sdk redmine README.txt ;
 		CopyRec p4dtg-dist : $(redmine_docdir) jobspec.txt        : $(P4DTG) sdk redmine jobspec.txt ;
 
-		CopyRec p4dtg-dist : $(jira_docdir) README.txt            : $(P4DTG) sdk jira README.txt ;
 		CopyRec p4dtg-dist : $(jira_docdir) README.rest.txt       : $(P4DTG) sdk jira-rest README.rest.txt ;
-		CopyRec p4dtg-dist : $(jira_docdir) jobspec.txt           : $(P4DTG) sdk jira jobspec.txt ;
-
-		CopyRec p4dtg-dist : $(jira_jardir) jira-dts.jar                : $(P4BIN) bin.java $(BUILD) jira-dts.jar ;
-		CopyRec p4dtg-dist : $(jira_jardir) jira-soapclient-4.1.1-1.jar : $(P4BIN) bin.java $(BUILD) jira-soapclient-4.1.1-1.jar ;
-		CopyRec p4dtg-dist : $(jira_jardir) logging.properties          : $(P4DTG) sdk jira jiradts resources logging.properties ;
-		CopyRec p4dtg-dist : $(dtg_configdir) jira-config.xml           : $(P4DTG) sdk jira jiradts resources jira-config.xml ;
+		CopyRec p4dtg-dist : $(jira_docdir) jobspec.txt           : $(P4DTG) sdk jira-rest jobspec.txt ;
 
 		CopyRec p4dtg-dist : $(jira_jardir) jira-rest.jar                  : $(P4BIN) bin.java $(BUILD) jira-rest.jar ;
 		CopyRec p4dtg-dist : $(jira_jardir) jira-rest-all-dependencies.jar : $(P4DTG) sdk jira-rest java lib jira-rest-all-dependencies.jar ;
@@ -2960,7 +2954,6 @@
 		                   p4jobdt.so
 		                   mysql5.so
 		                   redminemysql5.so
-		                   jiradtg.so
 		                   jirarest.so ;
 		local _f ;
 		for _f in $(_strip_bin)

@@ -18,7 +18,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgHelp error code is: 272
+ * Current high value for a MsgHelp error code is: 274
  */
 
 ErrorId MsgHelp::NoHelp = { ErrorOf( ES_HELP, 1, E_FAILED, EV_USAGE, 1 ),
@@ -815,6 +815,17 @@ R"(
 	from regular checkpoints does, and such restores take longer to
 	complete.
 
+    p4d -jcp [ prefix ]
+	Creates a parallel checkpoint of individual database tables
+	files in a directory named after prefix argument or
+	"checkpoint.n" where n is the current highest change number.
+	The number of threads used to create the checkpoint is
+	determined by the configuration variable "db.checkpoint.threads":
+	    -1 = no threads, work sequentially;
+	     0 = system imposed thread limit;
+	     n = use at most n threads.
+	The default is -1, no threads.
+
     p4d -xf bugno
 	Updates the server data to fix problems due to the
 	specified bug number.  Valid values of bugno are as follows:
@@ -930,7 +941,7 @@ R"(
 	Name               Default Use
 	----               ------- ---
 	db.isalive             10K Rows scanned before maxLockTime check
-	db.page.migrate		 0 Avoid allocateing pages at end of btree
+	db.page.migrate		 0 Avoid allocating pages at end of btree
 	db.reorg.disable	 1 Disable BTree reorganization
 	db.reorg.misorder	80 BTree reorg percent out of order trigger
 	db.reorg.occup		 8 BTree reorg percent of page free remaining
@@ -951,6 +962,8 @@ R"(
 	                         0 Description for pending restricted changes
 	                           0: Only visible by owner of change
 	                           1: Visible with list access to file(s)
+	dm.change.skipkeyed      0 Disable generation of digest for ktext
+	                           revisions during submitted change updates
 	dm.changes.thresh1     50K 'changes -mx path' uses db.revcx if...
 	dm.changes.thresh2     10K ...if < thresh2 of thresh1 db.rev match
 	dm.changeview.openable   0 Legacy (pre-16.1) readonly behavior
@@ -976,6 +989,9 @@ R"(
 	dm.maxkey               1K Longest identifier (client, label, etc)
 	dm.protects.allow.admin  0 Allow admin to use -agu flags (protects)
 	dm.protects.hide         0 Hide exclusionary protections (protects)
+	dm.resolve.attribs       1 Schedule resolves for changes to attributes
+	dm.resolve.ignoredeleted 0 Treat auto-resolve changes to deleted files
+	                           as ignored
 	dm.quick.clients       10M Release lock if all needed rows buffered
 	dm.quick.domains        1M Release lock if all needed rows buffered
 	dm.quick.have           1M Release lock if all needed rows buffered
@@ -993,6 +1009,7 @@ R"(
 	filesys.maxmap       1000M Use read rather than mmapping big files
 	filesys.maxsymlink      1K Symlink maximum content length
 	filesys.maxtmp          1M Rollover for creating temp file names
+	filesys.windows.lfn      1 Enable Windows filename > 260 characters
 	map.joinmax1           10K Produce at most map1+map2+joinmax1
 	map.joinmax2            1M Produce at most joinmax2
 	map.maxwild             10 Maximum number of wildcards per line
@@ -1616,13 +1633,14 @@ ErrorId MsgHelp::HelpCredits = { ErrorOf( ES_HELP, 24, E_INFO, EV_NONE, 0 ),
 R"(
 	Helix Core, The fast versioning engine from Perforce Software.
 	Contributions from Jeff Anton, Michael Bishop, Ksenia Burlachenko,
-	Brian Campbell, Phil Champagne, Geri Clucas, Cal Collier, Scott Common
-	Ed Daraki, Gary Gibbons, Jason Gibson, Paul Haffenden, Wendy Heffner,
-	Sven Erik Knop, Joel Kovisto, Peter Kreps, Dave Lewak, Fred Malouf,
-	Mark Mears, Michael Alyn Miller, Bryan Pendleton, Nick Poole,
-	Mike Schonberg, Christopher Seiwald, Andy Shebanow, Michael Shields,
-	David Sielaff, Laxmi Sistla, Tony Smith, Sam Stafford, James
-	Strickland, Brett Taylor, Marc Tooley, Alan Teague and Mark Wittenberg.
+	Brian Campbell, Phil Champagne, Geri Clucas, Cal Collier, Scott Common,
+	Robert Cowham, Ed Daraki, Gary Gibbons, Jason Gibson, Paul Haffenden,
+	John Halbig, Wendy Heffner, Sven Erik Knop, Joel Kovisto, Peter Kreps,
+	Dave Lewak, Fred Malouf, Mark Mears, Michael Alyn Miller, Adam Morris,
+	Bryan Pendleton, Nick Poole, Mike Schonberg, Christopher Seiwald,
+	Andy Shebanow, Michael Shields, David Sielaff, Laxmi Sistla,
+	Tony Smith, Sam Stafford, James Strickland, Brett Taylor,
+	Patrycja Tomiak, Alan Teague, Marc Tooley and Mark Wittenberg.
 )"
 };
 
@@ -2228,7 +2246,8 @@ R"(
 	    - Update or deletion of other users' pending changelists.
 	    - Changing the 'User' of an empty pending change via -U.
 	    - Deletion of submitted changelists after they have been
-	      emptied of files using 'p4 obliterate'.
+	      emptied of files using 'p4 obliterate' and of streams
+	      using 'p4 stream --obliterate'.
 	    - Update of the 'Description', 'Date', and 'User' fields of
 	      submitted changelists.
 	    - Display of the 'Description' field in a restricted changelist.
@@ -2296,10 +2315,11 @@ R"(
 	Returns a list of all pending and submitted changelists currently
 	stored in the server.
 
-	If files are specified, 'p4 changes' lists only changelists that
-	affect those files.  If the file specification includes a revision
-	range, 'p4 changes' lists only submitted changelists that affect
-	the specified revisions.  See 'p4 help revisions' for details.
+	If files are specified, 'p4 changes' lists only submitted
+	changelists that affect those files at the head revision.  If
+	the file specification includes a revision range, 'p4 changes'
+	lists only submitted changelists that affect the specified
+	revisions.  See 'p4 help revisions' for details.
 
 	If files are not specified, 'p4 changes' limits its report
 	according to each change's type ('public' or 'restricted').
@@ -2657,6 +2677,7 @@ R"(
               [--parentview inherit|noinherit] [name]
     p4 stream [-o [-v]] [-P parent] [-t type]
               [--parentview inherit|noinherit] [name[@change]]
+    p4 stream --obliterate [-y] name[@change]
     p4 stream [-f] [-d] name
     p4 stream -i [-f]
     p4 stream edit
@@ -2807,6 +2828,85 @@ R"(
 	          the command 'p4 stream parentview' to change stream's
 	          parentview. See 'p4 help streamcmds' for more details.
 
+)"
+R"(
+	Components:  One or more lines that include other streams' views within
+	          the current stream.  Each line is of the form:
+
+	              <component_type> <component_folder> <stream>[@change]
+	
+	          where
+
+	              <component_type> is a single keyword. The only
+	              component type currently supported is 'readonly'.
+
+	              <component_folder> a directory path relative to the
+	              root of the client workspace.
+
+	              <stream> is the stream path and name of an existing
+	              stream.  An optional '@change' or '@automatic_label' can
+	              be specified to get the streamviews at or before the
+	              given change or automatic label.
+
+	          For example:
+
+	              readonly dirA //stream/mainA@37
+
+	          A component is a stream that contributes its views to the
+	          the stream that defines the component. A stream that defines
+	          one or more other streams as components is called a consuming
+	          stream.
+
+	          If a component is defined to be at a given change, that
+	          component's views come from the last time the stream was
+	          edited, either at the specified change or earlier. Any file
+	          sync'd from a component@change's views will be at a revision
+	          at or before the specified change.
+
+	          The only component type is:
+
+	              readonly -- all views that originate from the component
+	                  are readonly;  files can be sync'd but not edited and
+	                  submitted.  Note that if the component has an import+
+	                  path, that path is readonly for the consuming stream.
+
+	          Note that component stream views will be included when the
+	          consuming stream is itself defined as a component for some
+	          other stream.  For example:
+
+	              Suppose there are streams //stream/mainA, //stream/mainB,
+	              and main //stream/mainC.
+
+	              Suppose that //stream/mainC defines a Path
+
+	                  import libXYZ/lib1.a //libs/libXYZ/lib1.a
+
+	              Then //stream/mainB defines a component
+
+	                  readonly dirC //stream/mainC
+
+	              //stream/mainA defines a component
+
+	                  readonly dirB //stream/mainB
+
+	              Then a workspace ws, which is associated with
+	              //stream/mainA, will have views
+
+	                  //stream/mainA/... //ws/...
+	                  //stream/mainB/... //ws/dirB/...
+	                  //stream/mainC/... //ws/dirB/dirC/...
+	                  //libs/libXYZ/lib1.a //ws/dirB/dirC/libXYZ/lib1.a
+
+	          The configurable, dm.stream.components, can be used to enable
+	          or disable the inclusion of stream components in the
+	          workspace view.  Use values
+
+	              0 (default): disables stream components in the workspace
+	                  view.
+
+	              1: enables stream components in the workspace view.
+
+
 	Paths:    One or more lines that define file paths in the stream view.
 	          Each line is of the form:
 
@@ -2825,7 +2925,7 @@ R"(
 
 	              share   src/...
 	              import  lib/abc/...  //over/there/abc/...
-	              import  module2/*.txt //demo3/main/mudule2/*.txt
+	              import  module2/*.txt //demo3/main/module2/*.txt
 	              isolate bin/*
 	              isolate bin/...dll
 
@@ -2912,6 +3012,18 @@ R"(
 	not be deleted if it is referenced by child streams or stream clients.
 	Deleting a stream spec does not remove stream files, but it does mean
 	changes can no longer be submitted to the stream's path.
+	The stream spec is marked deleted while preserving its metadata.
+	Report on deleted streams using 'p4 stream -o deletedStream@change',
+	'p4 streams -a', and 'p4 streamlog deletedStream'.
+	( See --obliterate. )
+
+	The --obliterate flag deletes the stream from all metadata,
+	removes the stream from pending and committed change lists, and allows
+	deletion of such changelists. Obliterate can be restricted to
+	a changelist: p4 stream --obliterate name@change.
+	By default, --obliterate displays a preview of the
+	results. To execute the operation, specify the -y flag.
+	--obliterate requires 'admin' access granted by 'p4 protect'.
 
 	The -o flag causes the stream spec to be written to the standard
 	output. The user's editor is not invoked. -v may be used with -o to
@@ -3080,6 +3192,8 @@ R"(
 	The -m max displays at most 'max' revisions per stream
 	argument specified.
 
+	'p4 streamlog' reports on deleted streams.
+
 )"
 };
 ErrorId MsgHelp::HelpStreamintro = { ErrorOf( ES_HELP, 132, E_INFO, EV_NONE, 0 ),
@@ -3188,7 +3302,7 @@ ErrorId MsgHelp::HelpStreams = { ErrorOf( ES_HELP, 111, E_INFO, EV_NONE, 0 ),
 R"(
     streams -- Display list of streams
 
-    p4 streams [-U -F filter -T fields -m max [ --viewmatch //depotPath1
+    p4 streams [-U -F filter -T fields -m max -a [ --viewmatch //depotPath1
                [ [--viewmatch //depotPathN] ... ] ] ] [streamPath ...]
 
 	Reports the list of all streams currently known to the system.  If
@@ -3223,6 +3337,8 @@ R"(
 	view path of streams that have views containing the given //depotPath,
 	or that have views contained by the depot path.  Multiple --viewmatch
 	flags with depot path arguments can be supplied.
+
+	The -a flag returns existing and deleted streams.
 )"
 };
 
@@ -3607,6 +3723,7 @@ R"(
 	-b Maximum number of execution errors before giving up.
 	   The default is 1.
 	-d Detach the client and continue task execution server-side.
+	   Not allowed when used in a startup.N configurable.
 	-e Command string to execute.
 	-i Seconds between command invocations.  The default is 1 second.
 	   The maximum is 31 days.
@@ -3638,7 +3755,7 @@ R"(
     p4 copy [options] [-As | -Af] -S stream [-P parent] [-F] [-r]
                       [toFile[rev] ...]
 
-	options: -c changelist# -f -n -v -m max -q
+	options: -c changelist# -f -K -n -v -m max -q
 
 	'p4 copy' copies one set of files (the 'source') into another (the
 	'target').
@@ -3713,6 +3830,9 @@ R"(
 	will be copied if they do not exist in the target, and files that are
 	already identical will be copied if they are not connected by existing
 	integration records.
+
+	The -K flag suppresses keyword expansion when updating ktext files on
+	the client.
 
 	The -n flag displays a preview of the copy, without actually doing
 	anything.
@@ -3944,7 +4064,9 @@ R"(
 
 	The depots command lists all depots defined in the server.
 
-	The -t flag limits output to depots of the specified type.
+	The -t flag limits output to depots of the specified type. Valid
+	types are 'local', 'spec', 'stream', 'remote', 'archive', 'unload'
+	'graph', 'tangent' and 'extension'.
 
 	The -e nameFilter flag lists depots with a name that matches
 	the nameFilter pattern, for example: -e 'depo*'. The -e flag
@@ -4617,6 +4739,124 @@ R"(
 
 	Refer to the online documentation for instructions on creating
 	Extensions.
+)"
+};
+
+ErrorId MsgHelp::HelpFailback = { ErrorOf( ES_HELP, 274, E_INFO, EV_NONE, 0 ),
+R"(
+    failback -- Fail back to the failed server from its previous failover
+
+    p4 failback [ -y ] [ -w <quiesce wait> ]
+                [ -v <verification time> ] [ <failback message> ]
+
+	Fail back to the original master server from a previous failover
+	to this server. The original failover must have been run with master
+	participation. Both server versions must be at least 22.1 to
+	participate in failback.
+
+	The failback command must be run on the server that failed over
+	during the failover command. In other words, the P4ROOT directory
+	of this server must be the same location as the original master.
+	The server must first be prepared for failback using 'p4d -Fm'
+	to change it to a restricted standby. Then the server could be
+	manually changed to become a mandatory standby after replication
+	has caught up to the master. After running the failback command,
+	this server is restored to its status as the master server.
+	The original standby server should be then restored to a standby for
+	this server using 'p4d -Fs'. For a more detailed description of
+	this failback process, please refer to 'p4 help failbackintro'.
+
+	The 'p4 failback' command operates the same as 'p4 failover',
+	except that it requires master participation. For a more detailed
+	description of the failover process, please refer to
+	'p4 help failover'.
+
+	The '-v' argument specifies the window of time, in seconds,
+	during which classic depot file content that was updated prior to
+	the failback will be verified to ensure that it will be correct on
+	the new master server. By default, the 'p4 failback' command verifies
+	the file content that was updated during the 300 seconds prior to the
+	failback. The command does not wait for this amount of time; it only
+	waits as long as it takes to verify the file content that was
+	updated during this window of time prior to the failback.
+
+	The '-w' argument specifies the amount of time, in seconds, that
+	the 'p4 failback' command waits for existing commands running on the
+	master server to complete before stalling any remaining commands and
+	then continuing with the failback. By default, the command waits
+	for 60 seconds.
+
+	The '-y' flag actually executes the failback. By default, the
+	'p4 failback' command only checks that a failback might be possible.
+
+	The <failback message> is returned when attempting to start a new
+	command on the master server once the failback process has actually
+	started. A default message is used if the <failback message> is not
+	specified. The <failback message> must be the last argument specified
+	in the 'p4 failback' command; no other arguments should be specified
+	after the <failback message>. The <failback message> need not be
+	enclosed in quotes.
+
+	'p4 failback' requires 'super' access granted by 'p4 protect'.
+)"
+};
+
+ErrorId MsgHelp::HelpFailbackintro = { ErrorOf( ES_HELP, 273, E_INFO, EV_NONE, 0 ),
+R"(
+    Introduction to the Failback Process
+
+	Failback is the process of restoring the original master to its
+	role prior to failover. It is also possible to restore the
+	original standby to its role prior to failover. This is a process
+	that involves a few steps that are outlined here.
+
+	The original 'p4 failover' command must be performed with
+	master participation. Both the master and the standby servers
+	must be running at server version 22.1 or above. Please refer
+	to 'p4 help failover' for details regarding this command.
+
+	In order to run 'p4 failback', the original master server prior
+	to failover must be converted to a standby that will be the target
+	of the later 'p4 failback'. This conversion is done via the
+	'p4d -Fm' command:
+
+	    p4d -r <p4root> -Fm [-y] <masterServerID> <standbyServerID>
+
+	where <masterServerID> and <standbyServerID> refer to the server IDs
+	of the master and standby prior to failover. The <p4root> location
+	must be the P4ROOT location of the original master server. The '-y'
+	option executes the command. Without '-y', this command runs in
+	preview mode. The 'p4d -Fm' command prepares the server for later
+	running 'p4 failback' by changing this server to become a
+	restricted standby. The restricted status allows the standby to ignore
+	configuration settings that would interfere with its operation as the
+	target of the later 'p4 failback'.
+
+	After this server is started and its replication has caught up
+	with the master, the standby server spec can optionally be changed
+	to make it a mandatory standby.
+
+	The next step is to run 'p4 failback' from this restricted
+	standby server. Please refer to 'p4 help failback' for details
+	regarding this command.
+
+	When the original master has been restored to master status
+	via 'p4 failback', the original standby can then be restored
+	to become the standby for the master. This procedure is done via
+	the 'p4d -Fs' command:
+
+	    p4d -r <p4root> -Fs [-y] <masterServerID> <standbyServerID>
+
+	where <masterServerID> and <standbyServerID> refer to the server IDs
+	of the master and standby prior to failover. The <p4root> location
+	must be the P4ROOT location of the original standby server. The '-y'
+	option executes the command. Without '-y', this command runs in
+	preview mode. The 'p4d -Fs' command changes the server at that
+	location to become a restricted standby. When this server discovers
+	via replication that 'p4 failback' has been successfully run, it will
+	function as an unrestricted standby for the restored master. After
+	replication has caught up to the master, the server spec can
+	optionally be changed to make it a mandatory standby.
 )"
 };
 
@@ -5531,7 +5771,8 @@ R"(
     p4 integrate [options] [-As | -Af] -S stream [-r] [-P parent]
 	                         [file[revRange] ...]
 
-	options: -c changelist# -Di -f -h -O<flags> -n -m max -R<flags> -q -v
+	options: -c changelist# -Di -f -h -K -O<flags> -n -m max
+	         -R<flags> -q -v
 
 	'p4 integrate' integrates one set of files (the 'source') into
 	another (the 'target').
@@ -5639,6 +5880,9 @@ R"(
 	The -h flag leaves the target files at the revision currently synced
 	to the client (the '#have' revision). By default, target files are
 	automatically synced to the head revision by 'p4 integrate'.
+
+	The -K flag suppresses keyword expansion when updating ktext files on
+	the client.
 
 	The -m flag limits integration to the first 'max' number of files.
 
@@ -7436,14 +7680,27 @@ R"(
 )"
 };
 
+//// Comments removed to address job108420/P4-21425
+//// From command syntax section:
+//
+//    p4 login2 [-p] -r <remotespec> [--remote-user=X]
+//    p4 login2 [-s -a ] -r <remotespec> [--remote-user=X]
+//
+//// 4th paragraph from help detail:
+//
+//	The -r flag causes the server to forward the multi factor
+//	authentication to the server referenced in the the specified remote
+//	specification.  The authentication will be for the user specified by
+//	the --remote-user flag, or if RemoteUser is set in the remote
+//	specification, the login will be for that user.  Specifying a host or
+//	a username is not allowed when logging into a remote server.
+
 ErrorId MsgHelp::HelpLogin2 = { ErrorOf( ES_HELP, 230, E_INFO, EV_NONE, 0 ),
 R"(
     login2 -- Perform multi factor authentication
 
     p4 login2 [ -p -R ] [ -h host ] [ -S state ] [ -m method ] [ username ]
     p4 login2 -s [ -a | -h host ] [ username ]
-//    p4 login2 [-p] -r <remotespec> [--remote-user=X]
-//    p4 login2 [-s -a ] -r <remotespec> [--remote-user=X]
 
 	The login2 command enables a user requiring multi factor
 	authentication to authorize access on a given host.
@@ -7454,13 +7711,6 @@ R"(
 
 	The -R flag causes the multi factor authentication to be restarted
 	allowing users to re-request a OTP, etc.
-//
-//	The -r flag causes the server to forward the multi factor
-//	authentication to the server referenced in the the specified remote
-//	specification.  The authentication will be for the user specified by
-//	the --remote-user flag, or if RemoteUser is set in the remote
-//	specification, the login will be for that user.  Specifying a host or
-//	a username is not allowed when logging into a remote server.
 
 	The -s flag displays the multi factor authorization status for the
 	user on the current host, or all hosts that the user has used if the
@@ -7529,7 +7779,7 @@ R"(
     p4 merge [options] [-As | -Af] -S stream [-P parent] [-F] [-r]
                        [toFile[rev] ...]
 
-	options: -c changelist# -m max -n -Ob -q
+	options: -c changelist# -K -m max -n -Ob -q
 
 	'p4 merge' merges changes from one set of files (the 'source') into
 	another (the 'target'). It is a simplified form of the 'p4 integrate'
@@ -7591,6 +7841,9 @@ R"(
 
 	The -Ob flag causes the base revision (if any) to be displayed along
 	with each scheduled resolve.
+
+	The -K flag suppresses keyword expansion when updating ktext files on
+	the client.
 
 	The -q flag suppresses normal output messages. Messages regarding
 	errors or exceptional conditions are displayed.
@@ -7846,8 +8099,9 @@ R"(
 	then the original algorithm will be used. When alg is set to 1, then
 	the new algorithm will be used.
 
-	The '-T' flag is required for reporting and obliterating task stream
-	paths.
+	The '-T' flag is required for obliterating task stream paths.
+	Without this flag, if an argument for obliterate includes task
+	stream paths, a message will be reported to use '-T'.
 
 	The '--purged-only' flag only searches for and removes previously
 	purged records created by an earlier call to 'p4 obliterate -p -y'.
@@ -8038,7 +8292,8 @@ ErrorId MsgHelp::HelpPrint = { ErrorOf( ES_HELP, 67, E_INFO, EV_NONE, 0 ),
 R"(
     print -- Write a depot file to standard output
 
-    p4 print [-a -A -k -o localFile -q -m max] file[revRange] ...
+    p4 print [-a -A -K -o localFile -q -m max --offset offset --size size]
+	     file[revRange] ...
     p4 print -U unloadfile ...
 
 	Retrieve the contents of a depot file to the client's standard output.
@@ -8058,7 +8313,8 @@ R"(
 
 	The -A flag prints files in archive depots.
 
-	The -k flag suppresses keyword expansion.
+	The -K flag suppresses keyword expansion (this replaced the -k flag
+	in 2022.1, which is now an alias for -K for backwards compatibility).
 
 	The -o localFile flag redirects the output to the specified file on
 	the client filesystem. Multiple files may be written by using wildcards
@@ -8068,6 +8324,12 @@ R"(
 	and revision.
 
 	The -m flag limits print to the first 'max' number of files.
+
+	The --offset flag limits print by skipping 'offset' bytes from the
+	begining of the file.
+
+	The --size flag limits print to a maximum of 'size' bytes. Users can
+	combine --offset and --size flags in one command.
 
 	The -U option prints files in the unload depot (see 'p4 help unload'
 	for more information about the unload depot).
@@ -8617,9 +8879,9 @@ R"(
 
     clean       -- synonym for 'reconcile -w'
 
-    p4 reconcile [-c change#] [-e -a -d -f -I -l -m -n -w -t] [file ...]
+    p4 reconcile [-c change#] [-e -a -d -f -I -l -m -n -t] [-w [-K]] [file ...]
     p4 status [-c change#] [-A | [-e -a -d] | [-s]] [-f -I -m] [file ...]
-    p4 clean [-e -a -d -I -l -m -n] [file ...]
+    p4 clean [-e -a -d -I -l -K -m -n] [file ...]
     p4 reconcile -k [-l -n] [file ...]
     p4 status -k [file ...]
 
@@ -8714,6 +8976,9 @@ R"(
 	the matching revisions. This option is used to reconcile the have
 	list with the workspace.
 
+	The -K flag (only used with 'p4 clean') suppresses keyword expansion
+	when updating ktext files on the client.
+
 	The -s flag (only used with 'p4 status') requests summarized
 	output for the files to be opened for 'add'. Files in the current
 	directory are listed as usual, but subdirectories containing files
@@ -8737,7 +9002,7 @@ R"(
 
     p4 resolve [options] [file ...]
 
-	options: -A<flags> -a<flags> -d<flags> -f -n -N -o -t -v
+	options: -A<flags> -a<flags> -d<flags> -f -K -n -N -o -t -v
 		 -c changelist#
 		 -So -a<flags> -n -o
 
@@ -8914,6 +9179,9 @@ R"(
 	the original file. To preserve the option of using the original file,
 	revert the resolved file.
 
+	The -K flag suppresses keyword expansion when updating ktext files on
+	the client.
+
 	The -n flag previews the operation without altering files.
 
 	The -N flag previews the operation with additional information about
@@ -9029,7 +9297,7 @@ ErrorId MsgHelp::HelpRevert = { ErrorOf( ES_HELP, 73, E_INFO, EV_NONE, 0 ),
 R"(
     revert -- Discard changes from an opened file or stream spec.
 
-    p4 revert [-a -n -k -w -c cl# -C client [-Si]] [--remote=rmt] file ...
+    p4 revert [-a -n -k -K -w -c cl# -C client [-Si]] [--remote=rmt] file ...
     p4 revert -So [-c changelist# -C client]
 
 	Revert an open file to the revision that was synced from the depot,
@@ -9046,6 +9314,9 @@ R"(
 
 	The -k flag marks the file as reverted in server metadata without
 	altering files in the client workspace.
+
+	The -K flag suppresses keyword expansion when updating ktext files on
+	the client.
 
 	The -w flag causes files that are open for add to be deleted from the
 	workspace when they are reverted.
@@ -9302,7 +9573,7 @@ ErrorId MsgHelp::HelpSet = { ErrorOf( ES_HELP, 76, E_INFO, EV_NONE, 0 ),
 R"(
     set -- Set or display Perforce variables
 
-    p4 set [-q] [-s -S service] [var[=[value]] ...]
+    p4 set [-q] [-s | -S service] [var[=[value]] ...]
 
 	'p4 set' can set Perforce variables in persistent storage.
 
@@ -9466,13 +9737,13 @@ ErrorId MsgHelp::HelpSubmit = { ErrorOf( ES_HELP, 77, E_INFO, EV_NONE, 0 ),
 R"(
     submit -- Submit open files and/or open stream spec to the depot
 
-    p4 submit [-r -s -f option [-b | --noretransfer 0|1]]
-    p4 submit [-r -s -f option -b] file
-    p4 submit [-r -f option -b] [-So|-Sx] -d description
-    p4 submit [-r -f option -b] [-Sx] -d description file
-    p4 submit [-r -f option [-b | --noretransfer 0|1]] -c changelist#
+    p4 submit [-r -s -f option -K [-b | --noretransfer 0|1]]
+    p4 submit [-r -s -f option -K -b] file
+    p4 submit [-r -f option -K -b] [-So|-Sx] -d description
+    p4 submit [-r -f option -K -b] [-Sx] -d description file
+    p4 submit [-r -f option -K [-b | --noretransfer 0|1]] -c changelist#
     p4 submit -e shelvedChange# [-b]
-    p4 submit -i [-r -s -f option -b]
+    p4 submit -i [-r -s -f option -K -b]
               --parallel=threads=N[,batch=N][,min=N]
 
 	'p4 submit' commits a pending changelist and the files it contains to
@@ -9554,6 +9825,9 @@ R"(
 	for the client that is submitting the changelist.  This flag overrides
 	the -r (reopen)flag, if it is specified.  See 'p4 help client' for
 	details about submit options.
+
+	The -K flag suppresses keyword expansion when updating ktext files on
+	the client after submit.
 
 	The -i flag reads a changelist specification from the standard input.
 	The user's editor is not invoked.
@@ -9694,9 +9968,9 @@ R"(
     flush -- synonym for 'sync -k'
     update -- synonym for 'sync -s'
 
-    p4 sync [-f -L -n -N -k -q -r] [-m max] [file[revRange] ...]
-    p4 sync [-L -n -N -q -s] [-m max] [file[revRange] ...]
-    p4 sync [-L -n -N -p -q] [-m max] [file[revRange] ...]
+    p4 sync [-f -L -n -N -k -K -q -r] [-m max] [file[revRange] ...]
+    p4 sync [-L -n -N -K -q -s] [-m max] [file[revRange] ...]
+    p4 sync [-L -n -N -K -p -q] [-m max] [file[revRange] ...]
             --parallel=threads=N[,batch=N][,batchsize=N][,min=N][,minsize=N]
 
 	Sync updates the client workspace to reflect its current view (if
@@ -9749,6 +10023,8 @@ R"(
 	the state of files in the workspace while avoiding a large data
 	transfer. Caution: an erroneous update can cause the server to
 	incorrectly reflect the state of the workspace.
+
+	The -K flag suppresses keyword expansion.
 
 	The -p flag populates the client workspace, but does not update the
 	server to reflect those updates.  Any file that is already synced or
@@ -9865,7 +10141,8 @@ ErrorId MsgHelp::HelpTopology = { ErrorOf( ES_HELP, 269, E_INFO, EV_NONE, 0 ),
 R"(
     topology -- Display the list of connected servers (Technical Preview)
 
-    p4 topology [ -a ]
+    p4 topology [-a | -t #numOfDays] [-F filter] [-T field...]
+    p4 topology -d #date [-y] [-e] [-s #serveraddress]
 
 	Reports the servers that are connected directly or indirectly to the
 	innermost server, including an indicator of the server this command is
@@ -9875,6 +10152,27 @@ R"(
 
 	The -a flag displays all the configurations of the services that have
 	been recorded in the database.
+
+	The -d flag displays the preview of the deletion operation based on the
+	date in epoch format. The date in this format can be found in the
+	tagged topology output by running the command 'p4 -ztag topology'. To
+	execute the operation, specify the -y flag.
+
+	The -e flag ensures that the deletion operation also includes all the
+	records dated earlier than the specified date.
+
+	The -s flag indicates the server address. This flag is mandatory to
+	delete records specific to that server address.
+
+	The -t flag displays all the recent configurations of the server
+	services that have been recorded in the topology based on the requested
+	past number of days from now.
+
+	The -F filter flag limits output to records that match the filter
+	pattern.  The filter pattern uses the same syntax as the -F filter
+	flag on the 'p4 fstat' command.  Filtering is case-sensitive.
+
+	The -T flag can be used to limit the fields that are displayed.
 
 	This command requires that the user be an operator, or have 'super'
 	access granted by 'p4 protect'.
@@ -10504,7 +10802,7 @@ ErrorId MsgHelp::HelpUndo = { ErrorOf( ES_HELP, 203, E_INFO, EV_NONE, 0 ),
 R"(
     undo -- Undo a range of revisions
 
-    p4 undo [-n] [-c changelist#] file[revRange]
+    p4 undo [-n -K] [-c changelist#] file[revRange]
 
 	'p4 undo' opens files in order to undo a set of previously submitted
 	changes.  The 'undone' changes remain a part of the history, but the
@@ -10519,6 +10817,9 @@ R"(
 	be resolved prior to submit -- run 'p4 sync' and 'p4 resolve'.
 
 	The -n flag previews the operation without changing any files.
+
+	The -K flag suppresses keyword expansion when updating ktext files on
+	the client.
 
 	If -c changelist# is included, files are opened in the specified
 	pending changelist instead of the default changelist.
@@ -10771,9 +11072,9 @@ R"(
 
     p4 verify [-u | -v ] [-m max -q -s -z -X -b N] file[revRange]
     p4 verify [-t [ -r ] ] [ --only BAD|MISSING ] [-U | -A]
-                [-z -m max -q -s -X -b N] file[revRange]
+                [ --compressed 0|1 ] [-z -m max -q -s -X -b N] file[revRange]
     p4 verify -S [-v | -t [ -r ] [ --only BAD|MISSING ] ]
-                [-m max -q -X -b N] file
+                [ --compressed 0|1 ] [-m max -q -X -b N] file
     p4 verify -U [-u | -v | -z] [-m max -q -s -X -b N] file
     p4 verify -A [-u | -v | -z] [-m max -q -s -X -b N] file[revRange]
     p4 verify -Z [ -q ] file
@@ -10810,6 +11111,16 @@ R"(
 	be combined with the '-t' flag to restrict the revisions
 	to be transferred. The '--only' option cannot be used
 	with the '-v', '-Z' or '-u' options.
+
+	The --compressed flag may be used to override how revisions stored
+	as compressed archives are verified. By default, if the digest
+	of the compressed archive has been recorded, the archive is verified
+	without extracting the content, falling back to verify the extracted
+	content in the case that the compressed checksum doesn't match.
+	Specifying '--compressed 0' will skip the attempt to verify the archive
+	based on the compressed checksum, verifying only the extracted content.
+	Specifying '--compressed 1' will prevent the second verify attempt
+	against the extracted content, rasising a verifiy error immediatly.
 
 	The -u flag computes and saves the digest only for revisions that
 	have no saved digest.
@@ -11575,9 +11886,17 @@ R"(
 	                           2: Disallowed
 	client.readonly.dir   none Storage location for readonly clients
 	client.sendq.dir      none Storage location for partitioned db.sendq
+	db.checkpoint.bufsize 224K Minimum journal buffer size during
+	                           checkpoint
+	db.checkpoint.threads   -1 Number of threads to use for checkpoint
+	                           -1: Use non-threaded checkpointing
+	                            0: Use a thread for each table in
+	                               checkpoint
+	                            N: Use N threads to produce the
+	                               checkpoint
 	db.monitor.addthresh     0 Milliseconds before adding command or
 	                           connection at monitor level 1 or 2
-	db.monitor.interval      0 Seconds between the terminate process check
+	db.monitor.interval     30 Seconds between the terminate process check
 	db.monitor.term.allow    0 Allow users to terminate own process
 	                           0: disabled (only admin/operator can)
 	                           1: users can terminate own process
@@ -11595,13 +11914,26 @@ R"(
 	dbopen.nofsync           0 Disable fsync of db files
 	defaultChangeType     none Default for new change: public/restricted
 	dm.annotate.maxsize    10M Maximum revision size for default annotate
+	dm.batch.net           10K Batch size for files sent from an edge to
+	                           a commit server during 'p4 labelsync'
 	dm.domain.accessupdate 300 Time interval to update domain access time
-	dm.change.skipkeyed      0 Disable generation of digest for ktext
-	                           revisions during submitted change updates
 	dm.domain.accessforce 3600 Time interval to force domain access time
 	dm.info.hide             0 Suppress output of sensitive info fields
+	dm.integ.streamspec      1 Default stream spec integration value
+	                           0: Stream spec integration is not allowed
+	                           1: Allow stream spec integration only for
+	                              target streams with noinherit ParentViews
+	                           2: Allow stream spec integration for all
+	                              streams
 	dm.grep.maxrevs        10K Maximum number of revs that can be searched
 	dm.keys.hide             0 Users require admin for 'keys' command
+	dm.locks.excl.batch.net 10k Batch size for exclusively (un)locked files
+	                            sent from an edge to a commit server
+	dm.locks.global.batch.net 10k Batch size for globally (un)locked files
+	                              sent from an edge to a commit server
+	dm.locks.global.result.batch.net 10k Batch size for globally (un)locked
+	                                     files returned from a commit
+	                                     server to an edge server
 	dm.open.show.globallocks 0 Report global locks on file open from edge
 	dm.password.minlength    8 Minimum password length (when enabled)
 	dm.populate.skipkeyed    0 Disable generation of digest for ktext
@@ -11619,6 +11951,19 @@ R"(
 	                           0: keep pack files
 	                           1: unpack on update
 	                           2: unpack all
+	dm.stream.parentview     0 Default for stream spec ParentView field
+	                           0: inherit ParentView for all new streams
+	                           1: noinherit Parentview for new mainline,
+	                              development and release streams;
+	                              inherit ParentView for new task and
+	                              virtual streams
+	                           2: noinherit Parentview for new release
+	                              streams; inherit ParentView for all
+	                              other streams
+	dm.topology.lastseenupdate 300 Time interval to update topology record.
+	                               It represents the time that a record
+	                               must age before it is re-written merely
+	                               to change its 'lastSeenDate' field.
 	dm.user.accessupdate   300 Time interval to update user access time
 	dm.user.accessforce   3600 Time interval to force user access time
 	dm.user.loginattempts    3 Number of password attempts before delay
@@ -11637,7 +11982,8 @@ R"(
 	filetype.maxtextsize   10M Maximum file size for text type detection
 	journalPrefix         none Prefix or directory location for journal
 	info.p4auth.usercheck    1 Validate username against P4AUTH server
-	lbr.autocompress         0 Use compressed text storage instead of RCS
+	lbr.autocompress         1 By default, use compressed text storage
+	                           instead of RCS
 	lbr.bufsize             4K Archive file I/O buffer size
 	lbr.proxy.case           1 Proxy cache case-handling (see 'p4p -h')
 	lbr.rcs.existcheck       1 Perform RCS validation check during submit
@@ -11646,7 +11992,7 @@ R"(
 	lbr.replication       none Replica depot access and replication mode
 	lbr.retry.max           50 Times replica should retry failed transfer
 	lbr.stat.interval        0 Proxy file status interval (see 'p4p -h')
-	lbr.storage.delay    3600s Required age for storage record deletes
+	lbr.storage.delay   86400s Required age for storage record deletes
 	lbr.storage.allowsymlink 0 Allows symlinks in orphan storage scanner
 	lbr.storage.skipkeyed    2 Ignores keyword revisions during upgrade
 	                           If set to 0 then a digest is created for
@@ -11664,7 +12010,7 @@ R"(
 	minClientMessage      none Message to issue for client-too-old
 	monitor                  0 Server monitoring level
 	monitor.lsof          none Set to /usr/bin/lsof to enable on Linux
-	net.autotune		 0 Allow OS TCP autotune/autoscale of buffers
+	net.autotune		 1 Allow OS TCP autotune/autoscale of buffers
 				   If set, net.tcpsize is ignored
 	net.backlog            128 Maximum pending connections queue length
 	net.heartbeat.interval  2K Milliseconds between sending heartbeats
@@ -11744,6 +12090,14 @@ R"(	run.clientexts.allow     1 Allow client-side Extensions to run
 	run.unzip.user.allow     0 Should 'p4 unzip' allow '-u'
 	run.users.authorize      0 Should 'p4 users' require authentication
 	security                 0 User/password security level
+	server                   0 Turn off tracking
+	                           1: Include the start information for each
+	                              command
+	                           2: Include the start and stop information
+	                              for each command
+	                           3: Add a "compute end" message for certain
+	                              commands
+	                           4: Include errors sent to the client
 	server.allowfetch        0 Whether changes can be fetched:
 	                           1: This server can fetch from other servers
 	                           2: Other servers can fetch from this server
@@ -11778,8 +12132,12 @@ R"(	run.clientexts.allow     1 Allow client-side Extensions to run
 	serverlog.retain.N    none Number of rotated log files to retain
 	serverlog.counter.N   none Counter to use for file rotation number
 	serverlog.bufsz.N     none Size of log write buffer
+	serverlog.version.N        Server protocol version to be used when
+	                           writing structured log file. Defaults to
+	                           current server protocol version.
 	serviceUser           none Intermediate service identity
-	spec.hashbuckets        99 Hash spec domains to sub directories
+	spec.hashbuckets        99 Maximum number of subdirectories for hashed
+	                           directory structures
 	ssl.client.ca.path   unset Path of CA PEM file to validate server cert
 	ssl.client.cert.validate 1 Mode of validation of server cert
 	                           0: Only use P4TRUST
@@ -11817,6 +12175,11 @@ R"(	run.clientexts.allow     1 Allow client-side Extensions to run
 	                           Only available on Windows Server 2008 R2+.
 	template.client            Client to use as template if -t omitted
 	template.label             Label to use as template if -t omitted
+	track                      Default based on number of licensed users
+	                             0: Turn off tracking
+	                             1: Track all commands
+	                           2-5: Report tracking metrics exceeding
+	                                incrementally higher thresholds
 	triggers.io              0 Method used for server/trigger communication
 	zerosyncPrefix        none Client prefix for zerosync (-k) namespace
 )"
@@ -12397,6 +12760,7 @@ R"(
 	depot        Create or edit a depot specification
 	depots       Display list of depots
 	diskspace    Display summary of disk space usage on server
+	failback     Fail back to restore a previous master to its former role
 	failover     Fail over to a standby server
 	group        Change members of a user group
 	groups       List groups (of users)
@@ -13132,7 +13496,8 @@ R"(
 	The -i flag specifies the zip file name.
 
 	The -n flag performs all the correctness checks, but does not
-	push any files or changelists to the target server.
+	push any files or changelists to the target server. Any archives
+	that are missing from the zip file will be reported.
 
 	The -f flag bypasses the correctness checks.
 

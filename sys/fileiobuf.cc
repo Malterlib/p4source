@@ -15,6 +15,7 @@
 
 # include <error.h>
 # include <strbuf.h>
+# include <md5.h>
 
 # include "filesys.h"
 # include "fileio.h"
@@ -26,12 +27,8 @@ FileIOBuffer::Open( FileOpenMode mode, Error *e )
 {
 	// Start w/ binary open
 
-	if( ( GetType() & FST_C_MASK ) == FST_C_GUNZIP )
-	{
-	    // We can't handle gunzip stuff at the level below...
-	    e->Set( MsgSupp::Deflate );
-	    return;
-	}
+	if( IsUnCompress() )
+	    SetLoopback( this );
 
 	FileIOCompress::Open( mode, e );
 
@@ -46,7 +43,7 @@ FileIOBuffer::FlushBuffer( Error *e )
 #if defined( USE_EBCDIC ) && defined( NO_EBCDIC_FILES )
     	__etoa_l( iobuf.Text(), iobuf.Length() );
 #endif
-	FileIOCompress::Write( iobuf.Text(), snd, e );
+	FileIOCompress::WriteThrough( iobuf.Text(), snd, e );
 	snd = 0;
 }
 
@@ -60,20 +57,49 @@ FileIOBuffer::SetBufferSize( size_t l )
 }
 
 void
+FileIOBuffer::SetDigest( MD5 *m )
+{
+	if( IsUnCompress() )
+	    checksum = m;
+	else
+	    FileIOCompress::SetDigest( m );
+}
+
+void
 FileIOBuffer::Close( Error *e )
 {
-	// Flush buffers
+	// Flush buffers (unless FileIOCompress would do it)
 
-	while( snd && !e->Test())
-		FlushBuffer( e );
+	while( !IsUnCompress() && snd && !e->Test() )
+	    FlushBuffer( e );
 
-	// finish with binary close
+	// Finish with binary close
 
 	FileIOCompress::Close( e );
 }
 
 void
 FileIOBuffer::Write( const char *buf, int len, Error *e )
+{
+	if( IsUnCompress() )
+	    FileIOCompress::Write( buf, len, e );
+	else
+	    WriteText( buf, len, e );
+}
+
+void
+FileIOBuffer::WriteLoop( const char *buf, int len, int flush, Error *e )
+{
+	WriteText( buf, len, e );
+	while( flush && snd && !e->Test() )
+	    FlushBuffer( e );
+
+	if( checksum && len > 0 )
+	    checksum->Update( StrRef( buf, len ) );
+}
+
+void
+FileIOBuffer::WriteText( const char *buf, int len, Error *e )
 {
 	// Write logic: copy whole lines that end in \n,
 	// translate the \n to a \r, and arrange so that

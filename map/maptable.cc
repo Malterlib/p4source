@@ -323,6 +323,27 @@ MapTable::DumpTree( MapTableT dir, const char *trace )
 }
 
 int
+MapTable::HasWild() 
+{
+	// Returns 1 if is at least one mapping contains wildcards.
+	if( !count )
+	    return 0;
+
+	MapItem *mi = Get( 0 );
+
+	while( mi )
+	{
+	    if( mi->Lhs()->IsWild() || mi->Rhs()->IsWild() )
+	        return 1;
+
+	    mi = GetNext( mi );
+	}
+
+	return 0;
+}
+
+
+int
 MapTable::IsSingle() const
 {
 	// Returns 1 if there is exactly one mapping and it contains no

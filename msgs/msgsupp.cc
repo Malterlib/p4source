@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSupp error code is: 399
+ * Current high value for a MsgSupp error code is: 407
  */
 
 # include <error.h>
@@ -143,6 +143,7 @@ ErrorId MsgSupp::OptionUnload          = { ErrorOf( ES_SUPP, 100, E_INFO, EV_NON
 ErrorId MsgSupp::OptionUnloadLimit     = { ErrorOf( ES_SUPP, 264, E_INFO, EV_NONE, 0 ), "%'--unload-limit (-u)'%: threshold number of days after which an unused client will be unloaded." } ;
 ErrorId MsgSupp::OptionOmitLazy        = { ErrorOf( ES_SUPP, 101, E_INFO, EV_NONE, 0 ), "%'--omit-lazy (-z)'%: omits lazy copies from the results." } ;
 ErrorId MsgSupp::OptionLeaveKeywords   = { ErrorOf( ES_SUPP, 102, E_INFO, EV_NONE, 0 ), "%'--leave-keywords (-k)'%: specifies that RCS keywords are not to be expanded in the output." } ;
+ErrorId MsgSupp::OptionLeaveKeywords2  = { ErrorOf( ES_SUPP, 401, E_INFO, EV_NONE, 0 ), "%'--leave-keywords (-K)'%: specifies that RCS keywords are not to be expanded in transfered files." } ;
 ErrorId MsgSupp::OptionOutputFile      = { ErrorOf( ES_SUPP, 103, E_INFO, EV_NONE, 0 ), "%'--file (-o)'%: specifies the name of the output file." } ;
 ErrorId MsgSupp::OptionExists          = { ErrorOf( ES_SUPP, 104, E_INFO, EV_NONE, 0 ), "%'--exists (-e)'%: includes only files which are not deleted." } ;
 ErrorId MsgSupp::OptionContent         = { ErrorOf( ES_SUPP, 105, E_INFO, EV_NONE, 0 ), "%'--content (-h)'%: display file content history instead of file name history." } ;
@@ -384,6 +385,8 @@ ErrorId MsgSupp::OptionFailoverYes        = { ErrorOf( ES_SUPP, 335, E_INFO, EV_
 ErrorId MsgSupp::OptionFailoverid         = { ErrorOf( ES_SUPP, 336, E_INFO, EV_NONE, 0 ), "%'--serverid (-s)'%: ID of the server from which failover is to occur." } ;
 ErrorId MsgSupp::OptionFailoverQuiesce    = { ErrorOf( ES_SUPP, 337, E_INFO, EV_NONE, 0 ), "%'--quiesce-wait (-w)'%: time (in seconds) to wait for commands to complete on the server from which failover is to occur." } ;
 ErrorId MsgSupp::OptionFailoverVerification  = { ErrorOf( ES_SUPP, 350, E_INFO, EV_NONE, 0 ), "%'--verification (-v)'%: time (in seconds) defining recently updated depot files requiring digest verification." } ;
+ErrorId MsgSupp::OptionFailbackYes        = { ErrorOf( ES_SUPP, 405, E_INFO, EV_NONE, 0 ), "%'--yes (-y)'%: execute the failback rather than just checking that the failback could occur." } ;
+ErrorId MsgSupp::OptionFailbackQuiesce    = { ErrorOf( ES_SUPP, 406, E_INFO, EV_NONE, 0 ), "%'--quiesce-wait (-w)'%: time (in seconds) to wait for commands to complete on the server from which failback is to occur." } ;
 
 ErrorId MsgSupp::JsmnBadType              = { ErrorOf( ES_SUPP, 312, E_FAILED, EV_CONFIG, 3 ), "JSON error: token not expected type. Token number %index% Expected type %expected% Observed type %observed%." } ;
 ErrorId MsgSupp::JsmnBadParent            = { ErrorOf( ES_SUPP, 313, E_FAILED, EV_CONFIG, 3 ), "JSON error: token does not have the expected parent. Token number %index% Expected parent index %expected% Observed parent index %observed%." } ;
@@ -435,6 +438,10 @@ ErrorId MsgSupp::OptionCleanPurge         = { ErrorOf( ES_SUPP, 397, E_INFO, EV_
 ErrorId MsgSupp::OptionLocalLicense       = { ErrorOf( ES_SUPP, 398, E_INFO, EV_NONE, 0 ), "%'--local (-l)'%: this server only." } ;
 ErrorId MsgSupp::OptionAutoReload         = { ErrorOf( ES_SUPP, 399, E_INFO, EV_NONE, 0 ), "%'--autreload (-R)'%: limit results to just autoreload labels." } ;
 ErrorId MsgSupp::OptionViewMatch          = { ErrorOf( ES_SUPP, 400, E_INFO, EV_NONE, 0 ), "%'--viewmatch'%: match views with given path." } ;
+ErrorId MsgSupp::OptionObliterate         = { ErrorOf( ES_SUPP, 402, E_INFO, EV_NONE, 0 ), "%'--obliterate'%: permanently remove stream and related metadata." } ;
+ErrorId MsgSupp::OptionOffset             = { ErrorOf( ES_SUPP, 403, E_INFO, EV_NONE, 0 ), "%'--offset'%: start print at the given offset." } ;
+ErrorId MsgSupp::OptionSize               = { ErrorOf( ES_SUPP, 404, E_INFO, EV_NONE, 0 ), "%'--size'%: print the given size." } ;
+ErrorId MsgSupp::OptionCompressed         = { ErrorOf( ES_SUPP, 407, E_INFO, EV_NONE, 0 ), "%'--compressed'%: specifies how to verify compressed archives." } ;
 
 // ErrorId graveyard'%: retired/deprecated ErrorIds.
 

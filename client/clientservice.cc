@@ -91,9 +91,19 @@ class ProgressHandle : public LastChance {
 };
 
 FileSysType 
-LookupType( const StrPtr *type )
+LookupType( const StrPtr *type, Error *e )
 {
 	if( !type ) return FST_TEXT;
+
+	if( type->Length() > 3 )
+	{
+	    e->Set( MsgClient::BadFiletype ) << type;
+
+	    // This shouldn't happen, but in at least 1 place the server
+	    // sends "binary+F"
+	    if( !strncmp( "binary", type->Text(), 6 ) )
+	        return FST_BINARY;
+	}
 
 	/*
 	 * For types see DmtFileType::ClientPart() in dmtypes.h.
@@ -129,10 +139,15 @@ LookupType( const StrPtr *type )
 	case 1: tf = StrOps::XtoO( (*type)[0] );
 	case 0: /* nothing??? */;
 	}
+	
+	if( tu > 1 )
+	    e->Set( MsgClient::BadUncompressFlag ) << tu << type;
+	if( tl > 4 )
+	    e->Set( MsgClient::BadLineEndingFlag ) << tl << type;
 
 	// Map '[ uncompress ] fileType' into FileSysType.
 
-	switch( ( tu << 8 ) | tf )
+	switch( tf )
 	{
 
 	    // Normal.
@@ -158,16 +173,14 @@ LookupType( const StrPtr *type )
 	case 0x018: t = FST_UTF16;			break;	// 2007.2
 	case 0x01A: t = FST_UTF16 	| FST_M_EXEC;	break;	// 2007.2
 
-	    // Uncompressing.
-
-	case 0x101: t = FST_GUNZIP;			break;	// 2004.1
-	case 0x103: t = FST_GUNZIP	| FST_M_EXEC;	break;	// 2004.1
-
 	    // Stop-gap.
 
 	default:   t = FST_BINARY;			break;
 
 	}
+
+	if( tu )
+	    t |= FST_C_GUNZIP;
 
 	// And the lineType
 	// 0x0 -> FST_L_LOCAL == 0, so don't bother.
@@ -222,13 +235,27 @@ ClientSvc::XCharset( Client *client, XDir d )
 FileSys *
 ClientSvc::FileFromPath( Client *client, const char *vName, Error *e )
 {
+	return FileFromPath( client, vName, P4Tag::v_type, e );
+}
+
+FileSys *
+ClientSvc::FileFromPath( Client *client, const char *vName, const char *vType,
+	                 Error *e )
+{
 	StrPtr *clientPath = client->transfname->GetVar( vName, e );
-	StrPtr *clientType = client->GetVar( P4Tag::v_type );
+	StrPtr *clientType = vType ? client->GetVar( vType ) : 0;
 
 	if( e->Test() )
 	    return 0;
 
-	FileSys *f = client->GetUi()->File( LookupType( clientType ) );
+
+	FileSysType type = LookupType( clientType, e );
+	if( e->Test() && client->CheckFileType() )
+	    return 0;
+	else
+	    e->Clear();
+
+	FileSys *f = client->GetUi()->File( type );
 
 	f->SetContentCharSetPriv( client->ContentCharset() );
 	f->Set( *clientPath, e );
@@ -627,8 +654,9 @@ clientOpenFile( Client *client, Error *e )
 	{
 	    f->serverDigest.Set( digest );
 	    f->checksum = new MD5;
-	    if( !f->file->IsTextual() && !( f->file->GetType() & FST_M_APPLE ) 
-	                              && !( f->file->GetType() == FST_RESOURCE ) )
+	    if( ( !f->file->IsTextual() || (f->file->GetType() & FST_C_MASK) ) &&
+	        !( f->file->GetType() & FST_M_APPLE ) &&
+	        !( f->file->GetType() == FST_RESOURCE ) )
 	        f->file->SetDigest( f->checksum );
 	}
 
@@ -666,8 +694,9 @@ clientWriteFile( Client *client, Error *e )
 	    return;
 
 	if( f->serverDigest.Length() && 
-	  ( f->file->IsTextual() || ( f->file->GetType() & FST_M_APPLE ) 
-	                         || ( f->file->GetType() == FST_RESOURCE ) ) )
+	  ( ( f->file->IsTextual() && !( f->file->GetType() & FST_C_MASK ) ) ||
+	    ( f->file->GetType() & FST_M_APPLE ) ||
+	    ( f->file->GetType() == FST_RESOURCE ) ) )
 	    f->checksum->Update( *data );
 
 
@@ -1492,10 +1521,12 @@ clientCheckFile( Client *client, Error *e )
 	    /*
 	     * If we do know the type, we want to know if it's missing.
 	     * If it isn't missing and a digest is given, we want to know if
-	     * it is the same.
+	     * it is the same (requires a real ft+le+cmp value)
 	     */
 
-	    FileSys *f = ClientSvc::File( client, e );
+	    FileSys *f = ClientSvc::FileFromPath( client, P4Tag::v_path,
+	                                          digest ? P4Tag::v_type : 0,
+	                                          e );
 
 	    if( e->Test() || !f )
 		return;
@@ -1909,10 +1940,16 @@ clientOpenMerge( Client *client, Error *e )
 
 	// Set binary/text/etc file type - mostly for exec bit
 
-	FileSysType type = LookupType( clientType );
-	FileSysType rType = LookupType( resultType );
-	FileSysType tType = LookupType( theirType );
-	FileSysType bType = LookupType( baseType );
+	FileSysType type = LookupType( clientType, e );
+	FileSysType rType = LookupType( resultType, e );
+	FileSysType tType = LookupType( theirType, e );
+	FileSysType bType = LookupType( baseType, e );
+
+	if( e->Test() && client->CheckFileType() )
+	    return;
+	else
+	    e->Clear();
+
 	ClientMerge *merge = ClientMerge::Create
 		( client->GetUi(), type, rType, tType, bType, mt );
 

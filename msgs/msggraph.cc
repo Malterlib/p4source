@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgGraph error code is 401
+ * Current high value for a MsgGraph error code is 402
  */
 
 # include <error.h>
@@ -389,6 +389,7 @@ ErrorId MsgGraph::CorrectedObjRefcnt  = { ErrorOf( ES_GRAPH, 398, E_INFO, EV_NON
 ErrorId MsgGraph::RefcntInProgress = { ErrorOf( ES_GRAPH, 399, E_FAILED, EV_NONE, 0 ), "Refcounting is in progress(state:%state%). Please retry later." } ;
 ErrorId MsgGraph::NoOrphanedObj       = { ErrorOf( ES_GRAPH, 400, E_INFO, EV_NONE, 0 ), "No orphaned objects found." } ;
 ErrorId MsgGraph::ObjectRecNotFound   = { ErrorOf( ES_GRAPH, 401, E_FAILED, EV_FAULT, 1 ), "Object record not found: %'sha'%=%sha%." } ;
+ErrorId MsgGraph::RefCntAdjustNotFound = { ErrorOf( ES_GRAPH, 402, E_FAILED, EV_FAULT, 1 ), "Refcntadjust record not found: %'sha'%=%sha%." } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 

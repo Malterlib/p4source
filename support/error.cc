@@ -82,7 +82,7 @@ Error::Merge( const Error &source )
 		*ep = *source.ep;
 	    }
 	}
-	else
+	else if( source.severity != E_EMPTY )
 	{
 	    if( severity == E_EMPTY )
 		ep->Clear();

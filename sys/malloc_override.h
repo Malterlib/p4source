@@ -24,7 +24,7 @@ built with a memory manager.
 #      define NDEBUG
 #    endif
 #    define MI_STAT 1
-#    define MI_NO_ENVIRO 1
+#    define MI_NO_GETENV
 #    include <mimalloc.h>
 
 #    define HAS_MIMALLOC

@@ -427,6 +427,49 @@ FileSys::IsUNC( const StrPtr &path )
 }
 #endif
 
+bool
+FileSys::MakePathWriteable( const StrPtr &oldFile, StrBuf &newFile, Error *e )
+{
+	StrBuf strippedFile;
+
+	PathSys *parent = PathSys::Create();
+	parent->Set( oldFile );
+	parent->ToParent( &strippedFile );
+
+	if( !parent->Length() )
+	{
+	    delete parent;
+	    return false;
+	}
+	delete parent;
+
+	FileSys *f = FileSys::Create( FST_BINARY );
+	f->Set( oldFile.Text() );
+	int exists = f->Stat() & FSF_EXISTS;
+
+	Error tmpE;
+	f->Open( FOM_RW, &tmpE );
+	f->Close( &tmpE );
+
+	/*
+	 * The open/close causes a file that doesn't exist to be created.
+	 * If it didn't exist before, we should delete it now.
+	 */
+	if( !exists )
+	    f->Unlink();
+	delete f;
+
+	if( !tmpE.Test() )
+	    return false;
+
+	/*
+	 * File oldFile is not writeable. Removing the absolute or relative
+	 * path component might help, so set the stripped value in newFile.
+	 */
+	newFile.Set( strippedFile );
+	return true;
+}
+
 static int UnderRootCheck( const char *name, const char *root, int rootLen )
 {
 	int result;

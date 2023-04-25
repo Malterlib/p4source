@@ -100,6 +100,7 @@ struct P4Tag {
 	static const char v_authServer[];
 	static const char v_autoLogin[];
 	static const char v_autoTune[];
+	static const char v_badAlloc[];
 	static const char v_baseName[];
 	static const char v_behindBytes[];
 	static const char v_behindJnls[];
@@ -150,6 +151,7 @@ struct P4Tag {
 	static const char v_copied[];
 	static const char v_cumulative[];
 	static const char v_counter[];
+	static const char v_laddr[];
 	static const char v_current[];
 	static const char v_cwd[];
 	static const char v_daddr[];
@@ -213,6 +215,7 @@ struct P4Tag {
 	static const char v_headRev[];
 	static const char v_headTime[];
 	static const char v_headType[];
+	static const char v_hidden[];
 	static const char v_himark[];
 	static const char v_host[];
 	static const char v_how[];
@@ -229,6 +232,9 @@ struct P4Tag {
 	static const char v_lbrFile[];		// also remote depot
 	static const char v_lbrChange[];	
 	static const char v_lbrPath[];
+	static const char v_lbrRelPath[];
+	static const char v_lbrRelTo[];
+	static const char v_lbrRelToPath[];
 	static const char v_lbrRev[];		// also remote depot
 	static const char v_lbrType[];		// also remote depot
 	static const char v_lbrRefCount[];
@@ -305,6 +311,7 @@ struct P4Tag {
 	static const char v_proxyEncryption[];
 	static const char v_proxyCertExpires[];
 	static const char v_proxyRoot[];
+	static const char v_proxyCacheRoot[];
 	static const char v_proxyVersion[];
 	static const char v_purge[];
 	static const char v_pusher[];

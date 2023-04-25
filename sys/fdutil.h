@@ -5,11 +5,11 @@
  */
 
 extern "C" {
-    
+
 #ifdef OS_NT
-int lockFileByHandle( HANDLE h, int flag );
+int lockFileByHandle( HANDLE h, int flag, int (*cb)(void *) = 0, void *arg = 0 );
 #endif
-int lockFile( FD_TYPE fd, int flag );
+int lockFile( FD_TYPE fd, int flag, int (*cb)(void *) = 0, void *arg = 0 );
 FD_TYPE checkFd( FD_TYPE fd );
 void checkStdio( FD_TYPE fd = FD_INIT );
 

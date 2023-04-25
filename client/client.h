@@ -337,8 +337,10 @@ class Client : public Rpc {
 
 	void		SetSyncTime( int t ) { syncTime = t; }
 	int		GetSyncTime()        { return syncTime; }
-
+	
 	int		ServerDVCS() { return protocolServer >= 39; }
+	int		CheckFileType() { return protocolServer &&
+			                         protocolServer >= 54; }
 
     public:
 	// Old closure stuff, only used by scc api and to be retired

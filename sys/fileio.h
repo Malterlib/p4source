@@ -24,6 +24,8 @@
  *	FileIOApple - apple double format or native on Macintosh
  */
 
+class FileIOBuffer;
+class FileIOUnicode;
 class Gzip;
 
 class FileIO : public FileSys {
@@ -126,7 +128,8 @@ class FileIODir : public FileIOBinary {
 
 class FileIOCompress : public FileIOBinary {
     public:
-	FileIOCompress() : gzip( NULL ), gzbuf( NULL ), pos( 0 ), size( -1 )
+	FileIOCompress() : gzip( NULL ), gzbuf( NULL ), pos( 0 ), size( -1 ),
+	                   loop( 0 )
 	                   { compMode = FIOC_PASS; }
 	virtual	~FileIOCompress();
 
@@ -144,6 +147,16 @@ class FileIOCompress : public FileIOBinary {
 	StrFixed	*gzbuf;
 	offL_t		pos;
 	offL_t		size;
+	FileIOBuffer	*loop;
+
+    private:
+	friend class FileIOBuffer;
+	friend class FileIOUnicode;
+	void		SetLoopback(FileIOBuffer* l) { loop =l; }
+	virtual void	WriteThrough( const char *buf, int len, Error *e );
+	int		IsUnCompress() {
+			    return ( GetType() & FST_C_MASK ) == FST_C_GUNZIP;
+			}
 
 } ;
 
@@ -153,7 +166,8 @@ class FileIOBuffer : public FileIOCompress {
 			FileIOBuffer( LineType lineType ) : 
 			    rcv( 0 ), snd( 0 ),
 			    lineType( lineType ),
-			    iobuf( BufferSize() )
+			    iobuf( BufferSize() ),
+			    checksum( 0 )
 	                {}
 
 	virtual void	Open( FileOpenMode mode, Error *e );
@@ -164,6 +178,7 @@ class FileIOBuffer : public FileIOCompress {
 	virtual offL_t	Tell();
 	virtual int	ReadLine( StrBuf *buf, Error *e );
 	virtual void	SetBufferSize( size_t l );
+	virtual void	SetDigest( MD5 *m );
 
     protected:
 	char		*ptr;
@@ -172,9 +187,16 @@ class FileIOBuffer : public FileIOCompress {
 
 	LineType	lineType;
 	StrFixed	iobuf;
+	MD5		*checksum;
 
 	virtual void	FlushBuffer( Error * );
 	virtual void	FillBuffer( Error * );
+
+	void		WriteText( const char *buf, int len, Error *e );
+
+    private:
+	friend class FileIOCompress;
+	void		WriteLoop( const char *buf, int len, int flush, Error *e );
 } ;
 
 class FileIOUnicode : public FileIOBuffer {

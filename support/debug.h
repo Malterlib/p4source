@@ -58,6 +58,7 @@ enum P4DebugType {
 	DT_HEARTBEAT,	// Heartbeat related
 	DT_SHELVE,	// Shelving related
 	DT_SQW,		// StreamQWorker related
+	DT_TOPOLOGY,	// Topology
 	DT_LAST
 }  ;
 
@@ -134,12 +135,14 @@ class P4DebugConfig {
 	virtual void Output();
 	virtual StrBuf *Buffer();
 	virtual int Alloc( int );
+	virtual P4DebugConfig *Clone();
 	void Install();
 	void SetErrorLog( ErrorLog *e ) { elog = e; }
 	void SetOutputHook( void *ctx, DebugOutputHook hk )
 		{ hook = hk; context = ctx; }
 
 	static void TsPid2StrBuf( StrBuf &prefix );
+	static P4DebugConfig *ThreadClone();
 
     protected:
 	StrBuf *buf;
@@ -147,6 +150,7 @@ class P4DebugConfig {
 	ErrorLog *elog;
 	DebugOutputHook hook;
 	void		*context;
+	int cloned;
 };
 
 class P4Debug : private P4Tunable {

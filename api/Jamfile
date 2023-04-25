@@ -1,6 +1,6 @@
 SubDir P4 api ;
 
-SubDirHdrs $(P4) ;			# just for Jamrules
+SubDir $(P4) ;			# just for Jamrules
 SubDirHdrs $(P4) client ;
 SubDirHdrs $(P4) diff ;
 SubDirHdrs $(P4) dme ;

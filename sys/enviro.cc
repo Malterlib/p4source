@@ -881,10 +881,10 @@ Enviro::Enviro( const Enviro &rhs )
 	rhs.configFiles->Copy( configFiles );
 
 # ifdef OS_NT
-	setKey = new KeyPair( *(rhs.setKey) );
-	serviceKey = new KeyPair( *(rhs.serviceKey) );
-	userKey = new KeyPair( *(rhs.userKey) );
-	serverKey = new KeyPair( *(rhs.serverKey) );
+	setKey = rhs.setKey ? new KeyPair( *(rhs.setKey) ) : 0;
+	serviceKey = rhs.serviceKey ? new KeyPair( *(rhs.serviceKey) ) : 0;
+	userKey = rhs.userKey ? new KeyPair( *(rhs.userKey) ) : 0;
+	serverKey = rhs.serverKey ? new KeyPair( *(rhs.serverKey) ) : 0;
 	serviceKeyName = rhs.serviceKeyName;
 	charset = rhs.charset;
 # endif // OS_NT

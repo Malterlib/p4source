@@ -42,6 +42,7 @@ MT_STATIC P4DebugConfig *p4debughelp;
 # define B16K 16*1024
 # define B32K 32*1024
 # define B64K 64*1024
+# define B224K 224*1024
 # define B512K 512*1024
 # define B1M 1024*1024
 # define B2M 1024*2048
@@ -155,12 +156,16 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "heartbeat",	0, -1, -1, 10, 1, 1, 0, 1 },
 	{ "shelve",	0, -1, -1, 10, 1, 1, 0, 1 },
 	{ "sqw",	0, -1, -1, 10, 1, 1, 0, 1 },
+	{ "topology",	0, -1, -1, 10, 1, 1, 0, 1 },
 
 	// P4Tunable's collection
 	//
 	// name				isSet,	value,	min,	max,	mod,	k,	orig,	sensitive
 
 	{ "cluster.journal.shared",	0,	0,	0,	1,	1,	1,	0,	1 },
+	{ "db.checkpoint.bufsize",	0,	B224K,	B16K,	BBIG,	1,	B1K,	0,	1 },
+	{ "db.checkpoint.threads",	0,	-1,	-1,	199,	1,	1,	0,	1 },
+	{ "db.experimental.logging",	0,	0,	0,	1,	1,	1,	0,	1 },
 	{ "db.isalive",			0,	R10K,	1,	RBIG,	1,	R1K,	0,	1 },
 	{ "db.jnlack.shared",		0,	16,	0,	2048,	1,	B1K,	0,	1 },
 	{ "db.monitor.addthresh",	0,	0,	0,	RBIG,	1,	B1K,	0,	1 },
@@ -193,7 +198,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "diff.sthresh",		0,	R50K,	R1K,	RBIG,	1,	R1K,	0,	0 },
 	{ "dm.annotate.maxsize",	0,	B10M,	0,	BBIG,	1,	B1K,	0,	0 },
 	{ "dm.batch.domains",		0,	0,	R1K,	RBIG,	1,	R1K,	0,	0 },
-	{ "dm.batch.net",		0,	R1K,	1,	RBIG,	1,	R1K,	0,	0 },
+	{ "dm.batch.net",		0,	R10K,	1,	RBIG,	1,	R1K,	0,	0 },
 	{ "dm.change.restrict.pending",	0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "dm.change.skipkeyed",	0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "dm.changes.thresh1",		0,	R50K,	1,	RBIG,	1,	R1K,	0,	0 },
@@ -217,8 +222,14 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "dm.integ.streamspec",	0,	1,	0,	2,	1,	1,	0,	0 },
 	{ "dm.integ.tweaks",		0,	0,	0,	256,	1,	1,	0,	0 },
 	{ "dm.integ.undo",		0,	0,	0,	1,	1,	1,	0,	0 },
+	{ "dm.integ.multiplestreams",	0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "dm.isalive",			0,	R50K,	1,	RBIG,	1,	R1K,	0,	0 },
 	{ "dm.keys.hide",		0,	0,	0,	2,	1,	1,	0,	0 },
+	{ "dm.labels.search.autoreload",	0,	0,	0,	2,	1,	1,	0,	0 },
+	{ "dm.lock.batch",		0,	R10K,	1,	RBIG,	1,	R1K,	0,	0 },
+	{ "dm.locks.excl.batch.net",		0,	R10K,	1,	RBIG,	1,	R1K,	0,	0 },
+	{ "dm.locks.global.batch.net",		0,	R10K,	1,	RBIG,	1,	R1K,	0,	0 },
+	{ "dm.locks.global.result.batch.net",	0,	R10K,	1,	RBIG,	1,	R1K,	0,	0 },
 	{ "dm.maxkey",			0,	B1K,	64,	B4K,	1,	B1K,	0,	1 }, // B4K = max(dbopen.pagesize) / 4
 	{ "dm.open.show.globallocks",	0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "dm.password.minlength",	0,	8,	0,	1024,	1,	1,	0,	0 },
@@ -240,6 +251,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "dm.resolve.ignoredeleted",	0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "dm.revcx.thresh1",		0,	R4K,	1,	RBIG,	1,	R1K,	0,	0 },
 	{ "dm.revcx.thresh2",		0,	R1K,	1,	RBIG,	1,	R1K,	0,	0 },
+	{ "dm.revert.batch",		0,	R10K,	1,	RBIG,	1,	R1K,	0,	0 },
 	{ "dm.rotatelogwithjnl",	0,	1,	0,	1,	1,	1,	0,	0 },
 	{ "dm.shelve.accessupdate",	0,	300,	1,	RBIG,	1,	1,	0,	0 },
 	{ "dm.shelve.maxfiles",		0,	R10M,	0,	RBIG,	1,	R1K,	0,	0 },
@@ -248,7 +260,9 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "dm.status.matchlines",	0,	80,	0,	100,	1,	1,	0,	0 },
 	{ "dm.status.matchsize",	0,	10,	0,	R1G,	1,	R1K,	0,	0 },
 	{ "dm.stream.parentview",	0,	0,	0,	2,	1,	1,	0,	0 },
+	{ "dm.stream.components",	0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "dm.subprotects.grant.admin",	0,	1,	0,	1,	1,	1,	0,	0 },
+	{ "dm.topology.lastseenupdate",	0,	300,	1,	RBIG,	1,	1,	0,	0 },
 	{ "dm.user.accessupdate",	0,	300,	1,	RBIG,	1,	1,	0,	0 },
 	{ "dm.user.accessforce",	0,	3600,	1,	RBIG,	1,	1,	0,	0 },
 	{ "dm.user.allowselfupdate",	0,	1,	0,	1,	1,	1,	0,	0 },
@@ -275,7 +289,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "filesys.windows.lfn",	0,	1,	0,	10,	1,	1,	0,	0 },
 	{ "filesys.client.nullsync",	0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "index.domain.owner",		0,	0,	0,	1,	1,	1,	0,	0 },
-	{ "lbr.autocompress",		0,	0,	0,	1,	1,	1,	0,	0 },
+	{ "lbr.autocompress",		0,	1,	0,	1,	1,	1,	0,	0 },
 	{ "lbr.bufsize",		0,	B64K,	1,	BBIG,	1,	B1K,	0,	0 },
 	{ "lbr.fabricate",		0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "lbr.proxy.case",		0,	1,	1,	3,	1,	1,	0,	0 },
@@ -337,6 +351,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "proxy.monitor.level",	0,	0,	0,	3,	1,	1,	0,	1 },
 	{ "rcs.maxinsert",		0,	R1G,	1,	RBIG,	1,	R1K,	0,	1 },
 	{ "rcs.nofsync",		0,	0,	0,	1,	1,	1,	0,	1 },
+	{ "rpc.delay",		0,	0,	0,      RBIG,   1,	1,	0,	0 },
 	{ "rpc.durablewait",		0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "rpc.himark",			0,	2000,	2000,	BBIG,	1,	B1K,	0,	0 },
 	{ "rpc.lowmark",		0,	700,	700,	BBIG,	1,	B1K,	0,	0 },
@@ -434,6 +449,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 # endif
 	{ "sys.memory.mi.largeospages",	0,	0,	0,	1,	1,	1,	0,	1 },
 	{ "sys.memory.mi.reservehugeospages",0,	0,	0,	RBIG,	1,	1,	0,	1 },
+	{ "sys.memory.mi.reservehugeospagesat",0,	-1,	-1,	RBIG,	1,	1,	0,	1 },
 	{ "sys.memory.mi.reserveosmemory",0,	0,	0,	RBIG,	1,	1,	0,	1 },
 	{ "sys.memory.mi.segmentcache",	0,	0,	0,	RBIG,	1,	1,	0,	1 },
 	{ "sys.memory.mi.pagereset",	0,	1,	0,	1,	1,	1,	0,	1 },
@@ -498,7 +514,7 @@ P4Tunable::stunable P4Tunable::slist[] = {
 P4MT int
 list2[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-	    -1, -1, -1, -1, -1, -1, -1, -1, -1 }  ;
+	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 }  ;
 
 int
 P4Tunable::IsKnown( const char *n )
@@ -1078,7 +1094,7 @@ P4Debug::printf( const char *fmt, ... )
 }
 
 P4DebugConfig::P4DebugConfig()
-    : buf(NULL), msz(0), elog(NULL), hook(NULL), context(NULL)
+    : buf(NULL), msz(0), elog(NULL), hook(NULL), context(NULL), cloned(0)
 {
 }
 
@@ -1088,6 +1104,9 @@ P4DebugConfig::~P4DebugConfig()
 	    p4debughelp = NULL;
 
 	delete buf;
+
+	if( cloned && elog )
+	    delete elog;
 }
 
 void
@@ -1154,4 +1173,33 @@ P4DebugConfig::Output()
 		fputs( output->Text(), stdout );
 	}
     }
+}
+
+P4DebugConfig *
+P4DebugConfig::ThreadClone()
+{
+	if ( p4debughelp )
+	{
+	    return p4debughelp->Clone();
+	}
+	return NULL;
+}
+
+P4DebugConfig *
+P4DebugConfig::Clone()
+{
+	P4DebugConfig *clone = new P4DebugConfig;
+
+	if ( elog )
+	{
+	    // If there is an ErrorLog set, clone it into a new ErrorLog
+	    // object and install.
+	    // Writes to STDOUT maybe intermixed. The writes
+	    // are typically small, so we will probably get
+	    // away with it. No plans to protect against this.
+	    clone->cloned = 1;
+	    clone->elog = new ErrorLog( elog );
+	}
+
+	return clone;
 }

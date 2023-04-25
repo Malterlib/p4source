@@ -271,6 +271,12 @@ StrDict::VClear()
 	// null default implementation
 }
 
+void
+StrDict::VReset()
+{
+	// null default implementation
+}
+
 StrVarName::StrVarName( const StrPtr &name, int x, int y )
 {
 	name.StrCpy( varName );

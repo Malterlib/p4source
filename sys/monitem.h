@@ -57,7 +57,7 @@ class MonItem {
 class MonInteger : public MonItem {
 
     public:
-			MonInteger( const char *, int = 0 );
+			MonInteger( const char *, int = 0, P4INT64 init = 0 );
 			~MonInteger();
 	
 	virtual int	DataSize() const;
@@ -72,7 +72,10 @@ class MonInteger : public MonItem {
 	
 	P4INT64		Value() const;
 	void		Display( StrBuf * ) const;
-	
+
+    protected:
+	P4INT64		initialValue;
+
     private:
 	virtual void	Initialize();
 	virtual void	NewValue();
@@ -81,8 +84,8 @@ class MonInteger : public MonItem {
 class MonIntMax : public MonInteger {
 
     public:
-			MonIntMax( const char *a, int f = 0 )
-			    : MonInteger( a, f ) {}
+			MonIntMax( const char *a, int f = 0, P4INT64 init = 0 )
+			    : MonInteger( a, f, init ) {}
 	
 	virtual int	DataSize() const;
 	virtual int	ItemId() const;
