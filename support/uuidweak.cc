@@ -119,7 +119,11 @@ Randomize(
 #endif
 
 #ifdef USE_OPENSSL_RAND
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
 	RAND_pseudo_bytes( buffer, count );
+# else
+	RAND_bytes( buffer, count );
+# endif
 #else // USE_OPENSSL_RAND
 	for( int i = 0; i < count; ++i )
 	{

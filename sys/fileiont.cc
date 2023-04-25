@@ -18,6 +18,8 @@
 # include <error.h>
 # include <errornum.h>
 # include <strbuf.h>
+# include <strdict.h>
+# include <strtable.h>
 # include <strarray.h>
 # include <debug.h>
 # include <tunable.h>
@@ -43,10 +45,16 @@ extern int global_umask;
 
 # define DOUNICODE	( CharSetApi::isUnicode((CharSetApi::CharSet)GetCharSetPriv()) )
 
+extern int nt_atrename( StrPtr *, StrPtr *, int, int );
+
 #define LF 10           // line feed
 #define CR 13           // carriage return
 #define CTRLZ 26        // ctrl-z means eof for text
 
+#define FH_ERROR		-1
+#define FH_CONTINUE		0
+#define FH_DELETE_PENDING	1
+#define FH_READ_ONLY		2
 
 // The REPARSE_DATA_BUFFER is part of the "Windows Driver Kit" according to
 // the MSDN docs, so for the time being we just copy the structure here:
@@ -255,6 +263,55 @@ nt_wname( StrPtr *fname, int lfn, int *newlen )
 	    *newlen = len;
 
 	return wname;
+}
+
+// Determine if the handle is pointing to a file which has been made
+// read only or is in a delete pending state.
+//
+// Return values,
+//	FH_ERROR         -1 - something went wrong.
+//	FH_CONTINUE       0 - file operation can continue.
+//	FH_DELETE_PENDING 1 - file was unlinked, now in delete pending.
+//	FH_READ_ONLY      2 - file is now read only.
+//
+int
+nt_check_fh (
+	HANDLE fh
+	)
+{
+	FILE_STANDARD_INFO fsi;
+
+	// Test for delete pending.
+	//
+	memset( &fsi, 0, sizeof(fsi) );
+	BOOL bResult = GetFileInformationByHandleEx(
+	                        fh,
+	                        FileStandardInfo,
+	                        &fsi,
+	                        sizeof(fsi) );
+
+	if( ! bResult )
+	    return FH_ERROR;
+
+	if( fsi.DeletePending )
+	    return FH_DELETE_PENDING;
+
+	FILE_BASIC_INFO fbi;
+
+	memset( &fbi, 0, sizeof(fbi) );
+	bResult = GetFileInformationByHandleEx(
+	                        fh,
+	                        FileBasicInfo,
+	                        &fbi,
+	                        sizeof(fbi) );
+
+	if( ! bResult )
+	    return FH_ERROR;
+
+	if( fbi.FileAttributes & FILE_ATTRIBUTE_READONLY )
+	    return FH_READ_ONLY;
+
+	return FH_CONTINUE;
 }
 
 time_t
@@ -520,6 +577,78 @@ ntw_islink( StrPtr *fname, DWORD *dwFlags, int lfn )
 	return 0;
 }
 
+// Atomic rename is same device only.  If the devices differ
+// fall back to the old copy truncate code.
+//
+int
+nt_volumechk( char *src, char *dst )
+{
+	char src_vol = '\0';
+	char dst_vol = '\0';
+	char cwd_vol = '\0';
+
+	// For now we do not support atomic rename on UNC paths.
+	//
+	// Yuck, both / and \ work for UNC paths.
+	//
+	if( src[0] && (src[0]=='\\' && src[1]=='\\') ||
+	    (src[0]=='/' && src[1]=='/') )
+	        return 0;
+	if( dst[0] && (dst[0]=='\\' && dst[1]=='\\') ||
+	    (dst[0]=='/' && dst[1]=='/') )
+	        return 0;
+
+	if( src[0] && src[1] == ':' )
+	    src_vol = src[0];
+	if( dst[0] && dst[1] == ':' )
+	    dst_vol = dst[0];
+
+	// Both on same volume.
+	//
+	if( src_vol == '\0' && dst_vol == '\0' )
+	    return 1;
+
+	// Both still on same volume.
+	//
+	if( src_vol != '\0' && dst_vol != '\0' && src_vol == dst_vol )
+	    return 1;
+
+	// We need more information, use CWD.
+	//
+	int cs = GlobalCharSet::Get();
+	StrBuf cwd;
+	HostEnv::GetCwdbyCS( cwd, cs );
+
+	char *cwdstr = cwd.Text();
+
+	// We assume cwd_vol will always be able to be set, otherwise we 
+	// have larger problems.  CWD is bad.
+	//
+	if( cwdstr[0] && cwdstr[1] == ':' )
+	    cwd_vol = cwdstr[0];
+
+	// Use cwd_vol in place of src_vol.
+	//
+	if( src_vol == '\0' )
+	{
+	    if( dst_vol == cwd_vol )
+	        return 1;
+	    else
+	        return 0;
+	}
+	// Use cwd_vol in place of dst_vol.
+	//
+	if( dst_vol == '\0' )
+	{
+	    if( src_vol == cwd_vol )
+	        return 1;
+	    else
+	        return 0;
+	}
+
+	return 0;
+}
+
 int
 nt_islink( StrPtr *fname, DWORD *dwFlags, int dounicode, int lfn )
 {
@@ -704,7 +833,10 @@ nt_getStdHandle( int std_desc, int flags )
 	FD_TYPE fd = new struct P4_FD;
 
 	fd->flags = flags;
-	fd->isStd = 1;
+	fd->mode = 0;
+	fd->lock = 0;
+	fd->dounicode = 0;
+	fd->fdFlags = FD_IsSTD;
 	fd->fh = std_fh;
 	fd->ptr = NULL;
 	fd->rcv = 0;
@@ -731,7 +863,7 @@ nt_getStdHandle( int std_desc, int flags )
 //
 // We are not supporting _O_*TEXT* modes or special devices.
 //
-FD_TYPE
+HANDLE
 ntw_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 {
 	// Process the Posix flags into Win32 native actions.
@@ -751,7 +883,7 @@ ntw_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 	//
 	wname = nt_wname( fname, lfn, &newlen );
 	if( !wname )
-	    return FD_ERR;
+	    return INVALID_HANDLE_VALUE;
 
 	// Length check for unicode.
 	// If LFN and Unicode are always set, this can be removed.
@@ -759,7 +891,7 @@ ntw_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 	{
 	    nt_free_wname( wname );
 	    SetLastError( ERROR_BUFFER_OVERFLOW );
-	    return FD_ERR;
+	    return INVALID_HANDLE_VALUE;
 	}
 
 	// Establish the default security attributes.
@@ -791,7 +923,7 @@ ntw_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 	        break;
 
 	    default:		// error, bad flags
-	        return FD_ERR;
+	        return INVALID_HANDLE_VALUE;
 
 	}
 
@@ -800,15 +932,15 @@ ntw_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 	//
 	fileshare = FILE_SHARE_READ | FILE_SHARE_WRITE;
 
-#ifdef ALLOW_OPERATIONS_ON_BUSY_FILES
-
 	// Allow delete and rename on an open file for Windows.
 	// The delete or rename is only allowed once.
 	//
-	if( lfn & LFN_MOVEBUSY )
+	if( lfn & LFN_ATOMIC_RENAME )
+	{
 	    fileshare |= FILE_SHARE_DELETE;
-
-#endif
+	    if( fileaccess & GENERIC_WRITE )
+	        fileaccess |= DELETE;
+	}
 
 	// Process Posix open/create method into CreateFile disposition.
 	//
@@ -837,7 +969,7 @@ ntw_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 	        break;
 
 	    default:
-	        return FD_ERR;
+	        return INVALID_HANDLE_VALUE;
         }
 
 	// Process Posix attributes and flags into CreateFile attributes.
@@ -903,10 +1035,43 @@ ntw_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 	                fileattribflags,
 	                NULL ) ;
 
+
+	// The only file we open with shared delete is the journal file with
+	// filesys.atomic.rename set to 1. If the journal file is concurrently
+	// opened without shared delete, a sharing violation will occur.  If
+	// the journal is rotated with atomic rename, any open handles will
+	// follow the rename to the file journal.N.  If the journal.N file is
+	// opened without shared delete, a sharing violation will occur.  This
+	// second instance occurred in case 810393.
+	//
+	// If we have a sharing violation, we assume the file open was attempted
+	// without shared delete and another handle already has this file open
+	// with shared delete.  Add the shared delete flag and try the open
+	// again.
+	//
+	if( osfh == INVALID_HANDLE_VALUE &&
+	    GetLastError() == ERROR_SHARING_VIOLATION )
+	{
+	    SetLastError( ERROR_SUCCESS );
+
+	    fileshare |= FILE_SHARE_DELETE;
+	    if( fileaccess & GENERIC_WRITE )
+	        fileaccess |= DELETE;
+
+	    osfh = CreateFileW (
+	                    wname,
+	                    fileaccess,
+	                    fileshare,
+	                    &SecurityAttributes,
+	                    filecreate,
+	                    fileattribflags,
+	                    NULL ) ;
+	}
+
 	nt_free_wname( wname );
 
 	if( osfh == INVALID_HANDLE_VALUE )
-	    return FD_ERR;
+	    return INVALID_HANDLE_VALUE;
 
 	if( flags & (_O_RDWR | _O_TEXT) )
 	{
@@ -932,7 +1097,7 @@ ntw_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 	        if( GetLastError() != ERROR_NEGATIVE_SEEK )
 	        {
 	            CloseHandle (osfh);
-	            return FD_ERR;
+	            return INVALID_HANDLE_VALUE;
 	        }
 	    }
 	    else
@@ -956,7 +1121,7 @@ ntw_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 	            if( !success )
 	            {
 	                CloseHandle (osfh);
-	                return FD_ERR;
+	                return INVALID_HANDLE_VALUE;
 	            }
 	        }
 
@@ -970,15 +1135,57 @@ ntw_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 	        if( ! bRet )
 	        {
 	            CloseHandle (osfh);
-	            return FD_ERR;
+	            return INVALID_HANDLE_VALUE;
 	        }
 	    }
 	}
 
+	return osfh;
+}
+
+// Open the handle without the FD_TYPE book keeping.
+//
+HANDLE
+nt_open2( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
+{
+	HANDLE osfh;
+
+	osfh = ntw_open( fname, flags, mode, dounicode, lfn );
+
+	if( osfh == INVALID_HANDLE_VALUE )
+	{
+	    // Claer LFN_UTF8 so that the MS Unicode conversion is used
+	    // instead of our CVT class in nt_wname().  This is the only
+	    // significant difference as compared to the Posix ::open().
+	    //
+	    int lfn_fallback = lfn & ~LFN_UTF8;
+
+	    osfh = ntw_open( fname, flags, mode, dounicode, lfn_fallback );
+	}
+
+	return osfh ;
+}
+
+// Open the handle with FD_TYPE book keeping.
+//
+FD_TYPE
+nt_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
+{
+	HANDLE osfh;
+
+	osfh = nt_open2( fname, flags, mode, dounicode, lfn );
+
+	if( osfh == INVALID_HANDLE_VALUE )
+	    return FD_ERR;
+
 	FD_TYPE fd = new struct P4_FD;
 
 	fd->flags = flags;
-	fd->isStd = 0;
+	fd->mode = mode;
+	fd->lock = 0;
+	fd->dounicode = dounicode;
+	fd->lfn = lfn;
+	fd->fdFlags = 0;
 	fd->fh = osfh;
 	fd->ptr = NULL;
 	fd->rcv = 0;
@@ -1000,40 +1207,27 @@ ntw_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 	return fd;
 }
 
+// Close the handle without the FD_TYPE book keeping.
 //
-//
-//
-FD_TYPE
-nt_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
+void
+nt_close2(FD_TYPE fd)
 {
-	FD_TYPE fd;
+	// Close handle if it is not a standard handle.
 
-	fd = ntw_open( fname, flags, mode, dounicode, lfn );
+	if( !(fd->fdFlags & FD_IsSTD) )
+	    CloseHandle( fd->fh );
 
-	if( fd == FD_ERR )
-	{
-	    // Claer LFN_UTF8 so that the MS Unicode conversion is used
-	    // instead of our CVT class in nt_wname().  This is the only
-	    // significant difference as compared to the Posix ::open().
-	    //
-	    int lfn_fallback = lfn & ~LFN_UTF8;
-
-	    fd = ntw_open( fname, flags, mode, dounicode, lfn_fallback );
-	}
-
-	return fd;
+	fd->fh = INVALID_HANDLE_VALUE;
 }
 
+// Close the handle with the FD_TYPE book keeping.
+//
 int
 nt_close(FD_TYPE fd)
 {
 	BOOL bRet = TRUE;
 
-	// Close handle if it is not a standard handle.
-
-	if( ! fd->isStd )
-	    bRet = CloseHandle( fd->fh );
-	fd->fh = INVALID_HANDLE_VALUE;
+	nt_close2( fd );
 
 	if( fd->iobuf != NULL )
 	{
@@ -1045,6 +1239,63 @@ nt_close(FD_TYPE fd)
 	fd = FD_INIT;
 
 	return bRet ? 0 : -1;
+}
+
+// Close and reopen the given journal related file handle.
+// This can occur after a journal atomic rename.
+//
+// Return values,
+//  success =  0
+//  failure =  1
+int
+nt_reopen( StrPtr *fname, FD_TYPE fd )
+{
+	if( fd->fdFlags & FD_LOCKED )
+	    if( lockFileByHandle( fd->fh, LOCKF_UN) < 0 )
+	        return 1;
+
+	nt_close2( fd);
+
+	fd->fh = nt_open2( fname,
+	                    fd->flags, fd->mode, fd->dounicode, fd->lfn );
+	if( fd->fh == INVALID_HANDLE_VALUE )
+	    return 1;
+
+	if( fd->fdFlags & FD_LOCKED )
+	    if( lockFileByHandle( fd->fh, fd->lock) < 0 )
+	        return 1;
+
+	return 0;
+}
+
+// Used when a file has been unlinked and there are handles
+// still open on the target file.
+//
+// Return values,
+//  success =  0
+//  failure =  1
+int
+nt_reopen_wait( StrPtr *fname, FD_TYPE fd )
+{
+	int count;
+	int renameMax  = p4tunable.Get( P4TUNE_SYS_RENAME_MAX );
+	int renameWait = p4tunable.Get( P4TUNE_SYS_RENAME_WAIT );
+
+	for( count=0; count < renameMax; ++count )
+	{
+	    msleep( renameWait );
+
+	    // If this check fails, we try the open anyway, that will
+	    // return the appropriate error.
+	    //
+	    if( nt_check_fh (fd->fh) != FH_DELETE_PENDING )
+	        break;
+	}
+
+	if( count >= renameMax )
+	    return 1;
+
+	return nt_reopen( fname, fd );
 }
 
 int
@@ -1139,8 +1390,10 @@ nt_read( FD_TYPE fd, const void *buf, unsigned len )
 	return len - wrk_len;
 }
 
+// Return -1 on error, or bytes written.
+//
 int
-nt_write ( FD_TYPE fd, const void *buf, unsigned cnt )
+nt_write ( StrPtr *fname, FD_TYPE fd, const void *buf, unsigned cnt )
 {
 	int lfcount = 0;	// count of line feeds
 	int charcount = 0;	// count of chars written so far
@@ -1150,6 +1403,35 @@ nt_write ( FD_TYPE fd, const void *buf, unsigned cnt )
 	// nothing to do, just return
 	if( cnt == 0 )
 	    return 0;
+
+	if( !(fd->fdFlags & FD_IsSTD) && fd->lfn & LFN_ATOMIC_RENAME )
+	{
+	    switch ( nt_check_fh( fd->fh ) )
+	    {
+	        case FH_ERROR:
+	            return -1;
+
+	        // Continue, do not need to reopen the handle.
+	        //
+	        case FH_CONTINUE:
+	            break;
+
+	        // Any open handle on an unlinked file blocks the purge
+	        // of the directory entry.  There is no way around a
+	        // delete pending until all handles are closed on the
+	        // file which was unlinked.
+	        //
+	        // We make an attempt to wait out the delete pending.
+	        //
+	        case FH_DELETE_PENDING:
+	            nt_reopen_wait( fname, fd );
+	            break;
+
+	        case FH_READ_ONLY:
+	            nt_reopen( fname, fd );
+	            break;
+	    }
+	}
 
 	if( fd->flags & O_APPEND )
 	{
@@ -1557,6 +1839,371 @@ nt_setattr( StrPtr *fname, int m, int dounicode, int lfn )
 	return SetFileAttributesA( fname->Text(), m ) ? 1 : 0 ;
 }
 
+typedef DWORD ACCESS_MASK;
+
+typedef struct _UNICODE_STRING {
+    USHORT Length;
+    USHORT MaximumLength;
+    PWSTR  Buffer;
+} UNICODE_STRING, *PUNICODE_STRING;
+
+typedef struct _OBJECT_ATTRIBUTES {
+    ULONG Length;
+    HANDLE RootDirectory;
+    PUNICODE_STRING ObjectName;
+    ULONG Attributes;
+    PVOID SecurityDescriptor;        // Points to type SECURITY_DESCRIPTOR
+    PVOID SecurityQualityOfService;  // Points to type SECURITY_QUALITY_OF_SERVICE
+} OBJECT_ATTRIBUTES, *POBJECT_ATTRIBUTES;
+
+typedef struct _FILE_GET_EA_INFORMATION
+{
+    ULONG NextEntryOffset;
+    UCHAR EaNameLength;
+    CHAR EaName[1];
+} FILE_GET_EA_INFORMATION, *PFILE_GET_EA_INFORMATION;
+
+typedef struct _FILE_FULL_EA_INFORMATION {
+    ULONG  NextEntryOffset;
+    UCHAR  Flags;
+    UCHAR  EaNameLength;
+    USHORT EaValueLength;
+    CHAR   EaName[1];
+} FILE_FULL_EA_INFORMATION, *PFILE_FULL_EA_INFORMATION;
+
+typedef struct _IO_STATUS_BLOCK {
+    union {
+        long Status;
+        PVOID    Pointer;
+    };
+    ULONG_PTR Information;
+} IO_STATUS_BLOCK, *PIO_STATUS_BLOCK;
+
+typedef struct _RTL_RELATIVE_NAME_U
+{
+	UNICODE_STRING RelativeName;
+	HANDLE ContainingDirectory;
+	PVOID CurDirRef;
+} RTL_RELATIVE_NAME_U, *PRTL_RELATIVE_NAME_U;
+
+typedef void (NTAPI *RtlInitUnicodeStringPtr)(
+	PUNICODE_STRING         DestinationString,
+	PCWSTR SourceString );
+
+typedef long (NTAPI *NtQueryEaFilePtr) (
+	HANDLE FileHandle,
+	PIO_STATUS_BLOCK IoStatusBlock,
+	PVOID Buffer,
+	ULONG Length,
+	BOOLEAN ReturnSingleEntry,
+	PVOID EaList,
+	ULONG EaListLength,
+	PULONG EaIndex,
+	BOOLEAN RestartScan );
+
+typedef long (NTAPI *NtOpenFilePtr) (
+	PHANDLE FileHandle,
+	ACCESS_MASK DesiredAccess,
+	POBJECT_ATTRIBUTES ObjectAttributes,
+	PIO_STATUS_BLOCK IoStatusBlock,
+	ULONG ShareAccess,
+	ULONG OpenOptions );
+
+typedef long (NTAPI *NtSetEaFilePtr)(
+	HANDLE FileHandle,
+	PIO_STATUS_BLOCK IoStatusBlock,
+	PVOID EaBuffer,
+	ULONG EaBufferSize );
+
+typedef long (NTAPI *NtClosePtr)( HANDLE FileHandle );
+
+typedef bool (NTAPI *RtlDosPathNameToNtPathName_UPtr)(
+	PWSTR DosFileName,
+	PUNICODE_STRING NtFileName,
+	PWSTR* FilePart,
+	PRTL_RELATIVE_NAME_U RelativeName );
+
+typedef void (NTAPI *RtlFreeUnicodeStringPtr)(
+	PUNICODE_STRING UnicodeString );
+
+#define NT_SUCCESS(Status) (((long)(Status)) >= 0)
+
+#define InitializeObjectAttributes(p,n,a,r,s) { \
+  (p)->Length = sizeof(OBJECT_ATTRIBUTES); \
+  (p)->RootDirectory = (r); \
+  (p)->Attributes = (a); \
+  (p)->ObjectName = (n); \
+  (p)->SecurityDescriptor = (s); \
+  (p)->SecurityQualityOfService = NULL; \
+}
+
+// Share flags
+
+#define FILE_SHARE_READ                         0x00000001
+#define FILE_SHARE_WRITE                        0x00000002
+#define FILE_SHARE_DELETE                       0x00000004
+#define FILE_SHARE_VALID_FLAGS                  0x00000007
+
+// Open options
+
+#define FILE_DIRECTORY_FILE                     0x00000001
+#define FILE_WRITE_THROUGH                      0x00000002
+#define FILE_SEQUENTIAL_ONLY                    0x00000004
+#define FILE_NO_INTERMEDIATE_BUFFERING          0x00000008
+
+#define FILE_SYNCHRONOUS_IO_ALERT               0x00000010
+#define FILE_SYNCHRONOUS_IO_NONALERT            0x00000020
+#define FILE_NON_DIRECTORY_FILE                 0x00000040
+#define FILE_CREATE_TREE_CONNECTION             0x00000080
+
+#define FILE_COMPLETE_IF_OPLOCKED               0x00000100
+#define FILE_NO_EA_KNOWLEDGE                    0x00000200
+#define FILE_OPEN_REMOTE_INSTANCE               0x00000400
+#define FILE_RANDOM_ACCESS                      0x00000800
+
+#define FILE_DELETE_ON_CLOSE                    0x00001000
+#define FILE_OPEN_BY_FILE_ID                    0x00002000
+#define FILE_OPEN_FOR_BACKUP_INTENT             0x00004000
+#define FILE_NO_COMPRESSION                     0x00008000
+
+// Errors
+
+#define STATUS_NO_EAS_ON_FILE                   0xC0000052L
+#define STATUS_NONEXISTENT_EA_ENTRY             0xC0000051L
+#define STATUS_BUFFER_OVERFLOW                  0x80000005L
+
+
+static HMODULE ntdll = 0;
+static NtSetEaFilePtr NtSetEaFile = 0;
+static NtOpenFilePtr NtOpenFile = 0;
+static NtClosePtr NtClose = 0;
+static RtlDosPathNameToNtPathName_UPtr RtlDosPathNameToNtPathName_U = 0;
+static RtlFreeUnicodeStringPtr RtlFreeUnicodeString = 0;
+static NtQueryEaFilePtr NtQueryEaFile = 0;
+
+int
+ntw_getea( StrPtr *fname,  StrBufDict *eaList, int lfn )
+{
+	// Globally runtime load the DDK function pointers
+
+	if( !ntdll )
+	    ntdll = GetModuleHandle( "ntdll.dll" );
+	if( !ntdll )
+	    return -1;
+
+	if( !NtQueryEaFile )
+	    NtQueryEaFile = (NtQueryEaFilePtr)
+	                              GetProcAddress( ntdll, "NtQueryEaFile" );
+	if( !NtQueryEaFile )
+	    return -1;
+
+	if( !NtOpenFile )
+	    NtOpenFile = (NtOpenFilePtr)GetProcAddress( ntdll, "NtOpenFile" );
+	if( !NtOpenFile )
+	    return -1;
+
+	if( !NtClose )
+	    NtClose = (NtClosePtr)GetProcAddress( ntdll, "NtClose" );
+	if( !NtClose )
+	    return -1;
+
+	if( !RtlDosPathNameToNtPathName_U )
+	    RtlDosPathNameToNtPathName_U = (RtlDosPathNameToNtPathName_UPtr)
+	               GetProcAddress( ntdll, "RtlDosPathNameToNtPathName_U" );
+	if( !RtlDosPathNameToNtPathName_U )
+	    return -1;
+
+	if( !RtlFreeUnicodeString )
+	    RtlFreeUnicodeString = (RtlFreeUnicodeStringPtr)
+	                       GetProcAddress( ntdll, "RtlFreeUnicodeString" );
+	if( !RtlFreeUnicodeString )
+	    return -1;
+
+
+	// First off, we need the UNC file path
+	const wchar_t *wname = nt_wname( fname, lfn, NULL );
+	if( !wname )
+	    return -1;
+
+	// Now we need it driver dev style
+	// This means using the NT Object path convention: /??/
+	// See https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-even/c1550f98-a1ce-426a-9991-7509e7c3787c
+
+	UNICODE_STRING upath;
+	RtlDosPathNameToNtPathName_U( (wchar_t *)wname, &upath, 0, 0 );
+
+	OBJECT_ATTRIBUTES attr;
+	InitializeObjectAttributes( &attr, &upath, 0, 0, 0 );
+
+	IO_STATUS_BLOCK io;
+	HANDLE h;
+
+	long status = NtOpenFile( &h,
+	                          FILE_READ_EA,
+	                          &attr, &io,
+	                          FILE_SHARE_VALID_FLAGS,
+	                          0 );
+	nt_free_wname( wname );
+	RtlFreeUnicodeString( &upath );
+
+	if( !NT_SUCCESS( status ) )
+	    return HRESULT_FROM_NT( status );
+
+	bool restartScan = true;
+	int ret = -1;
+	char buf[4096];
+	do {
+	    status = NtQueryEaFile( h, &io, buf, 4096, false, 0, 0, 0,
+	                            restartScan );
+	    if( !NT_SUCCESS( status ) )
+	    {
+	        ret = status;
+	        switch (status)
+	        {
+	        case STATUS_NONEXISTENT_EA_ENTRY:
+	        case STATUS_NO_EAS_ON_FILE:
+	            ret = 0;
+	        default:
+	            NtClose( h );
+	            return ret;
+	        }
+	    }
+	    
+	    PFILE_FULL_EA_INFORMATION ea = (PFILE_FULL_EA_INFORMATION)buf;
+	    do
+	    {
+	        if (ea->EaValueLength > 0 )
+	            eaList->SetVar( StrRef(ea->EaName),
+	                            StrRef( ea->EaName + ea->EaNameLength + 1,
+	                                    ea->EaValueLength ) );
+	
+	    } while( (ea = (FILE_FULL_EA_INFORMATION *)(ea->NextEntryOffset ?
+	                        ((char *) ea + ea->NextEntryOffset) : NULL)) );
+
+	    restartScan = false;
+	} while( status == STATUS_BUFFER_OVERFLOW );
+
+	ret = 0;
+
+	NtClose( h );
+	return ret;
+}
+
+int
+nt_getea( StrPtr *fname, StrBufDict *eaList, int dounicode, int lfn )
+{
+	// We have to use wchar names, so force LFN if we're not unicode
+	return ntw_getea( fname, eaList,
+	                  lfn ? lfn : !dounicode ? LFN_ENABLED : 0 );
+}
+
+int
+ntw_setea( StrPtr *fname, StrPtr *name, StrPtr *val, int lfn ) 
+{
+	// Globally runtime load the DDK function pointers
+
+	if( !ntdll )
+	    ntdll = GetModuleHandle( "ntdll.dll" );
+	if( !ntdll )
+	    return -1;
+
+	if( !NtSetEaFile )
+	    NtSetEaFile = (NtSetEaFilePtr)
+	                                GetProcAddress( ntdll, "NtSetEaFile" );
+	if( !NtSetEaFile )
+	    return -1;
+
+	if( !NtOpenFile )
+	    NtOpenFile = (NtOpenFilePtr)GetProcAddress( ntdll, "NtOpenFile" );
+	if( !NtOpenFile )
+	    return -1;
+
+	if( !NtClose )
+	    NtClose = (NtClosePtr)GetProcAddress( ntdll, "NtClose" );
+	if( !NtClose )
+	    return -1;
+
+	if( !RtlDosPathNameToNtPathName_U )
+	    RtlDosPathNameToNtPathName_U = (RtlDosPathNameToNtPathName_UPtr)
+	               GetProcAddress( ntdll, "RtlDosPathNameToNtPathName_U" );
+	if( !RtlDosPathNameToNtPathName_U )
+	    return -1;
+
+	if( !RtlFreeUnicodeString )
+	    RtlFreeUnicodeString = (RtlFreeUnicodeStringPtr)
+	                       GetProcAddress( ntdll, "RtlFreeUnicodeString" );
+	if( !RtlFreeUnicodeString )
+	    return -1;
+
+
+	// First off, we need the UNC file path
+	const wchar_t *wname = nt_wname( fname, lfn, NULL );
+	if( !wname )
+	    return -1;
+
+	// Now we need it driver dev style
+	// This means using the NT Object path convention: /??/
+	// See https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-even/c1550f98-a1ce-426a-9991-7509e7c3787c
+
+	UNICODE_STRING upath;
+	RtlDosPathNameToNtPathName_U( (wchar_t *)wname, &upath, 0, 0 );
+
+	OBJECT_ATTRIBUTES attr;
+	InitializeObjectAttributes( &attr, &upath, 0, 0, 0 );
+
+	IO_STATUS_BLOCK io;
+	HANDLE h;
+
+	long status = NtOpenFile( &h,
+	                          READ_CONTROL | FILE_READ_EA | FILE_WRITE_EA,
+	                          &attr, &io,
+	                          FILE_SHARE_VALID_FLAGS,
+	                          FILE_OPEN_FOR_BACKUP_INTENT );
+
+	nt_free_wname( wname );
+	RtlFreeUnicodeString( &upath );
+
+	if( !NT_SUCCESS( status ) )
+	    return HRESULT_FROM_NT( status );
+
+	size_t size = sizeof(FILE_FULL_EA_INFORMATION) + 2
+	              + name->Length() + ( val ? val->Length() : 0 );
+	char* buf = new char[size];
+
+	PFILE_FULL_EA_INFORMATION ea = (PFILE_FULL_EA_INFORMATION)buf;
+	ea->NextEntryOffset = 0;
+	ea->Flags = 0;
+	ea->EaNameLength = name->Length();
+	memcpy( ea->EaName, name->Text(), name->Length() + 1 );
+
+
+	if( val == NULL )
+	    ea->EaValueLength = 0;
+	else
+	{
+	    ea->EaValueLength = val->Length();
+	    memcpy( ea->EaName + ea->EaNameLength + 1, val->Text(),
+	            val->Length() +1);
+	}
+	
+	int ret = NtSetEaFile( h, &io, buf, size );
+	delete[] buf;
+	NtClose( h );
+	return ret;
+}
+
+int
+nt_setea( StrPtr *fname, StrPtr *name, StrPtr *val, int dounicode, int lfn )
+{
+	// We have to use wchar names, so force LFN if we're not unicode
+	return ntw_setea( fname, name, val,
+	                  lfn ? lfn : !dounicode ? LFN_ENABLED : 0 );
+}
+
+// Return values
+//   success =  0
+//   failure =  1
+//
 static int
 ntw_rename( StrPtr *fname, StrPtr *nname, int lfn )
 {
@@ -1575,6 +2222,8 @@ ntw_rename( StrPtr *fname, StrPtr *nname, int lfn )
 	    return -1;
 	}
 
+	// MoveFileEx returns 0 on failure, 1 for success.
+	//
 	// allow moving to a different volume
 
 	ret = !MoveFileExW(wname, wnname, MOVEFILE_COPY_ALLOWED);
@@ -1584,17 +2233,27 @@ ntw_rename( StrPtr *fname, StrPtr *nname, int lfn )
 	return ret;
 }
 
+// Return values
+//  success =  0
+//  failure =  1
+//
 static int
 nt_rename( StrPtr *fname, StrPtr *nname, int dounicode, int lfn )
 {
 	// Allow unicode to fall through.
+	// LFN does not fall through.
 	if( dounicode || lfn )
 	{
 	    int ret;
-	    if( (ret=ntw_rename( fname, nname, lfn )) >= 0 ||
+	    if( (ret=ntw_rename( fname, nname, lfn )) == 0 ||
 	        lfn & LFN_ENABLED )
 	            return ret;
 	}
+
+	// rename calls wrename, which calls MoveFileExW
+	// MoveFileEx returns 0 on failure, 1 for success.
+	// rename returns !MoveFileEx
+	//
 
 	return ::rename( fname->Text(), nname->Text() );
 }
@@ -1698,6 +2357,19 @@ FileIO::OsRename( StrPtr *source, StrPtr *target, FileSys *origTarget )
 void
 FileIO::Rename( FileSys *target, Error *e )
 {
+	static int (*nt_rename_func)( StrPtr *, StrPtr *, int , int );
+
+	// The LFN_ATOMIC_RENAME flag determines atomicity.
+	// Right now this is only for journal files.
+	// And only if built with VS2017 and newer.
+	// If older then VS2017, nt_atrename is stubbed to be an error.
+	// Which should only happen if there is a coding error.
+
+	if( LFN & LFN_ATOMIC_RENAME )
+	    nt_rename_func = &nt_atrename;
+	else
+	    nt_rename_func = &nt_rename;
+
 	// On VMS and Novelle, the source must be writable (deletable, 
 	// actually) for the rename() to unlink it.  So we give it write 
 	// perm first and then revert it to original perms after.
@@ -1713,8 +2385,26 @@ FileIO::Rename( FileSys *target, Error *e )
 
 	// Remember original perms of target so we can reset on failure.
 
+	int targetStat = target->Stat();
 	FilePerm oldPerms =
-	            ( target->Stat() & FSF_WRITEABLE ) ? FPM_RW : FPM_RO;
+	            ( targetStat & FSF_WRITEABLE ) ? FPM_RW : FPM_RO;
+
+	// The atomic rename returns a different error code then
+	// the regular rename API when renaming into a directory.
+	// There is no point in going further, this will fail.
+	// Also, we need to make errors look the same for t4.
+	//
+	// ... errmsg open for write: journal.6: Access is denied.
+
+	if( LFN & LFN_ATOMIC_RENAME )
+	    if( targetStat & FSF_DIRECTORY )
+	    {
+	        StrBuf b;
+	        b << "open for write " << target->Name();
+	        SetLastError( ERROR_ACCESS_DENIED );
+	        e->Sys( "rename", b.Text() );
+	        return;
+	    }
 
 	// One customer (in Iceland) wanted this for IRIX as well.
 	// You need if you are you running NFS aginst NT as well
@@ -1725,13 +2415,21 @@ FileIO::Rename( FileSys *target, Error *e )
 	
 	const StrPtr *targetPath = target->Path();
 
-	if( ( Path()->Length() != targetPath->Length() ) ||
-	      Path()->Compare( *targetPath ) )
+	// If we are using the atomic rename, we do not need to
+	// unlink the target.
+
+	if( !(LFN & LFN_ATOMIC_RENAME) &&
+	      ( Path()->Length() != targetPath->Length() ||
+	        Path()->Compare( *targetPath ) ) )
 	{
 	    target->Unlink( 0 ); // yeech - must not exist to rename
 	}
 
-	if( nt_rename( Path(), target->Path(), DOUNICODE,
+	// Return values for both nt_rename and nt_atrename.
+	//  success =  0
+	//  failure =  1
+
+	if( nt_rename_func( Path(), target->Path(), DOUNICODE,
 	               LFN|target->GetLFN() ) )
 	{
 	    int ret = 1;
@@ -1761,7 +2459,7 @@ FileIO::Rename( FileSys *target, Error *e )
 	        if( e->Test() )
 	            return;
 
-	        ret = nt_rename( &currentName, target->Path(), DOUNICODE,
+	        ret = nt_rename_func( &currentName, target->Path(), DOUNICODE,
 	               LFN|target->GetLFN() );
 	    }
 
@@ -1779,7 +2477,7 @@ FileIO::Rename( FileSys *target, Error *e )
 
 	            target->Unlink( 0 );
 
-	            ret = nt_rename( &currentName, target->Path(), DOUNICODE,
+	            ret = nt_rename_func( &currentName, target->Path(), DOUNICODE,
 	                             LFN|target->GetLFN() );
 
 	            if( !ret )
@@ -2312,6 +3010,43 @@ FileIO::SetAttribute( FileSysAttr attrs, Error *e )
 }
 
 void
+FileIO::SetExtendedAttribute( StrPtr *name, StrPtr *val, Error *e )
+{
+	if( nt_setea( Path(), name, val, DOUNICODE, LFN ) >= 0 )
+	    return;
+
+	// Can be called with e==0 to ignore error.
+
+	if( e )
+	    e->Sys( "SetExtendedAttribute", Name() );
+}
+
+void
+FileIO::GetExtendedAttribute( StrPtr *name, StrBuf *val, Error *e )
+{
+	val->Clear();
+	StrBufDict attrs;
+	StrPtr *tmp = 0;
+	GetExtendedAttributes( &attrs, e );
+	if( !e->Test() )
+	    tmp = attrs.GetVar( name->Text(), e );
+	if( !e->Test() && tmp )
+	    *val = *tmp;
+}
+
+void
+FileIO::GetExtendedAttributes( StrBufDict *attrs, Error *e )
+{
+	if( nt_getea( Path(), attrs, DOUNICODE, LFN ) >= 0 )
+	    return;
+
+	// Can be called with e==0 to ignore error.
+
+	if( e )
+	    e->Sys( "GetExtendedAttributes", Name() );
+}
+
+void
 FileIOBinary::Open( FileOpenMode mode, Error *e )
 {
 	this->lastOSError = 0;
@@ -2350,9 +3085,13 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 	}
 # endif // O_EXCL
 
-	// open stdin/stdout or real file
+	// open delegate buffer, stdin/stdout or real file
 
-	if( Name()[0] == '-' && !Name()[1] )
+	if( delegate )
+	{
+	    delegate->Open( Path(), mode, e );
+	}
+	else if( Name()[0] == '-' && !Name()[1] )
 	{
 	    // we do raw output: flush stdout
 	    // for nice mixing of messages.
@@ -2392,7 +3131,11 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 
 	offL_t sizeOffSet = GetSizeHint();
 
-	if( sizeOffSet )
+	if( delegate )
+	{
+	    delegate->SizeHint( sizeOffSet );
+	}
+	else if( sizeOffSet )
 	{
 	    FileIOBinary::Seek( sizeOffSet - (offL_t)1, e );
 
@@ -2408,6 +3151,12 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 void
 FileIOBinary::Close( Error *e )
 {
+	if( delegate )
+	{
+	    delegate->Close( e );
+	    return;
+	}
+
 	if( isStd || fd == FD_ERR )
 	    return;
 
@@ -2430,11 +3179,21 @@ FileIOBinary::Close( Error *e )
 void
 FileIOBinary::Write( const char *buf, int len, Error *e )
 {
+	if( delegate )
+	{
+	    delegate->Write( buf, len, e );
+
+	    if( checksum && !e->Test() )
+	        checksum->Update( StrRef( buf, len ) );
+
+	    return;
+	}
+
 	// Raw, unbuffered write
 
 	int l;
 
-	if( ( l = nt_write( (FD_TYPE)fd, buf, len ) ) < 0 )
+	if( ( l = nt_write( Path(), (FD_TYPE)fd, buf, len ) ) < 0 )
 	    e->Sys( "write", Name() );
 	else
 	    tellpos += l;
@@ -2446,6 +3205,9 @@ FileIOBinary::Write( const char *buf, int len, Error *e )
 int
 FileIOBinary::Read( char *buf, int len, Error *e )
 {
+	if( delegate )
+	    return delegate->Read( buf, len, e );
+
 	// Raw, unbuffered read
 
 	int l;
@@ -2497,6 +3259,12 @@ FileIOBinary::GetSize()
 void
 FileIOBinary::Seek( offL_t offset, Error *e )
 {
+	if( delegate )
+	{
+	    delegate->Seek( offset, e );
+	    return;
+	}
+
 	LARGE_INTEGER offset_in;
 	LARGE_INTEGER offset_out;
 
@@ -2538,8 +3306,11 @@ FileIOAppend::Open( FileOpenMode mode, Error *e )
 	isStd = 0;
 
 	// open stdin/stdout or real file
-
-	if( Name()[0] == '-' && !Name()[1] )
+	if( delegate )
+	{
+	    delegate->Open( Path(), mode, e );
+	}
+	else if( Name()[0] == '-' && !Name()[1] )
 	{
 	    fd = nt_getStdHandle(openModes[ mode ].standard, bits);
 	    if( fd == FD_ERR )
@@ -2563,7 +3334,6 @@ offL_t
 FileIOAppend::GetSize()
 {
 	offL_t s = 0;
-
 	if( !lockFile( (FD_TYPE)fd, LOCKF_SH ) )
 	{
 	    BY_HANDLE_FILE_INFORMATION bhfi;
@@ -2583,29 +3353,26 @@ FileIOAppend::GetSize()
 offL_t
 FileIOAppend::GetCurrentSize()
 {
-	// The intent of this function is to get the size of the current file
-	// (by path), not of a recently rename()'d file that still happens to
-	// be open on this->fd. But since Copy() and Truncate() are used to
-	// "rename" a FileIOAppend file on Windows, the current file should
-	// be the file open on this->fd. Therefore, this function merely
-	// wraps around GetSize().
+	// This function returns the current size of the file.  If a rename
+	// has occured and the file handle has followed the rename, then the
+	// size must be collected by using the path and not the handle.
 	//
-	// But if a FileIOAppend file on Windows is ever instead renamed
-	// using rename() semantics, this function might need changed so
-	// that it returns the correct size of the current file by path.
-	// Or alternatively, if FileIOBinary::GetSize() on Windows can
-	// be fixed so that it doesn't return a stale size of a file
-	// (by path) under high concurrency, this implementation of
-	// FileIOAppend::GetCurrentSize() can be eliminated in favor of
-	// making generic the FileIOAppend::GetCurrentSize() implementation
-	// in fileio.cc.
 
-	return GetSize();
+	if( LFN & LFN_ATOMIC_RENAME )
+	    return FileIOBinary::GetSize();
+	else
+	    return GetSize();
 }
 
 void
 FileIOAppend::Write( const char *buf, int len, Error *e )
 {
+	if( delegate )
+	{
+	    delegate->Write( buf, len, e );
+	    return;
+	}
+
 	// We do an unbuffered write here to guarantee the atomicity
 	// of the write.  Stdio might break it up into chunks, whereas
 	// write() is supposed to keep it whole.
@@ -2637,12 +3404,27 @@ FileIOAppend::Rename( FileSys *target, Error *e )
 	// the correct size of a current file by path, not of a recently
 	// rename()'d file that still happens to be open on this->fd.
 
-	Copy( target, FPM_RO, e );
+	// Check for cross volume rename.  If the Rename is cross volume
+	// an atomic rename can not be used.  Revert to old bahavior.
+	//
+	int volchk = nt_volumechk( Name(), target->Name() );
 
-	if( e->Test() )
-	    return;
+	// The caller determines if an atomic rename is used.
+	// Right now this is just for journal operations.
 
-	Truncate( e );
+	if( volchk && (LFN & LFN_ATOMIC_RENAME) )
+	{
+	    FileIO::Rename( target, e );
+	}
+	else
+	{
+	    Copy( target, FPM_RO, e );
+
+	    if( e->Test() )
+	        return;
+
+	    Truncate( e );
+	}
 }
 
 // Initialize both multibyte and wide char operations.

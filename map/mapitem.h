@@ -29,9 +29,17 @@ class MapItem {
 			    halves[0].left = 0;
 			    halves[0].center = 0;
 			    halves[0].right = 0;
+			    halves[0].maxSlot = 0;
+			    halves[0].overlap = 0;
+			    halves[0].hasands = 0;
+			    halves[0].maxSlotNoAnds = -1;
 			    halves[1].left = 0;
 			    halves[1].center = 0;
 			    halves[1].right = 0;
+			    halves[1].maxSlot = 0;
+			    halves[1].overlap = 0;
+			    halves[1].hasands = 0;
+			    halves[1].maxSlotNoAnds = -1;
 			    if( caseMode == 0 || caseMode == 1 )
 			    {
 			        halves[0].half.SetCaseMode( caseMode );

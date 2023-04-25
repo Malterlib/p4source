@@ -8,6 +8,8 @@
 
 # ifdef HAS_EXTENSIONS
 
+# include <limits>
+
 # include <error.h>
 # include <strbuf.h>
 # include <filesys.h>

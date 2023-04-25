@@ -3,6 +3,7 @@ SubDir P4 msgs ;
 SubDirHdrs $(P4) support ;
 
 Ident msgdb.cc msghelp_wrap.cc ;
+ObjectC++Flags msghelp_wrap.cc : -I$(SSLINCDIR) ;
 
 P4APILibrary $(SUPPORTLIB) : 
 	msgclient.cc

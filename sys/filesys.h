@@ -72,6 +72,8 @@
  *	FileSys::Fsync() - sync file state to disk
  *
  *	FileSys::CheckType() - look at the file and see if it is binary, etc
+ *	FileSys::SetAtomicRename() - set atomic rename on this instance
+ *	FielSys::CheckForAtomicRename() - Qualify Windows OS atomic support
  */
 
 # ifdef OS_NT
@@ -178,14 +180,6 @@ enum FilePerm {
 	FPM_RWXO	// set file read-write-execute (owner)
 } ;
 
-enum LFNModeFlags {
-	LFN_ENABLED 	= 0x01,
-	LFN_UNCPATH	= 0x02,
-	LFN_UTF8	= 0x04,
-	LFN_MOVEBUSY	= 0x08,
-	LFN_CSENSITIVE	= 0x10,
-} ;
-
 enum FileDigestType
 {
 	FS_DIGEST_UNKNOWN	= 0,
@@ -199,6 +193,7 @@ class StrArray;
 class CharSetCvt;
 class MD5;
 class StrBuf;
+class StrBufDict;
 
 class DateTimeHighPrecision;	// for the high-precision modtime calls
 
@@ -223,30 +218,31 @@ class DiskSpaceInfo {
 
 class FileSys;
 
-// Specialization to the std::default_delete template class so we can store
-// a std::unique_pointer to the FileSys* returned from FileSys::Create without
-// having to know which inherited class it's actually using and without having
-// to use a custom deleter everywhere.
-
-namespace std
-{
-	template<> class default_delete< FileSys* >
-	{
-	    public:
-	        void operator()( FileSys **ptr );
-	};
-}
-
-using FileSysUPtr = std::unique_ptr< FileSys* >;
+using FileSysUPtr = std::unique_ptr< FileSys >;
 
 # endif
+
+class FileSysBuffer
+{
+    public:
+	virtual		~FileSysBuffer() {}
+	virtual void	Release() = 0;
+
+	virtual void	Open( StrPtr *path, FileOpenMode mode, Error *e ) = 0;
+	virtual void	Write( const char *buf, int len, Error *e ) = 0;
+	virtual int	Read( char *buf, int len, Error *e ) = 0;
+	virtual void	Close( Error *e ) = 0;
+
+	virtual void	Seek( offL_t offset, Error* e ) {}
+	virtual void	SizeHint( offL_t size ) {}
+} ;
 
 class FileSys {
 
     public:
 	// Creators
-
-	static FileSys *Create( FileSysType type );
+	
+	static FileSys *Create( FileSysType type, FileSysBuffer *buf = 0 );
 
 	static FileSys *CreateTemp( FileSysType type ) {
 				FileSys *f = Create( type );
@@ -324,6 +320,7 @@ class FileSys {
 	// Initialize digest
 
 	virtual void	SetDigest( MD5 *m );
+	virtual MD5	*GetDigest();
 
 	// Get type info
 
@@ -354,6 +351,8 @@ class FileSys {
 	virtual void	SetLFN( const StrPtr &name );
 	virtual int	GetLFN( ) {return LFN;}
 # endif
+	// Enable atomic rename support
+	virtual void	SetAtomicRename();
 	virtual void	Set( const StrPtr &name );
 	virtual void	Set( const StrPtr &name, Error *e );
 	virtual StrPtr	*Path() { return &path; }
@@ -378,6 +377,9 @@ class FileSys {
 	virtual void	ChmodTime( Error *e ) = 0;
 	virtual void	ChmodTimeHP( const DateTimeHighPrecision & /* modTime */, Error * /* e */ ) {};
 	virtual void	SetAttribute( FileSysAttr, Error * ) { };
+	virtual void	SetExtendedAttribute( StrPtr *name, StrPtr *val, Error * ) {};
+	virtual void	GetExtendedAttribute( StrPtr *name, StrBuf *val, Error *e ) {};
+	virtual void	GetExtendedAttributes( StrBufDict *attrs, Error * ) {};
 
 	virtual void	Fsync( Error * ) { }
 
@@ -430,6 +432,9 @@ class FileSys {
 	virtual void	RmDir( const StrPtr &p, Error *e );
 	void		RmDir( Error *e = 0 ) { RmDir( path, e ); }
 
+	// Determine if this Windows OS supports atomic rename
+	static void	CheckForAtomicRename( Error *e );
+
 	FileSysType	CheckType( int scan = -1 );
 
 # if defined ( OS_MACOSX ) && OS_VER < 1010
@@ -480,6 +485,7 @@ class FileSys {
 	FileSysType 	type;
 	MD5		*checksum;      // if verifying file transfer
 	int		cacheHint;      // don't pollute cache
+	FileSysBuffer*	delegate;	// don't read/write from/to disk
 
 # ifdef OS_NT
 	int		LFN;

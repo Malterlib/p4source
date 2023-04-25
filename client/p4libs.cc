@@ -29,6 +29,7 @@ void x86_check_features();
 # ifdef USE_SSL
 extern "C"
 {
+# include "openssl/opensslv.h"
 # include "openssl/crypto.h"
 # include "openssl/ssl.h"
 # include "openssl/err.h"
@@ -39,8 +40,8 @@ extern "C"
 
 extern bool P4FileSysCreateOnIntr;
 
-# ifdef USE_SSL
-# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+# if (defined(USE_SSL) && OPENSSL_VERSION_NUMBER >= 0x10100000L ) || \
+     defined(HAS_EXTENSIONS)
 
 static void* p4malloc( size_t s, const char *f, int l )
 {
@@ -55,6 +56,33 @@ static void* p4realloc( void* p, size_t s, const char *f, int l )
 static void p4free( void* p, const char *f, int l )
 {
 	P4_FREE( p );
+}
+
+# ifdef HAS_EXTENSIONS
+
+static void* p4malloc( size_t s )
+{
+	return p4malloc( s, 0, 0 );
+}
+
+static void* p4realloc( void* p, size_t s )
+{
+	return p4realloc( p, s, 0, 0 );
+}
+
+static void p4free( void* p )
+{
+	p4free( p, 0, 0 );
+}
+
+static void* p4calloc( size_t n, size_t s )
+{
+	return P4_CALLOC( n, s );
+}
+
+static char* p4strdup( const char *s )
+{
+	return P4_STRDUP( s );
 }
 
 # endif
@@ -84,7 +112,7 @@ void P4Libraries::Initialize( const int libraries, Error* e )
 	        e->Set( MsgClient::DevErr )
 	            << "CRYPTO_set_mem_functions(): Could not set OpenSSL "
 	               "allocation functions.";
-	    SSL_library_init();
+	    OPENSSL_init_ssl( 0, NULL );
 	}
 # endif
 # endif
@@ -97,7 +125,7 @@ void P4Libraries::Initialize( const int libraries, Error* e )
 
 	// https://curl.haxx.se/libcurl/c/curl_global_init.html
 	if( libraries & P4LIBRARIES_INIT_CURL )
-	    curl_global_init( CURL_GLOBAL_ALL );
+	    curl_global_init_mem( CURL_GLOBAL_ALL, p4malloc, p4free, p4realloc, p4strdup, p4calloc );
 
 # endif
 }
@@ -120,8 +148,8 @@ void P4Libraries::ShutdownThread( const int libraries, Error* e )
 # ifdef USE_SSL
 	if( libraries & P4LIBRARIES_INIT_OPENSSL )
 	{
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
 	    CRYPTO_cleanup_all_ex_data();
-# if OPENSSL_VERSION_NUMBER <= 0x10100000L
 	    ERR_remove_thread_state( NULL );
 # endif
 # if OPENSSL_VERSION_NUMBER >= 0x10100000L
@@ -164,19 +192,25 @@ void P4Libraries::Shutdown( const int libraries, Error* e )
 	if( libraries & P4LIBRARIES_INIT_OPENSSL )
 	{
 	    // https://wiki.openssl.org/index.php/Library_Initialization#Cleanup
+# if OPENSSL_VERSION_NUMBER < 0x30000000L
 	    FIPS_mode_set( 0 );
+# endif
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
 	    ENGINE_cleanup();
+# endif
 	    CONF_modules_unload( 1 );
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
 	    EVP_cleanup();
 	    CRYPTO_cleanup_all_ex_data();
-# if OPENSSL_VERSION_NUMBER <= 0x10100000L
 	    ERR_remove_thread_state( NULL );
 # endif
 # if OPENSSL_VERSION_NUMBER >= 0x10100000L
 	    OPENSSL_thread_stop();
 # endif
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
 	    ERR_free_strings();
 	    SSL_COMP_free_compression_methods();
+# endif
 	}
 # endif
 

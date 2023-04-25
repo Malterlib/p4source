@@ -21,6 +21,7 @@
 # define NEED_ERRNO
 # define NEED_READLINK
 # define NEED_WIN32FIO
+# define NEED_XATTRS
 
 # include <stdhdrs.h>
 
@@ -31,6 +32,8 @@
 # include <msgsupp.h>
 # include <strbuf.h>
 # include <strarray.h>
+# include <strdict.h>
+# include <strtable.h>
 # include <datetime.h>
 # include <i18napi.h>
 # include <charcvt.h>
@@ -678,6 +681,174 @@ FileIO::Chmod( FilePerm perms, Error *e )
 # endif /* !OS_VMS && !OS_NT */
 
 /*
+ * FileIO::SetExtendedAttribute() - set/remove extended attr (error optional)
+ * FileIO::GetExtendedAttribute() - get extended attr (error optional)
+ * FileIO::GetExtendedAttributes() - get all extended attrs (error optional)
+ */
+
+# ifdef HAVE_XATTRS
+
+# if defined( OS_MACOSX ) || defined( OS_DARWIN )
+
+ssize_t
+getxattr( const char *path, const char *name, void *value, size_t sizes )
+{
+	return getxattr( path, name, value, sizes, 0, 0 );
+}
+
+ssize_t
+listxattr( const char *path, char *namebuf, size_t size )
+{
+	return listxattr( path, namebuf, size, 0 );
+}
+
+int
+setxattr( const char *path, const char *name, void *value, size_t size,
+          int flags )
+{
+	return setxattr( path, name, value, size, 0, flags );
+}
+
+int
+removexattr( const char *path, const char *name )
+{
+	return removexattr( path, name, 0 );
+}
+
+# endif // OS_MACOSX || OS_DARWIN
+
+void
+FileIO::SetExtendedAttribute( StrPtr *name, StrPtr *val, Error *e )
+{
+	if( !val || !val->Length() )
+	{
+	    if( removexattr( Name(), name->Text() ) >= 0 )
+	        return;
+
+	    // Can be called with e==0 to ignore error.
+
+	    if( e )
+	        e->Sys( "removexattr", Name() );
+
+	    return;
+	}
+	
+	if( setxattr( Name(), name->Text(),
+	              val->Text(), val->Length(), 0 ) >= 0 )
+	    return;
+
+	// Can be called with e==0 to ignore error.
+
+	if( e )
+	    e->Sys( "setxattr", Name() );
+}
+
+void
+FileIO::GetExtendedAttribute( StrPtr *name, StrBuf *val, Error *e )
+{
+	val->Clear();
+
+	StrBuf v;
+	p4size_t len = 1024;
+	v.Alloc( len );
+	int ret;
+	while( ( ret = getxattr( Name(), name->Text(), v.Text(), len ) ) )
+	{
+	    if( ret >= 0 )
+	    {
+	        val->Set( v.Text(), ret );
+	        return;
+	    }
+
+	    if( errno == ERANGE )
+	    {
+	        len *= 2;
+	        v.Alloc( len );
+	    }
+	    else
+	        break;
+	}
+
+	// Can be called with e==0 to ignore error.
+
+	if( e )
+	    e->Sys( "getxattr", Name() );
+}
+
+void
+FileIO::GetExtendedAttributes( StrBufDict *attrs, Error *e )
+{
+	attrs->Clear();
+
+	StrBuf list;
+	p4size_t len = 1024;
+	list.Alloc( len );
+	int ret;
+	while( ( ret = listxattr( Name(), list.Text(), len ) ) )
+	{
+	    if( ret >= 0 )
+	    {
+	        char *buf = list.Text();
+	        while( ret > 0 )
+	        {
+	            StrRef name( buf );
+	            StrBuf tmp;
+	            Error t;
+	            GetExtendedAttribute( &name, &tmp, &t );
+	            if( !t.Test() )
+	                attrs->SetVar( name, tmp );
+
+	            int l = strlen( buf ) + 1;
+	            buf += l;
+	            ret -= l;
+	        }
+	        return;
+	    }
+
+	    if( errno == ERANGE )
+	    {
+	        len *= 2;
+	        list.Alloc( len );
+	    }
+	    else
+	        break;
+	}
+
+	// No extended attributes
+	if( ret == 0 )
+	    return;
+
+	// Can be called with e==0 to ignore error.
+
+	if( e )
+	    e->Sys( "listxattr", Name() );
+}
+
+# elif !defined( HAVE_XATTRS ) && !defined( OS_NT )
+
+// Extended attribute support is not implemented on this platform
+// Use no-op stubs
+
+void
+FileIO::SetExtendedAttribute( StrPtr *name, StrPtr *val, Error *e )
+{
+}
+
+void
+FileIO::GetExtendedAttribute( StrPtr *name, StrBuf *val, Error *e )
+{
+	val->Clear();
+}
+
+void
+FileIO::GetExtendedAttributes( StrBufDict *attrs, Error *e )
+{
+	attrs->Clear();
+}
+
+# endif // !HAVE_XATTRS && !OS_NT
+
+/*
  * FileIoText Support
  * FileIOBinary support
  */
@@ -729,9 +900,13 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 	}
 # endif // O_EXCL
 
-	// open stdin/stdout or real file
+	// open delegate buffer, stdin/stdout or real file
 
-	if( Name()[0] == '-' && !Name()[1] )
+	if( delegate )
+	{
+	    delegate->Open( Path(), mode, e );
+	}
+	else if( Name()[0] == '-' && !Name()[1] )
 	{
 	    // we do raw output: flush stdout
 	    // for nice mixing of messages.
@@ -771,6 +946,12 @@ FileIOBinary::RetryCreate()
 void
 FileIOBinary::Close( Error *e )
 {
+	if( delegate )
+	{
+	    delegate->Close( e );
+	    return;
+	}
+
 	if( isStd || fd < 0 )
 	    return;
 
@@ -810,6 +991,16 @@ FileIOBinary::Fsync( Error *e )
 void
 FileIOBinary::Write( const char *buf, int len, Error *e )
 {
+	if( delegate )
+	{
+	    delegate->Write( buf, len, e );
+
+	    if( checksum && !e->Test() )
+	        checksum->Update( StrRef( buf, len ) );
+
+	    return;
+	}
+
 	// Raw, unbuffered write
 
 	int l;
@@ -826,6 +1017,9 @@ FileIOBinary::Write( const char *buf, int len, Error *e )
 int
 FileIOBinary::Read( char *buf, int len, Error *e )
 {
+	if( delegate )
+	    return delegate->Read( buf, len, e );
+
 	// Raw, unbuffered read
 
 	int l;
@@ -857,6 +1051,12 @@ FileIOBinary::GetSize()
 void
 FileIOBinary::Seek( offL_t offset, Error *e )
 {
+	if( delegate )
+	{
+	    delegate->Seek( offset, e );
+	    return;
+	}
+
 	if( lseekL( fd, offset, 0 ) == -1 )
 	    e->Sys( "seek", Name() );
 	tellpos = offset;

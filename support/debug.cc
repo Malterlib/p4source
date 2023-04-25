@@ -156,6 +156,8 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "heartbeat",	0, -1, -1, 10, 1, 1, 0, 1 },
 	{ "shelve",	0, -1, -1, 10, 1, 1, 0, 1 },
 	{ "sqw",	0, -1, -1, 10, 1, 1, 0, 1 },
+	{ "stm",	0, -1, -1, 10, 1, 1, 0, 1 },
+	{ "pcheck",	0, -1, -1, 10, 1, 1, 0, 1 },
 	{ "topology",	0, -1, -1, 10, 1, 1, 0, 1 },
 
 	// P4Tunable's collection
@@ -164,8 +166,12 @@ P4Tunable::tunable P4Tunable::list[] = {
 
 	{ "cluster.journal.shared",	0,	0,	0,	1,	1,	1,	0,	1 },
 	{ "db.checkpoint.bufsize",	0,	B224K,	B16K,	BBIG,	1,	B1K,	0,	1 },
-	{ "db.checkpoint.threads",	0,	-1,	-1,	199,	1,	1,	0,	1 },
+	{ "db.checkpoint.threads",	0,	0,	0,	B4K,	1,	1,	0,	1 },
+	{ "db.checkpoint.worklevel",	0,	3,	2,	20,	1,	1,	0,	1 },
+	{ "db.checkpoint.reqlevel",	0,	4,	2,	20,	1,	1,	0,	1 },         
+	{ "db.checkpoint.nofiles",	0,	10,	1,	20000,	1,	1,	0,	1 },               
 	{ "db.experimental.logging",	0,	0,	0,	1,	1,	1,	0,	1 },
+	{ "db.internal.repair",		0,	0,	0,	1,	1,	1,	0,	1 },
 	{ "db.isalive",			0,	R10K,	1,	RBIG,	1,	R1K,	0,	1 },
 	{ "db.jnlack.shared",		0,	16,	0,	2048,	1,	B1K,	0,	1 },
 	{ "db.monitor.addthresh",	0,	0,	0,	RBIG,	1,	B1K,	0,	1 },
@@ -235,6 +241,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "dm.password.minlength",	0,	8,	0,	1024,	1,	1,	0,	0 },
 	{ "dm.populate.skipkeyed",	0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "dm.protects.allow.admin",	0,	0,	0,	1,	1,	1,	0,	0 },
+	{ "dm.protects.exclusioncheck",	0,	1,	0,	1,	1,	1,	0,	1 },
 	{ "dm.protects.hide",		0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "dm.protects.streamspec",	0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "dm.proxy.protects",		0,	1,	0,	1,	1,	1,	0,	0 },
@@ -261,6 +268,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "dm.status.matchsize",	0,	10,	0,	R1G,	1,	R1K,	0,	0 },
 	{ "dm.stream.parentview",	0,	0,	0,	2,	1,	1,	0,	0 },
 	{ "dm.stream.components",	0,	0,	0,	1,	1,	1,	0,	0 },
+	{ "dm.sync.streamchange",	0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "dm.subprotects.grant.admin",	0,	1,	0,	1,	1,	1,	0,	0 },
 	{ "dm.topology.lastseenupdate",	0,	300,	1,	RBIG,	1,	1,	0,	0 },
 	{ "dm.user.accessupdate",	0,	300,	1,	RBIG,	1,	1,	0,	0 },
@@ -271,6 +279,10 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "dm.user.noautocreate",	0,	0,	0,	2,	1,	1,	0,	0 },
 	{ "dm.user.numeric",		0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "dm.user.resetpassword",	0,	0,	0,	1,	1,	1,	0,	0 },
+	{ "dm.user.setinitialpasswd",	0,	1,	0,	1,	1,	1,	0,	0 },
+# ifdef OS_NT
+	{ "filesys.atomic.rename",	0,	0,	0,	1,	1,	1,	0,	0 },
+# endif
 	{ "filesys.binaryscan",		0,	B64K,	0,	BBIG,	1,	B1K,	0,	0 },
 	{ "filesys.bufsize",		0,	B64K,	B4K,	B10M,	1,	B1K,	0,	0 },
 	{ "filesys.cachehint",		0,	0,	0,	1,	1,	1,	0,	0 },
@@ -304,7 +316,9 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "lbr.storage.delay",		0,	86400,	0,	BBIG,	1,	1,	0,	0 },
 	{ "lbr.storage.allowsymlink",	0,	0,	0,	BBIG,	1,	1,	0,	0 },
 	{ "lbr.storage.skipkeyed",	0,	2,	0,	BBIG,	1,	1,	0,	0 },
+	{ "lbr.storage.threads",	0,	0,	0,	B4K,	1,	1,	0,	0 },        
 	{ "lbr.rcs.locking",		0,	0,	0,	1,	1,	1,	0,	0 },
+	{ "log.cmdgrp.maxlength",	0,	128,	0,	B8K,	1,	1,	0,	0 },
 	{ "log.originhost",		0,	1,	0,	1,	1,	1,	0,	0 },
 	{ "map.joinmax1",		0,	R10K,	1,	200000, 1,	R1K,	0,	0 },
 	{ "map.joinmax2",		0,	R1M,	1,	RBIG,	1,	R1K,	0,	0 },
@@ -383,6 +397,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "run.move.allow",		0,	1,	0,	2,	1,	1,	0,	0 },
 	{ "run.obliterate.allow",	0,	1,	0,	1,	1,	1,	0,	0 },
 	{ "run.prune.allow",		0,	1,	0,	1,	1,	1,	0,	0 },
+	{ "run.renameclient.allow",	0,	1,	0,	3,	1,	1,	0,	0 },
 	{ "run.unzip.user.allow",	0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "run.users.authorize",	0,	0,	0,	1,	1,	1,	0,	1 },
 	{ "server.commandlimits",	0,	0,	0,	2,	1,	1,	0,	1 },
@@ -487,6 +502,8 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "rpl.submit.nocopy",		0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "auth.2fa.persist",		0,	1,	0,	2,	1,	1,	0,	1 },
 	{ "auth.tickets.nounlocked",	0,	0,	0,	2,	1,	1,	0,	1 },
+	{ "auth.licenseexpiry.warn",	0,	1,	0,	2,	1,	1,	0,	1 },
+	{ "auth.licenseexpiry.warnthreshold",0,	7,	1,	365,	1,	1,	0,	1 },
 	{ "auth.sso.allow.passwd",	0,	0,	0,	1,	1,	1,	0,	1 },
 	{ "auth.sso.nonldap",		0,	0,	0,	1,	1,	1,	0,	1 },
 	{ "zlib.disable.optim",		0,	0,	0,	1,	1,	1,	0,	0 },
@@ -514,7 +531,7 @@ P4Tunable::stunable P4Tunable::slist[] = {
 P4MT int
 list2[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 }  ;
+	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 }  ;
 
 int
 P4Tunable::IsKnown( const char *n )

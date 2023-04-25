@@ -10,7 +10,7 @@ class MicroThread {
     public:
 	                MicroThread();
 	virtual         ~MicroThread();
-	void            RunWork();
+	int             RunWork();
 	Error           &ErrorObj() { return err; }
 	void            Wait();
 	bool            Started();
@@ -53,7 +53,8 @@ class MicroThreadPool {
     public:
 	                  MicroThreadPool() : activeLimit( 0 ) {}
 	virtual           ~MicroThreadPool() { WaitAll(); }
-	void              ThreadLimit( int n ) { activeLimit = n; }
+	void              ThreadLimit( int n );
+	int               GetThreadLimit();
 	void              AddThread( MicroThread * );
 	void              WaitAll( Error * = 0 );
 	void              Reap( Error * = 0 );
@@ -68,3 +69,6 @@ class MicroThreadPool {
 	VarArray waiting;
 	MicroThreadMutex poolMutex;
 } ;
+
+// Helper to guess threads when threads == 0
+int ThreadGuess(int tcount);

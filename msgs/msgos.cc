@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgOs error code is: 26
+ * Current high value for a MsgOs error code is: 27
  */
 
 # include <error.h>
@@ -61,5 +61,7 @@ ErrorId MsgOs::ZlibInflateEOF          = { ErrorOf( ES_OS, 22, E_FAILED, EV_FAUL
 ErrorId MsgOs::ZlibInflate             = { ErrorOf( ES_OS, 23, E_FAILED, EV_FAULT, 2 ), "inflate returned error: for file %file%, inflate returned %retCode%." } ;
 ErrorId MsgOs::ZlibDeflateInit         = { ErrorOf( ES_OS, 24, E_FAILED, EV_FAULT, 2 ), "deflateInit failed: for file %file%, deflateInit returned %retCode%." } ;
 ErrorId MsgOs::ZlibInflateInitSeek     = { ErrorOf( ES_OS, 25, E_FAILED, EV_FAULT, 3 ), "inflateInit failed: for file %file%, inflateInit returned %retCode% after seek to position %seekPos%." } ;
+
+ErrorId MsgOs::NoAtomicRename          = { ErrorOf( ES_OS, 26, E_FAILED, EV_USAGE, 0 ), "The filesys.atomic.rename configuration is not supported on this release of Windows." } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 

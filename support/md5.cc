@@ -4,6 +4,9 @@
  * This file is part of Perforce - the FAST SCM System.
  */
 
+#include <openssl/md5.h>
+
+#include "error.h"
 # ifndef USE_SSL
 /*
  * This code implements the MD5 message-digest algorithm.
@@ -326,17 +329,24 @@ MD5::Final( StrBuf &output )
 
 # else
 
-# include <openssl/md5.h>
-
 # include <stdhdrs.h>
 # include "strbuf.h"
 # include "strops.h"
 # include <md5.h>
 
+extern "C"
+{
+    // OpenSSL
+# include <openssl/opensslv.h>
+# if OPENSSL_VERSION_NUMBER < 0x30000000L
+# include <openssl/md5.h>
+}
+
 MD5::MD5()
 {
 	ctx = (void*)new MD5_CTX;
 	MD5_Init( (MD5_CTX*)ctx );
+	bits = 0;
 }
 
 MD5::~MD5()
@@ -347,12 +357,14 @@ MD5::~MD5()
 class MD5& MD5::operator=( const MD5& rhs )
 {
 	memcpy( ctx, rhs.ctx, sizeof( MD5_CTX ) );
+	bits = rhs.bits;
 	return *this;
 }
 
 void MD5::Update( const StrPtr &buf )
 {
 	MD5_Update( (MD5_CTX*)ctx, buf.Text(), buf.Length() );
+	bits += buf.Length();
 }
 
 void MD5::Final( StrBuf &output )
@@ -366,6 +378,73 @@ void MD5::Final( StrBuf &output )
 void MD5::Final( unsigned char digest[ 16 ] )
 {
 	MD5_Final( digest, (MD5_CTX*)ctx );
+}
+
+# else
+# include <openssl/evp.h>
+# include <errorlog.h>
+}
+
+MD5::MD5()
+{
+	const EVP_MD *md = EVP_get_digestbyname( "MD5" );
+	if( !md )
+	{
+	    ctx = 0;
+	    return;
+	}
+	ctx = (void*)EVP_MD_CTX_new();
+	EVP_DigestInit_ex( (EVP_MD_CTX *)ctx, md, 0 );
+	bits = 0;
+}
+
+MD5::~MD5()
+{
+	if( ctx )
+	    EVP_MD_CTX_free( (EVP_MD_CTX *)ctx );
+}
+
+class MD5& MD5::operator=( const MD5& rhs )
+{
+	EVP_MD_CTX_copy( (EVP_MD_CTX *)ctx, (EVP_MD_CTX *)rhs.ctx );
+	bits = rhs.bits;
+	return *this;
+}
+
+void MD5::Update( const StrPtr &buf )
+{
+	EVP_DigestUpdate( (EVP_MD_CTX*)ctx, buf.Text(), buf.Length() );
+	bits += buf.Length();
+}
+
+void MD5::Final( StrBuf &output )
+{
+	output.Clear();
+	if( !ctx )
+	    return;
+	unsigned char c[EVP_MAX_MD_SIZE];
+	unsigned int hash_len = 0;
+	EVP_DigestFinal_ex( (EVP_MD_CTX*)ctx, c, &hash_len );
+	StrOps::OtoX( c, hash_len, output );
+}
+
+void MD5::Final( unsigned char digest[16] )
+{
+	memset( digest, 0, 16 );
+	if( !ctx )
+	    return;
+	unsigned char c[EVP_MAX_MD_SIZE];
+	unsigned int hash_len = 0;
+	EVP_DigestFinal_ex( (EVP_MD_CTX*)ctx, c, &hash_len );
+	if( hash_len <= 16 )
+	    memcpy( digest, c, hash_len );
+}
+
+# endif
+
+P4INT64 MD5::Count()
+{
+	return bits;
 }
 
 # endif

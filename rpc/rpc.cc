@@ -123,6 +123,7 @@ RpcService::SetEndpoint( const char *addr, Error *e )
 {
 	delete endPoint;
 	endPoint = NetEndPoint::Create( addr, e );
+	endPointAddr = addr;
 }
 
 /*
@@ -1331,6 +1332,24 @@ Rpc::TrackStart()
 	recvTime = 0;
 }
 
+void
+Rpc::TrackStart( RpcTrack *track )
+{
+	track->trackable = 0;
+	track->sendCount = 0;
+	track->sendBytes = 0;
+	track->recvCount = 0;
+	track->recvBytes = 0;
+	track->rpc_hi_mark_fwd = 0;
+	track->rpc_hi_mark_rev = 0;
+	track->sendTime = 0;
+	track->recvTime = 0;
+	track->sendError.Clear();
+	track->recvError.Clear();
+	track->duplexFrecv = 0;
+	track->duplexRrecv = 0;
+}
+
 int
 Rpc::Trackable( int level )
 {
@@ -1339,6 +1358,21 @@ Rpc::Trackable( int level )
 	return t.Over( TT_RPC_ERRORS, se.Test() || re.Test() ) ||
 	       t.Over( TT_RPC_MSGS, sendCount + recvCount ) ||
 	       t.Over( TT_RPC_MBYTES, ( sendBytes + recvBytes ) / 1024 / 1024 );
+}
+
+int
+Rpc::Trackable( int level, RpcTrack *track )
+{
+	if( !track )
+	    return 0;
+
+	Tracker t( level );
+
+	return t.Over( TT_RPC_ERRORS, track->sendError.Test() ||
+	                              track->recvError.Test() ) ||
+	       t.Over( TT_RPC_MSGS, track->sendCount + track->recvCount ) ||
+	       t.Over( TT_RPC_MBYTES, ( track->sendBytes + track->recvBytes )
+	                                / 1024 / 1024 );
 }
 
 void
@@ -1373,6 +1407,40 @@ Rpc::TrackReport( int level, StrBuf &out )
 }
 
 void
+Rpc::TrackReport( int level, const char *tag, RpcTrack *track, StrBuf &out )
+{
+	if( !track )
+	    return;
+	
+	if( !Trackable( level, track ) )
+	    return;
+
+	out 
+	    << "--- rpc (" << tag << ") msgs/size in+out "
+	    << StrNum( track->recvCount ) << "+"
+	    << StrNum( track->sendCount ) << "/"
+	    << track->recvBytes / 1024 / 1024 << "mb+"
+	    << track->sendBytes / 1024 / 1024 << "mb "
+	    << "himarks " 
+	    << track->rpc_hi_mark_fwd << "/" 
+	    << track->rpc_hi_mark_rev << " snd/rcv "
+	    << StrMs( track->sendTime ) << "s/"
+	    << StrMs( track->recvTime ) << "s\n";
+
+	if( !track->sendError.Test() && !track->recvError.Test() )
+	    return;
+
+	out << "--- rpc ";
+
+	if( track->sendError.Test() ) out << "send ";
+	if( track->recvError.Test() ) out << "receive ";
+
+	out << "errors, duplexing F/R " 
+	    << track->duplexFrecv << "/"
+	    << track->duplexRrecv << "\n";
+}
+
+void
 Rpc::GetTrack( int level, RpcTrack *track )
 {
 	track->trackable = Trackable( level );
@@ -1403,6 +1471,31 @@ Rpc::ForceGetTrack( RpcTrack *track )
 	}
 	else
 	    track->duplexFrecv = track->duplexRrecv = 0;
+}
+
+void
+Rpc::AddTrack( RpcTrack *track )
+{
+	if( !track )
+	    return;
+
+	track->recvCount += recvCount;
+	track->sendCount += sendCount;
+	track->recvBytes += recvBytes;
+	track->sendBytes += sendBytes;
+	if( rpc_hi_mark_fwd > track->rpc_hi_mark_fwd )
+	    track->rpc_hi_mark_fwd += rpc_hi_mark_fwd;
+	if( rpc_hi_mark_rev > track->rpc_hi_mark_rev )
+	    track->rpc_hi_mark_rev += rpc_hi_mark_rev;
+	track->recvTime += recvTime;
+	track->sendTime += sendTime;
+	if( se.Test() ) track->sendError.Merge( se );
+	if( re.Test() ) track->recvError.Merge( re );
+	if( se.Test() || re.Test() )
+	{
+	    track->duplexFrecv += duplexFrecv;
+	    track->duplexRrecv += duplexRrecv;
+	}
 }
 
 void

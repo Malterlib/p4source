@@ -150,7 +150,8 @@ Client::Init( Error *e )
 	    SetupUnicode( e );
 
 	if( GetEVar( P4Tag::v_ipaddr ) && GetEVar( P4Tag::v_svrname ) )
-	    SetProtocol( P4Tag::v_ipaddr, GetEVar( P4Tag::v_ipaddr )->Text() );
+	    SetProtocolDynamic( P4Tag::v_ipaddr, 
+	                        GetEVar( P4Tag::v_ipaddr )->Text() );
 
 	if( !e->Test() )
 	    service.SetEndpoint( GetPort().Text(), e );
@@ -795,5 +796,5 @@ Client::SetEVar( const StrPtr *k, const StrPtr *v )
 	if( !extraVars )
 	    extraVars = new StrBufDict;
 
-	extraVars->SetVar( *k, *v );
+	extraVars->ReplaceVar( *k, *v );
 }

@@ -89,9 +89,8 @@ extern "C"
 # include <openssl/ssl.h>
 # include <openssl/err.h>
 # include <openssl/x509v3.h>
-# if !( defined( OPENSSL_VERSION_TEXT ) && defined( OPENSSL_VERSION_NUMBER ))
-# include "openssl/opensslv.h"
-# endif
+# include <openssl/opensslv.h>
+# include <openssl/crypto.h>
 }
 # include "netsslcredentials.h"
 # include "netsslendpoint.h"
@@ -689,7 +688,7 @@ NetSslTransport::SslClientInit(Error *e)
 			"Version mismatch between compile OpenSSL version and runtime OpenSSL version." );
 		return;
 	    }
-	    
+
 # if OPENSSL_VERSION_NUMBER < 0x10100000L
 	    /*
 	     * Added due to job084753: Swarm is a web app that reuses processes.
@@ -701,27 +700,35 @@ NetSslTransport::SslClientInit(Error *e)
 	     */
 	    ERR_remove_thread_state(NULL);
 	    // probably cannot check for error return from this call :-)
-# endif // !OpenSSL 1.1
 
+	    // As of OpenSSL 1.1.0, SSL_load_error_strings() is not needed
 	    SSL_load_error_strings();
 	    SSLCHECKERROR( e,
-                       "NetSslTransport::SslClientInit SSL_load_error_strings",
-                       MsgRpc::SslInit,
-                       fail );
+	        "NetSslTransport::SslClientInit SSL_load_error_strings",
+	         MsgRpc::SslInit,
+	          fail );
+# endif
+# if OPENSSL_VERSION_NUMBER < 0x30000000L
+	    // As of OpenSSL 3, ERR_load_*_strings() are not needed
 	    ERR_load_BIO_strings();
-	    SSLCHECKERROR( e, "NetSslTransport::SslClientInit ERR_load_BIO_strings",
-                       MsgRpc::SslInit,
-                       fail );
+	    SSLCHECKERROR( e,
+	        "NetSslTransport::SslClientInit ERR_load_BIO_strings",
+	        MsgRpc::SslInit,
+	        fail );
+# endif
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
+	    // As of OpenSSL 1.1.0, SSL_library_init() is not needed
 	    if ( !SSL_library_init() )
 	    {
-		// executable not compiled supporting SSL
-		// need to link with open SSL libraries
-		e->Set(MsgRpc::SslNoSsl);
-		return;
+	        // executable not compiled supporting SSL
+	        // need to link with open SSL libraries
+	        e->Set(MsgRpc::SslNoSsl);
+	        return;
 	    }
 	    SSLCHECKERROR( e, "NetSslTransport::SslClientInit SSL_library_init",
-                       MsgRpc::SslInit,
-                       fail );
+	        MsgRpc::SslInit,
+	        fail );
+# endif
 
 	    // WSAstartup code in NetTcpEndPoint constructor
 
@@ -794,40 +801,47 @@ NetSslTransport::SslServerInit(StrPtr *hostname, Error *e)
 # endif // !OpenSSL 1.1
 # endif // OS_NT
 
+
 # if OPENSSL_VERSION_NUMBER < 0x10100000L
 	    /*
-	     * Added due to job084753: Swarm is a web app that reuses client processes.
-	     * See the SslClientInit code for more info.
-	     *
-	     * Adding the fix to the SslClientInit here on the server side to be
-	     * symmetric and to make sure that later we do not see a similar problem
-	     * here. (Currently, we have not seen this issue on the server side.)
+	     * Added due to job084753: Swarm is a web app that reuses processes.
+	     * For some reason in this environment the SSL error stack is not removed
+	     * when the process is reused so we need to explicitly remove any previous
+	     * state prior to setting up a new SSL Context.
 	     *
 	     * Deprecated in OpenSSL 1.1.0
 	     */
-	    ERR_remove_thread_state(NULL);
+	    ERR_remove_thread_state( NULL );
 	    // probably cannot check for error return from this call :-)
-# endif // !OpenSSL 1.1
 
+	    // As of OpenSSL 1.1.0, SSL_load_error_strings() is not needed
 	    SSL_load_error_strings();
 	    SSLCHECKERROR( e,
-                       "NetSslTransport::SslServerInit SSL_load_error_strings",
-                       MsgRpc::SslInit,
-                       fail );
+	        "NetSslTransport::SslClientInit SSL_load_error_strings",
+	        MsgRpc::SslInit,
+	        fail );
+# endif
+# if OPENSSL_VERSION_NUMBER < 0x30000000L
+	    // As of OpenSSL 3, ERR_load_*_strings() are not needed
 	    ERR_load_BIO_strings();
-	    SSLCHECKERROR( e, "NetSslTransport::SslServerInit ERR_load_BIO_strings",
-                       MsgRpc::SslInit,
-                       fail );
-	    if ( !SSL_library_init() )
+	    SSLCHECKERROR( e,
+	        "NetSslTransport::SslClientInit ERR_load_BIO_strings",
+	        MsgRpc::SslInit,
+	        fail );
+# endif
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
+	    // As of OpenSSL 1.1.0, SSL_library_init() is not needed
+	    if( !SSL_library_init() )
 	    {
-		// executable not compiled supporting SSL
-		// need to link with open SSL libraries
-		e->Set(MsgRpc::SslNoSsl);
-		return;
+	        // executable not compiled supporting SSL
+	        // need to link with open SSL libraries
+	        e->Set( MsgRpc::SslNoSsl );
+	        return;
 	    }
-	    SSLCHECKERROR( e, "NetSslTransport::SslServerInit SSL_library_init",
-                       MsgRpc::SslInit,
-                       fail );
+	    SSLCHECKERROR( e, "NetSslTransport::SslClientInit SSL_library_init",
+	        MsgRpc::SslInit,
+	        fail );
+# endif
 
 	    /* Set up cert and key:
 	     * Note that we have already verified in RpcService::Listen
@@ -1006,8 +1020,11 @@ NetSslTransport::DoHandshake( Error *e )
 
 	if( !isAccepted )
 	{
-
+# if OPENSSL_VERSION_NUMBER < 0x30000000L
 	    X509 *serverCert = SSL_get_peer_certificate( ssl );
+# else
+	    X509 *serverCert = SSL_get1_peer_certificate( ssl );
+# endif
 	    stack_st_X509 *serverCertChain = SSL_get_peer_cert_chain( ssl );
 	    X509_STORE *store = SSL_CTX_get_cert_store( SSL_get_SSL_CTX( ssl ) );
 	    credentials.SetCertificate( serverCert, serverCertChain, store, e );
@@ -1793,7 +1810,11 @@ void
 NetSslTransport::ValidateRuntimeVsCompiletimeSSLVersion( Error *e )
 {
 	StrBuf sb;
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
 	GetVersionString( sb, SSLeay() );
+# else
+	GetVersionString( sb, OpenSSL_version_num() );
+# endif
 	TRANSPORT_PRINTF( SSLDEBUG_ERROR,
 		"OpenSSL runtime version %s", sb.Text() );
 	sb.Clear();
@@ -1801,7 +1822,12 @@ NetSslTransport::ValidateRuntimeVsCompiletimeSSLVersion( Error *e )
 	TRANSPORT_PRINTF( SSLDEBUG_ERROR,
 		"OpenSSL compile version %s", sb.Text() );
 
-	if ( GET_MJR_SSL_VERSION(SSLeay()) < GET_MJR_SSL_VERSION(sVersion1_0_0) )
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
+	if ( GET_MJR_SSL_VERSION( SSLeay() ) <
+# else
+	if( GET_MJR_SSL_VERSION( OpenSSL_version_num() ) <
+# endif
+	    GET_MJR_SSL_VERSION( sVersion1_0_0 ) )
 	{
 	    e->Set(MsgRpc::SslLibMismatch) << sVerStr1_0_0;
 	}

@@ -76,6 +76,7 @@
  * NEED_TYPES - off_t, etc (always set)
  * NEED_UTIME - utime()
  * NEED_WIN32FIO - Native Windows file I/O
+ * NEED_XATTRS - getxattr() setxattr()
  */
 
 # if defined( NEED_ACCESS ) || \
@@ -571,14 +572,21 @@ using namespace std;
 # endif
 # endif
 
-# define HAVE_UTIMES
 # ifdef NEED_UTIMES
+# define HAVE_UTIMES
 # if ( defined( OS_NT ) || defined( OS_OS2 ) ) && !defined(__BORLANDC__)
 # include <sys/utime.h>
 # else
 # include <sys/types.h>
 # include <utime.h>
 # endif
+# endif
+# endif
+
+# ifdef NEED_XATTRS
+# if defined( OS_LINUX ) || defined( OS_DARWIN ) || defined( OS_MACOSX )
+# define HAVE_XATTRS
+# include <sys/xattr.h>
 # endif
 # endif
 
@@ -861,7 +869,11 @@ typedef struct P4_FD
 {
 	HANDLE fh;
 	int flags;
-	int isStd;
+	int mode;
+	int lock;
+	int dounicode;
+	int lfn;
+	int fdFlags;
 	unsigned char *ptr;
 	DWORD rcv;
 	int iobuf_siz;
@@ -875,6 +887,23 @@ typedef struct P4_FD* FD_TYPE;
 # define FD_INIT NULL
 # define FD_ERR NULL
 typedef void* FD_PTR;
+
+# define FD_INIT NULL
+# define FD_ERR NULL
+typedef void* FD_PTR;
+
+# define FD_IsSTD	0x001
+# define FD_LOCKED	0x002
+# define FD_REOPEN	0x004
+# define FD_CLOSED	0x008
+
+enum LFNModeFlags {
+	LFN_ENABLED 	= 0x01,
+	LFN_UNCPATH	= 0x02,
+	LFN_UTF8	= 0x04,
+	LFN_ATOMIC_RENAME = 0x08,
+	LFN_CSENSITIVE	= 0x10,
+} ;
 
 # else // OS_NT
 

@@ -49,6 +49,10 @@ extern "C"
 # include <openssl/x509v3.h>
 # include <openssl/ssl.h>
 # include <openssl/crypto.h>
+# if OPENSSL_VERSION_NUMBER >= 0x30000000L
+# include <openssl/evp.h>
+# include <openssl/rsa.h>
+# endif
 }
 # include <stdio.h>
 # include "netdebug.h"
@@ -157,13 +161,21 @@ PrintCertificateError( X509 *cert, int err, X509_STORE_CTX *ctx, BIO *bio,
 	case X509_V_ERR_CERT_NOT_YET_VALID:
 	case X509_V_ERR_ERROR_IN_CERT_NOT_BEFORE_FIELD:
 	    BIO_printf( bio, "notBefore=" );
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
 	    ASN1_TIME_print( bio, X509_get_notBefore( cert ) );
+# else
+	    ASN1_TIME_print( bio, X509_get0_notBefore( cert ) );
+# endif
 	    BIO_puts( bio, sep );
 	    break;
 	case X509_V_ERR_CERT_HAS_EXPIRED:
 	case X509_V_ERR_ERROR_IN_CERT_NOT_AFTER_FIELD:
 	    BIO_printf( bio, "notAfter=" );
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
 	    ASN1_TIME_print( bio, X509_get_notAfter( cert ) );
+# else
+	    ASN1_TIME_print( bio, X509_get0_notAfter( cert ) );
+# endif
 	    BIO_puts( bio, sep );
 	    break;
 	case X509_V_ERR_NO_EXPLICIT_POLICY:
@@ -253,6 +265,7 @@ verify_callback(int ok, X509_STORE_CTX *ctx)
 	return ok;
 }
 
+# if OPENSSL_VERSION_NUMBER < 0x30000000
 static void
 Callback( int code, int arg, void *cb_arg )
 {
@@ -268,6 +281,7 @@ Callback( int code, int arg, void *cb_arg )
 	if( code == 3 )
 	    p4debug.printf("\n");
 }
+# endif
 
 ////////////////////////////////////////////////////////////////////////////
 //  NetSslCredentials - Methods                                           //
@@ -605,11 +619,19 @@ NetSslCredentials::ValidateCertDateRange( X509 *cert, Error *e )
 	time_t *ptime = NULL;
 	int i;
 
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
 	i = X509_cmp_time( X509_get_notBefore( cert ), ptime );
+# else
+	i = X509_cmp_time( X509_get0_notBefore( cert ), ptime );
+# endif
 	if( i >= 0 )
 	    goto fail;
 
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
 	i = X509_cmp_time( X509_get_notAfter( cert ), ptime );
+# else
+	i = X509_cmp_time( X509_get0_notAfter( cert ), ptime );
+# endif
 	if( i <= 0 )
 	    goto fail;
 
@@ -634,7 +656,11 @@ NetSslCredentials::GetExpiration( StrBuf &buf )
 	BIO *bio = BIO_new( BIO_s_mem() );
 	SSLNULLHANDLER( bio, &e, "NetSslCredentials::GetExpiration BIO_new", fail );
 
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
 	retVal = ASN1_TIME_print(bio,X509_get_notAfter(certificate));
+# else
+	retVal = ASN1_TIME_print(bio,X509_get0_notAfter(certificate));
+# endif
 	SSLHANDLEFAIL( retVal, &e, "NetSslCredentials::GetExpiration BIO_get_mem_ptr",
 		MsgRpc::SslFailGetExpire,
 		failCleanBIO );
@@ -892,9 +918,14 @@ NetSslCredentials::MakeSslCredentials( Error *e )
 	}
 
 	int       retval;
+# if OPENSSL_VERSION_NUMBER < 0x30000000L
 	RSA       *rsa = NULL;
+# else
+	EVP_PKEY_CTX *ctx = NULL;
+# endif
 	X509_NAME *name = NULL;
-# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+# if OPENSSL_VERSION_NUMBER >= 0x10100000L && \
+     OPENSSL_VERSION_NUMBER < 0x30000000L
 	BIGNUM    *bne = NULL;
 	BN_GENCB  *callback = NULL;
 # endif
@@ -912,7 +943,7 @@ NetSslCredentials::MakeSslCredentials( Error *e )
 # if OPENSSL_VERSION_NUMBER < 0x10100000L
 	rsa = RSA_generate_key( SSL_X509_NUMBITS, RSA_F4, Callback, NULL );
 	SSLHANDLEFAIL( rsa, e, "RSA_generate_key", MsgRpc::SslCertGen, fail );
-# else
+# elif OPENSSL_VERSION_NUMBER < 0x30000000L
 	rsa = RSA_new();
 	bne = BN_new();
 	retval = BN_set_word(bne, RSA_F4);
@@ -925,14 +956,31 @@ NetSslCredentials::MakeSslCredentials( Error *e )
 	BN_GENCB_free( callback );
 	bne = NULL;
 	SSLHANDLEFAIL( retval, e, "RSA_generate_key_ex", MsgRpc::SslCertGen, fail );
+# else
+	ctx = EVP_PKEY_CTX_new_id( EVP_PKEY_RSA, NULL );
+	SSLHANDLEFAIL( ctx, e, "EVP_PKEY_CTX_new_id", MsgRpc::SslCertGen, fail );
+	retval = EVP_PKEY_keygen_init( ctx );
+	SSLHANDLEFAIL( retval, e, "EVP_PKEY_keygen_init", MsgRpc::SslCertGen, fail );
+	retval = EVP_PKEY_CTX_set_rsa_keygen_bits( ctx, SSL_X509_NUMBITS );
+	SSLHANDLEFAIL( retval, e, "EVP_PKEY_CTX_set_rsa_keygen_bits", MsgRpc::SslCertGen, fail );
+	retval = EVP_PKEY_keygen( ctx, &privateKey );
+	SSLHANDLEFAIL( retval, e, "EVP_PKEY_keygen", MsgRpc::SslCertGen, fail );
 # endif
+
+# if OPENSSL_VERSION_NUMBER < 0x30000000L
 	retval = EVP_PKEY_assign_RSA( privateKey, rsa );
 	SSLHANDLEFAIL( retval, e, "EVP_PKEY_assign_RSA", MsgRpc::SslCertGen, fail );
+# endif
 
 	X509_set_version( certificate, SSL_X509_VERSION );
 	ASN1_INTEGER_set( X509_get_serialNumber( certificate ), SSL_X509_SERIALNUM );
+# if OPENSSL_VERSION_NUMBER < 0x10100000L
 	X509_gmtime_adj( X509_get_notBefore( certificate ), certSV * SSL_X509_DAY );
 	X509_gmtime_adj( X509_get_notAfter( certificate ), certEX * certUNITS );
+# else
+	X509_gmtime_adj( X509_getm_notBefore( certificate ), certSV * SSL_X509_DAY );
+	X509_gmtime_adj( X509_getm_notAfter( certificate ), certEX * certUNITS );
+# endif
 	X509_set_pubkey( certificate, privateKey );
 
 	name = X509_get_subject_name( certificate );
@@ -1006,8 +1054,9 @@ fail:
 	    EVP_PKEY_free( privateKey );
 	    privateKey = NULL;
 	}
-	
-# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+
+# if OPENSSL_VERSION_NUMBER >= 0x10100000L && \
+     OPENSSL_VERSION_NUMBER < 0x30000000L
 	if( bne )
 	    BN_free( bne );
 	if( callback )

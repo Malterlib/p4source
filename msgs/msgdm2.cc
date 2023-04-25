@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgDm2 error code is: 84
+ * Current high value for a MsgDm2 error code is: 93
  *                                               Max code is 1023!!!
  */
 
@@ -79,7 +79,7 @@ ErrorId MsgDm2::RmtAddTopologyFailed    = { ErrorOf( ES_DM2, 46, E_FAILED, EV_FA
 ErrorId MsgDm2::RmtTopologyExists       = { ErrorOf( ES_DM2, 47, E_INFO, EV_NONE, 2 ), "Topology [SrcAddr:'%addr%' and DestAddr:'%daddr%'] already exists in this installation." } ;
 ErrorId MsgDm2::ImportDittoGraph        = { ErrorOf( ES_DM2, 48, E_FAILED, EV_USAGE, 0 ), "Import& Path is not allowed with any graph depot Path." } ;
 ErrorId MsgDm2::ReopenHasMoved          = { ErrorOf( ES_DM2, 49, E_INFO, EV_NONE, 2 ), "%depotFile%%haveRev% - has been moved, not reopened" } ;
-ErrorId MsgDm2::TopologyData            = { ErrorOf( ES_DM2, 50, E_INFO, EV_NONE, 8 ), "%address% [%destaddress% ][%serverID% ]%date% [%type% ][%encryption% ][%svcUser% ][%lsDate%]" } ;
+ErrorId MsgDm2::TopologyData            = { ErrorOf( ES_DM2, 50, E_INFO, EV_NONE, 12 ), "%address% [%destaddress% ][%serverID% ]%date% [%type% ][%encryption% ][%svcUser% ][%lsDate% ][%svrRecType% ][%tAddr% ][%tDAddr% ][%tSvrID% ]" } ;
 ErrorId MsgDm2::StreamViewMatchData     = { ErrorOf( ES_DM2, 51, E_INFO, EV_NONE, 4 ), "Stream %stream% %pathtype% %viewPath% %depotPath%" } ;
 ErrorId MsgDm2::NoTopologyRecord        = { ErrorOf( ES_DM2, 52, E_WARN, EV_ADMIN, 3 ), "No entries made in db.topology for server address: '%address%', dest address: '%destaddress%' and serverID: '%svrId%'." } ;
 ErrorId MsgDm2::NoServerIDSet              = { ErrorOf( ES_DM2, 53, E_WARN, EV_ADMIN, 0 ), "ServerID for the server should be set." } ;
@@ -97,7 +97,7 @@ ErrorId MsgDm2::RmtArchiveDeleteFailed      = { ErrorOf( ES_DM2, 64, E_FAILED, E
 ErrorId MsgDm2::RmtDeleteEdgeArchiveFailed  = { ErrorOf( ES_DM2, 65, E_FAILED, EV_FAULT, 0 ), "Failed to delete remote archive." } ;
 ErrorId MsgDm2::ComponentStreamInvalid  = { ErrorOf( ES_DM2, 66, E_FAILED, EV_UNKNOWN, 1 ), "The component stream '%stream%' is not valid." } ;
 ErrorId MsgDm2::ComponentTypeNotAvailable = { ErrorOf( ES_DM2, 67, E_FAILED, EV_UNKNOWN, 1 ), "The component type '%type%' is not available." } ;
-ErrorId MsgDm2::TopologyDelPreview       = { ErrorOf( ES_DM2, 68, E_INFO, EV_NONE, 0 ), "This is in preview mode. For actual deletion, use '-y'." } ;
+ErrorId MsgDm2::TopologyDelPreview       = { ErrorOf( ES_DM2, 68, E_INFO, EV_NONE, 0 ), "This is in preview mode. For actual [%op%|deletion], use '-y'." } ;
 ErrorId MsgDm2::StreamHasComponentsDelete = { ErrorOf( ES_DM2, 69, E_FAILED, EV_NOTYET, 2 ), "Stream '%stream%' is a defined as a component in consuming stream '%consumer%'; cannot delete until the component definition is removed." } ;
 ErrorId MsgDm2::StreamHasComponentsOblit = { ErrorOf( ES_DM2, 70, E_FAILED, EV_NOTYET, 2 ), "Stream '%stream%' is a defined as a component in consuming stream '%consumer%'; cannot obliterate until the component definition is removed." } ;
 ErrorId MsgDm2::ComponentInvalidIsStream = { ErrorOf( ES_DM2, 71, E_FAILED, EV_USAGE, 1 ), "Stream '%stream%' cannot be defined as a component of itself." } ;
@@ -114,3 +114,12 @@ ErrorId MsgDm2::StreamLoopFound            = { ErrorOf( ES_DM2, 81, E_FAILED, EV
 ErrorId MsgDm2::ComponentInvalidIsDependent= { ErrorOf( ES_DM2, 82, E_FAILED, EV_USAGE, 4 ), "Stream '%dependent%' cannot be defined as a component.  It is a %relation% of %independent%, which is a relative or consumer of this stream %stream%." } ;
 ErrorId MsgDm2::TopologyThresholdOutOfRange       = { ErrorOf( ES_DM2, 83, E_FAILED, EV_USAGE, 0 ), "Threshold value provided has exceeded the maximum range (LLONG_MAX/86400)." } ;
 ErrorId MsgDm2::ProtectsMismatch                  = { ErrorOf( ES_DM2, 84, E_FAILED, EV_ILLEGAL, 2 ), "Path '%spath%' doesn't match command argument '%apath%'." };
+ErrorId MsgDm2::DirsDataStreamViews               = { ErrorOf( ES_DM2, 85, E_INFO, EV_NONE, 2 ), "%streamDirNam% (mapped to %dirName%)" } ;
+ErrorId MsgDm2::FilesDataStreamViews              = { ErrorOf( ES_DM2, 86, E_INFO, EV_NONE, 6 ), "%streamFile%%depotRev% (mapped to %depotFile%) - %action% %change% (%type%)" } ;
+ErrorId MsgDm2::MaxMem                            = { ErrorOf( ES_DM2, 87, E_FAILED, EV_ADMIN, 1 ), "Too much memory used (over %maxMem%); see '%'p4 help maxmemory'%'." } ;
+ErrorId MsgDm2::GroupsDataVerbose222              = { ErrorOf( ES_DM2, 88, E_INFO, EV_NONE, 8 ), "%group% %maxresults% %maxscanrows% %maxtimeout% %maxopenfiles% %maxmem% %timeout% %passtimeout%" };
+ErrorId MsgDm2::TopologyDelRecMarker              = { ErrorOf( ES_DM2, 89, E_INFO, EV_NONE, 0 ), "The server(s) marked as deleted" } ;
+ErrorId MsgDm2::TopologyAmbiguity                 = { ErrorOf( ES_DM2, 90, E_WARN, EV_NONE, 1 ), "Ambiguity found for the topology record with server address '%address%'" } ;
+ErrorId MsgDm2::TopologyTargetDeleted             = { ErrorOf( ES_DM2, 91, E_WARN, EV_NONE, 2 ), "The target server '%targetAddr%' is marked as deleted for the server '%address%'" } ;
+ErrorId MsgDm2::TopologyRecAlreadyDeleted         = { ErrorOf( ES_DM2, 92, E_WARN, EV_NONE, 3 ), "The server with address - '%addr%', destaddress - '%daddr%' and serverid - '%svrID%' is already marked as deleted." } ;
+ErrorId MsgDm2::ComponentWritableNoChange         = { ErrorOf( ES_DM2, 93, E_FAILED, EV_USAGE, 0 ), "A writable component cannot be given a change specifier." } ;

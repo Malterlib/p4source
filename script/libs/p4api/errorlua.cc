@@ -8,6 +8,7 @@
 
 # ifdef HAS_EXTENSIONS
 
+# include <limits>
 # include <p4script53.h>
 # include <strbuf.h>
 # include <error.h>

@@ -18,7 +18,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgHelp error code is: 274
+ * Current high value for a MsgHelp error code is: 275
  */
 
 ErrorId MsgHelp::NoHelp = { ErrorOf( ES_HELP, 1, E_FAILED, EV_USAGE, 1 ),
@@ -31,9 +31,9 @@ ErrorId MsgHelp::NoGraphHelp = { ErrorOf( ES_HELP, 235, E_FAILED, EV_USAGE, 1 ),
 
 ErrorId MsgHelp::HelpPerforce = { ErrorOf( ES_HELP, 11, E_INFO, EV_NONE, 2 ),
 R"(
-    Perforce -- the Fast Software Configuration Management System.
+    Perforce Helix Core -- Scalable Version Control for Any Digital Asset
 
-    p4 is Perforce's client tool for the command line.  Try:
+    p4 is Helix Core's client tool for the command line.  Try:
 
 	p4 help simple          list most common commands
 	p4 help commands        list all standard commands
@@ -53,9 +53,12 @@ R"(
 	p4 help usage           generic command line arguments
 	p4 help views           help on view syntax
 	p4 help replication     help on specialized replication topics
-	p4 help dvcs            help on decentralized Perforce configurations
+	p4 help dvcs            help on decentralized Helix Core configurations
 
 	p4 help legal           legal and license information
+
+	p4 -h                   show p4 usage details
+	p4d -h                  show p4d usage details
 
     The full user manual is available at
     https://www.perforce.com/support/self-service-resources/documentation
@@ -749,6 +752,8 @@ R"(
     p4 -zmaxOpenFiles=n command
     p4 -zmaxResults=n command
     p4 -zmaxScanRows=n command
+    p4 -zmaxMemory=n command
+
 	Overrides the user's maxLockTime/maxOpenFiles/maxResults/maxScanRows
 	for the command. Note that the server.commandlimits configurable
 	affects the operation of these command-level overrides.
@@ -815,17 +820,6 @@ R"(
 	from regular checkpoints does, and such restores take longer to
 	complete.
 
-    p4d -jcp [ prefix ]
-	Creates a parallel checkpoint of individual database tables
-	files in a directory named after prefix argument or
-	"checkpoint.n" where n is the current highest change number.
-	The number of threads used to create the checkpoint is
-	determined by the configuration variable "db.checkpoint.threads":
-	    -1 = no threads, work sequentially;
-	     0 = system imposed thread limit;
-	     n = use at most n threads.
-	The default is -1, no threads.
-
     p4d -xf bugno
 	Updates the server data to fix problems due to the
 	specified bug number.  Valid values of bugno are as follows:
@@ -865,6 +859,9 @@ R"(
 	Resets the UnlockCount of database files, but makes no other repairs.
 	Use only as a last resort if checkpoint and journal are not
 	available.
+
+    p4d -xrc
+	Consolidates leaf pages and recovers lost internal nodes in the btree.
 
     p4d -p <serverlevel> -jd
 	The -p flag directs the server to dump metadata in a form compatible
@@ -940,6 +937,7 @@ R"(
 
 	Name               Default Use
 	----               ------- ---
+	db.internal.repair       0 Runtime BTree consolidation and recovery
 	db.isalive             10K Rows scanned before maxLockTime check
 	db.page.migrate		 0 Avoid allocating pages at end of btree
 	db.reorg.disable	 1 Disable BTree reorganization
@@ -1396,8 +1394,8 @@ R"(
 	handles for client operations.
 
 	The following limits can be set: MaxResults, MaxScanRows, MaxLockTime
-	and MaxOpenFiles.  If an operation exceeds any of these limits, the
-	whole operation fails.
+	MaxOpenFiles, and MaxMemory.  If an operation exceeds any of these
+	limits, the whole operation fails.
 
 	MaxResults limits the number of rows of result data buffered and
 	prevents the server from using excessive memory.
@@ -1414,18 +1412,21 @@ R"(
 	operation and prevents users from accidentally opening an excessive
 	portion of the repository.
 
+	MaxMemory limits the number of megabytes of memory that a command may
+	use. Note that this is not a hard limit, but best-effort.
+
 	To set limits for groups of users, issue the 'p4 group' command.
 
 	You may wish to additionally set server.commandlimits=2 in order to
 	disable overriding these settings on a per-command basis.
 
-	Each group has MaxResults, MaxScanRows, MaxLockTime and MaxOpenFiles
-	fields, which limit the resources committed to operations performed by
-	members of the group.  For these fields, 'unlimited' or 'unset'
-	means no limit for that group.  An individual user's limit is the
-	highest of any group with a limit to which he belongs, unlimited if
-	any of his groups has 'unlimited' for that field, or unlimited
-	if he belongs to no group with a limit.
+	Each group has MaxResults, MaxScanRows, MaxLockTime, MaxOpenFiles and
+	MaxMemory fields, which limit the resources committed to operations
+	performed by members of the group.  For these fields, 'unlimited'
+	or 'unset' means no limit for that group.  An individual user's
+	limit is the highest of any group with a limit to which he belongs,
+	unlimited if any of his groups has 'unlimited' for that field, or
+	unlimited if he belongs to no group with a limit.
 
 	For naive users, set MaxResults to a value that is larger than the
 	number of files likely to reside in any of their client workspaces.
@@ -1634,13 +1635,14 @@ R"(
 	Helix Core, The fast versioning engine from Perforce Software.
 	Contributions from Jeff Anton, Michael Bishop, Ksenia Burlachenko,
 	Brian Campbell, Phil Champagne, Geri Clucas, Cal Collier, Scott Common,
-	Robert Cowham, Ed Daraki, Gary Gibbons, Jason Gibson, Paul Haffenden,
-	John Halbig, Wendy Heffner, Sven Erik Knop, Joel Kovisto, Peter Kreps,
-	Dave Lewak, Fred Malouf, Mark Mears, Michael Alyn Miller, Adam Morris,
-	Bryan Pendleton, Nick Poole, Mike Schonberg, Christopher Seiwald,
-	Andy Shebanow, Michael Shields, David Sielaff, Laxmi Sistla,
-	Tony Smith, Sam Stafford, James Strickland, Brett Taylor,
-	Patrycja Tomiak, Alan Teague, Marc Tooley and Mark Wittenberg.
+	Robert Cowham, Ed Daraki, Jake Dickson, Gary Gibbons, Jason Gibson,
+	Paul Haffenden, John Halbig, Wendy Heffner, Sven Erik Knop,
+	Joel Kovisto, Peter Kreps, Dave Lewak, Fred Malouf, Mark Mears,
+	Michael Alyn Miller, Adam Morriss, Alex Neumann, Bryan Pendleton,
+	Nick Poole, Mike Schonberg, Christopher Seiwald, Andy Shebanow,
+	Michael Shields, David Sielaff, Laxmi Sistla, Tony Smith, Sam Stafford,
+	James Strickland, Brett Taylor,	Patrycja Tomiak, Alan Teague,
+	Dulan Wettasinghe and Mark Wittenberg.
 )"
 };
 
@@ -1726,7 +1728,7 @@ ErrorId MsgHelp::HelpAdmin = { ErrorOf( ES_HELP, 26, E_INFO, EV_NONE, 0 ),
 R"(
     admin -- Perform administrative operations on the server
 
-    p4 admin checkpoint [-z | -Z] [prefix]
+    p4 admin checkpoint [-z | -Z] [-p [-N threads] ] [prefix]
     p4 admin journal [-z] [prefix]
     p4 admin stop
     p4 admin restart
@@ -1741,7 +1743,9 @@ R"(
 
 	'p4 admin checkpoint' causes the server to take a checkpoint and
 	to copy the journal to a numbered journal file.  This command is
-	equivalent to 'p4d -jc'.
+	equivalent to 'p4d -jc'. The '-p' option requests a parallel
+	checkpoint. The '-N threads' specifies the number of threads to
+	use during the parallel request.
 
 	'p4 admin journal' causes the server to save the journal to a
 	numbered journal file and then truncate it.  This command is
@@ -2311,6 +2315,7 @@ R"(
 
     p4 changes [-i -t -l -L -f -r] [-c client] [ -e changelist# ]
 	    [-m max] [-s status] [-u user] [file[revRange] ...]
+	    [--stream|--nostream]
 
 	Returns a list of all pending and submitted changelists currently
 	stored in the server.
@@ -2355,6 +2360,11 @@ R"(
 	status. Specify '-s pending', '-s shelved', or '-s submitted'.
 
 	The -u user flag displays only changes owned by the specified user.
+
+	The --stream flag displays only changes that contain a stream spec.
+
+	The --nostream flag displays only changes that do not contain a
+	stream spec.
 
 	For additional details on a single changelist, see 'p4 help describe'.
 )"
@@ -2837,8 +2847,7 @@ R"(
 	
 	          where
 
-	              <component_type> is a single keyword. The only
-	              component type currently supported is 'readonly'.
+	              <component_type> is a single keyword.
 
 	              <component_folder> a directory path relative to the
 	              root of the client workspace.
@@ -2863,12 +2872,22 @@ R"(
 	          sync'd from a component@change's views will be at a revision
 	          at or before the specified change.
 
-	          The only component type is:
+	          The component types are:
 
 	              readonly -- all views that originate from the component
 	                  are readonly;  files can be sync'd but not edited and
 	                  submitted.  Note that if the component has an import+
 	                  path, that path is readonly for the consuming stream.
+
+	              writeimport+ -- all views that originate from import+
+	                  paths in the component can be opened for edit and
+	                  submitted (writable);  all other views that
+	                  originate from the component are readonly.
+
+	              writeall -- all views that originate from share, isolate,
+	                  or import+ paths in the component can be opened for
+	                  edit and submitted (writable);  all other views that
+	                  originate from the component are readonly.
 
 	          Note that component stream views will be included when the
 	          consuming stream is itself defined as a component for some
@@ -2896,6 +2915,17 @@ R"(
 	                  //stream/mainB/... //ws/dirB/...
 	                  //stream/mainC/... //ws/dirB/dirC/...
 	                  //libs/libXYZ/lib1.a //ws/dirB/dirC/libXYZ/lib1.a
+
+	          Note that in a chain of components of different types, the
+	          most restrictive type becomes the effective component type
+	          for views originating from the end component in the chain.
+
+	          For example, if component B is defined as writeall in A, and
+	          B has a readonly component C, then the views coming from
+	          paths in C are readonly.  Similarly, if B is defined as
+	          writeimport+ in A and C is defined as writeall in B, then the
+	          views in A which originate from share or isolate paths in C
+	          are readonly, while import+ paths in C are writable.
 
 	          The configurable, dm.stream.components, can be used to enable
 	          or disable the inclusion of stream components in the
@@ -4412,6 +4442,7 @@ R"(
     dirs -- List depot subdirectories
 
     p4 dirs [-C -D -H] [-S stream] [-i] dir[revRange] ...
+    p4 dirs [-D] [ --streamviews ] dir[revRange] ...
 
 	List directories that match the specified file pattern (dir).
 	This command does not support the recursive wildcard (...).
@@ -4440,6 +4471,9 @@ R"(
 
 	The -S flag limits output to depot directories mapped in a stream's
 	client view.
+
+	The --streamviews option reports results for streams in the context
+	of the stream.
 
 	See 'p4 help-graph dirs' for information on using this command with
 	graph depots.
@@ -4996,6 +5030,7 @@ R"(
     files -- List files in the depot
 
     p4 files [ -a ] [ -A ] [ -e ] [-i] [ -m max ] file[revRange] ...
+    p4 files [ -a ] [ -e ] [ -m max ] [ --streamviews ] file[revRange] ...
     p4 files -U unloadfile ...
 
 	List details about specified files: depot file name, revision,
@@ -5026,6 +5061,9 @@ R"(
 
 	The -U option displays files in the unload depot (see 'p4 help unload'
 	for more information about the unload depot).
+
+	The --streamviews option reports results for streams in the context
+	of the stream.
 
 	See 'p4 help-graph files' for information on using this command with
 	graph depots.
@@ -5150,6 +5188,8 @@ R"(
 
     p4 fstat [-F filter -L -T fields -m max -r] [-c | -e changelist#]
 	[-Ox -Rx -Sx] [-A pattern] [-U] file[rev] ...
+    p4 fstat [-F filter -T fields -m max -r] [-c | -e changelist#]
+	[-Ox -Rx -Sx] [-A pattern] [ --streamviews ] file[rev] ...
 
 	fstat lists information about files, one line per field.  Fstat is
 	intended for use in Perforce API applications, where the output can
@@ -5311,6 +5351,9 @@ R"(
 
 	For compatibility, the following flags are also supported:
 	-C (-Rc) -H (-Rh) -W (-Ro) -P (-Op) -l (-Ol) -s (-Os).
+
+	The --streamviews option reports results for streams in the context
+	of the stream.
 
 	See 'p4 help-graph fstat' for information on using this command with
 	graph depots.
@@ -5513,10 +5556,11 @@ R"(
 	A group exists when it has any users or other groups in it, and
 	ceases to exist if all users and groups in it are removed.
 
-	Each group has MaxResults, MaxScanRows, MaxLockTime and MaxOpenFiles
-	fields, which limit the resources committed to operations performed
-	by members of the group.  See 'p4 help maxresults' for more
-	information on MaxResults, MaxScanRows, MaxLockTime and MaxOpenFiles.
+	Each group has MaxResults, MaxScanRows, MaxLockTime, MaxOpenFiles
+	and MaxMemory fields, which limit the resources committed to
+	operations performed by members of the group.  See
+	'p4 help maxresults' for more information on MaxResults, MaxScanRows,
+	MaxLockTime, MaxOpenFiles and MaxMemory.
 
 	Since a user may be a member of multiple groups, the effective
 	resource limits for that user take into account the resource limits
@@ -6774,6 +6818,8 @@ R"(
 )"
 };
 
+# include <openssl/opensslv.h>
+
 ErrorId MsgHelp::HelpLegal = { ErrorOf( ES_HELP, 151, E_INFO, EV_NONE, 0 ),
 R"more(
     p4 help [ -l --local ] legal
@@ -6812,7 +6858,9 @@ R"more(
 
 
     OpenSSL:
-    -----------------------
+    -----------------------)more"
+# if OPENSSL_VERSION_NUMBER < 0x30000000L
+R"more(
 	This product includes cryptographic software written by Eric Young
 	(eay@cryptsoft.com).
 	This product includes software written by Tim Hudson
@@ -6935,6 +6983,193 @@ R"more(
      * simply be copied and put under another distribution licence
      * [including the GNU Public Licence.]
      *)more"
+# else
+R"more(
+    Copyright (c) 1998-2022 The OpenSSL Project
+    Copyright (c) 1995-1998 Eric A. Young, Tim J. Hudson
+    All rights reserved.
+
+    OpenSSL License
+    -----------------------
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        https://www.apache.org/licenses/
+
+    TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+    1. Definitions.
+
+       "License" shall mean the terms and conditions for use, reproduction,
+       and distribution as defined by Sections 1 through 9 of this document.
+
+       "Licensor" shall mean the copyright owner or entity authorized by
+       the copyright owner that is granting the License.
+
+       "Legal Entity" shall mean the union of the acting entity and all
+       other entities that control, are controlled by, or are under common
+       control with that entity. For the purposes of this definition,
+       "control" means (i) the power, direct or indirect, to cause the
+       direction or management of such entity, whether by contract or
+       otherwise, or (ii) ownership of fifty percent (50%) or more of the
+       outstanding shares, or (iii) beneficial ownership of such entity.
+
+       "You" (or "Your") shall mean an individual or Legal Entity
+       exercising permissions granted by this License.
+
+       "Source" form shall mean the preferred form for making modifications,
+       including but not limited to software source code, documentation
+       source, and configuration files.
+
+       "Object" form shall mean any form resulting from mechanical
+       transformation or translation of a Source form, including but
+       not limited to compiled object code, generated documentation,
+       and conversions to other media types.
+
+       "Work" shall mean the work of authorship, whether in Source or
+       Object form, made available under the License, as indicated by a
+       copyright notice that is included in or attached to the work
+       (an example is provided in the Appendix below).
+
+       "Derivative Works" shall mean any work, whether in Source or Object
+       form, that is based on (or derived from) the Work and for which the
+       editorial revisions, annotations, elaborations, or other modifications
+       represent, as a whole, an original work of authorship. For the purposes
+       of this License, Derivative Works shall not include works that remain
+       separable from, or merely link (or bind by name) to the interfaces of,
+       the Work and Derivative Works thereof.
+
+       "Contribution" shall mean any work of authorship, including
+       the original version of the Work and any modifications or additions
+       to that Work or Derivative Works thereof, that is intentionally
+       submitted to Licensor for inclusion in the Work by the copyright owner
+       or by an individual or Legal Entity authorized to submit on behalf of
+       the copyright owner. For the purposes of this definition, "submitted"
+       means any form of electronic, verbal, or written communication sent
+       to the Licensor or its representatives, including but not limited to
+       communication on electronic mailing lists, source code control systems,
+       and issue tracking systems that are managed by, or on behalf of, the
+       Licensor for the purpose of discussing and improving the Work, but
+       excluding communication that is conspicuously marked or otherwise
+       designated in writing by the copyright owner as "Not a Contribution."
+
+       "Contributor" shall mean Licensor and any individual or Legal Entity
+       on behalf of whom a Contribution has been received by Licensor and
+       subsequently incorporated within the Work.
+
+    2. Grant of Copyright License. Subject to the terms and conditions of
+       this License, each Contributor hereby grants to You a perpetual,
+       worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+       copyright license to reproduce, prepare Derivative Works of,
+       publicly display, publicly perform, sublicense, and distribute the
+       Work and such Derivative Works in Source or Object form.
+
+    3. Grant of Patent License. Subject to the terms and conditions of
+       this License, each Contributor hereby grants to You a perpetual,
+       worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+       (except as stated in this section) patent license to make, have made,
+       use, offer to sell, sell, import, and otherwise transfer the Work,
+       where such license applies only to those patent claims licensable
+       by such Contributor that are necessarily infringed by their
+       Contribution(s) alone or by combination of their Contribution(s)
+       with the Work to which such Contribution(s) was submitted. If You
+       institute patent litigation against any entity (including a
+       cross-claim or counterclaim in a lawsuit) alleging that the Work
+       or a Contribution incorporated within the Work constitutes direct
+       or contributory patent infringement, then any patent licenses
+       granted to You under this License for that Work shall terminate
+       as of the date such litigation is filed.
+
+    4. Redistribution. You may reproduce and distribute copies of the
+       Work or Derivative Works thereof in any medium, with or without
+       modifications, and in Source or Object form, provided that You
+       meet the following conditions:
+
+       (a) You must give any other recipients of the Work or
+           Derivative Works a copy of this License; and
+
+       (b) You must cause any modified files to carry prominent notices
+           stating that You changed the files; and
+
+       (c) You must retain, in the Source form of any Derivative Works
+           that You distribute, all copyright, patent, trademark, and
+           attribution notices from the Source form of the Work,
+           excluding those notices that do not pertain to any part of
+           the Derivative Works; and
+
+       (d) If the Work includes a "NOTICE" text file as part of its
+           distribution, then any Derivative Works that You distribute must
+           include a readable copy of the attribution notices contained
+           within such NOTICE file, excluding those notices that do not
+           pertain to any part of the Derivative Works, in at least one
+           of the following places: within a NOTICE text file distributed
+           as part of the Derivative Works; within the Source form or
+           documentation, if provided along with the Derivative Works; or,
+           within a display generated by the Derivative Works, if and
+           wherever such third-party notices normally appear. The contents
+           of the NOTICE file are for informational purposes only and
+           do not modify the License. You may add Your own attribution
+           notices within Derivative Works that You distribute, alongside
+           or as an addendum to the NOTICE text from the Work, provided
+           that such additional attribution notices cannot be construed
+           as modifying the License.
+
+       You may add Your own copyright statement to Your modifications and
+       may provide additional or different license terms and conditions
+       for use, reproduction, or distribution of Your modifications, or
+       for any such Derivative Works as a whole, provided Your use,
+       reproduction, and distribution of the Work otherwise complies with
+       the conditions stated in this License.
+
+    5. Submission of Contributions. Unless You explicitly state otherwise,
+       any Contribution intentionally submitted for inclusion in the Work
+       by You to the Licensor shall be under the terms and conditions of
+       this License, without any additional terms or conditions.
+       Notwithstanding the above, nothing herein shall supersede or modify
+       the terms of any separate license agreement you may have executed
+       with Licensor regarding such Contributions.
+
+    6. Trademarks. This License does not grant permission to use the trade
+       names, trademarks, service marks, or product names of the Licensor,
+       except as required for reasonable and customary use in describing the
+       origin of the Work and reproducing the content of the NOTICE file.
+
+    7. Disclaimer of Warranty. Unless required by applicable law or
+       agreed to in writing, Licensor provides the Work (and each
+       Contributor provides its Contributions) on an "AS IS" BASIS,
+       WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+       implied, including, without limitation, any warranties or conditions
+       of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+       PARTICULAR PURPOSE. You are solely responsible for determining the
+       appropriateness of using or redistributing the Work and assume any
+       risks associated with Your exercise of permissions under this License.
+
+    8. Limitation of Liability. In no event and under no legal theory,
+       whether in tort (including negligence), contract, or otherwise,
+       unless required by applicable law (such as deliberate and grossly
+       negligent acts) or agreed to in writing, shall any Contributor be
+       liable to You for damages, including any direct, indirect, special,
+       incidental, or consequential damages of any character arising as a
+       result of this License or out of the use or inability to use the
+       Work (including but not limited to damages for loss of goodwill,
+       work stoppage, computer failure or malfunction, or any and all
+       other commercial damages or losses), even if such Contributor
+       has been advised of the possibility of such damages.
+
+    9. Accepting Warranty or Additional Liability. While redistributing
+       the Work or Derivative Works thereof, You may choose to offer,
+       and charge a fee for, acceptance of support, warranty, indemnity,
+       or other liability obligations and/or rights consistent with this
+       License. However, in accepting such obligations, You may act only
+       on Your own behalf and on Your sole responsibility, not on behalf
+       of any other Contributor, and only if You agree to indemnify,
+       defend, and hold each Contributor harmless for any liability
+       incurred by, or claims asserted against, such Contributor by reason
+       of your accepting any such warranty or additional liability.
+
+    END OF TERMS AND CONDITIONS
+)more"
+# endif
 R"more(
 
     OpenLDAP:
@@ -7876,10 +8111,10 @@ R"(
     monitor -- Display Perforce process information
 
     p4 monitor show [-a -l -e -L -s R|T|P|B|F|I ]
-    p4 monitor terminate [id]
-    p4 monitor clear [id | all]
-    p4 monitor pause [id]
-    p4 monitor resume [id]
+    p4 monitor terminate id
+    p4 monitor clear {id | all}
+    p4 monitor pause id
+    p4 monitor resume id
     p4 monitor realtime [ -F -T ]
 
 	Monitor displays running p4 processes. Monitor tracks the Perforce
@@ -7942,21 +8177,21 @@ R"(
 
 	    The -s flag displays only processes in the indicated status.
 
-	'p4 monitor terminate [id]' marks the specified command for
+	'p4 monitor terminate id' marks the specified command for
 	termination. This command requires that the user be an operator,
 	have 'super' access or be the owner of the process id.
 
-	'p4 monitor clear [id|all]' removes the specified process record from
+	'p4 monitor clear {id|all}' removes the specified process record from
 	the monitor table. All of the records are removed if the option 'all'
 	is supplied instead of an ID.  This option might be required if for
 	some reason commands are ending prematurely. This command requires
 	that the user be an operator or have 'super' access.
 
-	'p4 monitor pause [id]' marks the specified command for
+	'p4 monitor pause id' marks the specified command for
 	pausing until resumed. This command requires that the user be
 	an operator or have 'super' access.
 
-	'p4 monitor resume [id]' marks the specified command for
+	'p4 monitor resume id' marks the specified command for
 	resuming. This command requires that the user be an operator or have
 	'super' access.
 
@@ -9968,9 +10203,12 @@ R"(
     flush -- synonym for 'sync -k'
     update -- synonym for 'sync -s'
 
-    p4 sync [-f -L -n -N -k -K -q -r] [-m max] [file[revRange] ...]
-    p4 sync [-L -n -N -K -q -s] [-m max] [file[revRange] ...]
-    p4 sync [-L -n -N -K -p -q] [-m max] [file[revRange] ...]
+    p4 sync [-E -f -L -n -N -k -K -q -r] [-m max] [file[revRange] ...]
+            [--use-stream-change=N]
+    p4 sync [-E -L -n -N -K -q -s] [-m max] [file[revRange] ...]
+            [--use-stream-change=N]
+    p4 sync [-E -L -n -N -K -p -q] [-m max] [file[revRange] ...]
+            [--use-stream-change=N]
             --parallel=threads=N[,batch=N][,batchsize=N][,min=N][,minsize=N]
 
 	Sync updates the client workspace to reflect its current view (if
@@ -10053,6 +10291,9 @@ R"(
 	flag, to preview how many files will be synced without transferring
 	all the file data.
 
+	The -E flag verifies that any changelists specified in the revRange
+	are existing, submitted changes before performing the sync.
+
 	The --parallel flag specifies options for parallel file transfer. If
 	your administrator has enabled parallel file transfer by setting the
 	net.parallel.max configurable, and if there are sufficient resources
@@ -10076,6 +10317,23 @@ R"(
 	unsetting the net.parallel.threads configurable. A user may override
 	the configured auto parallel sync options on the command line, or may
 	disable it via 'p4 sync --parallel=0'.
+
+	The --use-stream-change flag specifies options for syncing stream
+	clients using the stream view at or before change N.  If N=0, the
+	current head version of the stream spec view is used.  If the
+	StreamAtChange field is set in the client specification, then that
+	value overrules any --use-stream-change value.
+
+	If the configurable dm.sync.streamchange is set 1, then the
+	--use-stream-change flag is used implicitly.  If a change specifier
+	is used on the file arguments, then the stream view is derived from the
+	stream spec version at or before the change specifier.  If multiple
+	file arguments are used with different change specifiers, the greatest
+	change number is used.  If no change specifiers are used, or at least
+	one file in the filelist has no change specifier, then the stream view
+	comes from the head version of the stream spec.  The
+	--use-stream-change flag may also be used to override any change
+	specifier on a file argument.
 
 	See 'p4 help-graph sync' for information on using this command with
 	graph depots.
@@ -10141,8 +10399,10 @@ ErrorId MsgHelp::HelpTopology = { ErrorOf( ES_HELP, 269, E_INFO, EV_NONE, 0 ),
 R"(
     topology -- Display the list of connected servers (Technical Preview)
 
-    p4 topology [-a | -t #numOfDays] [-F filter] [-T field...]
-    p4 topology -d #date [-y] [-e] [-s #serveraddress]
+    p4 topology [-a | -t numOfDays] [-F filter] [-T field...]
+    p4 topology -D date [-y] [-e] [-s serveraddress]
+    p4 topology -d [-y] [-s serveraddress -i serverID [-p targetaddress]] |
+	           [-c date [-e]] | [-l lastSeenDate [-e]]
 
 	Reports the servers that are connected directly or indirectly to the
 	innermost server, including an indicator of the server this command is
@@ -10153,10 +10413,25 @@ R"(
 	The -a flag displays all the configurations of the services that have
 	been recorded in the database.
 
-	The -d flag displays the preview of the deletion operation based on the
+	The -d flag indicates the delete marker. This flag ensures that the
+	delete operation marks the addressed topology records as deleted
+	instead of removing them from the topology table. If there are multiple
+	entries with the same server address, destination address and the
+	server id then the operation is performed on the server record with the
+	latest timestamp of its creation. To execute the operation, specify the
+	-y flag.
+
+	The -c flag indicates the creation date. This flag helps in marking the
+	topology records as deleted based on the specified date of creation.
+
+	The -l flag indicates the last seen date. This flag helps in marking
+	the records as deleted based on the specified date that represents the
+	last time the server record was updated.
+
+	The -D flag displays the preview of the deletion operation based on the
 	date in epoch format. The date in this format can be found in the
 	tagged topology output by running the command 'p4 -ztag topology'. To
-	execute the operation, specify the -y flag.
+	delete the specified records from the table, specify the -y flag.
 
 	The -e flag ensures that the deletion operation also includes all the
 	records dated earlier than the specified date.
@@ -10196,8 +10471,8 @@ R"(
 	'p4 triggers' edits the table of triggers, which are used for
 	change submission validation, form validation, external authentication,
 	external job fix integration, external archive integration,
-	post-failover activities, server response monitoring, and command
-	policies.
+	post-failover and post-failback activities, server response
+	monitoring, and command policies.
 
 	Helix Core Extensions are a distinct means of customization, separate
 	from triggers.  See 'p4 help extension'.
@@ -10253,11 +10528,13 @@ R"(
 	    'p4 admin checkpoint' or on replicas when they rotate to match
 	    the master.
 
-	Perform post-failover activities.
+	Perform post-failover or post-failback activities.
 
 	    The new master after a successful failover may run a failed-over
 	    trigger to handle a DNS change, or any other changes that may
-	    be required after the failover.
+	    be required after the failover. A failed-back trigger may be
+	    run after a successful failback to perform changes that may
+	    be required after the failback.
 
 	Monitor server responsiveness.
 
@@ -10427,6 +10704,23 @@ R"(
 		    and that a failed failed-over trigger will not prevent
 		    any other failed-over triggers from running.
 
+		failed-back:
+		    Execute only when a new master first starts up after
+		    successful failback. This trigger could be used to
+		    perform a DNS change, or any other activities needed
+		    to support replication after failback. The special
+		    variables %%standbyserverid%% and %%standbyserverport%%
+		    expand to the serverid and serverport of the standby
+		    before it became the new master. %%serverid%% and
+		    %%serverport%% refer to the current serverid and
+		    serverport of the new master. Note that most of the
+		    usual trigger variables are not available for this
+		    trigger as this fires at server startup before
+		    any client connection. Also note that multiple
+		    failed-back triggers run in the background asynchronously,
+		    and that a failed failed-back trigger will not prevent
+		    any other failed-back triggers from running.
+
 		fix-add:
 		    Execute fix trigger prior to adding a fix.  The special
 		    variable %%jobs%% is available for expansion and must be
@@ -10551,6 +10845,8 @@ R"(
 		graph-lfs-push:
 		    Execute trigger prior to any LFS files being transferred.
 
+)"
+R"(
 	Path:   For change and submit triggers, a file pattern to match files
 		in the changelist.  This file pattern can be an exclusion
 		mapping (-pattern), to exclude files.  For form triggers, the
@@ -10573,7 +10869,8 @@ R"(
 		the desired repos.  The path should end with a wildcard even if
 		only matching a single repo.  For 'bgtask' triggers, use a path
 		of 'unset'. For 'failed-over' triggers, use 'failed-over' as
-		the path. For 'heartbeat-dead', 'heartbeat-missing', and
+		the path. For 'failed-back' triggers, use 'failed-back' as the
+		path. For 'heartbeat-dead', 'heartbeat-missing', and
 		'heartbeat-resumed' triggers, use 'heartbeat' as the path.
 
 	Command: The OS command to run for validation.  If the command
@@ -10582,8 +10879,6 @@ R"(
 		Use of the triggers.io configurable with a value greater than
 		zero is recommended, as some vars may be empty or contain
 		shell metacharacters.
-)"
-R"(
 		    %%//depot/trigger.exe%% -- depot paths within %%vars%%
 		    are filled with the path to a temporary file containing
 		    the referenced file's contents.  Only standard and stream
@@ -10605,6 +10900,7 @@ R"(
 		    %%maxErrorText%% -- text and errno for highest error
 		    %%maxLockTime%% -- user-specified override of group value
 		    %%maxOpenFiles%% -- user-specified override of group value
+		    %%maxMemory%% -- user-specified override of group value
 		    %%maxResults%% -- user-specified override of group value
 		    %%maxScanRows%% -- user-specified override of group value
 		    %%quote%% -- double quote character
@@ -10719,6 +11015,12 @@ R"(
 		                          it became the master during failover
 		    %%standbyserverport -- the serverport of the standby before
 		                          it became the master during failover
+
+		    For a failed-back trigger:
+		    %%standbyserverid   -- the serverid of the standby before
+		                          it became the master during failback
+		    %%standbyserverport -- the serverport of the standby before
+		                          it became the master during failback
 
 		    For the heartbeat-* triggers:
 		    %%targetport%% -- the serverport of the target server
@@ -11422,7 +11724,7 @@ ErrorId MsgHelp::HelpDbstat = { ErrorOf( ES_HELP, 113, E_INFO, EV_NONE, 0 ),
 R"(
     dbstat -- Display size or simple statistics for a database table
 
-    p4 dbstat [-h] [-f] { -a | dbtable ... }
+    p4 dbstat [-h] [-f] | [-p [-w worklevel] [-n nofiles]] { -a | dbtable ... }
     p4 dbstat -s
 
 	The -h flag displays a histogram showing the distances between
@@ -11435,6 +11737,14 @@ R"(
 	The -f flag outputs a page count, pages free, and percent free.
 	If the -h flag is given together with -f, a histogram of free page
 	distribution is shown and distance report is omitted.
+
+	The -p flag requests level and page count information for a database
+	table. Included in the output are details of how the file would
+	be split for a multifile checkpoit request. The -w worklevel
+	and -n nofiles flags override the similarly named configuration
+	variables. The 'worklevel' determines which level of the table
+	should be used to spilt the file. 'nofiles' gives an indication
+	of the number of split checkpoint files that would be generated.
 
 	The -a flag outputs infomation for all tables.
 
@@ -11877,6 +12187,13 @@ R"(
 	                           0: no user autocreation  (default)
 	                           1: user created on successful auth
 	                           2: user must have also already have protects
+	auth.licenseexpiry.warn  1 Enable license expiry warning
+	                           0: No license expiry warning
+	                           1: Warn users with permission level admin or
+	                              higher when they log in (default)
+	                           2: Warn all users when they log in
+	auth.licenseexpiry.warnthreshold 7 Days before license expiry to start
+	                              giving warning
 	auth.sso.allow.passwd    0 Allow fallback to database password auth
 	auth.sso.args         none Passed to client P4LOGINSSO triggers
 	auth.sso.nonldap         0 Non-LDAP users can use SSO when LDAP in use
@@ -11888,10 +12205,8 @@ R"(
 	client.sendq.dir      none Storage location for partitioned db.sendq
 	db.checkpoint.bufsize 224K Minimum journal buffer size during
 	                           checkpoint
-	db.checkpoint.threads   -1 Number of threads to use for checkpoint
-	                           -1: Use non-threaded checkpointing
-	                            0: Use a thread for each table in
-	                               checkpoint
+	db.checkpoint.threads    0 Number of threads to use for checkpoint
+	                            0: Use non-threaded checkpointing
 	                            N: Use N threads to produce the
 	                               checkpoint
 	db.monitor.addthresh     0 Milliseconds before adding command or
@@ -11970,6 +12285,11 @@ R"(
 	dm.user.allowselfupdate  1 Users may update their email and fullname
 	dm.user.noautocreate     0 User autocreation level
 	dm.user.resetpassword    0 New user requires password reset
+	dm.user.setinitialpasswd 1 Unset password handling
+	                           0: Only super users whose password is set
+	                              can set/unset initial passwords
+	                           1: Users can set their own initial passwords
+	                             (default)
 	filesys.binaryscan     64K 'add' looks this far for binary chars
 	filesys.bufsize        64K Client file I/O buffer size
 	filesys.checklinks       0 Reject symlinked directories on add
@@ -12002,6 +12322,10 @@ R"(
 	                           logged
 	                           If set to 2 then no digest is created for
 	                           keyword revisions and no message is logged
+	lbr.storage.threads      0 Number of threads to use for a storage -U
+	                           request
+	                            0: Don't use threads
+	                            N: Use N threads to compute the digests
 	lbr.verify.in            1 Verify contents from the client to server
 	lbr.verify.out           1 Verify contents from the server to client
 	lbr.verify.script.out    1 Verify +X contents from server to client
@@ -12087,6 +12411,11 @@ R"(
 	rt.monitorfile        none Realtime performance counter file
 )"
 R"(	run.clientexts.allow     1 Allow client-side Extensions to run
+	run.renameclient.allow   1 Allow the 'renameclient' command
+	                           0: disallow for all users
+	                           1: allow for client owners, admins and super
+	                           2: allow for admins and super
+	                           3: allow for super
 	run.unzip.user.allow     0 Should 'p4 unzip' allow '-u'
 	run.users.authorize      0 Should 'p4 users' require authentication
 	security                 0 User/password security level
@@ -12490,7 +12819,7 @@ R"(
     p4 storage -u [-c change] [-T tags -F filters] [-m max] archive...
     p4 storage -d [-c change] [-y] [-D secs] [ -t target ] [-q] archive...
     p4 storage -w
-    p4 storage -U [-q] archive...
+    p4 storage -U [-q] [-n threads] archive...
     p4 storage -l start|pause|restart|wait|status|cancel //depotdirectory/...
 
 	The first form of this command displays information about the server
@@ -12581,7 +12910,10 @@ R"(
 	with lbr.storage.skipkeyed set to avoid the delay incurred by
 	calculating the digest during the upgrade. The -q flag can be
 	supplied with the -U flag and this suppresses the progress
-	messages produced. The -U flag requires 'super' access.
+	messages produced. The -n threads flag specifies the number of
+	threads to use. 0 = no threads; n = use n threads. When the n
+	flags is not specified, the command uses the lbr.storage.threads
+	configuration variable. The -U flag requires 'super' access.
 
 	The -l flag controls a background process that scans the server root
 	looking for orphaned files that are no longer referenced by the server,
@@ -12785,6 +13117,7 @@ R"(
 	protect      Modify protections in the server namespace
 	protects     Display protections in place for a given user/path
 	reload       Reload metadata for an unloaded client or label
+	renameclient Rename a client workspace throughout the database
 	renameuser   Completely rename a user throughout the database
 	restore      Restore archived revisions to their original location
 	storage      Display, verify, or update physical archive storage
@@ -13266,6 +13599,47 @@ R"(
 )"
 };
 
+ErrorId MsgHelp::HelpRenameClient = { ErrorOf( ES_HELP, 275, E_INFO, EV_NONE, 0 ),
+R"(
+    renameclient -- Rename a client throughout the database
+
+    renameworkspace -- synonym for 'renameclient'
+
+    p4 renameclient --from=old --to=new
+
+	'p4 renameclient' renames a client, modifying relevant database
+	records which reference the client as needed.
+
+	This includes pending and shelved changes created by the client,
+	any files that the user has opened or shelved, any fixes that the
+	user made to jobs associated with pending changes, files on the
+	client's have list, and the client record itself. Note that this
+	command does not modify submitted changes nor fixes that are
+	associated with submitted changelists. The intent of this
+	command is to create a new client, migrate all existing work
+	in progress to that new client, and then delete the old client.
+
+	The client name is not changed in descriptive text fields (such as job
+	descriptions, change descriptions, or workspace descriptions). The
+	client is modified only where it appears as a field or as part of a
+	client path of a database record.
+
+	This command will add an entry to the spec depot for the new client,
+	and will add a deletion entry for the old client.
+
+	This command does not process unloaded clients, so any unloaded
+	client to be renamed should be reloaded first.
+
+	This command is not supported for use with partitioned or readonly
+	clients, clients with opened streams, or clients with promoted shelved
+	changes. The client cannot be renamed to a client that already exists.
+
+	'p4 renameclient' by default requires 'admin' access granted
+	by 'p4 protect', or must be the owner of the client to be renamed.
+	The 'run.renameclient.allow' configurable can be used to restrict
+	users that can run the 'p4 renameclient' command.
+)"
+};
 
 ErrorId MsgHelp::HelpRenameUser = { ErrorOf( ES_HELP, 169, E_INFO, EV_NONE, 0 ),
 R"(

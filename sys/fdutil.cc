@@ -73,7 +73,18 @@ lockFile( FD_TYPE fd, int flag, int (*cb)(void *), void *arg )
 # else
 # ifdef OS_NT
 
-	return lockFileByHandle( fd->fh, flag, cb, arg );
+	int ret = lockFileByHandle( fd->fh, flag );
+
+	// Save the lock type as we may have to unlock and relock in nt_write.
+	//
+	if( ret == 0 && fd->lfn & LFN_ATOMIC_RENAME )
+	{
+	    fd->fdFlags |= FD_LOCKED;
+	    fd->lock = flag;
+	}
+
+	return ret;
+
 # else
 # if defined(LOCK_UN) && !defined(sgi) && !defined(OS_QNX) && !defined(OS_AIX)
 
@@ -352,6 +363,8 @@ checkStdio( FD_TYPE fd )
 
 #ifdef OS_NT
 // Primarily used from bt_fio.cc
+//
+// return 0 for success, -1 for failure.
 //
 int
 lockFileByHandle(HANDLE h, int flag, int (*cb)(void *), void *arg )

@@ -4,7 +4,10 @@
  * This file is part of Perforce - the FAST SCM System.
  */
 
+# define NEED_WINDOWSH
+
 # include <stdhdrs.h>
+
 # include <error.h>
 # include <strbuf.h>
 # include <strdict.h>
@@ -156,3 +159,135 @@ void SystemInfo::Collect( StrBufDict& output, Error* e )
 }
 
 # endif // HAS_CPP11
+
+# ifdef OS_NT
+
+#include <winuser.h>
+
+static int AtomicRenameSupported = -1;
+
+// Using the Powershell is very slow.  Call the Windows APIs
+// directly to qualify the Windows Version.
+//
+// Operating System       Version   Build
+// ---------------------------------------
+// Windows Server 2022     10.0     20348
+// Windows 11              10.0     22000
+// Windows Server 2019     10.0     19042
+// Windows 10              10.0     10240-19044
+// Windows Server 2016     10.0     14393
+// Windows Server 2012 R2   6.3     9600
+// Windows 8.1              6.3     9600
+// Windows Server 2012      6.2     9200
+// Windows 8                6.2     9200
+// Windows Server 2008 R2   6.1     7601
+// Windows 7                6.1     7601
+// Windows Server 2008      6.0     6001
+// Windows Vista            6.0     6000
+// Windows Server 2003 R2   5.2     3718
+// Windows Server 2003      5.2     1218
+// Windows Home Server      5.2     3790
+// Windows XP Pro x64       5.2     3790
+// Windows XP               5.1     2600
+// Windows 2000             5.0     2195
+//
+
+// Return values,
+//  0 - failure
+//  1 - success
+//
+int
+SystemInfo::WindowsVersionInfo( DWORD &major, DWORD &minor, DWORD &build,
+	WORD &ptype )
+{
+	OSVERSIONINFOEX osi;
+
+	ZeroMemory( &osi, sizeof(OSVERSIONINFOEX) );
+
+	// (Requires Windows 2000 or later)
+	//
+	osi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
+	if( ! GetVersionEx( (OSVERSIONINFO *) &osi ) )
+	    return 0;
+
+	major = osi.dwMajorVersion;
+	minor = osi.dwMinorVersion;
+	build = osi.dwBuildNumber;
+	ptype = osi.wProductType;
+
+	return 1;
+}
+
+// Return values,
+//  0 - atomic rename not supported
+//  1 - atomic rename supported
+//
+int
+SystemInfo::CheckForAtomicRename( )
+{
+	DWORD major=0;
+	DWORD minor=0;
+	DWORD build=0;
+	WORD ptype=0;
+
+	if( AtomicRenameSupported >= 0)
+	    return AtomicRenameSupported;
+
+	if( ! WindowsVersionInfo( major, minor, build, ptype ) )
+	{
+	    AtomicRenameSupported = 0;
+	    return 0;
+	}
+
+	// Disable for Windows 2003 and earlier.
+	//
+	if( major <= 6 )
+	{
+	    AtomicRenameSupported = 0;
+	    return 0;
+	}
+
+	if( major == 10 )
+	{
+	    if( minor == 0 )
+	    {
+	        if( ptype == VER_NT_WORKSTATION )
+	        {
+	            if( build < 10240 )
+	            {
+	                // Earlier then Windows 10
+	                AtomicRenameSupported = 0;
+	            }
+	            if( build >= 19044 )
+	            {
+	                // Windows 10, 11
+	                AtomicRenameSupported = 1;
+	            }
+	        }
+	        else
+	        {
+	            if( build >= 17763 )
+	            {
+	                // Windows Server 2020, build 20348
+	                // Windows Server 2019, build 17763
+	                AtomicRenameSupported = 1;
+	            }
+	            else if( build >= 14393 )
+	            {
+	                // Windows Server 2016, build 9200
+	                // Allow 2016 for EC testing.
+	                AtomicRenameSupported = 1;
+	            }
+	            else
+	            {
+	                // Earlier then Windows 2016 Server
+	                AtomicRenameSupported = 0;
+	            }
+	        }
+	    }
+	}
+
+	return AtomicRenameSupported;
+}
+
+# endif // OS_NT

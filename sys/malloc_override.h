@@ -32,6 +32,7 @@ built with a memory manager.
 #    define P4_CALLOC  mi_calloc
 #    define P4_REALLOC mi_realloc
 #    define P4_FREE    mi_cfree
+#    define P4_STRDUP  mi_strdup
 // These functions can crash if passed a non MiMalloc pointer to free.
 // See job107801
 # ifdef NO_DEF
@@ -55,6 +56,7 @@ built with a memory manager.
 #    define P4_CALLOC  je_calloc
 #    define P4_REALLOC je_realloc
 #    define P4_FREE    je_free
+#    define P4_STRDUP  strdup
 #    define P4_SIZED_DELETE(ptr, size)  je_free(ptr)
 #    define P4_SIZED_DELETE_ARR(ptr, size) je_free(ptr)
 
@@ -69,6 +71,7 @@ built with a memory manager.
 #    define P4_CALLOC  rpcalloc
 #    define P4_REALLOC rprealloc
 #    define P4_FREE    rpfree
+#    define P4_STRDUP  strdup
 #    define P4_SIZED_DELETE(ptr, size)  rpfree( ptr )
 #    define P4_SIZED_DELETE_ARR(ptr, size) rpfree( ptr )
 
@@ -83,6 +86,7 @@ built with a memory manager.
 #    define P4_CALLOC  SH_calloc
 #    define P4_REALLOC SH_realloc
 #    define P4_FREE    SH_free
+#    define P4_STRDUP  strdup
 #    define P4_SIZED_DELETE(ptr, size)  SH_free( ptr )
 #    define P4_SIZED_DELETE_ARR(ptr, size) SH_free( ptr )
 #  endif // _MSC_VER < 1900
@@ -104,6 +108,7 @@ built with a memory manager.
 #    define P4_CALLOC  calloc
 #    define P4_REALLOC realloc
 #    define P4_FREE    free
+#    define P4_STRDUP  strdup
 #    define P4_SIZED_DELETE(ptr, size)  free( ptr )
 #    define P4_SIZED_DELETE_ARR(ptr, size) free( ptr )
 # endif

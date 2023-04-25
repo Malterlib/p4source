@@ -10,6 +10,13 @@ class SystemInfo
 
 	    static void Collect( StrBufDict& output, Error* e );
 
+# ifdef OS_NT
+	    static int WindowsVersionInfo( DWORD &major, DWORD &minor,
+	        DWORD &build, WORD &ptype );
+
+	    static int CheckForAtomicRename( );
+# endif
+
 	private:
 
 } ;

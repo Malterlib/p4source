@@ -58,6 +58,8 @@ enum P4DebugType {
 	DT_HEARTBEAT,	// Heartbeat related
 	DT_SHELVE,	// Shelving related
 	DT_SQW,		// StreamQWorker related
+	DT_STM,		// Stream materialize for fstat,files,dirs
+	DT_PCHECK,	// Parallel checkpoint
 	DT_TOPOLOGY,	// Topology
 	DT_LAST
 }  ;

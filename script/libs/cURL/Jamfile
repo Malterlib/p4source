@@ -13,14 +13,14 @@ SubDirHdrs $(P4) zlib ;
 
 if $(OS) = NT
 {
-	SubDirCcFlags /DCURL_STATICLIB /DWIN32 /FD /DBUILDING_LIBCURL
+	SubDirCcFlags /DCURL_STATICLIB /DWIN32 /DBUILDING_LIBCURL
 	              /DCURL_DISABLE_FTP /DCURL_DISABLE_LDAP
 	              /DCURL_DISABLE_TELNET /DCURL_DISABLE_DICT
 	              /DCURL_DISABLE_FILE /DCURL_DISABLE_TFTP
 	              /DCURL_DISABLE_IMAP /DCURL_DISABLE_POP3
 	              /DUSE_OPENSSL /DHAVE_ZLIB_H /DHAVE_ZLIB /DHAVE_LIBZ
 	              /DUSE_IPV6 /DCURL_DISABLE_NTLM /DCURL_DISABLE_GOPHER
-	              /DCURL_DISABLE_RTSP ;
+	              /DCURL_DISABLE_RTSP /DUSE_SYNC_DNS /DCURL_DISABLE_MQTT ;
 }
 else
 {
@@ -41,13 +41,13 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	altsvc.c
 	asyn-ares.c
 	asyn-thread.c
-	base64.c
+	curl_base64.c
+	bufref.c
 	conncache.c
 	connect.c
 	content_encoding.c
 	cookie.c
 	curl_addrinfo.c
-	curl_ctype.c
 	curl_des.c
 	curl_endian.c
 	curl_fnmatch.c
@@ -64,9 +64,9 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	curl_sasl.c
 	curl_sspi.c
 	curl_threads.c
+	c-hyper.c
 	dict.c
 	doh.c
-	dotdot.c
 	dynbuf.c
 	easy.c
 	easygetopt.c
@@ -74,20 +74,22 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	escape.c
 	file.c
 	fileinfo.c
+	fopen.c
 	formdata.c
 	ftp.c
 	ftplistparser.c
 	getenv.c
 	getinfo.c
 	gopher.c
-	hash.c
+	curl_hash.c
+	headers.c
 	hmac.c
 	hostasyn.c
-	hostcheck.c
 	hostip.c
 	hostip4.c
 	hostip6.c
 	hostsyn.c
+	hsts.c
 	http.c
 	http2.c
 	http_aws_sigv4.c
@@ -96,6 +98,7 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	http_negotiate.c
 	http_ntlm.c
 	http_proxy.c
+	h2h3.c
 	idn_win32.c
 	if2ip.c
 	imap.c
@@ -105,31 +108,28 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	ldap.c
 	llist.c
 	md4.c
-	md5.c
+	curl_md5.c
 	memdebug.c
 	mime.c
 	mprintf.c
 	mqtt.c
 	multi.c
 	netrc.c
-	non-ascii.c
 	nonblock.c
-	nwlib.c
-	nwos.c
+	noproxy.c
 	openldap.c
 	parsedate.c
 	pingpong.c
 	pop3.c
-	progress.c
+	curl_progress.c
 	psl.c
 	rand.c
 	rename.c
 	rtsp.c
-	security.c
 	select.c
 	sendf.c
 	setopt.c
-	sha256.c
+	curl_sha256.c
 	share.c
 	slist.c
 	smb.c
@@ -140,8 +140,6 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	socks_sspi.c
 	speedcheck.c
 	splay.c
-	ssh-libssh.c
-	ssh.c
 	strcase.c
 	strdup.c
 	strerror.c
@@ -150,6 +148,7 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	system_win32.c
 	telnet.c
 	tftp.c
+	timediff.c
 	timeval.c
 	transfer.c
 	url.c
@@ -158,7 +157,7 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	version_win32.c
 	warnless.c
 	wildcard.c
-	x509asn1.c
+	ws.c
 	;
 	
 SubInclude p4 script libs cURL vauth ;

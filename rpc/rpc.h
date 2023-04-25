@@ -154,6 +154,7 @@ class RpcService {
 			virtual ~RpcService();
 
 	void		SetEndpoint( const char *addr, Error *e );
+	const StrPtr &	GetEndpoint() { return endPointAddr; }
 	void		Dispatcher( const RpcDispatch *dispatch );
 	void		AddAltDispatcher();
 	void		SetProtocol( const char *var, const StrRef &val );
@@ -195,6 +196,7 @@ class RpcService {
 
 	RpcDispatcher	*dispatcher;		// incoming function dispatch
 	NetEndPoint	*endPoint;		// transport's endpoint
+	StrBuf		endPointAddr;		// address of the endpoint
 	RpcSendBuffer	*protoSendBuffer;	// proto/values to send
 } ;
 
@@ -335,10 +337,15 @@ class Rpc : public StrDict {
     	// for performance tracking
 
 	void		TrackStart();
+	static void	TrackStart( RpcTrack *track );
 	int		Trackable( int level );
+	static int	Trackable( int level, RpcTrack *track );
 	void		TrackReport( int level, StrBuf &out );
+	static void	TrackReport( int level, const char *tag,
+			             RpcTrack *track, StrBuf &out );
 	void		GetTrack( int level, RpcTrack *track );
 	void		ForceGetTrack( RpcTrack *track );
+	void		AddTrack( RpcTrack *track );
 
 	int		GetHiMarkFwd() { return rpc_hi_mark_fwd; }
 

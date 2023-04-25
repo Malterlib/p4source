@@ -151,10 +151,12 @@ class MD5 {
 	void		Update( const StrPtr &buf );
 	void		Final( StrBuf &output );
 	void 		Final( unsigned char digest[ 16 ] );
+	P4INT64		Count();
 
     private:
 
-	void* ctx;
+	void*		ctx;
+	P4INT64		bits;
 };
 
 # endif

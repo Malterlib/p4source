@@ -8,10 +8,9 @@
 # include <sha256.h>
 
 # ifdef USE_SSL
-extern "C"
-{ // OpenSSL
+# include <openssl/opensslv.h>
+# if OPENSSL_VERSION_NUMBER < 0x30000000L
 # include <openssl/sha.h>
-}
 
 Sha256Digester::Sha256Digester()
 {
@@ -50,6 +49,70 @@ Sha256Digester::Final( StrBuf &output )
 	output.Clear();	
 	StrOps::OtoXlower( digest, sizeof( digest ), output );
 }
+
+# else
+# include <openssl/evp.h>
+# include <error.h>
+# include <errorlog.h>
+
+Sha256Digester::Sha256Digester()
+{
+	const EVP_MD *md = EVP_get_digestbyname( "SHA256" );
+	if( !md )
+	{
+	    ctx = 0;
+	    return;
+	}
+	ctx = (void*)EVP_MD_CTX_new();
+	EVP_DigestInit_ex( (EVP_MD_CTX *)ctx, md, 0 );
+}
+
+Sha256Digester::~Sha256Digester()
+{
+	if( ctx )
+	    EVP_MD_CTX_free( (EVP_MD_CTX *)ctx );
+}
+
+void
+Sha256Digester::Update( const StrPtr &buf )
+{
+	if( ctx )
+	    EVP_DigestUpdate( (EVP_MD_CTX *)ctx, buf.Text(), buf.Length() );
+}
+
+void
+Sha256Digester::Final( Sha256 &sha )
+{
+	if( ctx )
+	    Final( sha.data );
+}
+
+void
+Sha256Digester::Final( unsigned char digest[Sha256Length] )
+{
+	memset( digest, 0, Sha256Length );
+	if( !ctx )
+	    return;
+	unsigned char c[EVP_MAX_MD_SIZE];
+	unsigned int hash_len = 0;
+	EVP_DigestFinal_ex( (EVP_MD_CTX*)ctx, c, &hash_len );
+	if( hash_len <= Sha256Length )
+	    memcpy( digest, c, hash_len );
+}
+
+void
+Sha256Digester::Final( StrBuf &output )
+{
+	output.Clear();
+	if( !ctx )
+	    return;
+	unsigned char c[EVP_MAX_MD_SIZE];
+	unsigned int hash_len = 0;
+	EVP_DigestFinal_ex( (EVP_MD_CTX*)ctx, c, &hash_len );
+	StrOps::OtoX( c, hash_len, output );
+}
+
+# endif
 
 # else
 

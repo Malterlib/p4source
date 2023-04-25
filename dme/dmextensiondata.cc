@@ -71,7 +71,7 @@ ExtensionData::ExtensionData( const StrBuf& depotFile, const int& depotRev,
 	if( archiveFile )
 	    archiveDir = Unzip( *archiveFile, srvExtsDir, {}, e );
 	else
-	    (*archiveDir)->Set( GetExtSrvExtDir() );
+	    archiveDir->Set( GetExtSrvExtDir() );
 }
 
 ExtensionData::~ExtensionData()
@@ -284,7 +284,7 @@ StrBuf ExtensionData::GetScriptMainPath()
 	StrBuf path;
 
 	PathSys *p = PathSys::Create();
-	p->Set( (*archiveDir)->Path() );
+	p->Set( archiveDir->Path() );
 	p->SetLocal( *p, StrRef( "main.lua" ) );
 	path = p->Text();
 	delete p;
@@ -296,7 +296,7 @@ StrBuf ExtensionData::GetArchDir()
 {
 	StrBuf path;
 	
-	path << (*archiveDir)->Path();
+	path << archiveDir->Path();
 	return path;
 }
 
@@ -333,27 +333,27 @@ bool ExtensionData::Install( Error* e )
 
 	StrBuf dst = GetExtSrvExtDir();
 
-	(*t)->Set( dst );
-	(*t)->MkDir( e );
+	t->Set( dst );
+	t->MkDir( e );
 
 	if( e->Test() )
 	    return false;
 
-	(*archiveDir)->Rename( *t, e );
+	archiveDir->Rename( t.get(), e );
 
 	if( e->Test() )
 	    return false;
 
 	dst = GetExtSrvExtDataDir();
 	dst << "/nosuchfile";
-	(*t)->Set( dst );
+	t->Set( dst );
 
-	(*t)->MkDir( e );
+	t->MkDir( e );
 
 	if( e->Test() )
 	    return false;
 	
-	(*archiveDir)->ClearDeleteOnClose();
+	archiveDir->ClearDeleteOnClose();
 
 	return true;
 }
@@ -390,22 +390,22 @@ bool ExtensionData::LoadManifest( Error* e )
 	auto fsys = FileSys::CreateUPtr( FST_TEXT );
 	auto filePath = PathSys::CreateUPtr();
 
-	(*filePath)->Set( (*archiveDir)->Path() );
-	(*filePath)->SetLocal( **filePath, StrRef( "manifest.json" ) );
+	filePath->Set( archiveDir->Path() );
+	filePath->SetLocal( *filePath, StrRef( "manifest.json" ) );
 
-	(*fsys)->Set( **filePath );
-	(*fsys)->Open( FOM_READ, e );
+	fsys->Set( *filePath );
+	fsys->Open( FOM_READ, e );
 
 	if( e->Test() )
 	    return false;
 
 	StrBuf manifestBuf;
-	(*fsys)->ReadWhole( &manifestBuf, e );
+	fsys->ReadWhole( &manifestBuf, e );
 
 	if( e->Test() )
 	    return false;
 
-	(*fsys)->Close( e );
+	fsys->Close( e );
 
 	if( e->Test() )
 	    return false;
@@ -549,12 +549,12 @@ bool ExtensionData::LoadTranslations( Error* e )
 	// we don't error-out here.
 
 	auto ldPath = PathSys::CreateUPtr();
-	(*ldPath)->Set( (*archiveDir)->Path() );
-	(*ldPath)->SetLocal( *(*ldPath), StrRef( "_locales" ) );
+	ldPath->Set( archiveDir->Path() );
+	ldPath->SetLocal( *ldPath, StrRef( "_locales" ) );
 
 	const auto fsys = FileSys::CreateUPtr( FST_DIRECTORY );
 
-	if( !(*fsys)->FileExists( (*ldPath)->Text() ) )
+	if( !fsys->FileExists( ldPath->Text() ) )
 	    return true;
 
 	for( const auto& l : supportedLocales )
@@ -562,30 +562,30 @@ bool ExtensionData::LoadTranslations( Error* e )
 	    auto fsys = FileSys::CreateUPtr( FST_TEXT );
 	    auto filePath = PathSys::CreateUPtr();
 
-	    (*filePath)->Set( (*archiveDir)->Path() );
+	    filePath->Set( archiveDir->Path() );
 	    StrBuf xlpath;
 	    xlpath << "_locales" << "/" << l.c_str() << "/" << "messages.json";
-	    (*filePath)->SetLocal( *(*filePath), xlpath );
-	    (*fsys)->Set( *(*filePath) );
-	    (*fsys)->Open( FOM_READ, e );
+	    filePath->SetLocal( *filePath, xlpath );
+	    fsys->Set( *filePath );
+	    fsys->Open( FOM_READ, e );
 
 	    if( e->Test() )
 	        return false;
 
 	    StrBuf msgBuf;
-	    (*fsys)->ReadWhole( &msgBuf, e );
+	    fsys->ReadWhole( &msgBuf, e );
 
 	    if( e->Test() )
 	        return false;
 
-	    (*fsys)->Close( e );
+	    fsys->Close( e );
 
 	    if( e->Test() )
 	        return false;
 
 	    DEBUGPRINTF(EXTS_DEBUG, 
 	                "LoadTranslation: read file at %s, size=%d\n", 
-	                (*filePath)->Text(), msgBuf.Length() );
+	                filePath->Text(), msgBuf.Length() );
 
 	    json j;
 
@@ -595,7 +595,7 @@ bool ExtensionData::LoadTranslations( Error* e )
 	    {
 	        StrBuf msg;
 	        msg << "translation JSON parse error: " << err.what();
-	        e->Set( MsgScript::ExtResourceErr ) << (*filePath)->Text()
+	        e->Set( MsgScript::ExtResourceErr ) << filePath->Text()
 	                                            << msg;
 	        return false;
 	    }
@@ -606,7 +606,7 @@ bool ExtensionData::LoadTranslations( Error* e )
 	    {
 	        StrBuf msg;
 	        msg << "translation JSON bad format:  not an object or is empty";
-	        e->Set( MsgScript::ExtResourceErr ) << (*filePath)->Text()
+	        e->Set( MsgScript::ExtResourceErr ) << filePath->Text()
 	                                            << msg;
 	        return false;
 	    }
@@ -687,7 +687,7 @@ bool ExtensionData::LoadTranslations( Error* e )
 	    {
 	        StrBuf msg;
 	        msg << "translation JSON bad format: " << err.what();
-	        e->Set( MsgScript::ExtResourceErr ) << (*fsys)->Name() << msg;
+	        e->Set( MsgScript::ExtResourceErr ) << fsys->Name() << msg;
 	        return false;
 	    }
 
@@ -705,12 +705,12 @@ FileSysUPtr ExtensionData::Unzip( const StrBuf &zipFileName,
 	// possible so we can avoid failing when rename() crosses partitions.
 
 	auto p = PathSys::CreateUPtr();
-	(*p)->Set( *unzipPath );
-	**p << "/nosuchfile";
+	p->Set( *unzipPath );
+	*p << "/nosuchfile";
 
 	auto tmpZipDir = FileSys::CreateUPtr( FST_DIRECTORY );
-	(*tmpZipDir)->MakeLocalTemp( (*p)->Text() );
-	(*tmpZipDir)->SetDeleteOnClose();
+	tmpZipDir->MakeLocalTemp( p->Text() );
+	tmpZipDir->SetDeleteOnClose();
 
 	unzFile *zipfile = (unzFile*) unzOpen64( zipFileName.Text() );
 
@@ -778,10 +778,10 @@ FileSysUPtr ExtensionData::Unzip( const StrBuf &zipFileName,
 	    }
 
             auto extp = PathSys::CreateUPtr();
-	    (*extp)->Set( (*tmpZipDir)->Path() );
-	    (*extp)->SetLocal( **extp, StrRef( filename ) );
+	    extp->Set( tmpZipDir->Path() );
+	    extp->SetLocal( *extp, StrRef( filename ) );
 	    auto fsys = FileSys::CreateUPtr( FST_BINARY );
-	    (*fsys)->MkDir( **extp, e );
+	    fsys->MkDir( *extp, e );
 
 	    bool utf8check = false;
 
@@ -801,10 +801,10 @@ FileSysUPtr ExtensionData::Unzip( const StrBuf &zipFileName,
 	    }
 
 	    // Open a file to write out the data
-	    (*fsys)->Set( **extp );
+	    fsys->Set( *extp );
 	    // TODO: restrict the file and paths more?
-	    (*fsys)->Perms( FPM_RO );
-	    (*fsys)->Open( FOM_WRITE, e );
+	    fsys->Perms( FPM_RO );
+	    fsys->Open( FOM_WRITE, e );
 
 	    int nBytes = UNZ_OK;
 
@@ -827,7 +827,7 @@ FileSysUPtr ExtensionData::Unzip( const StrBuf &zipFileName,
 
 	        if( nBytes > 0 )
 	        {
-	            (*fsys)->Write( read_buffer, nBytes, e );
+	            fsys->Write( read_buffer, nBytes, e );
 
 	            if( e->Test() )
 	            {
@@ -850,7 +850,7 @@ FileSysUPtr ExtensionData::Unzip( const StrBuf &zipFileName,
 	    if( v != 1 )
 	        e->Set( MsgServer::FileNotUTF8 ) << filename;
 
-	    (*fsys)->Close( e );
+	    fsys->Close( e );
 
 	    if( e->Test() )
 	    {

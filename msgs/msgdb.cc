@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgDb error code is: 99
+ * Current high value for a MsgDb error code is: 100
  */
 
 # include <error.h>
@@ -130,7 +130,7 @@ ErrorId MsgDb::MapCheckFail	       = { ErrorOf( ES_DB, 72, E_FAILED, EV_TOOBIG, 
 ErrorId MsgDb::CaseMismatch	       = { ErrorOf( ES_DB, 77, E_FATAL, EV_FAULT, 0 ), "BTree Case Order Mismatch! Check %'p4d -Cx'% flag usage." } ;
 
 ErrorId MsgDb::GenNumPageTooNew	       = { ErrorOf( ES_DB, 96, E_FATAL, EV_FAULT, 0 ), "Generation number on page repeatedly newer than generation number on metapage." } ;
-
+ErrorId MsgDb::BadRecoverTbl           = { ErrorOf( ES_DB, 100, E_INFO, EV_FAULT, 2 ), "Parallel recovery file for table %tbl1% contains a record for table %tbl2%" };
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 
 ErrorId MsgDb::MaxResults              = { ErrorOf( ES_DB, 32, E_FAILED, EV_ADMIN, 1 ), "Request too large (over %maxResults%); see 'p4 help maxresults'." } ;//NOTRANS

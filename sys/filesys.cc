@@ -19,6 +19,8 @@
 # include <debug.h>
 # include <tunable.h>
 # include <strbuf.h>
+# include <strdict.h>
+# include <strtable.h>
 # include <strops.h>
 # include <md5.h>
 # include <datetime.h>
@@ -31,11 +33,17 @@
 # include "enviro.h"
 # include "errno.h"
 # include "hostenv.h"
+# include "sysinfo.h"
 # define USE_ERRNO
 
 # include <msgos.h>
 
 bool P4FileSysCreateOnIntr = true;
+
+# ifdef OS_NT
+// Indicates atomic rename can occur.
+int p4WinAtomicRename=0;
+# endif
 
 void
 FileSysCleanup( FileSys *f )
@@ -45,7 +53,7 @@ FileSysCleanup( FileSys *f )
 }
 
 FileSys *
-FileSys::Create( FileSysType t )
+FileSys::Create( FileSysType t, FileSysBuffer *buf )
 {
 	FileSys *f;
 	LineType lt;
@@ -126,6 +134,9 @@ FileSys::Create( FileSysType t )
 
 	f->type = t;
 
+	// Insert the delegate buffer
+	f->delegate = buf;
+
 	// Arrange for temps to blow on exit.
 	if( P4FileSysCreateOnIntr )
 	    signaler.OnIntr( (SignalFunc)FileSysCleanup, f );
@@ -146,6 +157,7 @@ FileSys::FileSys()
 	preserveCWD = 0;
 	charSet = GlobalCharSet::Get();
 	content_charSet = GlobalCharSet::Get();
+	delegate = 0;
 
 	type = FST_TEXT;
 
@@ -168,6 +180,12 @@ FileSys::~FileSys()
 
 	if( P4FileSysCreateOnIntr )
 	    signaler.DeleteOnIntr( this );
+
+	// If there's a delegate, it may be deleted now
+	// Or not, depending on what the caller needs
+
+	if( delegate )
+	    delegate->Release();
 }
 
 int
@@ -226,7 +244,44 @@ FileSys::SetLFN( const StrPtr &name )
 	if( DOUNICODE )
 	    LFN |= LFN_UTF8;
 }
+# endif // OS_NT
+
+// Validate if the atomic configurable is supported.
+
+void
+FileSys::CheckForAtomicRename( Error *e )
+{
+# ifdef OS_NT
+	if( !SystemInfo::CheckForAtomicRename() )
+	{
+	    e->Set( MsgOs::NoAtomicRename );
+	    return;
+	}
+# endif // OS_NT
+}
+
+
+// Atomic rename is only supported for Visual Studio 2017 and newer.
+// The top level decision for atomic rename is made here.
+// This can be called very early on start up.  Logging a message
+// on those early calls is not possible.  An error message can be
+// logged when the tunable is set.
+
+void
+FileSys::SetAtomicRename()
+{
+# if (_MSC_VER > 1900)
+	Error e;
+
+	CheckForAtomicRename( &e );
+
+	if( !e.Test() )
+	{
+	    if( p4WinAtomicRename )
+	        LFN |= LFN_ATOMIC_RENAME;
+	}
 # endif
+}
 
 void
 FileSys::Set( const StrPtr &name )
@@ -264,9 +319,19 @@ FileSys::SetDigest( MD5 *m )
 	checksum = m;
 }
 
+MD5 *
+FileSys::GetDigest( )
+{
+	return checksum;
+}
+
 int
 FileSys::DoIndirectWrites()
 {
+	// No indirect if were doing buffer stuff
+	if( delegate )
+	    return 0;
+
 # if defined( OS_MACOSX ) && OS_VER < 1010
 	return ( ( type & FST_MASK ) == FST_SYMLINK );
 # else
@@ -580,29 +645,14 @@ FileSys::DepotSize( offL_t &len, Error *e )
 
 # ifdef HAS_CPP11
 
-namespace std
-{
-	void default_delete< FileSys* >::operator()( FileSys **ptr )
-	{
-	    delete *ptr;
-	    delete ptr;
-	}
-}
-
-template< typename T, typename ...Args >
-static std::unique_ptr< T > make_unique_ps( Args&& ...args )
-{
-	return std::unique_ptr< T >( new T( std::forward< Args >( args )... ) );
-}
-
 FileSysUPtr FileSys::CreateUPtr( FileSysType type )
 {
-	return make_unique_ps< FileSys* >( Create( type ) );
+	return FileSysUPtr( Create( type ) );
 }
 
 FileSysUPtr FileSys::CreateGlobalTempUPtr( FileSysType type )
 {
-	return make_unique_ps< FileSys* >( CreateGlobalTemp( type ) );
+	return FileSysUPtr( CreateGlobalTemp( type ) );
 }
 
 # endif

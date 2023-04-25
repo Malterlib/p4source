@@ -255,7 +255,7 @@ class p4script::impl53 : public p4script::impl
 	            // 'id' is the string after the PID, e.g. the command UUID.
 	            const StrBuf pid, *id;
 	            std::unique_ptr< DateTimeHighPrecision > now;
-	            std::unique_ptr< FileSys* > log;
+	            std::unique_ptr< FileSys > log;
 	            // Stack depth for indentation.
 	            int level = 0;
 	            // When to emit the source file header.

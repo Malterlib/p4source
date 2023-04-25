@@ -322,8 +322,8 @@ class Options
 	                LongFormOnlyOptions = 2000,
 
 	                NoRejournal    , // pull --no-rejournal
-	                From           , // renameuser --from
-	                To             , // renameuser --to
+	                From           , // renameuser or renameclient --from
+	                To             , // renameuser or renameclient --to
 	                Parallel       , // sync --parallel
 	                ParallelSubmit , // submit --parallel
 	                InputFile      , // reload --input-file
@@ -411,6 +411,12 @@ class Options
 			Offset          , // print --offset
 			Size            , // print --size
 			Compressed      , // verify --compressed=0/1
+			PreFailback     , // p4d --pre-failback
+			PostFailback    , // p4d --post-failback
+			StreamViews     , // --streamviews
+			UseStreamChange	, // --use-stream-change
+			HasStream       , // --stream
+			NoStream        , // --nostream
 #ifdef _DEBUG
 			DebugBreak,    // --debugbreak
 #endif
@@ -452,6 +458,8 @@ class Options
 	static int		FindCode( const int code, Error *e );
 	static int		GetShortForm( const int ilist, Error *e );
 	static const char *	GetLongForm( const int ilist, Error *e );
+	void		Discard( int opt, char flag2 = 0, int subopt = 0 );
+	void		Dump( StrPtr * );
 
     private:
 	int 		optc;

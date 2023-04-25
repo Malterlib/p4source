@@ -203,6 +203,7 @@ ErrorId MsgHelp::HelpForwardingreplica = { ErrorOf( ES_HELP, 166, E_INFO, EV_NON
 ErrorId MsgHelp::HelpDistributed = { ErrorOf( ES_HELP, 163, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpDistributed placeholder." };
 ErrorId MsgHelp::HelpCachepurge = { ErrorOf( ES_HELP, 168, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpCachepurge placeholder." };
 ErrorId MsgHelp::HelpTrust = { ErrorOf( ES_HELP, 150, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpTrust placeholder." };
+ErrorId MsgHelp::HelpRenameClient = { ErrorOf( ES_HELP, 275, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpRenameClient placeholder." };
 ErrorId MsgHelp::HelpRenameUser = { ErrorOf( ES_HELP, 169, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpRenameUser placeholder." };
 ErrorId MsgHelp::HelpJournals = { ErrorOf( ES_HELP, 170, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpJournals placeholder." };
 ErrorId MsgHelp::HelpPush = { ErrorOf( ES_HELP, 175, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpPush placeholder." };

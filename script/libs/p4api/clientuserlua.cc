@@ -8,6 +8,7 @@
 
 # ifdef HAS_EXTENSIONS
 
+# include <limits>
 # include <error.h>
 # include <clientapi.h>
 # include <strarray.h>

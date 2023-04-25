@@ -120,29 +120,14 @@ PathSys::Create( const StrPtr &os, Error *e )
 
 # ifdef HAS_CPP11
 
-template< typename T, typename ...Args >
-static std::unique_ptr< T > make_unique_ps( Args&& ...args )
-{
-	return std::unique_ptr< T >( new T( std::forward< Args >( args )... ) );
-}
-
 PathSysUPtr PathSys::CreateUPtr()
 {
-	return make_unique_ps< PathSys* >( Create() );
+	return PathSysUPtr( Create() );
 }
 
 PathSysUPtr PathSys::CreateUPtr( const StrPtr &os, Error *e )
 {
-	return make_unique_ps< PathSys* >( Create( os, e ) );
-}
-
-namespace std
-{
-	void default_delete< PathSys* >::operator()( PathSys **ptr )
-	{
-	    delete *ptr;
-	    delete ptr;
-	}
+	return PathSysUPtr( Create( os, e ) );
 }
 
 # endif

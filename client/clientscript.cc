@@ -208,9 +208,9 @@ ClientScript::FindLooseExts( const StrPtr &start, const bool search, Error* e )
 
 	if( charset )
 	{
-	    (*p)->SetCharSet( charset );
-	    (*q)->SetCharSet( charset );
-	    (*f)->SetCharSetPriv( charset );
+	    p->SetCharSet( charset );
+	    q->SetCharSet( charset );
+	    f->SetCharSetPriv( charset );
 	}
 # endif
 
@@ -220,9 +220,9 @@ ClientScript::FindLooseExts( const StrPtr &start, const bool search, Error* e )
 
 	        e->Clear();
 	        auto cdfs = FileSys::CreateUPtr( FST_DIRECTORY );
-	        (*cdfs)->Set( (*p)->Text() );
+	        cdfs->Set( p->Text() );
 	        std::unique_ptr< StrArray, std::function< void( StrArray* ) > >
-	            dcs( (*cdfs)->ScanDir( e ), [&]( StrArray* ptr ){ delete ptr; } );
+	            dcs( cdfs->ScanDir( e ), [&]( StrArray* ptr ){ delete ptr; } );
 
 	        if( !dcs )
 	            break;
@@ -237,9 +237,9 @@ ClientScript::FindLooseExts( const StrPtr &start, const bool search, Error* e )
 	                continue;
 
 	            const StrPtr ap = *a;
-	            (*q)->SetLocal( **p, ap );
-	            (*f)->Set( **q );
-	            (*f)->Open( FOM_READ, e );
+	            q->SetLocal( *p, ap );
+	            f->Set( *q );
+	            f->Open( FOM_READ, e );
 
 	            if( e->Test() )
 	                continue;
@@ -252,9 +252,9 @@ ClientScript::FindLooseExts( const StrPtr &start, const bool search, Error* e )
 	                continue;
 */
 
-	            const auto sv = scrVerFromFileName( (*f)->Name() );
+	            const auto sv = scrVerFromFileName( f->Name() );
 
-	            (*f)->Close( e );
+	            f->Close( e );
 
 	            if( e->Test() )
 	                return;
@@ -263,13 +263,13 @@ ClientScript::FindLooseExts( const StrPtr &start, const bool search, Error* e )
 	                continue;
 
 	            list.push_back( std::tuple< std::string,
-	                SCR_VERSION >( std::string( (*f)->Name() ), sv ) );
+	                SCR_VERSION >( std::string( f->Name() ), sv ) );
 	        }
 
 	        if( !recurse )
 	            break;
 	    }
-	    while( (*p)->ToParent() );
+	    while( p->ToParent() );
 	};
 
 	for( const auto & vp : patterns )
@@ -279,11 +279,11 @@ ClientScript::FindLooseExts( const StrPtr &start, const bool search, Error* e )
 	    const bool recurse = rp && search;
 
 	    if( rp )
-	        (*p)->Set( start );
+	        p->Set( start );
 	    else
 	    {
-	        (*p)->Set( vpattern );
-	        (*p)->ToParent();
+	        p->Set( vpattern );
+	        p->ToParent();
 	    }
 
 	    // Skip any invalid path (those finishing with /)
@@ -291,7 +291,7 @@ ClientScript::FindLooseExts( const StrPtr &start, const bool search, Error* e )
 	        continue;
 
 	    const char *match = rp ? vpattern.Text()
-	                       : 1 + strlen( (*p)->Text() ) + vpattern.Text();
+	                       : 1 + strlen( p->Text() ) + vpattern.Text();
 
 	    findExtslnPath( match, recurse );
 	}

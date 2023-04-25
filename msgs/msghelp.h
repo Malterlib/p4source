@@ -157,6 +157,7 @@ class MsgHelp {
 	static ErrorId HelpRemote;
 	static ErrorId HelpRemotes;
 	static ErrorId HelpRename;
+	static ErrorId HelpRenameClient;
 	static ErrorId HelpRenameUser;
 	static ErrorId HelpReconcile;
 	static ErrorId HelpReopen;

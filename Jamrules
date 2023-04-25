@@ -422,7 +422,14 @@
 
 		local _sdkver  = $(1:J=.) ;   # Override computed sdk version
 		local _xflags  = $(2) ;       # additional flags to compiler+linker
-		local _uplats  = $(3:E=i386 x86_64) ;  # platforms for "universal" builds
+
+		# platforms for "universal" builds.
+		# Jam won't let you specify literal lists via E=, so assign it to a
+		# temporary variable first and dereference that.  This grammar
+		# limitation is also the reason why we have to use $(GENFLAGS) as
+		# an lvalue instead of directly assigning CCFLAGS and C++FLAGS.
+		local _uplats_default = arm64 x86_64 ;
+		local _uplats  = $(3:E=$(_uplats_default)) ;
 
 		switch $(OS:U)
 		{
@@ -435,10 +442,14 @@
 			_sdkver ?= 10.$(_sdkmap[$(_v)]) ;
 
 		case MACOSX :
-			if [ FVersionCmp $(OSVER) : 107  ] >= 0 { _prefix = $(_xcode)$(_legacy) ; }
-
 			local _v = [ MATCH ([0-9][0-9])([0-9]*)$ : $(OSVER) ] ;
 			_sdkver ?= $(_v:J=.) ;
+
+			if $(_v[1]) != 10 || [ FVersionCmp $(OSVER) : 107  ] >= 0
+			{
+				_prefix = $(_xcode)$(_legacy) ;
+			}
+
 		}
 		if $(_sdkver) = 10.4 { _sdkver = $(_sdkver)u ; }  # "10.4u.sdk"
 
@@ -1417,7 +1428,7 @@
 		               -F$(QTDIR)/lib ;
 
 		LINKLIBS    += -framework ApplicationServices
-		               -framework Foundation 
+		               -framework Foundation
 		               -framework Security ;
 
 	case MACOSX105 :
@@ -1481,7 +1492,7 @@
 		               -F$(QTDIR)/lib ;
 
 		LINKLIBS    += -framework ApplicationServices
-		               -framework Foundation 
+		               -framework Foundation
 		               -framework Security ;
 
 	case MACOSX10* :  # 10.9 and above
@@ -1515,6 +1526,21 @@
 		C++FLAGS    += -fvisibility-inlines-hidden ;
 		$(GENFLAGS) += -fpascal-strings
 		               -F$(QTDIR)/lib ;
+
+		LINKLIBS    += -framework ApplicationServices
+		               -framework Foundation
+		               -framework Security ;
+
+	case MACOSX12* :  # any 12.x
+		SetCommonCompiler $(OSCOMP:E=clang) ;
+		SetOSXSdk 12.3 : -mmacosx-version-min=10.14 -fwrapv ;
+
+		# Silence a bunch of noise about objects with no symbols
+		RANLIB += -no_warning_for_no_symbols ;
+		AR = [ FRemoveAny $(AR) : cru ] -Scru ;
+
+		LIBRARY_DEPOLYMENT_SDK = sdk12 ;
+		STATIC_LIBSTDC++ = no ;
 
 		LINKLIBS    += -framework ApplicationServices
 		               -framework Foundation
@@ -1960,6 +1986,17 @@
 	if $(SSL) = yes
 	{
 		DEFINES += USE_SSL ;
+		
+		if [ FVersionCmp $(SSLVER) : 3 ] >= 0
+		{
+			DEFINES += OPENSSL_API_COMPAT=30000 
+			           OPENSSL_NO_DEPRECATED ;
+		}
+		else if [ FVersionCmp $(SSLVER) : 1.1 ] >= 0
+		{
+			DEFINES += OPENSSL_API_COMPAT=10101
+			           OPENSSL_NO_DEPRECATED ;
+		}
 	}
 
 	if $(ZK) = yes
@@ -2892,19 +2929,13 @@
 
 		CopyRec p4dtg-dist : $(topdir) p4dtg-config.png           : $(P4DTG) src p4dtg-config p4dtg-config.png ;
 		CopyRec p4dtg-dist : $(topdir) p4dtgnotes.txt             : $(AllP4) p4-doc user p4dtgnotes.txt ;
-		CopyRec p4dtg-dist : $(topdir) p4dtg.pdf                  : $(AllP4) p4-doc manuals p4dtg p4dtg.pdf ;
+		CopyRec p4dtg-dist : $(topdir) LICENSE.txt                : $(P4DTG) LICENSE.txt ;
 
 		CopyRec p4dtg-dist : $(topdir) help                       : $(AllP4) p4-doc help p4dtg ;
 
-		CopyRec p4dtg-dist : $(bugz_docdir) patch.bugzilla-3      : $(P4DTG) sdk bugz patch.bugzilla-3 ;
-		CopyRec p4dtg-dist : $(bugz_docdir) patch.bugzilla-3.4    : $(P4DTG) sdk bugz patch.bugzilla-3.4 ;
-		CopyRec p4dtg-dist : $(bugz_docdir) patch.bugzilla-3.6.2  : $(P4DTG) sdk bugz patch.bugzilla-3.6.2 ;
 		CopyRec p4dtg-dist : $(bugz_docdir) patch.bugzilla-4.0    : $(P4DTG) sdk bugz patch.bugzilla-4.0 ;
 		CopyRec p4dtg-dist : $(bugz_docdir) patch.bugzilla-4.4    : $(P4DTG) sdk bugz patch.bugzilla-4.4 ;
 		CopyRec p4dtg-dist : $(bugz_docdir) README.txt            : $(P4DTG) sdk bugz README.txt ;
-		CopyRec p4dtg-dist : $(bugz_docdir) README.p4dti.txt      : $(P4DTG) sdk bugz README.p4dti.txt ;
-		CopyRec p4dtg-dist : $(bugz_docdir) mk_dtgdtissue.pl      : $(P4DTG) sdk bugz mk_dtgdtissue.pl ;
-		CopyRec p4dtg-dist : $(bugz_docdir) dti_to_dtg.pl         : $(P4DTG) sdk bugz dti_to_dtg.pl ;
 		CopyRec p4dtg-dist : $(bugz_docdir) changeid.pl           : $(P4DTG) sdk bugz changeid.pl ;
 		CopyRec p4dtg-dist : $(bugz_docdir) jobspec.txt           : $(P4DTG) sdk bugz jobspec.txt ;
 
@@ -2918,27 +2949,8 @@
 		CopyRec p4dtg-dist : $(jira_docdir) jobspec.txt           : $(P4DTG) sdk jira-rest jobspec.txt ;
 
 		CopyRec p4dtg-dist : $(jira_jardir) jira-rest.jar                  : $(P4BIN) bin.java $(BUILD) jira-rest.jar ;
-		CopyRec p4dtg-dist : $(jira_jardir) jira-rest-all-dependencies.jar : $(P4DTG) sdk jira-rest java lib jira-rest-all-dependencies.jar ;
-		CopyRec p4dtg-dist : $(jira_jardir) license                        : $(P4DTG) sdk jira-rest java license ;
 		CopyRec p4dtg-dist : $(jira_jardir) logging-rest.properties        : $(P4DTG) sdk jira-rest java resources logging-rest.properties ;
 		CopyRec p4dtg-dist : $(dtg_configdir) jira-rest-config.xml         : $(P4DTG) sdk jira-rest java resources jira-rest-config.xml ;
-
-		local axis_files = axis.jar
-		                   axis.LICENSE
-		                   commons-discovery-0.2.jar
-		                   commons-discovery-0.2.LICENSE
-		                   commons-logging-1.0.4.jar
-		                   commons-logging-1.0.4.LICENSE
-		                   jaxrpc.jar
-		                   saaj.jar
-		                   wsdl4j-1.5.1.jar
-		                   wsdl4j-1.5.1-sources.jar
-		                   wsdl4j-1.5.1.LICENSE ;
-		local _a ;
-		for _a in $(axis_files)
-		{
-			CopyRec p4dtg-dist : $(jira_jardir) $(_a) : $(AllP4) .. import axis axis-1_4 lib $(_a) ;
-		}
 
 		local empty_dirs = config repl ;
 		local _d ;
@@ -3071,7 +3083,10 @@
 	rule LinkMallocLib
 	{
 	    if $(MALLOC_OVERRIDE) != yes
-	    { return ; }
+	    {
+	        LinkLibraries $(<) : $(P4MEMORYMGR_STUB) ;
+	        return ;
+	    }
 
 	    # Only licensed for the server.
 	    if $(USE_SMARTHEAP) = yes && $(<:J) != p4d
@@ -3182,7 +3197,7 @@
 
 			wincrypt     = crypt32.lib ;
 
-			if $(SSLVER) = 1.1
+			if [ FVersionCmp $(SSLVER) : 1.1 ] >= 0
 			{
 				SetDefaultDirName SSLLIBDIR : [ FDirName $(SSLPREFIX) lib.$(EXEC_SUB_TOKENS[1]) vs$(MSVSVER) $(d) $(dyn) ] ;
 				SSLLIB    ?= [ FDirName $(SSLLIBDIR) libssl.lib ] ;
@@ -3620,6 +3635,19 @@
 
 		LINKLIBS on $(<) =
 		    $(2) ;
+	}
+
+	rule WinManifest
+	{
+		if $(BUILD) != "vs2010" && $(BUILD) != "vs2013"
+		{
+			local e p ;
+
+			e = [ FAppendSuffix $(<) : $(SUFEXE) ] ;
+			p = $(SEARCH_SOURCE)$(SLASH)$(>) ;
+
+			OnTargetVarPrepend $(e) : LINKFLAGS : /MANIFEST:EMBED /MANIFESTINPUT:$(p) ;
+		}
 	}
 
 	rule WinRes

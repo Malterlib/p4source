@@ -359,6 +359,8 @@ class MsgSupp {
 	static ErrorId OptionFailoverVerification;
 	static ErrorId OptionFailbackYes;
 	static ErrorId OptionFailbackQuiesce;
+	static ErrorId OptionPreFailback;
+	static ErrorId OptionPostFailback;
 	static ErrorId OptionInstall;
 	static ErrorId OptionCreateSampleExt;
 	static ErrorId OptionUndo;
@@ -425,6 +427,10 @@ class MsgSupp {
 	static ErrorId OptionOffset;
 	static ErrorId OptionSize;
 	static ErrorId OptionCompressed;
+	static ErrorId OptionStreamViews;
+	static ErrorId OptionUseStreamChange;
+	static ErrorId OptionHasStream;
+	static ErrorId OptionNoStream;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

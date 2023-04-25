@@ -113,6 +113,7 @@ class MsgDb {
 	static ErrorId CaseMismatch;
 
 	static ErrorId GenNumPageTooNew;
+	static ErrorId BadRecoverTbl;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

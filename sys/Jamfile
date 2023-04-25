@@ -96,6 +96,7 @@ if $(OS) = NT || $(OS) = MINGW || $(OS) = MINGW64
 {
 	P4APILibrary $(SUPPORTLIB) : 
 		fileiont.cc
+		fileiont2.cc
 		ntmangle.cc
 		nterror.cc
 		ntinvargs.cc

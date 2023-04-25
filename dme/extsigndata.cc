@@ -102,8 +102,8 @@ ExtSignData::ExtSignData( const StrPtr *dir, Error *e )
 
 	std::set< std::string > skips;
 	auto sigFile = PathSys::CreateUPtr();
-	(*sigFile)->SetLocal( pkgDir, StrRef( ".p4-signatures.json" ) );
-	skips.insert( (*sigFile)->Text() );
+	sigFile->SetLocal( pkgDir, StrRef( ".p4-signatures.json" ) );
+	skips.insert( sigFile->Text() );
 
 	std::vector< std::string > pDirs, pFiles;
 	pDirs.push_back( pkgDir.Text() );
@@ -118,10 +118,10 @@ ExtSignData::ExtSignData( const StrPtr *dir, Error *e )
 	    // all file names be UTF-8.
 
 	    auto dfsys = FileSys::CreateUPtr( FST_DIRECTORY );
-	    (*dfsys)->Set( dir.c_str() );
+	    dfsys->Set( dir.c_str() );
 
 	    std::unique_ptr< StrArray, std::function< void( StrArray* ) > >
-	        a( (*dfsys)->ScanDir( e ), [&]( StrArray* ptr ){ delete ptr; } );
+	        a( dfsys->ScanDir( e ), [&]( StrArray* ptr ){ delete ptr; } );
 
 	    if( e->Test() )
 	        return;
@@ -129,18 +129,18 @@ ExtSignData::ExtSignData( const StrPtr *dir, Error *e )
 	    for( int i = 0; i < a->Count(); i++ )
 	    {
 	        auto path = PathSys::CreateUPtr();
-	        (*path)->SetLocal( StrRef( dir.c_str() ), *(a->Get( i )) );
+	        path->SetLocal( StrRef( dir.c_str() ), *(a->Get( i )) );
 
 	        auto file = FileSys::CreateUPtr( FST_TEXT );
-	        (*file)->Set( **path );
+	        file->Set( *path );
 
-	        if( skips.find( (*file)->Name() ) != skips.end() )
+	        if( skips.find( file->Name() ) != skips.end() )
 	            continue;
 
-	        if( (*file)->Stat() & FSF_DIRECTORY )
-	            pDirs.emplace_back( (*file)->Name() );
+	        if( file->Stat() & FSF_DIRECTORY )
+	            pDirs.emplace_back( file->Name() );
 	        else
-	            pFiles.emplace_back( (*file)->Name() );
+	            pFiles.emplace_back( file->Name() );
 	    }
 	}
 	while( pDirs.size() );
@@ -239,18 +239,18 @@ ExtSignData::SignData( const char *certFile,
 	} );
 
 	FileSysUPtr pf = FileSys::CreateUPtr( FST_TEXT );
-	(*pf)->Set( StrRef( privKey ) );
+	pf->Set( StrRef( privKey ) );
 
-	if( !(*pf)->FileExists( privKey ) )
+	if( !pf->FileExists( privKey ) )
 	{
 	    e->Set( MsgSupp::MissingKeyCert ) << privKey;
 	    return false;
 	}
 
 	FileSysUPtr cf = FileSys::CreateUPtr( FST_TEXT );
-	(*cf)->Set( certFile );
+	cf->Set( certFile );
 
-	if( !(*cf)->FileExists( certFile ) )
+	if( !cf->FileExists( certFile ) )
 	{
 	    e->Set( MsgSupp::MissingKeyCert ) << certFile;
 	    return false;
@@ -348,19 +348,19 @@ ExtSignData::BuildSigFile( const char *sigFile,
 	    return false;
 
 	auto p4sigf = FileSys::CreateUPtr( FST_TEXT );
-	(*p4sigf)->Set( sigFile );
-	(*p4sigf)->Perms( FPM_RW );
-	(*p4sigf)->Open( FOM_WRITE, e );
+	p4sigf->Set( sigFile );
+	p4sigf->Perms( FPM_RW );
+	p4sigf->Open( FOM_WRITE, e );
 
 	if( e->Test() )
 	    return false;
 
-	(*p4sigf)->WriteFile( &p4sig, e );
+	p4sigf->WriteFile( &p4sig, e );
 
 	if( e->Test() )
 	    return false;
 
-	(*p4sigf)->Close( e );
+	p4sigf->Close( e );
 
 	if( e->Test() )
 	    return false;
@@ -377,13 +377,13 @@ ExtSignData::HashFile( const char *fname, Error *e ) const
 	buffer.Alloc( 8192 );
 	FileSysUPtr f = FileSys::CreateUPtr( FST_BINARY );
 
-	(*f)->Set( fname );
-	(*f)->Open( FOM_READ, e );
+	f->Set( fname );
+	f->Open( FOM_READ, e );
 
 	if( e->Test() )
 	    return hash;
 
-	while( ( l = (*f)->Read( buffer.Text(), 8192, e ) ) && !e->Test() )
+	while( ( l = f->Read( buffer.Text(), 8192, e ) ) && !e->Test() )
 	{
 	    buffer.SetLength( l );
 	    digester.Update( buffer );
@@ -497,8 +497,8 @@ ExtSignData::VerifySigFile( const char *pkgSigfile,
 	// is one that we trust
 	
 	auto sigFile = FileSys::CreateUPtr( FST_TEXT );
-	(*sigFile)->Set( pkgSigfile );
-	(*sigFile)->Open( FOM_READ, e );
+	sigFile->Set( pkgSigfile );
+	sigFile->Open( FOM_READ, e );
 
 	if( e->Test() )
 	    return false;
@@ -506,7 +506,7 @@ ExtSignData::VerifySigFile( const char *pkgSigfile,
 	StrBuf buf;
 	json sigs;
 
-	(*sigFile)->ReadWhole( &buf, e );
+	sigFile->ReadWhole( &buf, e );
 
 	try
 	{

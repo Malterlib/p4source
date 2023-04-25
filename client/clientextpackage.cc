@@ -45,11 +45,11 @@ void DoSigning( const StrPtr *signDir, ExtSignData& signData,
 	        const StrBuf& sDir, Error* e )
 {
 	PathSysUPtr privKey = PathSys::CreateUPtr();
-	(*privKey)->SetLocal( *signDir, StrRef( "privatekey.txt" ) );
+	privKey->SetLocal( *signDir, StrRef( "privatekey.txt" ) );
 
-	if( !FileSys::FileExists( (*privKey)->Text() ) )
+	if( !FileSys::FileExists( privKey->Text() ) )
 	{
-	    e->Set( MsgSupp::MissingKeyCert ) << (*privKey)->Text();
+	    e->Set( MsgSupp::MissingKeyCert ) << privKey->Text();
 	    return;
 	}
 
@@ -61,20 +61,20 @@ void DoSigning( const StrPtr *signDir, ExtSignData& signData,
 	// Note that the file name here doesn't have the '.p4-' prefix since
 	// it is intended to match the server's auto-generated '-Gc' cert name.
 
-	(*srcCert)->SetLocal( *signDir, StrRef( "certificate.txt" ) );
-	(*srcCertFile)->Set( **srcCert );
+	srcCert->SetLocal( *signDir, StrRef( "certificate.txt" ) );
+	srcCertFile->Set( *srcCert );
 
-	if( !((*srcCertFile)->Stat() & FSF_EXISTS) )
+	if( !(srcCertFile->Stat() & FSF_EXISTS) )
 	{
-	    e->Set( MsgSupp::MissingKeyCert ) << (*srcCert)->Text();
+	    e->Set( MsgSupp::MissingKeyCert ) << srcCert->Text();
 	    return;
 	}
 
 	auto dirCheck = FileSys::CreateUPtr( FST_DIRECTORY );
-	(*dirCheck)->Set( signDir->Text() );
+	dirCheck->Set( signDir->Text() );
 
-	if( (!(*dirCheck)->HasOnlyPerm( FPM_RWXO )) &&
-	    (!(*dirCheck)->HasOnlyPerm( FPM_RXO )) )
+	if( (!dirCheck->HasOnlyPerm( FPM_RWXO )) &&
+	    (!dirCheck->HasOnlyPerm( FPM_RXO )) )
 	{
 	    e->Set( MsgClient::PrivatekeyNotSecure ) << signDir->Text();
 	    return;
@@ -85,25 +85,25 @@ void DoSigning( const StrPtr *signDir, ExtSignData& signData,
 	auto pkgCertFile = FileSys::CreateUPtr( FST_TEXT );
 	auto pkgCert = PathSys::CreateUPtr();
 
-	(*pkgCert)->SetLocal( sDir, StrRef( ".p4-certificate.txt" ) );
-	(*pkgCertFile)->Set( **pkgCert );
-	(*srcCertFile)->Copy( *pkgCertFile, FPM_RW, e );
+	pkgCert->SetLocal( sDir, StrRef( ".p4-certificate.txt" ) );
+	pkgCertFile->Set( *pkgCert );
+	srcCertFile->Copy( pkgCertFile.get(), FPM_RW, e );
 
 	if( e->Test() )
 	    return;
 
-	signData.AddFile( sDir, (*pkgCertFile)->Name(), e );
+	signData.AddFile( sDir, pkgCertFile->Name(), e );
 
 	if( e->Test() )
 	    return;
 
 	auto p4sigpath = PathSys::CreateUPtr();
-	(*p4sigpath)->Set( sDir.Text() );
-	(*p4sigpath)->SetLocal( **p4sigpath, StrRef( ".p4-signatures.json" ) );
+	p4sigpath->Set( sDir.Text() );
+	p4sigpath->SetLocal( *p4sigpath, StrRef( ".p4-signatures.json" ) );
 
-	signData.BuildSigFile( (*p4sigpath)->Text(),
-	                       (*srcCert)->Text(), 
-	                       (*privKey)->Text(), e );
+	signData.BuildSigFile( p4sigpath->Text(),
+	                       srcCert->Text(), 
+	                       privKey->Text(), e );
 
 	if( e->Test() )
 	    return;
@@ -159,11 +159,11 @@ clientSignPackage( int argc, char **argv, Options &preops, Error *e )
 	// Verify manifest.json exist directly under sDir
 
 	PathSysUPtr manifestFile = PathSys::CreateUPtr();
-	(*manifestFile)->SetLocal( sDir, StrRef( "manifest.json" ) );
+	manifestFile->SetLocal( sDir, StrRef( "manifest.json" ) );
 
-	if( !FileSys::FileExists( (*manifestFile)->Text() ) )
+	if( !FileSys::FileExists( manifestFile->Text() ) )
 	{
-	    e->Set( MsgClient::NoSuchFile ) << (*manifestFile)->Text();
+	    e->Set( MsgClient::NoSuchFile ) << manifestFile->Text();
 	    return 1;
 	}
 
@@ -179,8 +179,8 @@ clientSignPackage( int argc, char **argv, Options &preops, Error *e )
 	    return 1;
 
 	auto cleanup = FileSys::CreateUPtr( FST_BINARY );
-	(*cleanup)->Set( targetFile.Text() );
-	(*cleanup)->SetDeleteOnClose();
+	cleanup->Set( targetFile.Text() );
+	cleanup->SetDeleteOnClose();
 
 	ZipFile zf;
 	zf.Open( targetFile.Text(), e );
@@ -202,19 +202,19 @@ clientSignPackage( int argc, char **argv, Options &preops, Error *e )
 	        return 1;
 
 	    auto ps = PathSys::CreateUPtr();
-	    (*ps)->SetLocal( sDir, StrRef( path.c_str() ) );
+	    ps->SetLocal( sDir, StrRef( path.c_str() ) );
 	    auto fs = FileSys::CreateUPtr( FST_BINARY );
-	    (*fs)->Set( **ps );
-	    (*fs)->Open( FOM_READ, e );
+	    fs->Set( *ps );
+	    fs->Open( FOM_READ, e );
 
 	    if( e->Test() )
 	        return 1;
 
-	    while( ( rsz = (*fs)->Read( buffer.data(), bufSize, e ) )
+	    while( ( rsz = fs->Read( buffer.data(), bufSize, e ) )
 	           && !e->Test() )
 	        zf.AppendBytes( buffer.data(), rsz, e );
 
-	    (*fs)->Close( e );
+	    fs->Close( e );
 
 	    if( e->Test() )
 	        return 1;
@@ -236,7 +236,7 @@ clientSignPackage( int argc, char **argv, Options &preops, Error *e )
 	out.Fmt( outmsg, EF_NEWLINE );
 	printf( "%s", outmsg.Text() );
 
-	(*cleanup)->ClearDeleteOnClose();
+	cleanup->ClearDeleteOnClose();
 
 	return 0;
 }

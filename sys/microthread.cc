@@ -17,6 +17,10 @@
 
 # include <microthread.h>
 
+# ifdef HAS_CPP11
+# include <system_error>
+# endif
+
 # ifdef THREAD_CPP_DEBUG
 // THREAD_CPP_DEBUG is C++ thread specific stuff which doesn't fit
 // into the usual Perforce debug facilities.
@@ -74,19 +78,24 @@ MicroThread::Started()
 	return st;
 }
 
-void
+int
 MicroThread::RunWork()
 {
-
+	int ret = 0;
 # ifdef HAVE_THREAD
 	mymutex.lock();
 	started = true;
 	running = true;
 
-	std::thread t( &MicroThread::WorkLaunch, this );
-
-	mythread = std::move( t );
-
+	try {
+	    std::thread t( &MicroThread::WorkLaunch, this );
+	    mythread = std::move( t );
+	}
+	catch( const std::system_error &ex )
+	{
+	    ret = 1;
+	    p4debug.printf( "Failed to create new thread\n");
+	}
 	mymutex.unlock();
 # else
 	started = true;
@@ -94,6 +103,7 @@ MicroThread::RunWork()
 
 	WorkLaunch( this );
 # endif
+	return ret;
 }
 
 void
@@ -270,6 +280,19 @@ MicroThreadMutex::ReleaseMutex()
 }
 
 void
+MicroThreadPool::ThreadLimit( int n )
+{
+# ifdef OS_LINUXX86
+	 // 32 bit linux runs out of memory with too many threads
+	 // so we silently make sure we never have too many.
+	if( n > 20 )
+	    n = 20;
+# endif
+	activeLimit = n;
+}
+
+
+void
 MicroThreadPool::AddThread( MicroThread * t )
 {
 	t->SetPool( this );
@@ -277,15 +300,25 @@ MicroThreadPool::AddThread( MicroThread * t )
 	DEBUGPRINTF( DEBUG_POOL, "add thread limit %d, count %d", activeLimit, active.Count());
 	if( activeLimit <= 0 || active.Count() < activeLimit )
 	{
-	    active.Put( (void *)t );
-	    poolMutex.ReleaseMutex();
-	    t->RunWork();
+	    int failed = t->RunWork();
+	    if( failed )
+	    {
+	        int acount = active.Count();
+	        // decrement the thread limit on the pool
+	        // to discourage trying to create
+	        // more threads, but not if it
+	        // would disable ever crerating a
+	        // new thread.
+	        if ( acount > 1 )
+	            activeLimit = acount - 1;
+	        waiting.Put( (void *)t );
+	    }
+	    else
+	        active.Put( (void *)t );
 	}
 	else
-	{
 	    waiting.Put( (void *)t );
-	    poolMutex.ReleaseMutex();
-	}
+	poolMutex.ReleaseMutex();
 }
 
 void
@@ -377,4 +410,32 @@ MicroThreadPool::NextWork()
 	}
 	poolMutex.ReleaseMutex();
 	return next;
+}
+
+int
+MicroThreadPool::GetThreadLimit()
+{
+	int ret;
+	poolMutex.GetMutex();
+	ret  = activeLimit;
+	poolMutex.ReleaseMutex();
+	return ret;
+}
+
+// When nthreads is 0, we need to provide a reasonable
+// guess as we can't use '0' to divide up the work into chunks.
+int
+ThreadGuess(int nthreads)
+{
+	if( nthreads )
+	    return nthreads;
+
+	int tnum = 0;
+
+# if defined( HAVE_THREAD ) && defined( HAS_CPP11 )
+	tnum = std::thread::hardware_concurrency();
+# endif
+	if( ! tnum )
+	    tnum = 20;
+	return tnum;
 }

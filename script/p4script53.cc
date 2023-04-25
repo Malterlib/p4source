@@ -14,6 +14,7 @@
 # include <functional>
 # include <fstream>
 # include <iostream>
+# include <thread>
 
 /*
 // For printf PRIu32
@@ -163,9 +164,9 @@ p4script::impl53::Debug::~Debug()
 	now->Now();
 	LogHeader( buf );
 	buf << "End of script\n\n";
-	(*log)->Write( buf, &eIgnore );
+	log->Write( buf, &eIgnore );
 
-	(*log)->Close( &eIgnore );
+	log->Close( &eIgnore );
 }
 
 void p4script::impl53::Debug::SetDebug( const DEBUG type, const StrBuf* id,
@@ -177,16 +178,16 @@ void p4script::impl53::Debug::SetDebug( const DEBUG type, const StrBuf* id,
 	if( type == DEBUG::TRACING )
 	{
 	    auto file = PathSys::CreateUPtr();
-	    (*file)->SetLocal( path, StrRef( ".p4-debug-tracing.txt" ) );
+	    file->SetLocal( path, StrRef( ".p4-debug-tracing.txt" ) );
 	    log = FileSys::CreateUPtr( FST_ATEXT );
-	    (*log)->Set( (*file)->Text() );
-	    (*log)->Open( FOM_RW, e );
+	    log->Set( file->Text() );
+	    log->Open( FOM_RW, e );
 
 	    buf.Clear();
 	    now->Now();
 	    LogHeader( buf );
 	    buf << "Start of script\n";
-	    (*log)->Write( buf, e );
+	    log->Write( buf, e );
 	}
 }
 
@@ -207,6 +208,10 @@ bool p4script::impl53::Debug::TraceCB( void* _L, void* arv, Error* e )
 	    return true;
 
 	const char* srcFile = info->source + 1;
+
+	// Don't attempt to trace into non-source modules.
+	if( strstr( srcFile, "Internal/" ) == srcFile )
+	    return true;
 
 	if( info->source && info->source[ 0 ] == '@' &&
 	    lines.find( srcFile ) == lines.cend() )
@@ -289,7 +294,7 @@ bool p4script::impl53::Debug::TraceCB( void* _L, void* arv, Error* e )
 	if( info->event == LUA_HOOKRET )
 	    level--;
 
-	(*log)->Write( buf, e );
+	log->Write( buf, e );
 
 	if( e->Test() )
 	    return false;

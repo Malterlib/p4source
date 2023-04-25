@@ -86,7 +86,7 @@ static const char long_usage[] =
 "\n"
 "    Options:\n"
 "	-b batchsize	specify a batchsize to use with -x (default 128)\n"
-"	-h -?		print this message\n"
+"	-h | -?		print this message\n"
 "	-s		prepend message type to each line of server output\n"
 "	-v level	debug modes\n"
 "	-V		print client version\n"
@@ -113,19 +113,19 @@ static const char long_usage[] =
 "\n"
 "	--script	Run the named P4-Lua script\n"
 "\n"
-"    The Perforce client 'p4' requires a valid Perforce server network\n"
+"    The Helix Core client 'p4' requires a valid Helix Core server network\n"
 "    address 'P4PORT' for most operations, including its help system.\n"
-"    Without an explicit P4PORT, the Perforce client will use a default\n"
+"    Without an explicit P4PORT, the Helix Core client will use a default\n"
 "    P4PORT of 'perforce:1666'.  That is to say, the host is named 'perforce'\n"
 "    and the port number is '1666'.\n"
 "\n"
-"    The Perforce client accepts configuration via command-line options,\n"
+"    The Helix Core client accepts configuration via command-line options,\n"
 "    P4CONFIG files, environmental variables and on Windows, the registry.\n"
 "    Run 'p4 set' to list the client's current settings.\n"
 "\n"
-"    Run 'p4 help' to ask the Perforce server for information on commands.\n"
+"    Run 'p4 help' to ask the Helix Core server for information on commands.\n"
 "\n"
-"    For administrators, see the Perforce server's help output in 'p4d -h'.\n"
+"    For administrators, see the Helix Core server's help output in 'p4d -h'.\n"
 "\n"
 "    For further information, visit the documentation at www.perforce.com.\n"
 "\n";
@@ -686,13 +686,13 @@ clientRunCommand(
 	        StrBuf txt;
 # ifdef HAS_EXTENSIONS
 	        auto in = FileSys::CreateUPtr( FST_TEXT );
-	        (*in)->Set( "-" );
-	        (*in)->Open( FOM_READ, e );
+	        in->Set( "-" );
+	        in->Open( FOM_READ, e );
 
 	        if( e->Test() )
 	            return 1;
 
-	        (*in)->ReadWhole( &txt, e );
+	        in->ReadWhole( &txt, e );
 
 	        if( e->Test() )
 	            return 1;

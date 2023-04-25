@@ -94,4 +94,13 @@ class MsgDm2 {
 	static ErrorId ComponentInvalidIsDependent;
 	static ErrorId TopologyThresholdOutOfRange;
 	static ErrorId ProtectsMismatch;
+	static ErrorId DirsDataStreamViews;
+	static ErrorId FilesDataStreamViews;
+	static ErrorId MaxMem;
+	static ErrorId GroupsDataVerbose222;
+	static ErrorId TopologyDelRecMarker;
+	static ErrorId TopologyAmbiguity;
+	static ErrorId TopologyTargetDeleted;
+	static ErrorId TopologyRecAlreadyDeleted;
+	static ErrorId ComponentWritableNoChange;
 } ;

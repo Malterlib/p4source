@@ -11,6 +11,7 @@
 # include <msgsupp.h>
 # include <msgdm.h>
 # include <strbuf.h>
+# include <debug.h>
 
 # include "options.h"
 
@@ -724,6 +725,18 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionSize },
 	{ "compressed",         Options::Compressed, 0, '#',
 	                      &MsgSupp::OptionCompressed },
+	{ "pre-failback",       Options::PreFailback, 0, 0,
+	                      &MsgSupp::OptionPreFailback },
+	{ "post-failback",      Options::PostFailback, 0, 0,
+	                      &MsgSupp::OptionPostFailback },
+	{ "streamviews",        Options::StreamViews, 0, 0,
+	                      &MsgSupp::OptionStreamViews },
+	{ "use-stream-change",	Options::UseStreamChange, 0, '?',
+	                      &MsgSupp::OptionUseStreamChange },
+	{ "stream",             Options::HasStream, 0, 0,
+	                      &MsgSupp::OptionHasStream },
+	{ "nostream",           Options::NoStream, 0, 0,
+	                      &MsgSupp::OptionNoStream },
 
 #ifdef _DEBUG
 	{ "debugbreak",         Options::DebugBreak,  0, 0,
@@ -1290,6 +1303,31 @@ Options::GetValue( int opt, char flag2, int subopt )
 	return 0;
 }
 
+void
+Options::Discard( int opt, char flag2, int subopt )
+{
+	int i;
+	int move = 0;
+	for( i = 0; i < optc; i++ )
+	{
+	    if( flags[i] == opt && flags2[i] == flag2 && !subopt-- )
+	    {
+	        move = 1;
+	        break;
+	    }
+	}
+	if( move )
+	{
+	    for( ; i + 1 < optc; i++ )
+	    {
+	        flags[i] = flags[i + 1];
+	        flags2[i] = flags2[i + 1];
+	        vals[i]  = vals[i + 1];
+	    }
+	    optc--;
+	}
+}
+
 int
 Options::FormatOption( int i, Error *e )
 {
@@ -1392,4 +1430,23 @@ Options::GetLongForm( const int ilist, Error *e )
 
 	    return 0;
 	}
+}
+
+void
+Options::Dump( StrPtr* out )
+{
+	StrBuf os;
+	int i;
+
+	for( i = 0 ; i < optc; i++ )
+	{
+	    os << "Flag " << flags[i];
+	    os << " Flags2 " << flags2[i];
+	    os << " Val " << vals[ i ] << "\n";
+	}
+
+	if( out )
+	    *out = os;
+	else
+	    p4debug.printf( "%s", os.Text() );
 }

@@ -27,6 +27,7 @@
 class FileIOBuffer;
 class FileIOUnicode;
 class Gzip;
+class StrBufDict;
 
 class FileIO : public FileSys {
 
@@ -61,12 +62,15 @@ class FileIO : public FileSys {
 
 	virtual void    DepotSize( offL_t &len, Error *e );
 
+	virtual void	SetExtendedAttribute( StrPtr *name, StrPtr *val, Error *e );
+	virtual void	GetExtendedAttribute( StrPtr *name, StrBuf *val, Error *e );
+	virtual void	GetExtendedAttributes( StrBufDict *xattrs, Error *e );
+
 # ifdef OS_NT
 	// Currently only implements hidden file handling on NT
 	virtual void	SetAttribute( FileSysAttr attrs, Error *e );
 	static wchar_t	*UnicodeName( StrBuf *fname, int lfn );
 # endif
-
 } ;
 
 class FileIOBinary : public FileIO {
@@ -88,6 +92,11 @@ class FileIOBinary : public FileIO {
 	virtual void    DepotSize( offL_t &len, Error *e );
 	virtual int     RetryCreate();
 	virtual int     LinkCount();
+
+# ifdef OS_NT
+	static int      GetModeAflags( int mode )
+	                { return openModes[mode].aflags; }
+# endif
 
     protected:
 

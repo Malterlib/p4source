@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSupp error code is: 407
+ * Current high value for a MsgSupp error code is: 413
  */
 
 # include <error.h>
@@ -384,9 +384,12 @@ ErrorId MsgSupp::OptionRequireMaster      = { ErrorOf( ES_SUPP, 334, E_INFO, EV_
 ErrorId MsgSupp::OptionFailoverYes        = { ErrorOf( ES_SUPP, 335, E_INFO, EV_NONE, 0 ), "%'--yes (-y)'%: execute the failover rather than just checking that the failover could occur." } ;
 ErrorId MsgSupp::OptionFailoverid         = { ErrorOf( ES_SUPP, 336, E_INFO, EV_NONE, 0 ), "%'--serverid (-s)'%: ID of the server from which failover is to occur." } ;
 ErrorId MsgSupp::OptionFailoverQuiesce    = { ErrorOf( ES_SUPP, 337, E_INFO, EV_NONE, 0 ), "%'--quiesce-wait (-w)'%: time (in seconds) to wait for commands to complete on the server from which failover is to occur." } ;
+ErrorId MsgSupp::OptionPreFailback        = { ErrorOf( ES_SUPP, 408, E_INFO, EV_NONE, 0 ), "%'--pre-failback (-Fm)'%: prepare failed-over server to become standby ready for failback." } ;
+ErrorId MsgSupp::OptionPostFailback       = { ErrorOf( ES_SUPP, 409, E_INFO, EV_NONE, 0 ), "%'--post-failback (-Fs)'%: prepare failed-back server's original standby to become standby to master after failback." } ;
 ErrorId MsgSupp::OptionFailoverVerification  = { ErrorOf( ES_SUPP, 350, E_INFO, EV_NONE, 0 ), "%'--verification (-v)'%: time (in seconds) defining recently updated depot files requiring digest verification." } ;
 ErrorId MsgSupp::OptionFailbackYes        = { ErrorOf( ES_SUPP, 405, E_INFO, EV_NONE, 0 ), "%'--yes (-y)'%: execute the failback rather than just checking that the failback could occur." } ;
 ErrorId MsgSupp::OptionFailbackQuiesce    = { ErrorOf( ES_SUPP, 406, E_INFO, EV_NONE, 0 ), "%'--quiesce-wait (-w)'%: time (in seconds) to wait for commands to complete on the server from which failback is to occur." } ;
+ErrorId MsgSupp::OptionUseStreamChange    = { ErrorOf( ES_SUPP, 411, E_INFO, EV_NONE, 0 ), "%'--use-stream-change=N'%: specifies to use the streamview at or before change N." } ;
 
 ErrorId MsgSupp::JsmnBadType              = { ErrorOf( ES_SUPP, 312, E_FAILED, EV_CONFIG, 3 ), "JSON error: token not expected type. Token number %index% Expected type %expected% Observed type %observed%." } ;
 ErrorId MsgSupp::JsmnBadParent            = { ErrorOf( ES_SUPP, 313, E_FAILED, EV_CONFIG, 3 ), "JSON error: token does not have the expected parent. Token number %index% Expected parent index %expected% Observed parent index %observed%." } ;
@@ -442,6 +445,9 @@ ErrorId MsgSupp::OptionObliterate         = { ErrorOf( ES_SUPP, 402, E_INFO, EV_
 ErrorId MsgSupp::OptionOffset             = { ErrorOf( ES_SUPP, 403, E_INFO, EV_NONE, 0 ), "%'--offset'%: start print at the given offset." } ;
 ErrorId MsgSupp::OptionSize               = { ErrorOf( ES_SUPP, 404, E_INFO, EV_NONE, 0 ), "%'--size'%: print the given size." } ;
 ErrorId MsgSupp::OptionCompressed         = { ErrorOf( ES_SUPP, 407, E_INFO, EV_NONE, 0 ), "%'--compressed'%: specifies how to verify compressed archives." } ;
+ErrorId MsgSupp::OptionStreamViews        = { ErrorOf( ES_SUPP, 410, E_INFO, EV_NONE, 0 ), "%'--streamviews'%: reports results for streams in the context of the stream." } ;
+ErrorId MsgSupp::OptionHasStream          = { ErrorOf( ES_SUPP, 412, E_INFO, EV_NONE, 0 ), "%'--stream'%: reports results for changes that contain a stream spec." } ;
+ErrorId MsgSupp::OptionNoStream           = { ErrorOf( ES_SUPP, 413, E_INFO, EV_NONE, 0 ), "%'--nostream'%: reports results for changes without a stream spec." } ;
 
 // ErrorId graveyard'%: retired/deprecated ErrorIds.
 

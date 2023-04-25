@@ -9,7 +9,11 @@ enum P4TunableName {
 	P4TUNE_CLUSTER_JOURNAL_SHARED = DT_LAST,// see db/dbjournal2.cc
 	P4TUNE_DB_CHECKPOINT_BUFSIZE,
 	P4TUNE_DB_CHECKPOINT_THREADS,
+	P4TUNE_DB_CHECKPOINT_WORKLEVEL,
+	P4TUNE_DB_CHECKPOINT_REQLEVEL,
+	P4TUNE_DB_CHECKPOINT_NOFILES,
 	P4TUNE_DB_EXPERIMENTAL_LOGGING,
+	P4TUNE_DB_INTERNAL_REPAIR,
 	P4TUNE_DB_ISALIVE,
 	P4TUNE_DB_JNLACK_SHARED,
 	P4TUNE_DB_MONITOR_ADDTHRESH,
@@ -79,6 +83,7 @@ enum P4TunableName {
 	P4TUNE_DM_PASSWORD_MINLENGTH,
 	P4TUNE_DM_POPULATE_SKIPKEYED,           // see userpop.cc
 	P4TUNE_DM_PROTECTS_ALLOW_ADMIN,
+	P4TUNE_DM_PROTECTS_EXCLUSIONCHECK,	// see dmlimit.cc
 	P4TUNE_DM_PROTECTS_HIDE,
 	P4TUNE_DM_PROTECTS_STREAMSPEC,		// see dmaprotect.cc
 	P4TUNE_DM_PROXY_PROTECTS,
@@ -105,6 +110,7 @@ enum P4TunableName {
 	P4TUNE_DM_STATUS_MATCHSIZE,		// see dmreconcile.cc
 	P4TUNE_DM_STREAM_PARENTVIEW,
 	P4TUNE_DM_STREAM_COMPONENTS,
+	P4TUNE_DM_SYNC_STREAM_CHANGE,		// see usersync.cc
 	P4TUNE_DM_SUBPROTECTS_GRANT_ADMIN,
 	P4TUNE_DM_TOPOLOGY_LASTSEENUPDATE,	// see dmatopology.cc
 	P4TUNE_DM_USER_ACCESSUPDATE,		// see dmauser.cc
@@ -115,6 +121,10 @@ enum P4TunableName {
 	P4TUNE_DM_USER_NOAUTOCREATE,		// see dmauser.cc
 	P4TUNE_DM_USER_NUMERIC,		// see dmauser.cc
 	P4TUNE_DM_USER_RESETPASSWORD,		// see dmauser.cc
+	P4TUNE_DM_USER_SETINITIALPASSWD,	// see userpasswd.cc
+# ifdef OS_NT
+	P4TUNE_FILESYS_ATOMIC_RENAME,		// see filesys.cc
+# endif
 	P4TUNE_FILESYS_BINARYSCAN,		// see filecheck.cc
 	P4TUNE_FILESYS_BUFSIZE,			// see filesys.h
 	P4TUNE_FILESYS_CACHEHINT,		// see filesys.cc
@@ -148,7 +158,9 @@ enum P4TunableName {
 	P4TUNE_LBR_STORAGE_DELAY,               // see userstorage.cc
 	P4TUNE_LBR_STORAGE_ALLOWSYMLINK,        // see userstorage.cc
 	P4TUNE_LBR_STORAGE_SKIPKEYED,           // see dmstorageupgrade.cc
+	P4TUNE_LBR_STORAGE_THREADS,             // see userstorage.cc
 	P4TUNE_LBR_RCS_LOCKING,                 // see dmgrcslock.cc
+	P4TUNE_LOG_GROUP_MAXLEN,		// see rhservice.cc
 	P4TUNE_LOG_ORIGINHOST,			// see rhloggable.cc
 	P4TUNE_MAP_JOINMAX1,
 	P4TUNE_MAP_JOINMAX2,
@@ -227,6 +239,7 @@ enum P4TunableName {
 	P4TUNE_RUN_MOVE_ALLOW,			// see usermove.cc
 	P4TUNE_RUN_OBLITERATE_ALLOW,		// see userpurge.cc
 	P4TUNE_RUN_PRUNE_ALLOW,			// see userpurge.cc
+	P4TUNE_RUN_RENAMECLIENT_ALLOW,		// see userrenameclient.cc
 	P4TUNE_RUN_UNZIP_USER_ALLOW,		// see userzip.cc
 	P4TUNE_RUN_USERS_AUTHORIZE,		// see userusers.cc
 	P4TUNE_SERVER_COMMANDLIMITS,		// see dmcaller.cc
@@ -322,6 +335,8 @@ enum P4TunableName {
 	P4TUNE_RPL_SUBMIT_NOCOPY,		// see usersubmit.cc
 	P4TUNE_AUTH_2FA_PERSIST,		// see login2.cc
 	P4TUNE_AUTH_TICKETS_NOUNLOCKED,		// see login.cc
+	P4TUNE_AUTH_LICENSEEXPIRY_WARN,		// see login.cc
+	P4TUNE_AUTH_LICENSEEXPIRY_WARNTHRESHOLD,// see login.cc
 	P4TUNE_AUTH_SSO_ALLOW_PASSWD,		// see login.cc
 	P4TUNE_AUTH_SSO_NONLDAP,		// see login.cc
 	P4TUNE_ZLIB_DISABLE_OPTIM,
