@@ -121,7 +121,15 @@ typedef BOOLEAN (WINAPI *CreateSymbolicLinkWProc)(LPCWSTR,LPCWSTR,DWORD);
 
 static CreateSymbolicLinkAProc CreateSymbolicLinkA_func = 0;
 static CreateSymbolicLinkWProc CreateSymbolicLinkW_func = 0;
+
+#ifndef _NTDEF_
+typedef LONG NTSTATUS;
+#endif
+
+static NTSTATUS (WINAPI *RtlGetVersion_func)(PRTL_OSVERSIONINFOW) = 0;
+
 static int functionHandlesLoaded = 0;
+static DWORD extraSymbolicLinkFlags = 0;
 
 // Handle the Unicode and LFN file name translation.
 // Caller to nt_wname() must free the memory through nt_free_wname().
@@ -2277,6 +2285,7 @@ ntw_makelink( StrBuf &target, StrPtr *name, DWORD dwFlags, int lfn )
 	    return -1;
 	}
 
+	dwFlags |= extraSymbolicLinkFlags;
 	if( (*CreateSymbolicLinkW_func)( wname, wtarget, dwFlags ) )
 	    result = 0;
 
@@ -2341,6 +2350,7 @@ nt_makelink( StrBuf &target, StrPtr *name, int dounicode, int lfn )
 	            return ret;
 	}
 
+	dwFlags |= extraSymbolicLinkFlags;
 	if( (*CreateSymbolicLinkA_func)(name->Text(), n_tgt.Text(), dwFlags) )
 	    result = 0;
 
@@ -3444,6 +3454,27 @@ FileSys::SymlinksSupported()
 	            GetProcAddress(
 	                GetModuleHandle("kernel32.dll"),
 	                "CreateSymbolicLinkW");
+
+	    (FARPROC &)RtlGetVersion_func = GetProcAddress(
+	            GetModuleHandle("ntdll.dll"),
+	            "RtlGetVersion");
+
+	    OSVERSIONINFOEXW versionInfo = {0};
+	    versionInfo.dwOSVersionInfoSize = sizeof(versionInfo);
+	    if (RtlGetVersion_func)
+	        RtlGetVersion_func((PRTL_OSVERSIONINFOW)&versionInfo);
+	    else
+	        GetVersionExW((OSVERSIONINFOW *)&versionInfo);
+
+	    if
+	        (
+	            versionInfo.dwMajorVersion > 10
+	            || versionInfo.dwMajorVersion == 10 && versionInfo.dwMinorVersion > 0
+	            || versionInfo.dwMajorVersion == 10 && versionInfo.dwBuildNumber >= 14972
+	        )
+	    {
+	        extraSymbolicLinkFlags |= 2; // SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE
+	    }
 
 	    if( CreateSymbolicLinkA_func != 0 &&
 	        CreateSymbolicLinkW_func != 0 )
