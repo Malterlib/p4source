@@ -76,6 +76,7 @@ Compile
 			, "dmec"->MakeAbsolute()
 			, "map"->MakeAbsolute()
 			, "script"->MakeAbsolute()
+			, "../../Malterlib/SQL/SourceGenerated/SQLite"->MakeAbsolute()
 		]
 		SearchPath += "rpc"->MakeAbsolute()
 		PreprocessorDefines += ["USE_SSL", "HAS_CPP11", "P4_API_ONLY", "NEED_ALL", `OS_@(PerforceOS)`, `ID_OS="@(PerforceOS)"`, `ID_REL="@(ProductVersionMajor).@(ProductVersionMinor)"`, `ID_PATCH="@(ProductVersionRevision)"`, `ID_Y=""`, "ID_M=\"\"", "ID_D=\"\""]
@@ -114,6 +115,10 @@ Compile
 			%File "msgs/*.cc"
 			%File "msgs/*.h"
 			%File "msgs/msghelp.cc"
+			{
+				Compile.Disabled true
+			}
+			%File "msgs/msgconfig.cc"
 			{
 				Compile.Disabled true
 			}
@@ -158,6 +163,7 @@ Compile
 			%File "sys/threading.cc"
 			%File "sys/timer.cc"
 			%File "sys/zipfile.cc"
+			%File "sys/pipeio.cc"
 			
 			%File "sys/macfile.cc"
 			{
@@ -234,6 +240,10 @@ Compile
 		}
 	}
 	%Dependency "Lib_zlib"
+	{
+		Dependency.Indirect true
+	}
+	%Dependency "Lib_Curl"
 	{
 		Dependency.Indirect true
 	}

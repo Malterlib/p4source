@@ -703,7 +703,7 @@ NetUtils::IsMACAddress( const char *str, bool &brackets )
 	    case ':':
 	        if( digets != 2 )
 	            return false;
-	            digets = 0;
+			digets = 0;
 	        numColons++;
 	        break;
 	    case ']':
