@@ -24,7 +24,7 @@
  *
  * Current high value for a MsgServer error code is: 24
  */
-
+# include <stdhdrs.h>
 # include <error.h>
 # include <errornum.h>
 # include "msgscript.h"

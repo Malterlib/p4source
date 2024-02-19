@@ -22,12 +22,13 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgServer2 error code is: 270
+ * Current high value for a MsgServer2 error code is: 282
  *                                                   Max code is 1023!!!
  *
  * The MsgServer2 class contains overflow messages from MsgServer.
  *
  */
+# include <stdhdrs.h>
 # include <error.h>
 # include <errornum.h>
 # include "msgserver2.h"
@@ -299,4 +300,18 @@ ErrorId MsgServer2::TooMuchResourceMonitor = { ErrorOf( ES_SERVER2, 264, E_FATAL
 ErrorId MsgServer2::UseAdminResourceMonitor= { ErrorOf( ES_SERVER2, 265, E_FAILED, EV_USAGE, 0 ), "Usage: %'admin resource-monitor'%" } ;
 ErrorId MsgServer2::StartupCapabilities    = { ErrorOf( ES_SERVER2, 266, E_INFO, EV_NONE, 5 ), "Perforce Server operating system capabilities (%date%, PID %pid%, version %ver%):  OOM protection (%oom%), OS-supplied resource pressure (%psi%)." };
 ErrorId MsgServer2::BadPressureThresholds  = { ErrorOf( ES_SERVER2, 267, E_WARN, EV_ADMIN, 0 ), "Resource monitoring medium/high threshold configuration invalid - using defaults.\n" } ;
+ErrorId MsgServer2::PopulateSparseStreamDesc = { ErrorOf( ES_SERVER2, 268, E_INFO, EV_NONE, 2 ), "Populate stream %targetStream% from %sourceStream%." };
+ErrorId MsgServer2::NonResidentOpenMustSync = { ErrorOf( ES_SERVER2, 269, E_FAILED, EV_USAGE, 2 ), "%clientFile% - must sync before opening for %action% in sparse stream." };
 ErrorId MsgServer2::BadJField              = { ErrorOf( ES_SERVER2, 270, E_FAILED, EV_USAGE, 2 ), "Bad jfield option specified '%opt%'. Must be one of %optlist%" } ;
+ErrorId MsgServer2::TooManySparseFileOverlays = { ErrorOf( ES_SERVER2, 271, E_FAILED, EV_USAGE, 1 ), "Branching too many files in this sparse stream (over %branchMax%)" };
+ErrorId MsgServer2::TraitDepotNotConfigured= { ErrorOf( ES_SERVER2, 272, E_FAILED, EV_CONTEXT, 0 ), "Trait depot storage has not been configured by '%'trait.storagedepot.min'%'. This value must be greater than 0 to enable trait depot storage." } ;
+ErrorId MsgServer2::TraitDepotNotForCommit = { ErrorOf( ES_SERVER2, 273, E_FAILED, EV_CONTEXT, 0 ), "Trait depot storage is not supported on this version of the commit server. Commit server must be upgraded to use this feature." } ;
+ErrorId MsgServer2::NoValidIPOrMACAddresses = { ErrorOf( ES_SERVER2, 274, E_FAILED, EV_ADMIN, 0), "No valid IP or MAC Addresses available for License use."} ;
+ErrorId MsgServer2::ValidIPv4Address       = { ErrorOf( ES_SERVER2, 275, E_INFO, EV_NONE, 2), "IPv4 Address (Interface %int%): %address%"} ;
+ErrorId MsgServer2::ValidIPv6Address       = { ErrorOf( ES_SERVER2, 276, E_INFO, EV_NONE, 2 ), "IPv6 Address (Interface %int%): %address%" };
+ErrorId MsgServer2::ValidMACAddress        = { ErrorOf( ES_SERVER2, 277, E_INFO, EV_NONE, 2 ), "MAC Address (Interface %int%): %address%" };
+ErrorId MsgServer2::NoTraitValueInDepot    = { ErrorOf( ES_SERVER2, 278, E_FAILED, EV_ADMIN, 2 ), "The value for trait '%name%' was not found in the trait depot at %path%." };
+ErrorId MsgServer2::Types64Warn            = { ErrorOf( ES_SERVER2, 279, E_WARN, EV_ADMIN, 2 ), "Server requires a client that supports 64bit changelist numbers. Client version: %cv%. Required version %rv%." } ;
+ErrorId MsgServer2::Types64Err             = { ErrorOf( ES_SERVER2, 280, E_FAILED, EV_ADMIN, 2 ), "Server requires a client that supports 64bit changelist numbers. Client version: %cv%. Required version %rv%." } ;
+ErrorId MsgServer2::ConfigureSetComment    = { ErrorOf( ES_SERVER2, 281, E_INFO, EV_NONE, 3 ), "For server '%serverName%', configuration variable '%variableName%' comment set to '%comment%'" } ;
+ErrorId MsgServer2::ProxyClearCacheNotSet  = { ErrorOf( ES_SERVER2, 282, E_INFO, EV_NOTYET, 0 ), "Proxy cache-purge needs configurable 'proxy.clearcachethresh'. Please set it and try again."} ;

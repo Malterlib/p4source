@@ -19,6 +19,7 @@ class StrPtr;
 class StrBuf;
 class ErrorLog;
 class Error;
+struct ErrorId;
 
 enum P4DebugType {
 	DT_DB,		// DbOpen
@@ -62,7 +63,7 @@ enum P4DebugType {
 	DT_PCHECK,	// Parallel checkpoint
 	DT_TOPOLOGY,	// Topology
 	DT_RESOURCE,	// OS resources
-	DT_P4MIGRATE,	// p4migrate related
+	DT_S3,		// S3 cURL client
 	DT_LAST
 }  ;
 
@@ -70,13 +71,78 @@ enum P4TunableType {
 	DTT_NONE,	// Unknown tuneable
 	DTT_INT,	// Numeric tuneable
 	DTT_STR,	// String tuneable
-};
+} ;
+
+enum P4TunableApplicability {
+	CONFIG_APPLY_NONE = 0x0000,
+	CONFIG_APPLY_CLIENT = 0x0001,
+	CONFIG_APPLY_SERVER = 0x0002,
+	CONFIG_APPLY_PROXY = 0x0004,
+	CONFIG_APPLY_BROKER = 0x0008
+	// When you add new types, update the string array in userconfig.cc
+} ;
+
+enum P4TunableRestart {
+	CONFIG_RESTART_NONE,
+	CONFIG_RESTART_NO_RESTART,
+	CONFIG_RESTART_RESTART,
+	CONFIG_RESTART_STOP,
+	CONFIG_RESTART_REF_DOC
+	// When you add new types, update the string array in userconfig.cc
+} ;
+
+enum P4TunableSupport {
+	CONFIG_SUPPORT_NONE,
+	CONFIG_SUPPORT_NODOC,
+	CONFIG_SUPPORT_UNDOC,
+	CONFIG_SUPPORT_DOC
+	// When you add new types, update the string array in userconfig.cc
+} ;
+
+enum P4TunableCategory {
+	CONFIG_CAT_NONE,
+	CONFIG_CAT_ADMIN
+	// When you add new types, update the string array in userconfig.cc
+} ;
 
 extern P4MT int list2[];
 
 class P4Tunable {
 
     public:
+	struct tunable {
+	    const char *name;
+	    int isSet;		
+	    int value;
+	    int minVal;
+	    int maxVal;
+	    int modVal;
+	    int k;		// what's 1k? 1000 or 1024?
+	    int original;
+	    int sensitive;
+
+	    const ErrorId *description;
+	    const char *recVal;	// Recommended value
+	    int svr;		// Applicability - server/client/proxy/broker
+	    int restart;	// Restart requirement
+	    int support;	// Support level
+	    int cat;		// Category
+	};
+
+	struct stunable {
+	    const char *name;
+	    int isSet;
+	    const char *def;
+	    char *value;
+	    int sensitive;
+
+	    const ErrorId *description;
+	    const char *recVal;	// Recommended value
+	    int svr;		// Applicability - server/client/proxy/broker
+	    int restart;	// Restart requirement
+	    int support;	// Support level
+	    int cat;		// Category
+	};
 
 	void		Set( const char *set );
 	void		SetTLocal( const char *set );
@@ -85,6 +151,11 @@ class P4Tunable {
 	    return t < DT_LAST && list2[t] != -1 && list2[t] > list[t].value ?
 	        list2[t] : list[t].value;
 	}
+
+	const tunable	*GetTunable( int i ) const;
+
+	const stunable	*GetStringTunable( int i ) const;
+
 	int		GetOriginalValue( int t ) const {
 	    return list[t].original;
 	}
@@ -112,25 +183,8 @@ class P4Tunable {
 
     protected:
 
-	static struct tunable {
-	    const char *name;
-	    int isSet;		
-	    int value;
-	    int minVal;
-	    int maxVal;
-	    int modVal;
-	    int k;		// what's 1k? 1000 or 1024?
-	    int original;
-	    int sensitive;
-	} list[];
-	
-	static struct stunable {
-	    const char *name;
-	    int isSet;
-	    const char *def;
-	    char *value;
-	    int sensitive;
-	} slist[];
+	static tunable list[];
+	static stunable slist[];
 } ;
 
 typedef void (*DebugOutputHook)( void *context, const StrPtr *buffer );

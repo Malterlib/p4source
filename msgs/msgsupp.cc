@@ -22,9 +22,9 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSupp error code is: 435
+ * Current high value for a MsgSupp error code is: 441
  */
-
+# include <stdhdrs.h>
 # include <error.h>
 # include <errornum.h>
 # include <msgsupp.h>
@@ -397,11 +397,18 @@ ErrorId MsgSupp::JsmnBadMem               = { ErrorOf( ES_SUPP, 314, E_FAILED, E
 ErrorId MsgSupp::JsmnBadSyn               = { ErrorOf( ES_SUPP, 315, E_FAILED, EV_CONFIG, 0 ), "JSON error: parse failed, bad syntax." } ;
 ErrorId MsgSupp::JsmnTooFew               = { ErrorOf( ES_SUPP, 316, E_FAILED, EV_CONFIG, 0 ), "JSON error: parse failed, missing tokens." } ;
 ErrorId MsgSupp::JsmnKeyNotFound          = { ErrorOf( ES_SUPP, 317, E_FAILED, EV_CONFIG, 2 ), "JSON error: not found key name \"%tname%\" in token at index %index%." } ;
+
 ErrorId MsgSupp::ManifestKeyNotFound      = { ErrorOf( ES_SUPP, 339, E_FAILED, EV_CONFIG, 1 ), "The \"%tname%\" key is required in the extension manifest." } ;
 ErrorId MsgSupp::ManifestValueEmpty       = { ErrorOf( ES_SUPP, 340, E_FAILED, EV_CONFIG, 1 ), "The \"%tname%\" value is empty. It is required in the extension manifest." } ;
 ErrorId MsgSupp::ManifestValueTypeInvalid = { ErrorOf( ES_SUPP, 341, E_FAILED, EV_CONFIG, 1 ), "The key \"%tname%\" was expected to have a value with the type of \"%expected%\", but was \"%observed%\"." } ;
 ErrorId MsgSupp::ManifestParseError       = { ErrorOf( ES_SUPP, 357, E_FAILED, EV_CONFIG, 1 ), "Manifest file failed to parse:  %error%" } ;
 ErrorId MsgSupp::InvalidIntegerRange      = { ErrorOf( ES_SUPP, 351, E_FAILED, EV_USAGE, 3 ), "Invalid range for '%value%'. Must be between '%min%' and '%max%'." } ;
+
+ErrorId MsgSupp::CurlPerformFailed        = { ErrorOf( ES_SUPP, 437, E_FAILED, EV_COMM, 1 ), "curl_easy_perform() failed: %curlerr%" } ;
+ErrorId MsgSupp::AwsRejected              = { ErrorOf( ES_SUPP, 438, E_FAILED, EV_COMM, 3 ), "AWS rejected command: %status%[: %errMsg%][\n%response%]" } ;
+ErrorId MsgSupp::XmlParseFailed           = { ErrorOf( ES_SUPP, 439, E_FAILED, EV_COMM, 1 ), "XML parse error: %xmlErr%" } ;
+
+
 ErrorId MsgSupp::OptionNoSync             = { ErrorOf( ES_SUPP, 361, E_INFO, EV_NONE, 0 ), "%'--no-sync'%: do not sync after switch." } ;
 ErrorId MsgSupp::OptionNoScript           = { ErrorOf( ES_SUPP, 354, E_INFO, EV_NONE, 0 ), "%'--no-script'%: do not run client-side Extensions." } ;
 ErrorId MsgSupp::OptionScriptLang         = { ErrorOf( ES_SUPP, 355, E_INFO, EV_NONE, 0 ), "%'--script-lang'%: script implementation language name." } ;
@@ -468,6 +475,9 @@ ErrorId MsgSupp::OptionNewServerID        = { ErrorOf( ES_SUPP, 432, E_INFO, EV_
 ErrorId MsgSupp::OptionNewTargetAddress   = { ErrorOf( ES_SUPP, 433, E_INFO, EV_NONE, 0 ), "%'--new-target-address (-P)'%: new target address." } ;
 ErrorId MsgSupp::OptionCreationDate       = { ErrorOf( ES_SUPP, 434, E_INFO, EV_NONE, 0 ), "%'--creation-date (-c)'%: topology record creation date." } ;
 ErrorId MsgSupp::OptionLastSeenDate       = { ErrorOf( ES_SUPP, 435, E_INFO, EV_NONE, 0 ), "%'--last-seen-date (-l)'%: topology record last seen date." } ;
+ErrorId MsgSupp::OptionTraitStorage       = { ErrorOf( ES_SUPP, 436, E_INFO, EV_NONE, 0 ), "%'--storage (-T)'%: store attribute value in metadata (0) or in depot (1)." } ;
+ErrorId MsgSupp::OptionIteration          = { ErrorOf( ES_SUPP, 440, E_INFO, EV_NONE, 0 ), "%'--iteration'%: Config history iteration." } ;
+ErrorId MsgSupp::OptionListAddresses      = { ErrorOf( ES_SUPP, 441, E_INFO, EV_NONE, 0 ), "%'--list-addresses (-L)'%: list valid server IP and MAC addresses" } ;
 
 // ErrorId graveyard'%: retired/deprecated ErrorIds.
 

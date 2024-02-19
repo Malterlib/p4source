@@ -559,6 +559,17 @@ FileIO::HasOnlyPerm( FilePerm perms )
 
 # if !defined( OS_NT )
 int
+FileIO::StatAccessTime()
+{
+	struct statbL sb;
+
+	if( statL( Name(), &sb ) < 0 )
+	    return 0;
+
+	return (int)( DateTime::Centralize( sb.st_atime ) );
+}
+
+int
 FileIO::StatModTime()
 {
 	struct statbL sb;

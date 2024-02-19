@@ -9,7 +9,7 @@
  * This file is part of Perforce - the FAST SCM System.
  */
 
-	// define this before including netportipv6.h to get the Winsock typedefs
+// define this before including netportipv6.h to get the Winsock typedefs
 # define INCL_WINSOCK_API_TYPEDEFS 1
 
 # include "netportipv6.h"	// must be included before stdhdrs.h
@@ -18,9 +18,11 @@
 # include <ctype.h>
 # include <strbuf.h>
 # include <strarray.h>
+# include <intarray.h>
 # include "netport.h"
 # include "netipaddr.h"
 # include "netutils.h"
+# include <netportparser.h>
 # include "netsupport.h"
 # include "debug.h"
 # include "netdebug.h"
@@ -504,7 +506,7 @@ NetUtils::IsAddrUnspecified(const sockaddr *sa)
  * [static]
  */
 bool
-NetUtils::SetAddrUnspecified(sockaddr *sa)
+NetUtils::SetAddrUnspecified( sockaddr *sa )
 {
 	if( sa->sa_family == AF_INET )
 	{
@@ -529,11 +531,21 @@ NetUtils::SetAddrUnspecified(sockaddr *sa)
 }
 
 /*
+ * Is this an IPv4 sockaddr?
+ * [static]
+ */
+bool
+NetUtils::IsAddrIPv4( const sockaddr *sa )
+{
+	return sa->sa_family == AF_INET;
+}
+
+/*
  * Is this an IPv6 sockaddr?
  * [static]
  */
 bool
-NetUtils::IsAddrIPv6(const sockaddr *sa)
+NetUtils::IsAddrIPv6( const sockaddr *sa )
 {
 	return sa->sa_family == AF_INET6;
 }
@@ -552,6 +564,9 @@ NetUtils::IsAddrIPv6(const sockaddr *sa)
 bool
 NetUtils::IsIpV4Address( const char *str, bool allowPrefix )
 {
+	if( *str == '\0' )
+	    return false;
+
 	int numDots = 0;
 	int numColons = 0;
 
@@ -607,8 +622,12 @@ NetUtils::IsIpV4Address( const char *str, bool allowPrefix )
 bool
 NetUtils::IsIpV6Address( const char *str, bool /* allowPrefix */ )
 {
+	if( *str == '\0' )
+	    return false;
+
 	int numColons = 0;
 	int numDots = 0;
+	int numTruncated = 0;
 	bool brackets = (*str == '[');
 
 	if( brackets )
@@ -621,15 +640,17 @@ NetUtils::IsIpV6Address( const char *str, bool /* allowPrefix */ )
 	    case '%':
 	        while( *++cp )
 	        {
-	            if( !isalnum(*cp & 0xFF) )
+	            if( !isalnum( *cp & 0xFF ) )
 	                return false;
 	        }
-	        return (numColons >= 2) && (numDots == 0 || numDots == 3);
+	        goto FINAL_IPV6_CHECK;
 	        break;
 	    case ':':
 	        // no colons allowed in mapped-V4 section
 	        if( numDots > 0 )
 	            return false;
+	        if( numColons && *(cp-1) == ':' )
+	            numTruncated++;
 	        numColons++;
 	        break;
 	    case '.':
@@ -642,13 +663,16 @@ NetUtils::IsIpV6Address( const char *str, bool /* allowPrefix */ )
 	            return false;
 	        break;
 	    default:
-	        if( !isxdigit(*cp & 0xFF) )
+	        if( !isxdigit( *cp & 0xFF ) )
 	            return false;
 	        break;
 	    }
 	}
 
-	return (numColons >= 2) && (numDots == 0 || numDots == 3);
+FINAL_IPV6_CHECK:
+	return (numColons >= 2) &&
+	       (numDots == 0 || numDots == 3) &&
+	       (numColons == 7 || numTruncated > 0);
 }
 
 /*
@@ -662,7 +686,11 @@ NetUtils::IsIpV6Address( const char *str, bool /* allowPrefix */ )
 bool
 NetUtils::IsMACAddress( const char *str, bool &brackets )
 {
+	if( *str == '\0' )
+	    return false;
+
 	int numColons = 0;
+	int digets = 0;
 	brackets = (*str == '[');
 
 	if( brackets )
@@ -673,6 +701,9 @@ NetUtils::IsMACAddress( const char *str, bool &brackets )
 	    switch( *cp )
 	    {
 	    case ':':
+	        if( digets != 2 )
+	            return false;
+	            digets = 0;
 	        numColons++;
 	        break;
 	    case ']':
@@ -682,7 +713,9 @@ NetUtils::IsMACAddress( const char *str, bool &brackets )
 	            return false;
 	        break;
 	    default:
-	        if( !isxdigit( *cp ) )
+	        if( !isxdigit( *cp & 0xFF ) )
+	            return false;
+	        if( ++digets > 2 )
 	            return false;
 	        break;
 	    }
@@ -729,15 +762,19 @@ NetUtils::IsAddrUnspecified( const char *addr )
  * but it's unlikely that we'll ever encounter them in the wild.
  */
 bool
-NetUtils::IsLocalAddress( const char *addr )
+NetUtils::IsLocalAddress( const char *addr, bool localMac )
 {
 	static const NetIPAddr localV4(StrRef("127.0.0.1"), 8);
 	static const NetIPAddr localV6(StrRef("::1"), 128);
 	static const NetIPAddr localMapped(StrRef("::ffff:127.0.0.1"), 104); // 80 + 16 + 8
+	static const StrRef    localMAC( "00:00:00:00:00:00" );
 
 	// empty string means connect to localhost or bind to all interfaces (including local)
 	if( *addr == '\0' )
 	    return true;
+
+	if( localMAC == addr )
+	    return localMac;
 
 	const NetIPAddr tgtAddr(StrRef(addr), 0);
 
@@ -931,21 +968,19 @@ NetUtils::FindIPByMAC( const char *mac, StrBuf &ipv4, StrBuf &ipv6 )
 	IP_ADAPTER_ADDRESSES *adapter = adapters;
 	for( ; adapter; adapter = adapter->Next )
 	{
-	    if( adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK )
+	    if( adapter->IfType != IF_TYPE_ETHERNET_CSMACD )
 	        continue;
+
+	    if( adapter->OperStatus != IfOperStatusUp )
+	        continue;
+
 	    if( adapter->PhysicalAddressLength != 6 )
 	        continue;
 
-	    char m[32];
-	    sprintf_s( m, 32, "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
-	            adapter->PhysicalAddress[0],
-	            adapter->PhysicalAddress[1],
-	            adapter->PhysicalAddress[2],
-	            adapter->PhysicalAddress[3],
-	            adapter->PhysicalAddress[4],
-	            adapter->PhysicalAddress[5] );
+	    StrBuf macAddr;
+	    MacBytesToStr( adapter->PhysicalAddress, macAddr );
 
-	    if( strcmp( mac, m ) != 0 )
+	    if( macAddr.CCompare( StrRef( mac ) ) )
 	        continue; // not a match
 
 	    PIP_ADAPTER_UNICAST_ADDRESS_LH address =
@@ -982,8 +1017,8 @@ NetUtils::FindIPByMAC( const char *mac, StrBuf &ipv4, StrBuf &ipv6 )
 }
 
 bool
-NetUtils::FindAllIPsFromAllNICs( StrArray *ipAddresses, const bool recordIPv4,
-	                         const bool recordIPv6 )
+NetUtils::FindAllIPsFromAllNICs( StrArray *addresses, IntArray *indexes,
+	bool recordIPv4, bool recordIPv6, bool recordMAC, bool loopback )
 {
 	HMODULE dll = LoadLibrary( IPHLPAPI_DLL );
 	pfunc_GetAdapterAddresses_t pGetAdaptersAddresses =
@@ -1041,21 +1076,29 @@ NetUtils::FindAllIPsFromAllNICs( StrArray *ipAddresses, const bool recordIPv4,
 	    return false;
 	}
 
+	int index = 0;
 	IP_ADAPTER_ADDRESSES *adapter = adapters;
-	for( ; adapter; adapter = adapter->Next )
+	for( ; adapter; adapter = adapter->Next, index++ )
 	{
+	    if( adapter->IfType != IF_TYPE_ETHERNET_CSMACD &&
+	        !( loopback && adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK ) )
+	        continue;
+
+	    if( adapter->OperStatus != IfOperStatusUp )
+	        continue;
+
 	    if( adapter->PhysicalAddressLength != 6 )
 	        continue;
-#if 0
-	    char m[32];
-	    sprintf_s( m, 32, "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
-	            adapter->PhysicalAddress[0],
-	            adapter->PhysicalAddress[1],
-	            adapter->PhysicalAddress[2],
-	            adapter->PhysicalAddress[3],
-	            adapter->PhysicalAddress[4],
-	            adapter->PhysicalAddress[5] );
-#endif
+
+	    if( recordMAC && adapter->IfType != IF_TYPE_SOFTWARE_LOOPBACK )
+	    {
+	        StrBuf macAddress;
+	        MacBytesToStr( adapter->PhysicalAddress, macAddress );
+
+	        addresses->Put()->Set( macAddress );
+	        if( indexes )
+	            indexes->Set( addresses->Count() - 1, index );
+	    }
 
 	    PIP_ADAPTER_UNICAST_ADDRESS_LH address =
 	       adapter->FirstUnicastAddress;
@@ -1075,9 +1118,11 @@ NetUtils::FindAllIPsFromAllNICs( StrArray *ipAddresses, const bool recordIPv4,
 
 	            //ipv4 address
 	            if( strlen( str ) )
-	                ipAddresses->Put()->Set( str );
-
-	            break;
+	            {
+	                addresses->Put()->Set( str );
+	                if( indexes )
+	                    indexes->Set( addresses->Count() - 1, index );
+	            }
 
 	        case AF_INET6:
 	            if( !recordIPv6 )
@@ -1086,22 +1131,23 @@ NetUtils::FindAllIPsFromAllNICs( StrArray *ipAddresses, const bool recordIPv4,
 	            char str6[INET6_ADDRSTRLEN];
 	            ::inet_ntop( AF_INET6,
 	                         &((sockaddr_in6*) pSockAddr)->sin6_addr,
-	                         str6, INET6_ADDRSTRLEN);
+	                         str6, INET6_ADDRSTRLEN );
 
 	            //ipv6 address
 	            if( strlen( str6 ) )
-	                ipAddresses->Put()->Set( str6 );
+	            {
+	                addresses->Put()->Set( str6 );
+	                if( indexes )
+	                    indexes->Set( addresses->Count() - 1, index );
+	            }
 
-	            break;
 	        }
 	    }
 	
-	    free( adapters );
-	    return true;
 	}
 	
 	free( adapters );
-	return false;
+	return true;
 }
 
 
@@ -1113,14 +1159,17 @@ NetUtils::FindIPByMAC( const char *mac, StrBuf &ipv4, StrBuf &ipv6 )
 	struct ifaddrs *ifap, *ifaptr;
 	char *ifname = 0;
 
-	if( getifaddrs(&ifap) != 0 )
+	if( getifaddrs( &ifap ) != 0 )
 	{
-	    freeifaddrs(ifap);
+	    freeifaddrs( ifap );
 	    return false;
 	}
 
 	for( ifaptr = ifap; ifaptr; ifaptr = ifaptr->ifa_next )
 	{
+	    if( !( ifaptr->ifa_flags & IFF_UP ) )
+	        continue; // skip if link down
+
 	    if( ifaptr->ifa_flags & IFF_LOOPBACK )
 	        continue; // skip loopbacks
 
@@ -1132,7 +1181,6 @@ NetUtils::FindIPByMAC( const char *mac, StrBuf &ipv4, StrBuf &ipv6 )
 	           ((struct sockaddr_ll *)ifaptr->ifa_addr)->sll_halen == 6 ) )
 	        continue; // Not a MAC
 
-	    char m[32];
 	    unsigned char *ptr =
 	        ((struct sockaddr_ll *)ifaptr->ifa_addr)->sll_addr;
 # else
@@ -1140,15 +1188,14 @@ NetUtils::FindIPByMAC( const char *mac, StrBuf &ipv4, StrBuf &ipv6 )
 	           ((struct sockaddr_dl *)ifaptr->ifa_addr)->sdl_alen == 6 ) )
 	        continue; // Not a MAC
 
-	    char m[32];
 	    unsigned char *ptr = (unsigned char *)
 	        LLADDR((struct sockaddr_dl *)ifaptr->ifa_addr);
 # endif // !AF_PACKET
 
-	    sprintf( m, "%02x:%02x:%02x:%02x:%02x:%02x",
-	             *ptr, *(ptr+1), *(ptr+2), *(ptr+3), *(ptr+4), *(ptr+5));
+	    StrBuf macAddress;
+	    MacBytesToStr( ptr, macAddress );
 
-	    if( strcmp( mac, m ) != 0 )
+	    if( macAddress.CCompare( StrRef( mac ) ) )
 	        continue; // not a match
 
 	    ifname = ifaptr->ifa_name;
@@ -1157,7 +1204,7 @@ NetUtils::FindIPByMAC( const char *mac, StrBuf &ipv4, StrBuf &ipv6 )
 
 	if( !ifname )
 	{
-	    freeifaddrs(ifap);
+	    freeifaddrs( ifap );
 	    return false;
 	}
 
@@ -1172,7 +1219,7 @@ NetUtils::FindIPByMAC( const char *mac, StrBuf &ipv4, StrBuf &ipv6 )
 	        char str[INET_ADDRSTRLEN];
 	        ::inet_ntop( AF_INET,
 	                     &((sockaddr_in *)ifaptr->ifa_addr)->sin_addr,
-	                     str, INET_ADDRSTRLEN);
+	                     str, INET_ADDRSTRLEN );
 	        ipv4 = str;
 	    }
 	    else if( ifaptr->ifa_addr->sa_family == AF_INET6 )
@@ -1180,27 +1227,28 @@ NetUtils::FindIPByMAC( const char *mac, StrBuf &ipv4, StrBuf &ipv6 )
 	        char str6[INET6_ADDRSTRLEN];
 	        ::inet_ntop( AF_INET6,
 	                     &((sockaddr_in6 *)ifaptr->ifa_addr)->sin6_addr,
-	                     str6, INET6_ADDRSTRLEN);
+	                     str6, INET6_ADDRSTRLEN );
 	        ipv6 = str6;
+	        ipv6 << "%" << ( int ) if_nametoindex( ifaptr->ifa_name );
 	    }
 
 	    if( ipv4.Length() && ipv6.Length() )
 	        break;
 	}
 
-	freeifaddrs(ifap);
+	freeifaddrs( ifap );
 	return true;
 }
 
 bool
-NetUtils::FindAllIPsFromAllNICs( StrArray *ipAddresses, const bool recordIPv4,
-	                         const bool recordIPv6 )
+NetUtils::FindAllIPsFromAllNICs( StrArray *addresses, IntArray *indexes,
+	bool recordIPv4, bool recordIPv6, bool recordMAC, bool loopback )
 {
 	struct ifaddrs *ifap, *ifaptr;
 
-	if( getifaddrs(&ifap) != 0 )
+	if( getifaddrs( &ifap ) != 0 )
 	{
-	    freeifaddrs(ifap);
+	    freeifaddrs( ifap );
 	    return false;
 	}
 
@@ -1209,10 +1257,44 @@ NetUtils::FindAllIPsFromAllNICs( StrArray *ipAddresses, const bool recordIPv4,
 	// the scenarios where one of them would be missing in multiples
 	for( ifaptr = ifap; ifaptr; ifaptr = ifaptr->ifa_next )
 	{
-	    if( !ifaptr->ifa_addr )
-	        continue;
+	    if( !( ifaptr->ifa_flags & IFF_UP ) )
+	        continue; // skip if link down
 
-	    if( ifaptr->ifa_addr->sa_family == AF_INET )
+	    if( !loopback && ifaptr->ifa_flags & IFF_LOOPBACK )
+	        continue; // skip loopbacks
+
+	    if( !ifaptr->ifa_addr )
+	        continue; // skip null address
+
+	    int index = ( int ) if_nametoindex( ifaptr->ifa_name );
+
+# ifdef AF_PACKET
+	    // MAC address (Linux)
+	    if( ifaptr->ifa_addr->sa_family == AF_PACKET &&
+	        ((struct sockaddr_ll *)ifaptr->ifa_addr)->sll_halen == 6 )
+	    {
+	        unsigned char *ptr =
+	            ((struct sockaddr_ll *)ifaptr->ifa_addr)->sll_addr;
+# else 
+	    // MAC address (OSX)
+	    if( ifaptr->ifa_addr->sa_family == AF_LINK &&
+	        ((struct sockaddr_dl *)ifaptr->ifa_addr)->sdl_alen == 6 )
+	    {
+	        unsigned char *ptr = (unsigned char *)
+	            LLADDR((struct sockaddr_dl *)ifaptr->ifa_addr);
+# endif
+
+	        if( !recordMAC && !( ifaptr->ifa_flags & IFF_LOOPBACK ) )
+	            continue;
+
+	        StrBuf macAddress;
+	        MacBytesToStr( ptr, macAddress );
+
+	        addresses->Put()->Set( macAddress );
+	        if( indexes )
+	            indexes->Set( addresses->Count() - 1, index );
+	    }
+	    else if( ifaptr->ifa_addr->sa_family == AF_INET ) // IPv4 address
 	    {
 	        if( !recordIPv4 )
 	            continue;
@@ -1220,12 +1302,16 @@ NetUtils::FindAllIPsFromAllNICs( StrArray *ipAddresses, const bool recordIPv4,
 	        char str[INET_ADDRSTRLEN];
 	        ::inet_ntop( AF_INET,
 	                     &((sockaddr_in *)ifaptr->ifa_addr)->sin_addr,
-	                     str, INET_ADDRSTRLEN);
-	        //ipv4 address
+	                     str, INET_ADDRSTRLEN );
+
 	        if( strlen( str ) )
-	            ipAddresses->Put()->Set( str );
+	        {
+	            addresses->Put()->Set( str );
+	            if( indexes )
+	                indexes->Set( addresses->Count() - 1, index );
+	        }
 	    }
-	    else if( ifaptr->ifa_addr->sa_family == AF_INET6 )
+	    else if( ifaptr->ifa_addr->sa_family == AF_INET6 ) // IPv6 address
 	    {
 	        if( !recordIPv6 )
 	            continue;
@@ -1233,18 +1319,152 @@ NetUtils::FindAllIPsFromAllNICs( StrArray *ipAddresses, const bool recordIPv4,
 	        char str6[INET6_ADDRSTRLEN];
 	        ::inet_ntop( AF_INET6,
 	                     &((sockaddr_in6 *)ifaptr->ifa_addr)->sin6_addr,
-	                     str6, INET6_ADDRSTRLEN);
-	        //ipv6 address
+	                     str6, INET6_ADDRSTRLEN );
+
 	        if( strlen( str6 ) )
-	            ipAddresses->Put()->Set( str6 );
+	        {
+	            addresses->Put()->Set( str6 );
+	            if( indexes )
+	                indexes->Set( addresses->Count() - 1, index );
+	        }
 	    }
 	}
 
-	freeifaddrs(ifap);
+	freeifaddrs( ifap );
 	return true;
 }
 
 # endif // !OS_NT
+
+bool
+NetUtils::GetAllIPAndMACAddresses( StrArray *addressList )
+{
+	FindAllIPsFromAllNICs( addressList, 0, 1, 1, 1 );
+	return addressList->Count();
+}
+
+bool
+NetUtils::GetAllIPAndMACAddresses( StrArray *addressListIPv4,
+	StrArray *addressListIPv6, StrArray *addressListMAC,
+	IntArray *indexListIPv4, IntArray *indexListIPv6,
+	IntArray *indexListMAC, bool lb )
+{
+
+	// Run function 3 times so we can tell which are IPv4, IPv6 or MAC
+	// Otherwise we would have to run a regex on results of (1, 1, 1)
+	FindAllIPsFromAllNICs( addressListIPv4, indexListIPv4, 1, 0, 0, lb );
+	FindAllIPsFromAllNICs( addressListIPv6, indexListIPv6, 0, 1, 0, lb );
+	FindAllIPsFromAllNICs( addressListMAC,  indexListMAC,  0, 0, 1, lb );
+
+	if( !addressListIPv4->Count() &&
+	    !addressListIPv6->Count() &&
+	    !addressListMAC->Count() )
+	    return false;
+
+	return true;
+}
+
+bool
+NetUtils::GetAddressesFromFQDN( const StrPtr &fqdn, StrArray &addresses )
+{
+	NetPortParser parser( fqdn );
+	bool brackets = false;
+
+	// TODO fix NetPortParser so "localhost" and "example.com"
+	// aren't considered ports
+	char* address = parser.Host().Length() ? parser.Host().Text()
+	                                       : parser.Port().Text();
+
+	if( IsIpV4Address( address, false ) )
+	{
+	    addresses.Put()->Set( address );
+	    return true;
+	}
+	
+	if( IsIpV6Address( address, false ) )
+	{
+	    // Omit scope
+	    char *s = 0;
+	    if( ( s = strchr( address, '%') ) )
+	        addresses.Put()->Set( address, s - address );
+	    else
+	        addresses.Put()->Set( address );
+	    return true;
+	}
+
+	// TODO fix NetPortParser so MAC address isn't split into host
+	// "xx:xx:xx:xx" and port "xx"
+	if( IsMACAddress( parser.String().Text(), brackets ) )
+	{
+	    addresses.Put()->Set( parser.String() );
+	    return true;
+	}
+
+	// What's left must be a hostname
+	addrinfo* result;
+	addrinfo* ptr;
+	addrinfo hints;
+
+	memset( &hints, 0, sizeof( hints ) );
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_protocol = IPPROTO_TCP;
+
+	int error = getaddrinfo( address, 0, &hints, &result );
+	if( error )
+	    return false;
+
+	for( ptr = result; ptr != 0; ptr = ptr->ai_next )
+	{
+	    if( ptr->ai_family == AF_INET )
+	    {
+	        sockaddr_in *socket = (sockaddr_in *)ptr->ai_addr;
+	        StrBuf ipv4;
+	        IpBytesToStr( &socket->sin_addr, 0, ipv4 );
+	        addresses.Put()->Set( ipv4 );
+	    }
+	    else if( ptr->ai_family == AF_INET6 )
+	    {
+	        sockaddr_in *socket = (sockaddr_in *)ptr->ai_addr;
+	        StrBuf ipv6;
+	        IpBytesToStr( &socket->sin_addr, 1, ipv6 );
+	        addresses.Put()->Set( ipv6 );
+	    }
+	}
+
+	freeaddrinfo( result );
+
+	return addresses.Count();
+}
+
+bool
+NetUtils::IsAddressOnNIC( const StrPtr& address, StrBuf *first )
+{
+	StrArray addressList;
+	bool addressFound = false;
+	bool valid = GetAllIPAndMACAddresses( &addressList );
+
+	if( first )
+	    first->Clear();
+
+	if( !valid )
+	    return false;
+	
+	for( int i = 0; i < addressList.Count(); i ++ )
+	{
+	    const StrBuf *found = addressList.Get( i );
+	    if( found && !found->CCompare( address ) )
+	    {
+	        addressFound = true;
+	        break;
+	    }
+	    if( found && first && !first->Length() &&
+	        !IsLocalAddress( found->Text(), true ) )
+	        first->Set( found );
+	}
+
+	return addressFound;
+}
 
 # ifdef OS_NT
 // initialize windows networking
@@ -1308,4 +1528,22 @@ NetUtils::IpBytesToStr( const void *ip, int ipv6, StrBuf &out )
 	    ::inet_ntop( AF_INET, (INADDR_PTR_TYPE)ip, str, INET_ADDRSTRLEN );
 	    out = str;
 	}
+}
+
+void
+NetUtils::MacBytesToStr( const void *address, StrBuf &out )
+{
+	out.Clear();
+	char macAddress[ 32 ];
+
+	const unsigned char *mac = (const unsigned char *)address;
+# if defined(OS_NT) && defined(_MSC_VER) && (_MSC_VER < 1900)
+	// Pre-VS2015 snprintf wasn't suported
+	sprintf_s( macAddress, 32, "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
+# else
+	snprintf( macAddress, 32, "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
+# endif
+	    mac[ 0 ], mac[ 1 ], mac[ 2 ], mac[ 3 ], mac[ 4 ], mac[ 5 ] );
+
+	out.Set( macAddress );
 }

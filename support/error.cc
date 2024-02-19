@@ -197,11 +197,33 @@ Error::operator <<( const StrPtr *arg )
 }
 
 Error &
+Error::operator <<( P4INT64 arg )
+{
+	ep->SetArg( StrNum( arg ) );
+	return *this;
+}
+
+Error &
 Error::operator <<( int arg )
 {
 	ep->SetArg( StrNum( arg ) );
 	return *this;
 }
+
+Error &
+Error::operator <<( unsigned int arg )
+{
+	ep->SetArg( StrNum( ( P4INT64 ) arg ) );
+	return *this;
+}
+
+Error &
+Error::operator <<( long int arg )
+{
+	ep->SetArg( StrNum( arg ) );
+	return *this;
+}
+
 
 /*
  * Error::Get() - get an individual Error item

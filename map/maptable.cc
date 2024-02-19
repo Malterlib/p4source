@@ -775,15 +775,10 @@ MapTable::Translate(
 	    : 0;
 
 	// Expand into target string.
-	// We have to Match2 here, because the last Match2 done in
-	// MapItem::Match may not have been the last to succeed.
 
 	if( map )
 	{
-	    MapParams params;
-
-	    map->Ths( dir )->Match2( from, params );
-	    map->Ohs( dir )->Expand( from, to, params );
+	    map->Translate( dir, from, to );
 
 	    if( DEBUG_TRANS )
 		p4debug.printf( "MapTrans: %s (%d) -> %s\n", 

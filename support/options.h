@@ -233,6 +233,7 @@ class Options
 	                Name           , // attribute -n, property -n
 	                Value          , // attribute -v, property -v
 	                Propagating    , // attribute -p
+	                Storage        , // attribute -T
 	                OpenAdd        , // reconcile -a
 	                OpenEdit       , // reconcile -e
 	                OpenDelete     , // reconcile -d
@@ -316,7 +317,7 @@ class Options
 	                MissingCount   , // heartbeat -c
 	                LocalLicense   , // license -u -l
 	                AutoReload     , // labels -R
-			IntervalMillis , // --interval-ms | -I
+	                IntervalMillis , // --interval-ms | -I
 	                Threshold      , // topology -t
 	                DatedEarlier   , // topology -e
 	                DeleteMarker   , // topology -d
@@ -330,6 +331,7 @@ class Options
 	                NewTargetAddress, // topology -P
 	                CreationDate   , // topology -c
 	                LastSeenDate   , // topology -l
+	                ListAddresses  , // license -L
 
 	        // options which have only long-form option names go here:
 
@@ -438,6 +440,8 @@ class Options
 			JNum            , // --num #
 			JField          , // --jfield f1,f2,f3
 			ControlTweaks   , // --control-tweaks
+			CachePurge      , // --cache-purge (p4p)
+			Iteration       , // --iteration
 #ifdef _DEBUG
 			DebugBreak,    // --debugbreak
 #endif

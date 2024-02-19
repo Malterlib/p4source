@@ -338,6 +338,11 @@ Rpc::Rpc( RpcService *s )
 	timer = new Timer;
 
 	keep = 0;
+
+	sendDirectTotal = 0;
+	recvDirectTotal = 0;
+	sendDirectBytes = 0;
+	recvDirectBytes = 0;
 }
 
 Rpc::~Rpc( void )
@@ -1336,6 +1341,11 @@ Rpc::TrackStart()
 	recvBytes = 0;
 	sendTime = 0;
 	recvTime = 0;
+
+	sendDirectTotal = 0;
+	recvDirectTotal = 0;
+	sendDirectBytes = 0;
+	recvDirectBytes = 0;
 }
 
 void
@@ -1354,6 +1364,11 @@ Rpc::TrackStart( RpcTrack *track )
 	track->recvError.Clear();
 	track->duplexFrecv = 0;
 	track->duplexRrecv = 0;
+
+	track->sendDirectTotal = 0;
+	track->recvDirectTotal = 0;
+	track->sendDirectBytes = 0;
+	track->recvDirectBytes = 0;
 }
 
 int
@@ -1363,7 +1378,9 @@ Rpc::Trackable( int level )
 
 	return t.Over( TT_RPC_ERRORS, se.Test() || re.Test() ) ||
 	       t.Over( TT_RPC_MSGS, sendCount + recvCount ) ||
-	       t.Over( TT_RPC_MBYTES, ( sendBytes + recvBytes ) / 1024 / 1024 );
+	       t.Over( TT_RPC_MBYTES, ( sendBytes + recvBytes ) / 1024 / 1024 ) ||
+	       t.Over( TT_RPC_MBYTES, ( sendDirectBytes + recvDirectBytes )
+		       / 1024 / 1024 );
 }
 
 int
@@ -1378,7 +1395,9 @@ Rpc::Trackable( int level, RpcTrack *track )
 	                              track->recvError.Test() ) ||
 	       t.Over( TT_RPC_MSGS, track->sendCount + track->recvCount ) ||
 	       t.Over( TT_RPC_MBYTES, ( track->sendBytes + track->recvBytes )
-	                                / 1024 / 1024 );
+	                                / 1024 / 1024 ) ||
+	       t.Over( TT_RPC_MBYTES, ( track->sendDirectBytes +
+	           track->recvDirectBytes) / 1024 / 1024 );
 }
 
 void
@@ -1398,6 +1417,14 @@ Rpc::TrackReport( int level, StrBuf &out )
 	    << rpc_hi_mark_rev << " snd/rcv "
 	    << StrMs( sendTime ) << "s/"
 	    << StrMs( recvTime ) << "s\n";
+
+	out
+	    << "--- filetotals (svr) send/recv files+bytes "
+	    << sendDirectTotal << "+"
+	    << StrNum( sendDirectBytes / 1024 / 1024) << "mb/"
+	    << recvDirectTotal << "+"
+	    << StrNum( recvDirectBytes / 1024 / 1024 ) << "mb\n";
+	
 
 	if( !se.Test() && !re.Test() )
 	    return;
@@ -1432,6 +1459,13 @@ Rpc::TrackReport( int level, const char *tag, RpcTrack *track, StrBuf &out )
 	    << track->rpc_hi_mark_rev << " snd/rcv "
 	    << StrMs( track->sendTime ) << "s/"
 	    << StrMs( track->recvTime ) << "s\n";
+
+	out
+	    << "--- filetotals (svr) send/recv files+bytes "
+	    << track->sendDirectTotal << "+"
+	    << StrNum( track->sendDirectBytes / 1024 / 1024 ) << "mb/"
+	    << track->recvDirectTotal << "+"
+	    << StrNum( track->recvDirectBytes / 1024 / 1024 ) << "mb\n";
 
 	if( !track->sendError.Test() && !track->recvError.Test() )
 	    return;
@@ -1477,6 +1511,11 @@ Rpc::ForceGetTrack( RpcTrack *track )
 	}
 	else
 	    track->duplexFrecv = track->duplexRrecv = 0;
+
+	track->sendDirectTotal = sendDirectTotal;
+	track->recvDirectTotal = recvDirectTotal;
+	track->sendDirectBytes = sendDirectBytes;
+	track->recvDirectBytes = recvDirectBytes;
 }
 
 void
@@ -1502,6 +1541,11 @@ Rpc::AddTrack( RpcTrack *track )
 	    track->duplexFrecv += duplexFrecv;
 	    track->duplexRrecv += duplexRrecv;
 	}
+
+	track->sendDirectTotal += sendDirectTotal;
+	track->recvDirectTotal += recvDirectTotal;
+	track->sendDirectBytes += sendDirectBytes;
+	track->recvDirectBytes += recvDirectBytes;
 }
 
 void

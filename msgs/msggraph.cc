@@ -24,7 +24,7 @@
  *
  * Current high value for a MsgGraph error code is 402
  */
-
+# include <stdhdrs.h>
 # include <error.h>
 # include <errornum.h>
 # include <msggraph.h>

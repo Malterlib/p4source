@@ -936,8 +936,11 @@ int ZEXPORT deflate (strm, flush)
      * flushes. For repeated and useless calls with Z_FINISH, we keep
      * returning Z_STREAM_END instead of Z_BUF_ERROR.
      */
-    } else if (strm->avail_in == 0 && RANK(flush) <= RANK(old_flush) &&
-               flush != Z_FINISH) {
+    } else 
+           /* Perforce-local edit for job115766 - avoid a left shift
+              in RANK on negative number */
+           if (strm->avail_in == 0 && old_flush != -1 &&
+               RANK(flush) <= RANK(old_flush) && flush != Z_FINISH) {
         ERR_RETURN(strm, Z_BUF_ERROR);
     }
 

@@ -58,6 +58,8 @@ class MapItem {
 	MapItem *	Reverse();
 	MapItem *	Move( int slot );
 
+	int		Translate( MapTableT dir, const StrPtr &f, StrBuf &t );
+
     public:
 
 	/*

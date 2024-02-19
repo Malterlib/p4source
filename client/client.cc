@@ -125,6 +125,11 @@ Client::Client( Enviro *e ) : Rpc( &service )
 	ownExts = true;
 
 	gCharSetCvtCache = new CharSetCvtCache;
+
+	sendClientTotal = 0;
+	recvClientTotal = 0;
+	sendClientBytes = 0;
+	recvClientBytes = 0;
 }
 
 Client::~Client()
@@ -461,6 +466,34 @@ Client::Final( Error *e )
 	// stdout, which we don't detect.
 
 	return e->Test() || GetErrors();
+}
+
+void Client::ConditionalInvokeStats( Error* e )
+{
+	if( !statCallback.Length() )
+	    return;
+
+	if( sendClientTotal > 0 )
+	     this->SetVar( P4Tag::v_sendFileCount, StrNum( sendClientTotal ) );
+
+	if( recvClientTotal > 0 )
+	    this->SetVar( P4Tag::v_recvFileCount, StrNum( recvClientTotal ) );
+
+	if( sendClientBytes > 0 )
+	    this->SetVar( P4Tag::v_sendFileBytes, StrNum( sendClientBytes ) );
+
+	if( recvClientBytes > 0 )
+	    this->SetVar( P4Tag::v_recvFileBytes, StrNum( recvClientBytes ) );
+
+	// don't invoke if no data to send
+	if( sendClientTotal || recvClientTotal ||
+	    sendClientBytes || recvClientBytes )
+	    this->Invoke( statCallback.Text() );
+
+	sendClientTotal = 0;
+	recvClientTotal = 0;
+	sendClientBytes = 0;
+	recvClientBytes = 0;
 }
 
 void

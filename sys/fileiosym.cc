@@ -135,6 +135,22 @@ FileIOSymlink::Truncate( Error *e )
 }
 
 int
+FileIOSymlink::StatAccessTime()
+{
+# ifdef OS_NT
+	int t = FileIO::StatAccessTime();
+	return t >= 0 ? t : 0;
+# else
+	struct stat sb;
+
+	if( lstat( Name(), &sb ) < 0 )
+	    return 0;
+
+	return (int)sb.st_atime;
+# endif
+}
+
+int
 FileIOSymlink::StatModTime()
 {
 # ifdef OS_NT

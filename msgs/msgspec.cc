@@ -24,7 +24,7 @@
  *
  * Current high value for a MsgSpec error code is: 20
  */
-
+# include <stdhdrs.h>
 # include <error.h>
 # include <errornum.h>
 # include "msgspec.h"
@@ -229,7 +229,7 @@ ErrorId MsgSpec::SpecDepot = { ErrorOf( ES_SPEC, 5, E_INFO, EV_NONE, 0  ),
 "#  %'Description'%: A short description of the depot (optional).\n"
 "#  %'Type'%:        Whether the depot is '%'local'%', '%'remote'%',\n"
 "#               '%'stream'%', '%'spec'%', '%'archive'%', '%'tangent'%',\n"
-"#               '%'unload'%', '%'extension'%' or '%'graph'%'.\n"
+"#               '%'unload'%', '%'extension'%', '%'trait'%' or '%'graph'%'.\n"
 "#               Default is '%'local'%'.\n"
 "#  %'Address'%:     Connection address (remote depots only).\n"
 "#  %'Suffix'%:      Suffix for all saved specs (spec depot only).\n"

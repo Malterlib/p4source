@@ -101,6 +101,7 @@ enum P4TunableName {
 	P4TUNE_DM_REPO_UNPACK,			// see dmgraph.cc
 	P4TUNE_DM_RESOLVE_ATTRIB,
 	P4TUNE_DM_RESOLVE_IGNOREDELETED,
+	P4TUNE_DM_REV_SCAN_THRESH,		// see dmpipes.cc
 	P4TUNE_DM_REVCX_THRESH1,
 	P4TUNE_DM_REVCX_THRESH2,
 	P4TUNE_DM_REVERT_BATCH,			// see rhfiledm.cc
@@ -210,6 +211,7 @@ enum P4TunableName {
 	P4TUNE_PROXY_DELIVER_FIX,
 	P4TUNE_PROXY_MONITOR_INTERVAL,		// see pxmonitor.cc
 	P4TUNE_PROXY_MONITOR_LEVEL,		// see pxmonitor.cc
+	P4TUNE_PROXY_CLEARCACHETHRESH,
 	P4TUNE_RCS_MAXINSERT,
 	P4TUNE_RCS_NOFSYNC,			// see rcsvfile.cc
 	P4TUNE_RPC_DELAY,			// see rpc.cc
@@ -269,7 +271,6 @@ enum P4TunableName {
 	P4TUNE_FILETYPE_MAXTEXTSIZE,		// set useropen.cc
 	P4TUNE_SPEC_HASHBUCKETS,		// see rhspecmgr.cc
 	P4TUNE_SPEC_CUSTOM,			// see userspec.cc
-	P4TUNE_STREAMS_SPARSE_ENABLED_UNDOC,    // enable sparse streams feature
 	P4TUNE_STREAMVIEW_DOTS_LOW,		// see maptable.cc
 	P4TUNE_STREAMVIEW_SORT_REMAP,		// see viewgen.cc
 	P4TUNE_SUBMIT_COLLISIONCHECK,		// see usersubmit.cc
@@ -279,6 +280,7 @@ enum P4TunableName {
 	P4TUNE_SUBMIT_AUTOBGTRANSFER,		// see usersubmit.cc
 	P4TUNE_SUBMIT_UNLOCK_LOCKED,		// see usersubmit.cc
 	P4TUNE_SUBMIT_STORAGEFIELDS,            // see userstorage.cc
+	P4TUNE_TRAIT_STOREDEPOT,                // see usertrait.cc
 	P4TUNE_SWITCH_STREAM_UNRELATED,         // see userswitch.cc
 	P4TUNE_PUSH_UNLOCK_LOCKED,		// see userpush.cc
 	// vv Smart Heap tunables must be a continuous group vv
@@ -339,6 +341,7 @@ enum P4TunableName {
 	P4TUNE_SYS_RENAME_MAX,			// see fileiont.cc
 	P4TUNE_SYS_RENAME_WAIT,			// see fileiont.cc
 	P4TUNE_SYS_THREADING_GROUPS,		// see threading.cc
+	P4TUNE_SYS_TYPES_ALLOW64,		// allow 64bit fields
 	P4TUNE_RPL_FORWARD_ALL,
 	P4TUNE_RPL_FORWARD_LOGIN,		// see rhmain.cc
 	P4TUNE_RPL_PULL_POSITION,		// see userpull.cc
@@ -363,6 +366,7 @@ enum P4TunableName {
 	P4TUNE_AUTH_LICENSEEXPIRY_WARNTHRESHOLD,// see login.cc
 	P4TUNE_AUTH_SSO_ALLOW_PASSWD,		// see login.cc
 	P4TUNE_AUTH_SSO_NONLDAP,		// see login.cc
+	P4TUNE_ZLIB_COMPRESSION_LEVEL,
 	P4TUNE_ZLIB_DISABLE_OPTIM,
 
 	P4TUNE_LAST,

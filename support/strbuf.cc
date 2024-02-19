@@ -76,6 +76,9 @@ StrRef StrRef::null( "", 0 );
  *	StrPtr::CCompare() 
  *		Compare with case ignored.
  *
+ *	StrPtr::CCompareN()
+ *		Compare with case ignored, with explicit length arg.
+ *
  *	StrPtr::NCompare() 
  *		Compare with case ignored, natural order comparison.
  *
@@ -120,6 +123,31 @@ StrPtr::CCompare( const char *sa, const char *sb )
 
 	while( *a && tolowerq( *a ) == tolowerq( *b ) )
 	    ++a, ++b;
+
+	return tolowerq( *a ) - tolowerq( *b );
+}
+
+int
+StrPtr::CCompareN( const char *sa, const char *sb, p4size_t len )
+{
+	const unsigned char *a = (const unsigned char *)sa;
+	const unsigned char *b = (const unsigned char *)sb;
+
+	// Case significant part (fast)
+
+	while( len && *a && *a == *b )
+	    ++a, ++b, --len;
+
+	if( !len ) 
+	    return 0;
+
+	// Case ignored part (slow)
+
+	while( len && *a && tolowerq( *a ) == tolowerq( *b ) )
+	    ++a, ++b, --len;
+
+	if( !len ) 
+	    return 0;
 
 	return tolowerq( *a ) - tolowerq( *b );
 }
@@ -320,6 +348,26 @@ StrPtr::Atoi64( const char *p, P4INT64 *result )
 	return ok;
 }
 
+/*
+ * Just check the we don't over/under flow.
+ */
+
+bool
+StrPtr::Atoi64Lite( const char *p, P4INT64 *result )
+{
+	char *temp = NULL;
+	bool ok = true;
+	const int prevErrno = errno;
+	errno = 0;
+	*result = strtoll( p, &temp, 0 );
+
+	if( ( *result == LLONG_MIN || *result == LLONG_MAX )
+	    && errno == ERANGE  )
+	    ok = false;
+	errno = prevErrno;
+	return ok;
+}
+
 P4INT64
 StrPtr::Atoi64( const char *p )
 {
@@ -395,6 +443,30 @@ StrPtr::Itox( unsigned int v, char *buffer )
 
 	return buffer;
 }
+
+char *
+StrPtr::Itox64( P4UINT64 v, char *buffer )
+{
+	// Our own cheesy sprintf( buf, "%x", v );
+	// We work backwards from the end of the buffer.
+	// We return the beginning of the buffer
+
+	*--buffer = 0;
+
+	do
+	{
+	    *--buffer = StrOps::OtoX( v & 0xf );
+	    v >>= 4;
+	}
+	while( v );
+
+	*--buffer = 'x';
+	*--buffer = '0';
+
+	return buffer;
+}
+
+
 
 // A legal number follows the simple grammar: ( )*[+-]\d+
 //

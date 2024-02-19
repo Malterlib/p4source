@@ -29,6 +29,7 @@
  * Server msgs is now continued in MsgServer2 (msgserver2.cc and msgserver2.h).
  *
  */
+# include <stdhdrs.h>
 # include <error.h>
 # include <errornum.h>
 # include "msgserver.h"
@@ -41,7 +42,7 @@ ErrorId MsgServer::LbrCheckin          = { ErrorOf( ES_SERVER, 5, E_FAILED, EV_F
 ErrorId MsgServer::LbrMerge            = { ErrorOf( ES_SERVER, 6, E_FAILED, EV_FAULT, 0 ), "Librarian merge failed." } ;
 ErrorId MsgServer::LbrNoTrigger        = { ErrorOf( ES_SERVER, 390, E_FAILED, EV_ADMIN, 1 ), "No archive trigger defined for %lbrFile%." } ;
 ErrorId MsgServer::BadRoot             = { ErrorOf( ES_SERVER, 7, E_FAILED, EV_ADMIN, 0 ), "Root directory (set with %'$P4ROOT'% or %'-r'% flag) invalid." } ;
-ErrorId MsgServer::BadIPAddr           = { ErrorOf( ES_SERVER, 8, E_FAILED, EV_ADMIN, 0 ), "Licensing error -- invalid server IP address." } ;
+ErrorId MsgServer::BadIPAddr           = { ErrorOf( ES_SERVER, 8, E_FAILED, EV_ADMIN, 1 ), "Licensing error -- invalid server IP address[ '%ipaddr%']." } ;
 ErrorId MsgServer::GotUnlocked         = { ErrorOf( ES_SERVER, 9, E_FAILED, EV_FAULT, 1 ), "%depotFile% became unlocked!" } ;
 ErrorId MsgServer::GotLocked           = { ErrorOf( ES_SERVER, 10, E_FAILED, EV_FAULT, 3 ), "%depotFile% was just locked by %user% on %client%!" } ;
 ErrorId MsgServer::NoInteg             = { ErrorOf( ES_SERVER, 11, E_FATAL, EV_FAULT, 1 ), "%depotFile% missing integration record!" } ;
@@ -367,8 +368,8 @@ ErrorId MsgServer::MonitorNoLockinfo   = { ErrorOf( ES_SERVER, 677, E_FAILED, EV
 ErrorId MsgServer::NoMonitorForCommand = { ErrorOf( ES_SERVER, 939, E_FAILED, EV_ADMIN, 0 ), "Monitor must be enabled to run this command." } ;
 ErrorId MsgServer::TooManyCommands     = { ErrorOf( ES_SERVER, 637, E_FAILED, EV_USAGE, 1 ), "Request refused: this server is configured to run a maximum of %maxCommands% simultaneous commands. Please try again later when the load is lower." } ;
 
-ErrorId MsgServer::ConfigureSet        = { ErrorOf( ES_SERVER, 437, E_INFO, EV_NONE, 3 ), "For server '%serverName%', configuration variable '%variableName%' set to '%variableValue%'" } ;
-ErrorId MsgServer::ConfigureUnSet      = { ErrorOf( ES_SERVER, 438, E_INFO, EV_NONE, 2 ), "For server '%serverName%', configuration variable '%variableName%' removed." } ;
+ErrorId MsgServer::ConfigureSet        = { ErrorOf( ES_SERVER, 437, E_INFO, EV_NONE, 4 ), "For server '%serverName%', configuration variable '%variableName%' set to '%variableValue%'[ with comment '%comment%']" } ;
+ErrorId MsgServer::ConfigureUnSet      = { ErrorOf( ES_SERVER, 438, E_INFO, EV_NONE, 3 ), "For server '%serverName%', configuration variable '%variableName%' removed[ with comment '%comment%']." } ;
 ErrorId MsgServer::NotThisConfigVar    = { ErrorOf( ES_SERVER, 439, E_FAILED, EV_USAGE, 1 ), "Configuration variable '%name%' may not be changed." } ;
 ErrorId MsgServer::InvalidConfigValue  = { ErrorOf( ES_SERVER, 440, E_FAILED, EV_USAGE, 2 ), "Configuration variable '%name%' may not be set to '%value%'." } ;
 ErrorId MsgServer::InvalidConfigScope  = { ErrorOf( ES_SERVER, 837, E_FAILED, EV_NONE, 1 ), "Configuration variable '%name%' may not be set for all servers." } ;
@@ -413,7 +414,7 @@ ErrorId MsgServer::UseClientd          = { ErrorOf( ES_SERVER, 216, E_FAILED, EV
 ErrorId MsgServer::UseClienti          = { ErrorOf( ES_SERVER, 217, E_FAILED, EV_USAGE, 0 ), "Usage: %'client -i [ -f ]'%" } ;
 ErrorId MsgServer::UseClients          = { ErrorOf( ES_SERVER, 504, E_FAILED, EV_USAGE, 0 ), "Usage: %'client -s [ -f ] -t template | -S stream [ clientname ]'%" } ;
 ErrorId MsgServer::UseCluster          = { ErrorOf( ES_SERVER, 666, E_FAILED, EV_USAGE, 0 ), "Usage: %'cluster [ new-master | master-changed | end-journal | members-set | set-gen-number | to-workspace | restore-clients ]'%" } ;
-ErrorId MsgServer::UseConfigure        = { ErrorOf( ES_SERVER, 436, E_FAILED, EV_USAGE, 0 ), "Usage: %'configure { show [ allservers | <P4NAME> | <variable> ] | set [<P4NAME>#]variable=value | unset [<P4NAME>#]variable | history [ allservers | <P4NAME> | <variable> ] }'%" } ;
+ErrorId MsgServer::UseConfigure        = { ErrorOf( ES_SERVER, 436, E_FAILED, EV_USAGE, 0 ), "Usage: %'configure { show [ allservers | <P4NAME> | <variable> ] | set [--comment=<comment>] [<P4NAME>#]variable=value | unset [--comment=<comment>] [<P4NAME>#]variable | history [ allservers | <P4NAME> | <variable> | --comment=<comment> [--iteration=N] <variable> ] | help }'%" } ;
 ErrorId MsgServer::UseCopy             = { ErrorOf( ES_SERVER, 450, E_FAILED, EV_USAGE, 0 ), "Usage: %'copy [ -c changelist# -f -F -K -m max -n -q -r -s from -v ] [ -b branch to... | [-As | -Af] -S stream [ -P parent ] [ file... ] | from to ]'%" } ;
 ErrorId MsgServer::UseCopyb            = { ErrorOf( ES_SERVER, 451, E_FAILED, EV_USAGE, 0 ), "Usage: %'copy [ -c changelist# -f -F -K -m max -n -q -r -s from -v ] -b branch [ to... ]'%" } ;
 ErrorId MsgServer::UseCopyS            = { ErrorOf( ES_SERVER, 508, E_FAILED, EV_USAGE, 0 ), "Usage: %'copy [ -c changelist# -f -F -K -m max -n -q -r -s from -v ] [-As | -Af]  -S stream [ -P parent ] [ file... ]'%" } ;
@@ -497,7 +498,7 @@ ErrorId MsgServer::UseLdapst           = { ErrorOf( ES_SERVER, 687, E_FAILED, EV
 ErrorId MsgServer::UseLdapSync         = { ErrorOf( ES_SERVER, 771, E_FAILED, EV_USAGE, 0 ), "Usage: %'ldapsync [ -g | -u  [ -c -U -d ] ] [ -n ] [ -i <N> ] [ groups | ldapname ... ]'%" } ;
 ErrorId MsgServer::UseLdapSyncG        = { ErrorOf( ES_SERVER, 878, E_FAILED, EV_USAGE, 0 ), "Usage: %'ldapsync -g [ -n ] [ -i <N> ] [ groups ... ]'%" } ;
 ErrorId MsgServer::UseLdapSyncU        = { ErrorOf( ES_SERVER, 877, E_FAILED, EV_USAGE, 0 ), "Usage: %'ldapsync -u [ -c -U -d ] [ -n ] [ -i <N> ] [ ldapname ... ]'%" } ;
-ErrorId MsgServer::UseLicense          = { ErrorOf( ES_SERVER, 343, E_FAILED, EV_USAGE, 0 ), "Usage: %'license [ -i | -o | -u [ -v -l ] ]'%" } ;
+ErrorId MsgServer::UseLicense          = { ErrorOf( ES_SERVER, 343, E_FAILED, EV_USAGE, 0 ), "Usage: %'license [ -i | -o | -L | -u [ -v -l ] ]'%" } ;
 ErrorId MsgServer::UseList             = { ErrorOf( ES_SERVER, 587, E_FAILED, EV_USAGE, 0 ), "Usage: %'list [-l label [-d]] [-C] [-M] files...'%" } ;
 ErrorId MsgServer::UseLock             = { ErrorOf( ES_SERVER, 260, E_FAILED, EV_USAGE, 0 ), "Usage: %'lock [-c changelist# -g] [files...]'%" } ;
 ErrorId MsgServer::UseLockg            = { ErrorOf( ES_SERVER, 844, E_FAILED, EV_USAGE, 0 ), "Usage: %'lock -g -c changelist#'%" } ;
@@ -522,11 +523,11 @@ ErrorId MsgServer::UseMerge            = { ErrorOf( ES_SERVER, 523, E_FAILED, EV
 ErrorId MsgServer::UseMergeb           = { ErrorOf( ES_SERVER, 524, E_FAILED, EV_USAGE, 0 ), "Usage: %'merge [ -c changelist# -F -K -m max -n -Ob -q -r -s from ] -b branch [ to... ]'%" } ;
 ErrorId MsgServer::UseMergeS           = { ErrorOf( ES_SERVER, 525, E_FAILED, EV_USAGE, 0 ), "Usage: %'merge [ -c changelist# -F -K -m max -n -Ob -q -r -s from ] [-As | -Af] [ -S stream ] [ -P parent | --from parent ] [ file... ]'%" } ;
 ErrorId MsgServer::UseMonitor          = { ErrorOf( ES_SERVER, 297, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor { show | terminate | clear | pause | resume | realtime }'%" } ;
-ErrorId MsgServer::UseMonitorc         = { ErrorOf( ES_SERVER, 298, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor terminate [arg]'%" } ;
-ErrorId MsgServer::UseMonitorf         = { ErrorOf( ES_SERVER, 299, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor clear [arg]'%" } ;
+ErrorId MsgServer::UseMonitorc         = { ErrorOf( ES_SERVER, 298, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor terminate id'%" } ;
+ErrorId MsgServer::UseMonitorf         = { ErrorOf( ES_SERVER, 299, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor clear { id | all }'%" } ;
 ErrorId MsgServer::UseMonitors         = { ErrorOf( ES_SERVER, 300, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor show [ -a -l -e -L ] [ -s R|T|P|B|F|I ]'%" } ;
-ErrorId MsgServer::UseMonitorP         = { ErrorOf( ES_SERVER, 511, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor pause [arg]'%" } ;
-ErrorId MsgServer::UseMonitorR         = { ErrorOf( ES_SERVER, 512, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor resume [arg]'%" } ;
+ErrorId MsgServer::UseMonitorP         = { ErrorOf( ES_SERVER, 511, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor pause id'%" } ;
+ErrorId MsgServer::UseMonitorR         = { ErrorOf( ES_SERVER, 512, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor resume id'%" } ;
 ErrorId MsgServer::UseOpen             = { ErrorOf( ES_SERVER, 263, E_FAILED, EV_USAGE, 0 ), "Usage: %'add/edit/delete [-c changelist#] [ -d -f -I -k -n -v ] [-t type] [--remote=rmt] files...'%" } ;
 ErrorId MsgServer::UseOpen2            = { ErrorOf( ES_SERVER, 398, E_FAILED, EV_USAGE, 0 ), "Usage: %'add/delete [-c changelist#] [ -d -f -I -n -v ] [-t type] files...'%" } ;
 ErrorId MsgServer::UseOpen3            = { ErrorOf( ES_SERVER, 1017, E_FAILED, EV_USAGE, 0 ), "Usage: %'edit [-c changelist#] -So'%" } ;
@@ -604,9 +605,9 @@ ErrorId MsgServer::UseSync             = { ErrorOf( ES_SERVER, 277, E_FAILED, EV
 ErrorId MsgServer::UseSyncp            = { ErrorOf( ES_SERVER, 348, E_FAILED, EV_USAGE, 0 ), "Usage: %'sync [ -K -n -N -p -q ] [-m max] [files...]'%" } ;
 ErrorId MsgServer::UseSyncs            = { ErrorOf( ES_SERVER, 503, E_FAILED, EV_USAGE, 0 ), "Usage: %'sync [ -K -n -N -q -s ] [-m max] [files...]'%" } ;
 ErrorId MsgServer::UseTag              = { ErrorOf( ES_SERVER, 328, E_FAILED, EV_USAGE, 0 ), "Usage: %'tag [-d -g -n -U] -l label files...'%" } ;
-ErrorId MsgServer::UseTrait            = { ErrorOf( ES_SERVER, 330, E_FAILED, EV_USAGE, 0 ), "Usage: %'attribute [-e -f -p] -n name [-v value] files...'%" } ;
+ErrorId MsgServer::UseTrait            = { ErrorOf( ES_SERVER, 330, E_FAILED, EV_USAGE, 0 ), "Usage: %'attribute [-e -f -p] -n name [-v value [-T0|-T1]] files...'%" } ;
 ErrorId MsgServer::UseTransmit         = { ErrorOf( ES_SERVER, 714, E_FAILED, EV_USAGE, 0 ), "Usage: %'transmit -t taskid'%" } ;
-ErrorId MsgServer::UseTraiti           = { ErrorOf( ES_SERVER, 435, E_FAILED, EV_USAGE, 0 ), "Usage: %'attribute -i [-e -f -p] -n name [file]'%" } ;
+ErrorId MsgServer::UseTraiti           = { ErrorOf( ES_SERVER, 435, E_FAILED, EV_USAGE, 0 ), "Usage: %'attribute -i [-e -f -p [-T0|-T1]] -n name [file]'%" } ;
 ErrorId MsgServer::UseTriggers         = { ErrorOf( ES_SERVER, 278, E_FAILED, EV_USAGE, 0 ), "Usage: %'triggers [ -i | -o ]'%" } ;
 ErrorId MsgServer::UseTypeMap          = { ErrorOf( ES_SERVER, 279, E_FAILED, EV_USAGE, 0 ), "Usage: %'typemap [ -i | -o ]'%" } ;
 ErrorId MsgServer::UseUndo             = { ErrorOf( ES_SERVER, 872, E_FAILED, EV_USAGE, 0 ), "Usage: %'undo [ -K -n ] [ -c change ] file[revRange]'%" } ;
@@ -834,7 +835,7 @@ ErrorId MsgServer::LdapSyncUserUpdate  = { ErrorOf( ES_SERVER, 874, E_INFO, EV_N
 ErrorId MsgServer::LdapSyncUserDel     = { ErrorOf( ES_SERVER, 875, E_INFO, EV_NONE, 1 ), "User %user% deleted." } ;
 ErrorId MsgServer::LdapSyncUserNoChange = { ErrorOf( ES_SERVER, 876, E_INFO, EV_NONE, 0 ), "No changes made to users." } ;
 
-ErrorId MsgServer::LicenceInputOnly    = { ErrorOf( ES_SERVER, 870, E_FAILED, EV_USAGE, 0 ), "Only '%'p4 license -i'%' and '%'p4 license -u'%' may be used until a license is installed." };
+ErrorId MsgServer::LicenceInputOnly    = { ErrorOf( ES_SERVER, 870, E_FAILED, EV_USAGE, 0 ), "Only '%'p4 license -i'%', '%'p4 license -L'%' and '%'p4 license -u'%' may be used until a license is installed." };
 
 ErrorId MsgServer::SwitchBranchData    = { ErrorOf( ES_SERVER, 754, E_INFO, EV_NONE, 1 ), "%branch%" } ;
 ErrorId MsgServer::SwitchBranchDataMatch = { ErrorOf( ES_SERVER, 755, E_INFO, EV_NONE, 1 ), "%branch% *" } ;

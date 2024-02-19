@@ -24,7 +24,7 @@
  *
  * Current high value for a MsgOs error code is: 27
  */
-
+# include <stdhdrs.h>
 # include <error.h>
 # include <errornum.h>
 # include <msgos.h>

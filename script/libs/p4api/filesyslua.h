@@ -31,6 +31,7 @@ class FileSysLua : public FileSys {
 	    void Close( Error *e );
 	    int  Stat();
 	    int  StatModTime();
+	    int  StatAccessTime(){ return 0; }
 	    void Truncate( Error *e );
 	    void Truncate( offL_t offset, Error *e ) ;
 	    void Unlink( Error *e = 0 );

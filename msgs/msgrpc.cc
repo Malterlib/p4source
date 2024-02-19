@@ -24,7 +24,7 @@
  *
  * Current high value for a MsgRpc error code is: 79
  */
-
+# include <stdhdrs.h>
 # include <error.h>
 # include <errornum.h>
 # include "msgrpc.h"

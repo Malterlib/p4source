@@ -93,6 +93,8 @@ class MsgDb {
 	static ErrorId LicenseRead;
 	static ErrorId LicenseBad;
 	static ErrorId AddressChanged;
+	static ErrorId AddressInvalid;
+	static ErrorId AddressInvalidRecommend;
 	static ErrorId LicenseNeedsApplication;
 	static ErrorId BadIPservice;
 	static ErrorId BadXCapLine;
@@ -119,6 +121,7 @@ class MsgDb {
 
 	static ErrorId DbTreeDuplicate;
 	static ErrorId DbTreeNotFound;
+	static ErrorId DbIntVBit;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

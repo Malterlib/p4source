@@ -21,6 +21,7 @@
 #define P4_INET6_ADDRSTRLEN	(INET6_ADDRSTRLEN+2)
 
 class StrArray;
+class IntArray;
 
 class NetUtils
 {
@@ -29,7 +30,9 @@ public:
     static const bool IPADDR_PREFIX_ALLOW = true;
 
     static int
-    setsockopt( const char *module, int sockfd, int level, int optname, const SOCKOPT_T *optval, socklen_t optlen, const char *name );
+    setsockopt( const char *module, int sockfd, int level,
+                int optname, const SOCKOPT_T *optval,
+                socklen_t optlen, const char *name );
 
     /*
      * Get IPv4 or IPv6 sin[6]_addr ptr convenience function.
@@ -38,14 +41,14 @@ public:
      * Returns NULL if the sockaddr is neither IPv4 nor IPv6.
      */
     static const void *
-    GetInAddr(const sockaddr *sa);
+    GetInAddr( const sockaddr *sa );
 
     /*
      * Get IPv4 or IPv6 sockaddr size convenience function.
      * Returns 0 if the sockaddr is neither IPv4 nor IPv6.
      */
     static size_t
-    GetAddrSize(const sockaddr *sa);
+    GetAddrSize( const sockaddr *sa );
 
     /*
      * Get IPv4 or IPv6 sin[6]_port convenience function.
@@ -54,36 +57,39 @@ public:
      * Returns -1 if the sockaddr is neither IPv4 nor IPv6.
      */
     static int
-    GetInPort(const sockaddr *sa);
+    GetInPort( const sockaddr *sa );
 
     /*
      * Return true iff this address is unspecified ("0.0.0.0" or "::").
      */
     static bool
-    IsAddrUnspecified(const sockaddr *sa);
+    IsAddrUnspecified( const sockaddr *sa );
 
     static int
-    IsAddrUnspecified(const char *addr);
+    IsAddrUnspecified( const char *addr );
 
     // make this address be unspecified
     static bool
-    SetAddrUnspecified(sockaddr *sa);
+    SetAddrUnspecified( sockaddr *sa );
 
     static bool
-    IsAddrIPv6(const sockaddr *sa);
+    IsAddrIPv4( const sockaddr *sa );
 
     static bool
-    IsIpV4Address(const char *addr, bool allowPrefix);
+    IsAddrIPv6( const sockaddr *sa );
+
+    static bool
+    IsIpV4Address( const char *addr, bool allowPrefix );
 
     // allowPrefix is ignored for IPv6
     static bool
-    IsIpV6Address(const char *addr, bool allowPrefix = true);
+    IsIpV6Address( const char *addr, bool allowPrefix = true );
 
     static bool
-    IsMACAddress(const char *addr, bool &brackets);
+    IsMACAddress( const char *addr, bool &brackets );
 
     static bool
-    IsLocalAddress(const char *addr);
+    IsLocalAddress( const char *addr, bool localMac = false );
 
     // return a printable address
     static void
@@ -97,8 +103,24 @@ public:
     FindIPByMAC( const char *mac, StrBuf &ipv4, StrBuf &ipv6 );
 
     static bool
-    FindAllIPsFromAllNICs( StrArray *ipAddresses, const bool ipv4,
-	                   const bool ipv6 );
+    FindAllIPsFromAllNICs( StrArray *addresses, IntArray *indexes,
+	    bool recordIPv4, bool recordIPv6, bool recordMAC,
+	    bool loopback = true );
+
+    static bool
+    GetAllIPAndMACAddresses( StrArray* addressList );
+
+    static bool
+    GetAllIPAndMACAddresses( StrArray *addressListIPv4,
+	    StrArray *addressListIPv6, StrArray *addressListMAC,
+	    IntArray *indexListIPv4, IntArray *indexListIPv6,
+	    IntArray *indexListMACC, bool loopback = false );
+
+    static bool
+    GetAddressesFromFQDN( const StrPtr &fqdn, StrArray &addresses );
+
+    static bool
+    IsAddressOnNIC( const StrPtr &address, StrBuf *first = 0 );
 
     // currently no-op except on Windows
     static int
@@ -110,6 +132,9 @@ public:
 
     static void
     IpBytesToStr( const void *ip, int ipv6, StrBuf &out );
+
+    static void
+    MacBytesToStr( const void *address, StrBuf &mac );
 };
 
 # if defined(OS_MINGW) || (defined(OS_NT) && defined(_MSC_VER))

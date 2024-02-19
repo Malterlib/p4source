@@ -20,7 +20,7 @@
  * DO NOT ADD NEW ERRORS TO THIS FILE.  Max subcode is 1023 and we're full!
  * New data manager messages go in MsgDm2 from this point on.
  */
-
+# include <stdhdrs.h>
 # include <error.h>
 # include <errornum.h>
 # include <msgdm.h>

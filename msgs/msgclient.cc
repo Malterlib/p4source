@@ -20,7 +20,7 @@
  *
  * Current high value for a MsgClient error code is: 104
  */
-
+# include <stdhdrs.h>
 # include <error.h>
 # include <errornum.h>
 # include "msgclient.h"

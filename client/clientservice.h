@@ -50,6 +50,8 @@ void clientAckMatch( Client *client, Error *e );
 int AltSyncCheckFile( Client *client, StrPtr *confirm,
                       const char *status, const char *ntype, Error *e );
 
+void clientStats( Client* client, Error* e );
+
 enum XDir { FromServer, FromClient };
 
 class ClientSvc

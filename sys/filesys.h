@@ -369,6 +369,7 @@ class FileSys {
 	virtual int	Stat() = 0;
 	virtual int     LinkCount();
 	virtual int	StatModTime() = 0;
+	virtual int	StatAccessTime() = 0;
 	virtual void	StatModTimeHP(DateTimeHighPrecision *modTime);
 	virtual void	Truncate( Error *e ) = 0;
 	virtual void	Truncate( offL_t offset, Error *e ) = 0;
@@ -464,6 +465,8 @@ class FileSys {
 	                    FileDigestType digType,
 	                    StrBuf *digest,
 	                    Error *e );
+
+	void		SetDelegate( FileSysBuffer *buf ) { delegate = buf; }
 
 	// Character Set operations
 

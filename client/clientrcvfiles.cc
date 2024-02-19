@@ -25,6 +25,7 @@
 # ifdef HAS_CPP11
 # include <future>
 # include <vector>
+# include <mutex>
 
 class ThreadedKeepAlive : public KeepAlive {
     public:

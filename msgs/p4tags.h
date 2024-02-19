@@ -144,6 +144,7 @@ struct P4Tag {
 	static const char v_clientHost[];
 	static const char v_clientName[];
 	static const char v_clientRoot[];
+	static const char v_clientStatsFunc[];
 	static const char v_clientStream[];
 	static const char v_client[];
 	static const char v_cmpfile[];
@@ -241,6 +242,9 @@ struct P4Tag {
 	static const char v_how[];
 	static const char v_ignore[];
 	static const char v_initroot[];
+	static const char v_interface[];
+	static const char v_ipv4Address[];
+	static const char v_ipv6Address[];
 	static const char v_isgroup[];
 	static const char v_journalcopyFlags[];
 	static const char v_job[];
@@ -274,6 +278,7 @@ struct P4Tag {
 	static const char v_lockId[];
 	static const char v_lockOnCommit[];
 	static const char v_lockStatus[];
+	static const char v_macAddress[];
 	static const char v_mangle[];
 	static const char v_matchedLine[];
 	static const char v_matchBegin[];
@@ -367,6 +372,8 @@ struct P4Tag {
 	static const char v_rMoveReaddIntegConflictSkip[];
 	static const char v_rcvbuf[];
 	static const char v_reason[];
+	static const char v_recvFileBytes[];
+	static const char v_recvFileCount[];
 	static const char v_ref[];
 	static const char v_remap[];
 	static const char v_remoteFunc[];
@@ -390,6 +397,8 @@ struct P4Tag {
 	static const char v_scope[];
 	static const char v_secondFactor[];
 	static const char v_security[];
+	static const char v_sendFileBytes[];
+	static const char v_sendFileCount[];
 	static const char v_skipped[];
 	static const char v_snapped[];
 	static const char v_sndbuf[];
@@ -582,6 +591,7 @@ struct P4Tag {
 	static const char u_changes[];
 	static const char u_client[];
 	static const char u_clients[];
+	static const char u_copy[];
 	static const char u_counter[];
 	static const char u_counters[];
 	static const char u_delete[];
@@ -614,6 +624,7 @@ struct P4Tag {
 	static const char u_labels[];
 	static const char u_labelsync[];
 	static const char u_lock[];
+	static const char u_merge[];
 	static const char u_obliterate[];
 	static const char u_opened[];
 	static const char u_passwd[];

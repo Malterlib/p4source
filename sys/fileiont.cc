@@ -2807,10 +2807,15 @@ FileIO::HasOnlyPerm( FilePerm perms )
 # endif //ifdef 0
 }
 
-# ifdef OS_MINGW
+enum StatType{ 
+	CREATE_TIME,
+	ACCESS_TIME,
+	MODIFY_TIME
+};	
 
+# ifdef OS_MINGW
 static int
-nt_getLastModifiedTime( HANDLE hFile, int &msec )
+nt_getLastStatTime( HANDLE hFile, StatType statType, int &msec )
 {
 	// Convert file timestamp to local time, then to time_t.
 	// This is because MINGW doesn't have _mkgmtime, but does have mktime.
@@ -2828,7 +2833,21 @@ nt_getLastModifiedTime( HANDLE hFile, int &msec )
 	if( !bRet )
 	    return -1;
 
-	FileTimeToSystemTime( &mTime, &stUTC );
+        switch( statType )
+	{
+	    case CREATE_TIME: 
+		FileTimeToSystemTime( &cTime, &stUTC );
+	        break;
+	    case ACCESS_TIME: 
+		FileTimeToSystemTime( &aTime, &stUTC );
+	        break;
+	    case MODIFY_TIME: 
+		FileTimeToSystemTime( &mTime, &stUTC );
+	        break;
+	    default:
+	        return -1;
+	}
+
 	SystemTimeToTzSpecificLocalTime( NULL, &stUTC, &st );
 	
 	msec = st.wMilliseconds;
@@ -2855,7 +2874,7 @@ nt_getLastModifiedTime( HANDLE hFile, int &msec )
 // msec is in milliseconds.
 //
 static int
-nt_getLastModifiedTime( HANDLE hFile, int &msec )
+nt_getLastStatTime( HANDLE hFile, StatType statType, int &msec )
 {
 	SYSTEMTIME st;
 	struct tm u_tm;
@@ -2870,7 +2889,21 @@ nt_getLastModifiedTime( HANDLE hFile, int &msec )
 	if( !bRet )
 	    return -1;
 
-	FileTimeToSystemTime( &mTime, &st );
+        switch( statType )
+	{
+	    case CREATE_TIME: 
+		FileTimeToSystemTime( &cTime, &st );
+	        break;
+	    case ACCESS_TIME: 
+		FileTimeToSystemTime( &aTime, &st );
+	        break;
+	    case MODIFY_TIME: 
+		FileTimeToSystemTime( &mTime, &st );
+	        break;
+	    default:
+	        return -1;
+	}
+
 	
 	msec = st.wMilliseconds;
 
@@ -2890,6 +2923,36 @@ nt_getLastModifiedTime( HANDLE hFile, int &msec )
 # endif
 
 int
+FileIO::StatAccessTime()
+{
+	HANDLE fH;
+	StrPtr *fname = Path();
+	int msecs = 0;
+
+	if( DOUNICODE || LFN )
+	{
+	    // nt_openHandleW() does the unicode filename translation.
+	    if( nt_islink( fname, NULL, DOUNICODE, LFN ) > 0 )
+	        fH = nt_openHandleW( fname, LFN );
+	    else
+	        fH = nt_openDirHandleW( fname, LFN );
+	    if( fH != INVALID_HANDLE_VALUE )
+	        return nt_getLastStatTime( fH, ACCESS_TIME, msecs );
+
+	    // We know LFN can not fall through and succeed.
+	    // Unicode case continues to fall through.
+	    if( LFN )
+	        return -1;
+	}
+
+	if( nt_islink( fname, NULL, DOUNICODE, LFN ) > 0 )
+	    fH = nt_openDirHandle( fname->Text() );
+	else
+	    fH = nt_openHandle( fname->Text() );
+	return nt_getLastStatTime( fH, ACCESS_TIME, msecs );
+}
+
+int
 FileIO::StatModTime()
 {
 	HANDLE fH;
@@ -2904,7 +2967,7 @@ FileIO::StatModTime()
 	    else
 	        fH = nt_openDirHandleW( fname, LFN );
 	    if( fH != INVALID_HANDLE_VALUE )
-	        return nt_getLastModifiedTime( fH, msecs );
+	        return nt_getLastStatTime( fH, MODIFY_TIME, msecs );
 
 	    // We know LFN can not fall through and succeed.
 	    // Unicode case continues to fall through.
@@ -2916,7 +2979,7 @@ FileIO::StatModTime()
 	    fH = nt_openDirHandle( fname->Text() );
 	else
 	    fH = nt_openHandle( fname->Text() );
-	return nt_getLastModifiedTime( fH, msecs );
+	return nt_getLastStatTime( fH, MODIFY_TIME, msecs );
 }
 
 void
@@ -2938,7 +3001,7 @@ FileIO::StatModTimeHP(DateTimeHighPrecision *modTime)
 
 	    if( fH != INVALID_HANDLE_VALUE )
 	    {
-	        seconds = nt_getLastModifiedTime( fH, msecs );
+	        seconds = nt_getLastStatTime( fH, MODIFY_TIME, msecs );
 	        *modTime = DateTimeHighPrecision( seconds, msecs * 1000000 );
 	        return;
 	    }
@@ -2957,7 +3020,7 @@ FileIO::StatModTimeHP(DateTimeHighPrecision *modTime)
 	else
 	    fH = nt_openHandle( fname->Text() );
 	
-	seconds = nt_getLastModifiedTime( fH, msecs );
+	seconds = nt_getLastStatTime( fH, MODIFY_TIME, msecs );
 	*modTime = DateTimeHighPrecision( seconds, msecs * 1000000 );
 }
 

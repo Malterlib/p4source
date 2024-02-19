@@ -22,9 +22,9 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgDb error code is: 104
+ * Current high value for a MsgDb error code is: 107
  */
-
+# include <stdhdrs.h>
 # include <error.h>
 # include <errornum.h>
 # include "msgdb.h"
@@ -111,6 +111,8 @@ ErrorId MsgDb::PlatPre972              = { ErrorOf( ES_DB, 58, E_FAILED, EV_UPGR
 ErrorId MsgDb::LicenseRead             = { ErrorOf( ES_DB, 59, E_FAILED, EV_ADMIN, 0 ), "Error reading license file." } ;
 ErrorId MsgDb::LicenseBad              = { ErrorOf( ES_DB, 60, E_FAILED, EV_ADMIN, 0 ), "License file invalid." } ;
 ErrorId MsgDb::AddressChanged          = { ErrorOf( ES_DB, 75, E_FAILED, EV_ADMIN, 2 ), "Server license %'IPAddress'% changed from %ipaddr% to %newip%, cannot proceed." } ;
+ErrorId MsgDb::AddressInvalid          = { ErrorOf( ES_DB, 106, E_FAILED, EV_ADMIN, 1 ), "Server license address '%ipaddr%' is not assigned to any accessible network interfaces, cannot proceed.\nThere are no valid addresses assigned to any network interface.'" } ;
+ErrorId MsgDb::AddressInvalidRecommend = { ErrorOf( ES_DB, 107, E_FAILED, EV_ADMIN, 2 ), "Server license address '%ipaddr%' is not assigned to any accessible network interfaces, cannot proceed.\n[Consider using '%recommended%' instead.] For a full list of valid addresses use 'p4 license -L'" } ;
 ErrorId MsgDb::LicenseNeedsApplication = { ErrorOf( ES_DB, 83, E_FAILED, EV_ADMIN, 0 ), "License needs an application." } ;
 ErrorId MsgDb::BadIPservice            = { ErrorOf( ES_DB, 88, E_FAILED, EV_ADMIN, 0 ), "Licensed client service cannot be %'localhost'% %'(127.0.0.1'% or %'::1)'%" } ;//CONTENTIOS
 ErrorId MsgDb::BadXCapLine             = { ErrorOf( ES_DB, 98, E_FAILED, EV_ADMIN, 1 ), "Extra capability line malformed: %line%" } ;
@@ -136,6 +138,7 @@ ErrorId MsgDb::BadRecoverTbl           = { ErrorOf( ES_DB, 100, E_INFO, EV_FAULT
 
 ErrorId MsgDb::DbTreeDuplicate	       = { ErrorOf( ES_DB, 101, E_FAILED, EV_FAULT, 0 ), "Record already exists in DbTree." } ;
 ErrorId MsgDb::DbTreeNotFound	       = { ErrorOf( ES_DB, 102, E_FAILED, EV_FAULT, 0 ), "Record not found in DbTree." } ;
+ErrorId MsgDb::DbIntVBit	       = { ErrorOf( ES_DB, 105, E_FAILED, EV_FAULT, 0 ), "High order bit set in IntV database field." } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 

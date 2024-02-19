@@ -13,6 +13,7 @@
 # include <error.h>
 # include <strbuf.h>
 # include <debug.h>
+# include <tunable.h>
 # include <filesys.h>
 
 # include <zip.h>
@@ -81,7 +82,9 @@ ZipFile::StartEntry( const char *entry, Error *e )
         zi.internal_fa = 0;
         zi.external_fa = 0;
 	int result = zipOpenNewFileInZip64( zf, entry, &zi, 0, 0, 0, 0, 0,
-	                     Z_DEFLATED, Z_DEFAULT_COMPRESSION, 1 );
+	                     Z_DEFLATED,
+	                     p4tunable.Get( P4TUNE_ZLIB_COMPRESSION_LEVEL ),
+	                     1 );
 
 	if( result < 0 )
 	{

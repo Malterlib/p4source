@@ -148,7 +148,7 @@ NetBuffer::SendCompression( Error *e )
 
 	if( deflateInit2(
 		zout,
-		Z_DEFAULT_COMPRESSION,
+		p4tunable.Get( P4TUNE_ZLIB_COMPRESSION_LEVEL ),
 		Z_DEFLATED,
 		-MAX_WBITS,		// - to suppress zlib header!
 		DEF_MEM_LEVEL, 0 ) 

@@ -22,9 +22,9 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgLbr error code is: 141
+ * Current high value for a MsgLbr error code is: 147
  */
-
+# include <stdhdrs.h>
 # include <error.h>
 # include <errornum.h>
 # include "msglbr.h"
@@ -72,6 +72,13 @@ ErrorId MsgLbr::ObjectReadError        = { ErrorOf( ES_LBR, 136, E_FAILED, EV_FA
 ErrorId MsgLbr::SameFile               = { ErrorOf( ES_LBR, 139, E_FATAL, EV_FAULT, 3 ), "Librarian for %path% [rev %rev% and type %type%] is both target and source!" } ;
 ErrorId MsgLbr::LbrTypeInsane          = { ErrorOf( ES_LBR, 140, E_WARN, EV_FAULT, 2 ), "Librarian for %path% has unexpected lbrType of %lbrType%!" } ;
 ErrorId MsgLbr::LbrTrackInsane         = { ErrorOf( ES_LBR, 141, E_WARN, EV_FAULT, 2 ), "Librarian for %path% has unexpected lbrTrack of %lbrTrack%!" } ;
+
+ErrorId MsgLbr::S3UploadFailed         = { ErrorOf( ES_LBR, 142, E_FAILED, EV_FAULT, 0 ), "Upload to s3 failed!" } ;
+ErrorId MsgLbr::S3DownloadFailed       = { ErrorOf( ES_LBR, 143, E_FAILED, EV_FAULT, 0 ), "Download from s3 failed!" } ;
+ErrorId MsgLbr::S3CopyFailed           = { ErrorOf( ES_LBR, 144, E_FAILED, EV_FAULT, 0 ), "Copy to s3 failed!" } ;
+ErrorId MsgLbr::S3StatFailed           = { ErrorOf( ES_LBR, 145, E_FAILED, EV_FAULT, 0 ), "Stat from s3 failed!" } ;
+ErrorId MsgLbr::S3DeleteFailed         = { ErrorOf( ES_LBR, 146, E_FAILED, EV_FAULT, 0 ), "Delete from s3 failed!" } ;
+ErrorId MsgLbr::S3UnsupportedOpen      = { ErrorOf( ES_LBR, 147, E_FAILED, EV_FAULT, 0 ), "Open mode not supported for S3!" } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 

@@ -123,6 +123,17 @@ FileIOApple::Stat()
 }
 
 int
+FileIOApple::StatAccessTime()
+{
+	// Return later of the two.
+
+	int h = header->StatAccessTime();
+	int d = data->StatAccessTime();
+
+	return h > d ? h : d;
+}
+
+int
 FileIOApple::StatModTime()
 {
 	// Return later of the two.

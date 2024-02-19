@@ -434,6 +434,12 @@ R"(
 	This flag prevents filelog from following any renames resulting from
 	use of the 'p4 move' command. By default, filelog follows moved files.
 
+    p4 fstat [-Dcdh]
+	The -D flag effectively runs 'p4 dirs' on the same path that was
+	passed to 'p4 fstat', appending 'dirs'-like output to the normal
+	'fstat' output.  The -cdh subflags correspond to 'p4 dirs -CDH'.
+	Use a placeholder (e.g. -Dx) for default 'p4 dirs'-like behavior.
+
     p4 fstat [-OcChiz]
 	The -Oc flag outputs the path, revision and type of the server
 	archive file (requires 'admin' privilege). The -OC flag is the same
@@ -550,6 +556,7 @@ R"(
     p4 merge3
 	Three-way file merge.
 	See 'p4 help merge3'.
+	Undoc '-d' flags for 'resolve' (below) apply to 'merge3' as well.
 
     p4 obliterate [ -iI ]
 	Tells obliterate to synthesize new integration records to attempt
@@ -572,6 +579,10 @@ R"(
 	merging adjacent chunks.  When this option is specified,
 	more conflicts are returned,  especially where changes in both
 	'yours' and 'theirs' are identical but then diverge.
+
+    p4 resolve -dt
+	Enables two-way merging, similar to integrate between unrelated files.
+	The base is ignored, and all diffs are treated as conflicts.
 
     p4 resolve -dx
 	The '-dx' flag makes the default merge algorithm less likely to
@@ -2154,8 +2165,8 @@ ErrorId MsgHelp::HelpAttribute = { ErrorOf( ES_HELP, 95, E_INFO, EV_NONE, 0 ),
 R"(
     attribute -- Set per-revision attributes on revisions
 
-    p4 attribute [-e -f -p] -n name [-v value] files...
-    p4 attribute [-e -f -p] -i -n name file
+    p4 attribute [-e -f -p] -n name [-v value [-T0|-T1]] files...
+    p4 attribute [-e -f -p [-T0|-T1]] -i -n name file
 
 	Sets a user-managed attribute 'name' to 'value' on opened files.
 	If -v is omitted, the attribute is cleared (if set).
@@ -2170,7 +2181,9 @@ R"(
 	The -f flag requires 'admin' access granted by 'p4 protect'.
 
 	The -p flag creates an attribute with a value that is propagated
-	when the file is opened with 'p4 add', 'p4 edit', or 'p4 delete'.
+	when the file is opened with 'p4 copy', 'p4 delete', 'p4 edit',
+	'p4 integrate', 'p4 reconcile', 'p4 resolve', 'p4 submit', 'p4 shelve',
+	or 'p4 unshelve'.
 
 	The -i flag causes the attribute value to be read from the standard
 	input. Only one file argument is allowed when using this option.
@@ -2178,6 +2191,25 @@ R"(
 	Multiple attributes can be set or cleared by specifying multiple
 	'-n name' flags and an equal number of corresponding '-v value'
 	flags (to set) or no '-v' flags (to clear).
+
+	When an attribute is created, the configurable 'trait.storagedepot.min'
+	determines how the attribute is stored. By default, attribute values
+	are stored in the db.traits table. The 'trait.storagedepot.min'
+	value is used to enable depot storage for new attribute values, and
+	also to specify the minimum size in bytes for storing a value in the
+	trait depot. When 'trait.storagedepot.min' is set to a value greater
+	than 0, the value of a newly created attribute will be stored in the
+	trait depot if its size matches or exceeds the trait.storagedepot.min
+	value. When 'trait.storagedepot.min' is unset or set to 0, trait values
+	are stored in the 'db.traits' table instead.
+
+	The -T option may be used when creating a new attribute to override
+	the configurable setting only when the 'trait.storagedepot.min'
+	configurable is set to a value greater than 0. The -T0 setting causes
+	the value to be stored in the db.traits table. When trait depot
+	storage is allowed, the -T1 option specifies that the value will be
+	stored in the trait depot even if it does not meet the
+	trait.storagedepot.min size.
 )"
 };
 
@@ -3037,7 +3069,11 @@ R"(
 	                  'p4 help client' for more details)
 
 	          import+: <view_path> same as 'import' except that files can
-	                   be submitted to the import path.
+	                   be submitted to the import path.  Note that an
+	                   import+ path that references a path in a stream
+	                   depot will not respect the views or flow rules of
+	                   any other streams that depend on that depot path,
+	                   so undesirable interactions are possible.
 
 	          import&: <view_path> <depot_path> same as 'import' except
 	                   that multiple import& paths can map the
@@ -3076,15 +3112,18 @@ R"(
 	          precedence.  Remapping is inherited by child stream client
 	          views.
 
-	Ignored: Optional; a list of file or directory names to be ignored in
-	         branch and client views. For example:
+	Ignored: Optional; a list of file or directory names to be recursively
+	         excluded in branch and client views. For example:
 
 	             /tmp      # ignores files named 'tmp'
 	             /tmp/...  # ignores dirs named 'tmp'
 	             .tmp      # ignores file names ending in '.tmp'
 
 	         Lines in the Ignored field may appear in any order.  Ignored
-	         names are inherited by child stream client views.
+	         names are inherited by child stream client views.  Note that
+	         due to their recursive nature, large numbers of Ignored
+	         entries may be inefficient; consider P4IGNORE as another way
+	         to prevent specific filename patterns from being added.
 
 	The -d flag causes the stream spec to be deleted.  A stream spec may
 	not be deleted if it is referenced by child streams or stream clients.
@@ -3212,8 +3251,7 @@ R"(
 		-ay	Force acceptance of yours; ignores theirs.
 		-n	Preview which fields require resolve.
 		-o	Output the base used for the merge.
-	'p4 resolve -So' has the same effect as 'p4 stream resolve' (see
-	'p4 help edit').
+	'p4 resolve -So' is an alias for 'p4 stream resolve'.
 
 	'p4 stream revert' reverts any pending changes made to the open spec,
 	returning your client to the latest submitted version of the stream.
@@ -3377,11 +3415,13 @@ R"(
 };
 
 ErrorId MsgHelp::HelpStreams = { ErrorOf( ES_HELP, 111, E_INFO, EV_NONE, 0 ),
-R"(
+R"MSG(
     streams -- Display list of streams
 
-    p4 streams [-U -F filter -T fields -m max -a [ --viewmatch //depotPath1
-               [ [--viewmatch //depotPathN] ... ] ] ] [streamPath ...]
+    p4 streams [options] [-U] [streamPath ...]
+    p4 streams [options] --viewmatch file[revRange] [streamPath ...]
+
+	options: -a -F filter -m max -T fields
 
 	Reports the list of all streams currently known to the system.  If
 	a 'streamPath' argument is specified, the list of streams is limited
@@ -3391,33 +3431,33 @@ R"(
 	For each stream, a single line of output lists the stream depot path,
 	the type, the parent stream depot path, and the stream name.
 
+	The -a flag returns existing and deleted streams.
+
 	The -F filter flag limits the output to files satisfying the expression
 	given as 'filter'.  This filter expression is similar to the one used
-	by 'jobs -e jobview',  except that fields must match those above and
-	are case sensitive.
+	by 'jobs -e jobview', except that fields are case sensitive.  E.g.:
 
-	        e.g. -F "Parent=//Ace/MAIN & Type=development"
+	    p4 streams -F "Parent=//Ace/MAIN&(Type=development|Type=release)"
+	    p4 streams --viewmatch foo.c -F "PathType=import\&|PathType=share"
 
 	Note: the filtering takes place post-compute phase; there are no
 	indexes to optimize performance.
 
-	The -T fields flag (used with tagged output) limits the fields output
-	to those specified by a list given as 'fields'.  These field names can
-	be separated by a space or a comma.
-
-	        e.g. -T "Stream, Owner"
-
 	The -m max flag limits output to the first 'max' number of streams.
+
+	The -T fields flag (used with the -ztag global option) limits the
+	fields output to those specified by a list given as 'fields'.
+	These field names can be separated by a space or a comma.  E.g.:
+
+	    p4 streams -T "Stream,Owner"
 
 	The -U flag lists unloaded task streams (see 'p4 help unload').
 
-	The --viewmatch flag returns the stream name, depot path and stream
-	view path of streams that have views containing the given //depotPath,
-	or that have views contained by the depot path.  Multiple --viewmatch
-	flags with depot path arguments can be supplied.
-
-	The -a flag returns existing and deleted streams.
-)"
+	The --viewmatch flag returns streams whose views match the specified
+	file(s).  The output includes the matching path entry for each stream.
+	If a wildcarded file path is specified, the displayed stream path
+	corresponds to the first depot file found to match each stream's view.
+)MSG"
 };
 
 ErrorId MsgHelp::HelpStreamSpec = { ErrorOf( ES_HELP, 263, E_INFO, EV_NONE, 0 ),
@@ -3582,9 +3622,9 @@ R"(
     p4 merge
     p4 opened
     p4 reopen
-    p4 resolve
     p4 revert
     p4 shelve
+    p4 stream resolve
     p4 streamlog
     p4 submit
     p4 unshelve
@@ -3627,14 +3667,6 @@ R"(
 	default changelist, use 'p4 reopen -c default -So'. (see 'p4 help
 	reopen').
 
-	'p4 resolve -So' resolves only opened stream spec conflicts. If the -So
-	flag is not used, only file conflicts will be resolved.  The automatic
-	flags (-as, -am, -af, -at, -ay) can be used to resolve stream spec
-	conflicts automatically. The -n flag can be used to preview the stream
-	spec resolve. The -o flag will display the changelist of the base
-	version of the stream spec to be used during the merge. (see 'p4 help
-	resolve').
-
 	'p4 revert -So' can be used with '-c change' to revert the client's open
 	stream spec.  'p4 revert -Si [file ...]' can be used with a file list to
 	include an open stream spec when reverting files.   If a stream spec is
@@ -3647,6 +3679,9 @@ R"(
 	should be shelved with the changelist.  By default, if the stream spec
 	is open and neither -Af nor -As is given, the stream specification will
 	also be included with any shelved files. (see 'p4 help shelve').
+
+	'p4 stream resolve' resolves opened stream spec fields.
+	See 'p4 help streamcmds'.
 
 	'p4 streamlog' lists the revision history of the specified streams
 	in reverse chronological order, starting from the most recent revision
@@ -3734,7 +3769,7 @@ R"(
 	The copy/integrate/merge commands will open the target stream
 	specification for integrate; this can be seen using 'p4 open'.
 
-	'p4 resolve -So' must be used to merge stream specification fields.
+	'p4 stream resolve' must be used to merge stream specification fields.
 	'p4 submit' commits integrated stream specifications to the depot.
 	Unresolved stream specifications may not be submitted.  Integrations
 	can be shelved with 'p4 shelve -As', unshelved with 'p4 unshelve -As',
@@ -4047,8 +4082,8 @@ R"(
 
 	Description: A short description of the depot (optional).
 
-	Type:        One of the types: 'local', 'stream', 'remote', 'spec',
-		     'archive', 'unload', 'tangent', 'extension' or 'graph'.
+	Type:        One of: 'local', 'stream', 'remote', 'spec', 'archive',
+		     'unload', 'tangent', 'extension', 'graph', 'trait'.
 
 		     A 'local' depot (the default) is managed directly by
 		     the server and its files reside in the server's root
@@ -4070,7 +4105,7 @@ R"(
 		     as access times or opened files (for changes) are not.
 		     A server can contain only one 'spec' depot.
 
-		     A 'archive' depot defines a storage location to which
+		     An 'archive' depot defines a storage location to which
 		     obsolete revisions may be relocated.
 
 		     An 'unload' depot defines a storage location to which
@@ -4089,8 +4124,18 @@ R"(
 		     one or more git repositories are represented using
 		     the git data model.
 
+		     A 'trait' depot defines a storage location to which
+		     huge traits may be stored. The storage location behavior
+		     is determined by the 'p4 attribute' command or by the
+		     setting of the 'trait.storedepot.min' configurable.
+		     A server can contain only one 'trait' depot.
+		     See 'p4 help attribute' and 'p4 help configurables'.
+ 
 	Address:     For remote depots, the $P4PORT (connection address)
 		     of the remote server.
+		     For archive depots, this may be used to specify an S3
+		     bucket as an alternative backing storage system.
+		     See below.
 
 	Suffix:      For spec depots, the optional suffix to be used
 		     for generated paths. The default is '.p4s'.
@@ -4131,6 +4176,29 @@ R"(
 
 	The -i flag reads a depot specification from standard input. The
 	user's editor is not invoked.
+
+
+	Storing the archives for a depot in S3 may be configured for archive
+	depots by specifying the bucket configuration in the 'Address' field.
+	The configuration must be provided in the form of ':' separated options
+	and values on a single line, separated by commas (',') and preceded
+	by 's3'. E.g:
+	    Address: s3,bucket:mybucket,region:us-east-1
+
+	The available options are:
+	    - bucket    - The name of the bucket (required)
+	    - url       - URL to the bucket
+	                  (defaults to https://bucketname.s3.amazonaws.com)
+	    - region    - The region the bucket resides in
+	                  (optional depending on s3 implementation)
+	    - accessKey - The S3 account's access key (required)
+	    - secretKey - The S3 account's secret key (required)
+	    - token     - The S3 account's session token
+	                  (optional depending on bucket security)
+
+	Note: Depending on several factors, including network latency and
+	bandwidth, using S3 buckets for archive storage may not perform well
+	enough to be practical.
 )"
 };
 
@@ -4142,9 +4210,9 @@ R"(
 
 	The depots command lists all depots defined in the server.
 
-	The -t flag limits output to depots of the specified type. Valid
-	types are 'local', 'spec', 'stream', 'remote', 'archive', 'unload'
-	'graph', 'tangent' and 'extension'.
+	The -t flag limits output to depots of the specified type. The
+	following types are valid: 'local', 'spec', 'stream', 'remote',
+	'archive', 'unload', 'graph', 'tangent', 'extension', 'trait'.
 
 	The -e nameFilter flag lists depots with a name that matches
 	the nameFilter pattern, for example: -e 'depo*'. The -e flag
@@ -5268,6 +5336,8 @@ R"(
 		movedFile            -- name in depot of moved to/from file
 		path                 -- local path (host syntax)
 		isMapped             -- set if file is mapped in the client
+		isMissing            -- set if the rev is known to not be in
+		                        the depot
 		shelved              -- set if file is shelved
 		headAction           -- action at head rev, if in depot
 		headChange           -- head rev changelist#, if in depot
@@ -5370,6 +5440,9 @@ R"(
 			'admin' privilege.
 
 	        -Od     output the digest of the attribute
+
+	        -On     output attribute value storage locations rather than
+	                the attribute values
 
 	        -Oe     output attribute values encoded as hex
 
@@ -5716,8 +5789,9 @@ R"(
 
 	The -m max flag limits output to the specified number of groups.
 
-	The -v flag displays the MaxResults, MaxScanRows, MaxLockTime, and
-	Timeout values for each group that is displayed.
+	The -v flag displays the MaxResults, MaxScanRows, MaxLockTime,
+	MaxOpenFiles, MaxMemory, Timeout, and PasswordTimeout values
+	for each group that is displayed.
 
 	The -g flag indicates that the 'name' argument is a group.
 
@@ -7839,6 +7913,31 @@ R"more(
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
     DEALINGS IN THE SOFTWARE.
+
+
+    TinyXML-2
+    -----------------------
+
+    Copyright (c) 2019-present, Lee Thomason and contributors.
+
+    This software is provided 'as-is', without any express or implied
+    warranty. In no event will the authors be held liable for any
+    damages arising from the use of this software.
+
+    Permission is granted to anyone to use this software for any
+    purpose, including commercial applications, and to alter it and
+    redistribute it freely, subject to the following restrictions:
+
+    1. The origin of this software must not be misrepresented; you must
+    not claim that you wrote the original software. If you use this
+    software in a product, an acknowledgment in the product documentation
+    would be appreciated but is not required.
+
+    2. Altered source versions must be plainly marked as such, and
+    must not be misrepresented as being the original software.
+
+    3. This notice may not be removed or altered from any source
+    distribution.
 )more"
 };
 
@@ -7849,6 +7948,7 @@ R"(
     p4 license -o
     p4 license -i
     p4 license -u
+    p4 license -L
 
 	Update the Perforce license file.  This command requires a valid
 	license file in the Perforce root directory. Typically this command
@@ -7867,6 +7967,9 @@ R"(
 
 	The -u flag reports the license limits and how many entities are in
 	use towards the limits.
+
+	The -L flag lists valid server IP and MAC addresses to be used when
+	requesting a valid license from Perforce Support.
 
 	This command requires 'super' access (or 'admin' for '-u'),
 	which is granted by 'p4 protect'.
@@ -9176,11 +9279,50 @@ R"(
 	                              See 'rtv.rpl.behind.bytes' for related
 	                              configurables.
 	
+	    rtv.server.connection.pause.pct.cpu - The percentage of commands to
+	                              pause when CPU pressure is in a high
+	                              state. The highest percentage of this or
+	                              the rtv.server.connection.pause.pct.mem
+	                              counter takes precedence.
+
+	    rtv.server.connection.pause.pct.mem - The percentage of commands to
+	                              pause when memory pressure is in a medium
+	                              or high state. The highest percentage of
+	                              the rtv.server.connection.pause.pct.cpu
+	                              or this counter takes precedence.
+
 	    rtv.svr.sessions.active - Current connections from clients.
 	                              Includes a high mark of most concurrent
 	                              connections at any one time.
+
+	    rtv.svr.sessions.paused - Number of server sessions that are
+	                              paused.
 	
 	    rtv.svr.sessions.total  - Running count of client connections.
+	
+	    rtv.sys.mem.os.available - An estimate of how much memory is
+	                              available for starting new applications
+	                              without swapping.
+	
+	    rtv.sys.mem.os.free     - Amount of memory that is not allocated to
+	                              any application or the OS.
+	
+	    rtv.sys.mem.os.swap.free - Amount of swap memory that is not
+	                              allocated.
+	
+	    rtv.sys.mem.os.swap.total - Total amount of swap configured in the
+	                               system.
+	
+	    rtv.sys.mem.os.total    - Total amount of operating system memory.
+	
+	    rtv.sys.pressure.lastcollecttime - Timestamp of the most recent
+	                              assessment of system pressure.
+	
+	    rtv.sys.pressure.level.cpu - The level of CPU pressure on a
+	                              scale from 0 = low, 1 = medium, 2 = high
+
+	    rtv.sys.pressure.level.mem - The level of memory pressure on a
+	                              scale from 0 = low, 1 = medium, 2 = high
 )"
 };
 
@@ -9367,13 +9509,12 @@ R"(
 ErrorId MsgHelp::HelpResolve = { ErrorOf( ES_HELP, 71, E_INFO, EV_NONE, 0 ),
 R"(
     resolve -- Resolve integrations and updates to workspace files
-	(or stream spec)
 
     p4 resolve [options] [file ...]
+    p4 resolve -So [-a<flag>] [-n] [-o]
 
 	options: -A<flags> -a<flags> -d<flags> -f -K -n -N -o -t -v
 		 -c changelist#
-		 -So -a<flags> -n -o
 
 	'p4 resolve' resolves changes to files in the client workspace.
 
@@ -9381,6 +9522,9 @@ R"(
 	resolved.  The commands that can schedule resolves are: 'p4 sync',
 	'p4 update', 'p4 submit', 'p4 merge', and 'p4 integrate'.  Files must
 	be resolved before they can be submitted.
+
+	'p4 resolve -So' is an alias for 'p4 stream resolve'.
+	See 'p4 help streamcmds'.
 
 	Resolving involves two sets of files, a source and a target.  The
 	target is a set of depot files that maps to opened files in the
@@ -9566,14 +9710,6 @@ R"(
 	not just conflicts.
 
 	The -c flag limits 'p4 resolve' to the files in changelist#.
-
-	The -So flag resolves only opened stream spec conflicts. If the -So
-	flag is not used, only file conflicts will be resolved.  The automatic
-	flags (-as, -am, -af, -at, -ay) can be used to resolve stream spec
-	conflicts automatically. The -n flag can be used to preview the stream
-	spec resolve. The -o flag will display the changelist of the base
-	version of the stream spec to be used during the merge.
-	(See 'p4 help streamcmds'.)
 )"
 };
 
@@ -12181,10 +12317,12 @@ ErrorId MsgHelp::HelpConfigure = { ErrorOf( ES_HELP, 124, E_INFO, EV_NONE, 0 ),
 R"(
     configure -- manage server configuration variables
 
-    p4 configure set [<serverid>#]variable=value
-    p4 configure unset [<serverid>#]variable }
+    p4 configure set [--comment=<comment>] [<serverid>#]variable=value
+    p4 configure unset [--comment=<comment>] [<serverid>#]variable }
     p4 configure show [allservers | <serverid> | <variable>]
     p4 configure history [allservers | <serverid> | <variable>]
+    p4 configure history [--iteration=N] --comment=<comment> variable
+    p4 configure help
 
 	'p4 configure set' sets the value of the specified configuration
 	variable.  For a list of configuration variables, see 'p4 help
@@ -12221,6 +12359,15 @@ R"(
 	recorded by the 2019.2 server onwards.  The options of variable,
 	serverid or 'allservers' filter the history in the same way as
 	'p4 configure show' uses these options.
+	Passing the long option --comment will set the comment for the most
+	recent history, and an optional --iteration can be used to target a
+	specific history entry.
+
+	'p4 configure help' displays all documented configurables.
+	Shows their value, description, value type, min value (if available),
+	max value (if available), default value, recommended value (if
+	available), restart requirements, support level, category and
+	URL of the online help.
 
 	Note that the following variables cannot be set using 'p4 configure':
 	'unicode', 'P4JOURNAL', and 'P4ROOT'.
@@ -12572,6 +12719,7 @@ R"(	dm.topology.lastseenupdate 300 Time interval to update topology record.
 	push.unlocklocked        0 Unlock locked files if push fails
 	proxy.monitor.level      0 Proxy monitoring level (see 'p4p -h')
 	proxy.monitor.interval  10 Proxy monitoring interval (see 'p4p -h')
+	proxy.clearcachethresh   0 Threshold for clearing proxy cache
 	rcs.nofsync              0 Disable fsync of RCS files
 	rejectList            none List of server blocked applications
 	rpl.checksum.auto        0 Level to checksum when rotating journal
@@ -12726,8 +12874,14 @@ R"(	run.clientexts.allow     1 Allow client-side Extensions to run
 	                             1: Track all commands
 	                           2-5: Report tracking metrics exceeding
 	                                incrementally higher thresholds
+	trait.storagedepot.min   0 Allow trait value to be stored in depot
+	                           0 : Trait values stored in db.traits table
+	                           >0: Trait value stored in depot when size
+	                               in bytes meets or exceeds this value
 	triggers.io              0 Method used for server/trigger communication
 	zerosyncPrefix        none Client prefix for zerosync (-k) namespace
+	zlib.compression.level  -1 Compression level: -1 to 9, -1 is the
+	                           default (6), 0 is lowest, 9 is highest.
 )"
 R"(
    Perforce client configurables
@@ -12765,6 +12919,9 @@ R"(
 	                           2: Only server hostname is recorded
 	sys.rename.max          10 Limit for retrying a failed file rename
 	sys.rename.wait       1000 Timeout in ms between file rename attempts
+	zlib.compression.level  -1 Compression level: -1 to 9, -1 is the
+	                           default (6), 0 is lowest, 9 is highest.
+	                           
 
 )"
 };
@@ -16593,7 +16750,7 @@ R"(
 
 ErrorId MsgHelp::HelpServerResources = { ErrorOf( ES_HELP, 277, E_INFO, EV_NONE, 0 ),
 R"(
-	Helix Core Server System Resource Monitoring (Technical Preview)
+	Helix Core Server System Resource Monitoring
 
 	The Helix Core Server has the ability to monitor the availability
 	of various operating system resources, and reduce the amount of
@@ -16670,8 +16827,8 @@ R"(
 	    # Percentage-based memory thresholds, ranged 0-100, and is the
 	    # ratio of total system memory vs memory available to use without
 	    # swapping.
-	    sys.pressure.mem.high
-	    sys.pressure.mem.medium
+	    sys.pressure.memory.high
+	    sys.pressure.memory.medium
 
 	    # OS-supplied resource pressure thresholds, ranged 0-100, defined
 	    # as the percentage of processes on the system stalled for the
@@ -16683,8 +16840,8 @@ R"(
 	    # Window size for averaging samples of resource pressure.  The
 	    # larger the window, the less sensitive/responsive the server
 	    # will be to changes in pressure.  These values are milliseconds.
-	    sys.pressure.mem.high.duration
-	    sys.pressure.mem.medium.duration
+	    sys.pressure.memory.high.duration
+	    sys.pressure.memory.medium.duration
 	    sys.pressure.os.cpu.high.duration
 	    sys.pressure.os.mem.high.duration
 	    sys.pressure.os.mem.medium.duration
@@ -16710,8 +16867,8 @@ R"(
 	capacity of the OS/hardware, leading to system/application instability
 	and is suitable for any size of Helix Core Server installation.
 
-	The configurables 'sys.pressure.*.mem.medium' and
-	'sys.pressure.*.mem.high' mark the relevant thresholds for memory
+	The configurables 'sys.pressure.*.memory.medium' and
+	'sys.pressure.*.memory.high' mark the relevant thresholds for memory
 	monitoring.  The 'medium' level specifies where the server will try to
 	keep memory usage below.  The 'high' level is intended to be set below
 	where the operating system is about to thrash into swap or become
@@ -16780,12 +16937,9 @@ R"(
 	It is recommended that prior to enabling the full resource monitoring
 	configuration, that it be run in preview-mode for a while in order to
 	gauge the effect of the configured thresholds.  Preview-mode is when
-	the feature is fully configured, but 'sys.pressure.max.pause.time=0'
-        i.e. the 'p4 admin resource-monitor' background task is sampling
-	resources, setting pressure levels, but commands are not subject
-	to pausing - this allows the administrator the chance to evaluate the
-	configured thresholds against current server load prior to it
-	affecting commands.
+	the feature is configured, but 'sys.pressure.max.pause.time=0' - i.e.
+	the 'p4 admin resource-monitor' background task is sampling resources,
+	setting pressure levels, but commands are not subject to pausing.
 
 	To disable monitoring, there are a few options:
 
@@ -16827,6 +16981,7 @@ R"(
 )"
 
 };
+
 
 // ErrorId graveyard: retired/deprecated ErrorIds.
 

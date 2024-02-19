@@ -7,6 +7,7 @@
 # include <stdhdrs.h>
 
 # include <debug.h>
+# include <tunable.h>
 # include <strbuf.h>
 # include <error.h>
 
@@ -136,7 +137,7 @@ Gzip::Compress( Error *e )
 
 		if( deflateInit2(
 			zstream,
-			Z_DEFAULT_COMPRESSION,
+			p4tunable.Get( P4TUNE_ZLIB_COMPRESSION_LEVEL ),
 			Z_DEFLATED,
 			-MAX_WBITS,		// - to suppress zlib header!
 			DEF_MEM_LEVEL, 0 ) 

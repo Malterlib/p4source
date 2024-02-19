@@ -31,6 +31,7 @@
 # include <stdio.h>
 # include <string.h>
 # include <stdlib.h>
+# include <limits.h> // needed by datetime.h
 
 # if !defined( OS_QNX ) && !defined( OS_VMS )
 # include <memory.h>
@@ -733,24 +734,23 @@ enum LineType { LineTypeRaw, LineTypeCr, LineTypeCrLf, LineTypeLfcrlf };
 
 /*
  * P4INT64 - a 64 bit int
+ * Duplicated in error.h in case external includes including error.h first
  */
 
-# if !defined( OS_MVS ) && \
-     !defined( OS_OS2 ) && \
-     !defined( OS_QNX )
-# define HAVE_INT64
-# ifdef OS_NT
-# define P4INT64 __int64
-# else
-# define P4INT64 long long
-# endif
-# endif
-
 # ifndef P4INT64
-# define P4INT64 int
+#   if !defined( OS_MVS ) && \
+       !defined( OS_OS2 ) && \
+       !defined( OS_QNX )
+#     define HAVE_INT64
+#     ifdef OS_NT
+#       define P4INT64 __int64
+#     else
+#       define P4INT64 long long
+#     endif
+#   else
+#     define P4INT64 int
+#   endif
 # endif
-
-
 
 /*
  * P4UINT64 - an unsigned 64 bit int.
@@ -921,6 +921,7 @@ typedef int FD_TYPE;
 typedef int FD_PTR;
 
 # endif // !OS_NT
+
 
 # if !defined( HAS_CPP11 ) && !defined( LLONG_MIN )
 #  define LLONG_MIN (-9223372036854775807LL - 1)

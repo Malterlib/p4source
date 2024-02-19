@@ -3,11 +3,9 @@
  *
  * This file is part of Perforce - the FAST SCM System.
  */
-
 /*
  * msgdm2.h - overflow definitions of errors for data manager core subsystem.
  */
-
 class MsgDm2 {
     public:
 	static ErrorId ExistingStorage;
@@ -17,6 +15,7 @@ class MsgDm2 {
 	static ErrorId IntegIntoReadOnlyOverlay;
 	static ErrorId OpenReadOnlyOverlay;
 	static ErrorId OpenWarnOverlay;
+	static ErrorId OpenUndoConflict;
 	static ErrorId UnshelveBadOverlay;
 	static ErrorId UnshelveStreamResolve;
 	static ErrorId RequiresAutoIdCode;
@@ -123,5 +122,25 @@ class MsgDm2 {
 	static ErrorId ComponentStreamInvalidSparse;
 	static ErrorId NoAltSyncChangeWithHave;
 	static ErrorId MaxMemOS;
+	static ErrorId BadLazyPipeCount;
+	static ErrorId SparseStreamNotSupported;
 	static ErrorId StreamViewGenAtChangeSkip; 
+	static ErrorId SparseStreamShareChangeNoUpdate;
+	static ErrorId SparseStreamNoPin;
+	static ErrorId StreamFieldValueError;
+	static ErrorId DepotTraitDup;
+	static ErrorId NoTraitDepot;
+	static ErrorId SparseStreamOpNotAllowed;
+	static ErrorId SparseStreamCmdMustIncludeAll;
+	static ErrorId SparseStreamCmdMustIncludeAll2;
+	static ErrorId SparseStreamCmdChangeSpecifierOnly;
+	static ErrorId SparseStreamCopyOutOfDate;
+	static ErrorId SparseStreamCopyLatestOnly;
+	static ErrorId SparseStreamCmdNoRevRange;
+	static ErrorId OnlyOneClientReload;
+	static ErrorId UnknownParam;
+	static ErrorId BadS3Mode;
+	static ErrorId DepotBadAddress;
+	static ErrorId DepotBadRemoteAddress;
+	static ErrorId NoConfigHistory;
 } ;

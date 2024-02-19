@@ -44,3 +44,26 @@ IntArray::Find( int v )
 		lo = hi;
 	}
 }
+
+
+int
+P4INT64Array::Find( P4INT64 v )
+{
+	int lo = 0;
+	int hi = count;
+
+	for(;;)
+	{
+	    int index = ( lo + hi ) / 2;
+
+	    if( lo == hi )
+		return index < count && ints[ index ] == v ? index : -1;
+
+	    if( v <= ints[ index ] )
+		hi = index;
+	    else if( index != lo )
+		lo = index;
+	    else
+		lo = hi;
+	}
+}

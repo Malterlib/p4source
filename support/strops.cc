@@ -1076,6 +1076,40 @@ StrOps::PackInt64( StrBuf &o, P4INT64 v )
 	b[7] = ( vv / 0x1000000 ) % 0x100;
 }
 
+
+void
+StrOps::PackIntV( StrBuf &o, P4INT64 v )
+{
+	char *b;
+	P4UINT64 num = v & 0x7fffffffffffffff;
+	unsigned int workint;
+
+	if( num >= 0x80000000 )
+	{
+	    b = o.Alloc( 8 );
+	    workint = num & 0xffffffff;
+	    workint |= 0x80000000;
+	    b[0] = ( workint / 0x1 ) % 0x100;
+	    b[1] = ( workint / 0x100 ) % 0x100;
+	    b[2] = ( workint / 0x10000 ) % 0x100;
+	    b[3] = ( workint / 0x1000000 ) % 0x100;
+	    workint = num >> 31;
+	    b[4] = ( workint / 0x1 ) % 0x100;
+	    b[5] = ( workint / 0x100 ) % 0x100;
+	    b[6] = ( workint / 0x10000 ) % 0x100;
+	    b[7] = ( workint / 0x1000000 ) % 0x100;
+	}
+	else
+	{
+	    b = o.Alloc( 4 );
+	    b[0] = ( num / 0x1 ) % 0x100;
+	    b[1] = ( num / 0x100 ) % 0x100;
+	    b[2] = ( num / 0x10000 ) % 0x100;
+	    b[3] = ( num / 0x1000000 ) % 0x100;
+	}
+}
+
+
 void
 StrOps::PackIntA( StrBuf &o, int v )
 {
@@ -1160,6 +1194,37 @@ StrOps::UnpackInt64( StrRef &o )
 	    (unsigned char)b[2] * (unsigned int)0x10000 +
 	    (unsigned char)b[3] * (unsigned int)0x1000000;
 }
+
+P4INT64
+StrOps::UnpackIntV( StrRef &o )
+{
+	if( o.Length() < 4 )
+	    return 0;
+
+	const char *b = o.Text();
+	P4UINT64 retval =
+	    (unsigned char)b[0] * (unsigned int)0x1 + 
+	    (unsigned char)b[1] * (unsigned int)0x100 +
+	    (unsigned char)b[2] * (unsigned int)0x10000 +
+	    (unsigned char)b[3] * (unsigned int)0x1000000;
+
+	if( retval & 0x80000000 )
+	{
+	    retval &= ~0x80000000;
+	    unsigned int workint =
+	        (unsigned char)b[4] * (unsigned int)0x1 + 
+	        (unsigned char)b[5] * (unsigned int)0x100 +
+	        (unsigned char)b[6] * (unsigned int)0x10000 +
+	        (unsigned char)b[7] * (unsigned int)0x1000000;
+	    retval |= ( ( P4UINT64 ) workint << 31 );
+	    o += 8;
+	}
+	else
+	    o += 4;
+
+	return retval;
+}
+
 
 int
 StrOps::UnpackIntA( StrRef &o )

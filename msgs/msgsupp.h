@@ -403,11 +403,17 @@ class MsgSupp {
 	static ErrorId JsmnBadSyn;
 	static ErrorId JsmnTooFew;
 	static ErrorId JsmnKeyNotFound;
+
 	static ErrorId ManifestKeyNotFound;
 	static ErrorId ManifestValueEmpty;
 	static ErrorId ManifestValueTypeInvalid;
 	static ErrorId ManifestParseError;
 	static ErrorId InvalidIntegerRange;
+
+	static ErrorId CurlPerformFailed;
+	static ErrorId AwsRejected;
+	static ErrorId XmlParseFailed;
+
 	static ErrorId FatalLockError;
 	static ErrorId MissingKeyCert;
 	static ErrorId InternalSSLerror;
@@ -451,6 +457,9 @@ class MsgSupp {
 	static ErrorId OptionNewTargetAddress;
 	static ErrorId OptionCreationDate;
 	static ErrorId OptionLastSeenDate;
+	static ErrorId OptionTraitStorage;
+	static ErrorId OptionIteration;
+	static ErrorId OptionListAddresses;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

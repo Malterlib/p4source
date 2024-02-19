@@ -5,8 +5,8 @@
  */
 
 #include <openssl/md5.h>
-
-#include "error.h"
+# include <stdhdrs.h>
+# include "error.h"
 # ifndef USE_SSL
 /*
  * This code implements the MD5 message-digest algorithm.
@@ -25,7 +25,6 @@
  * will fill a supplied 16-byte array with the digest.
  */
 
-# include <stdhdrs.h>
 # include <strbuf.h>
 # include <strops.h>
 

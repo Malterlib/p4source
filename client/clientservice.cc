@@ -427,6 +427,7 @@ clientFileDigestType( StrPtr *digestType )
 void
 clientOpenFile( Client *client, Error *e )
 {
+	++client->recvClientTotal;
 	if( (client_nullsync = p4tunable.Get( P4TUNE_FILESYS_CLIENT_NULLSYNC) ) )
 	    return;
 
@@ -703,11 +704,14 @@ clientOpenFile( Client *client, Error *e )
 void
 clientWriteFile( Client *client, Error *e )
 {
-	if( client_nullsync )
-	    return;
-
 	StrPtr *clientHandle = client->GetVar( P4Tag::v_handle, e );
 	StrPtr *data = client->GetVar( P4Tag::v_data, e );
+
+	if( data )
+	    client->recvClientBytes += data->Length();
+
+	if( client_nullsync )
+	    return;
 
 	if( e->Test() )
 	    return;
@@ -2452,7 +2456,7 @@ clientSendFile( Client *client, Error *e )
 	}
 
 	// Send open (with modTime, and possibly estimated file size)
-
+	++client->sendClientTotal;
 	client->Confirm( open );
 
 	int size = FileSys::BufferSize();
@@ -2523,6 +2527,7 @@ clientSendFile( Client *client, Error *e )
 #endif
 		}
 
+		client->sendClientBytes += l;
 		client->SetVar( P4Tag::v_handle, handle );
 		client->Invoke( write->Text() );
 	}
@@ -3852,6 +3857,9 @@ clientProtocol( Client *client, Error *e )
 	    client->protocolClientExts = s->Atoi();
 	else
 	    client->protocolClientExts = 1;
+
+	if( ( s = client->GetVar( P4Tag::v_clientStatsFunc ) ) )
+	    client->statCallback << s;
 }
 
 //
@@ -4035,6 +4043,16 @@ AltSyncCheckFile( Client *client, StrPtr *confirm, const char *status,
 	return 0;
 }
 
+void clientRelease( Client* client, Error* e )
+{
+	// Note - this overrides rpcservice.cc :: RpcServerRelease 
+
+	if( client->statCallback.Length() )
+	    client->ConditionalInvokeStats( e );
+
+	client->GotReleased();
+}
+
 void clientReceiveFiles( Client *client, Error *e );
 
 /*
@@ -4098,8 +4116,11 @@ const RpcDispatch clientDispatch[] = {
 	{ P4Tag::c_SetPassword,	RpcCallback(clientSetPassword) },
 	{ P4Tag::c_SSO,		RpcCallback(clientSingleSignon) },
 
+	{ P4Tag::p_release,	RpcCallback(clientRelease) },
+
 	{ P4Tag::p_protocol,	RpcCallback(clientProtocol) },
 	{ P4Tag::p_errorHandler,RpcCallback(clientFatalError) },
+
 
 	{ 0, 0 }
 } ;

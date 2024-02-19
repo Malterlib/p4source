@@ -522,7 +522,15 @@ Client::GetIgnoreFile()
 	}
 	else
 	{
-	    ignorefile.Set( "unset" );
+	    StrRef homedir( "$home" );
+	    StrBuf t, h;
+	    enviro->GetHome( h );
+
+	    StrOps::Replace( ignorefile, StrRef(
+		".p4ignore;"
+		"p4ignore.txt;"
+		"$home/.p4ignore;"
+		"$home/p4ignore.txt" ), homedir, h );
 	}
 
 	return ignorefile;

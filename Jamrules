@@ -1028,6 +1028,12 @@
 		    LINKFLAGS = -fprofile-arcs -ftest-coverage -g ;
 		}
 
+	case gcc-asan :
+	    OPTIM = -g -fsanitize=address,undefined,shift,pointer-overflow -D_GLIBCXX_DEBUG
+	            -D_GLIBCXX_DEBUG_PEDANTIC -fno-omit-frame-pointer -O0 -Wno-parentheses
+	            -fno-optimize-sibling-calls -Wno-switch -fPIC ;
+	    LINKFLAGS += -fsanitize=address,undefined,shift,pointer-overflow -static-libasan -static-libubsan ;
+
 	case clang-asan :
 	    OPTIM = -g -fsanitize=address,undefined,shift,pointer-overflow -D_GLIBCXX_DEBUG
 	            -D_GLIBCXX_DEBUG_PEDANTIC -fno-omit-frame-pointer -O0 -Wno-parentheses

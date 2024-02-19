@@ -29,12 +29,19 @@ Pid::CheckID( int id )
 	DWORD threadId = id;
 	HANDLE threadHandle;
 
-	threadHandle = OpenThread( THREAD_QUERY_INFORMATION, NULL,  threadId );
+	threadHandle = OpenThread( THREAD_QUERY_INFORMATION | SYNCHRONIZE,
+	                           NULL, threadId );
 
 	if( !threadHandle )
 	    return 0;
 
+	DWORD retval = WaitForSingleObject(threadHandle, 0);
+
 	CloseHandle( threadHandle );
+
+	if ( retval == WAIT_OBJECT_0 )	// thread has ended
+		return 0;
+
 	return 1;
 }
 

@@ -76,6 +76,11 @@ P4APILibrary $(SUPPORTLIB) :
 	vartree.cc
 	trienode.cc ;
 
+if $(USE_EXTENSIONS) = 1
+{
+	P4APILibrary $(SUPPORTLIB) : tinyxml2.cpp ;
+}
+
 Ident ident.cc ;
 
 DefineVar ident.cc : OPENSSL_VERSION_TEXT ;

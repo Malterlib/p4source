@@ -84,6 +84,9 @@ RpcServerProtocol( Rpc *rs, Error *e )
 void
 RpcServerRelease( Rpc *rs, Error *e )
 {
+	// Note - this is overriden in clientservice.cc :: clientRelease
+	// duplicate any changes made to this to clientRelease.
+
 	// Let dispatcher know.
 	rs->GotReleased();
 }

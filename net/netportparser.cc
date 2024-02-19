@@ -606,10 +606,13 @@ NetPortParser::FindPrefix(
 	    return &prefixes[kNoPrefix];
 	}
 
+	// P4-23451/job116585: allow prefixes in upper/lower case mix
+	// by lower-casing the prefix first
+
 	const Prefix *pfx;
 	for( pfx = prefixes; pfx->mName[0]; ++pfx )
 	{
-	    if( strncmp(prefix, pfx->mName, len) == 0 )
+	    if( StrPtr::CCompareN(prefix, pfx->mName, len) == 0 )
 	        return pfx;
 	}
 
@@ -618,7 +621,7 @@ NetPortParser::FindPrefix(
 	{
 	    for( pfx = mExtraTransports; pfx->mName[0]; ++pfx )
 	    {
-		if( strncmp(prefix, pfx->mName, len) == 0 )
+		if( StrPtr::CCompareN(prefix, pfx->mName, len) == 0 )
 		    return pfx;
 	    }
 	}
@@ -823,6 +826,13 @@ NetPortParser::Parse()
 bool
 NetPortParser::IsValid(Error *e) const
 {
+	// hostnames may not contain commas
+	if( !MustJSH() && !MustRSH() && strchr( mHost.Text(), ',' ) )
+	{
+	    e->Set( MsgRpc::BadP4Port ) << String();
+	    return false;
+	}
+
 	if( !MustJSH() && !MustRSH() && !mPortColon && (mPort.Length() <= 0) )
 	{
 	    e->Set( MsgServer::PortMissing ) << String();

@@ -1425,7 +1425,6 @@ clientReplicate( int ac, char **av, Options &preops )
 int
 clientIgnores( int argc, char **argv, Options &global_opts, Error *e )
 {
-	const char *c;
 	HostEnv h;
 	Ignore i;
 	StrBuf cwd;
@@ -1471,9 +1470,11 @@ clientIgnores( int argc, char **argv, Options &global_opts, Error *e )
 	for ( int i = 0 ; envList.GetVar( i, var, val ) ; i++ )
 	    enviro.Update( var.Text(), val.Text() );
 
-
-	if( ( c = enviro.Get( "P4IGNORE" ) ) )
-	    ignorefile.Set( c );
+	{
+	    // Use the client defaulting logic
+	    Client client( &enviro );
+	    ignorefile = client.GetIgnoreFile();
+	}
 
 	// Collect some info about our target file
 

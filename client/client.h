@@ -148,6 +148,8 @@ class Client : public Rpc {
 	void		Run( const char *func, ClientUser *ui );
 	int		Final( Error *e );
 
+	void		ConditionalInvokeStats( Error* e );
+
 	// alternative async Run() interface
 
 	void		RunTag( const char *func, ClientUser *ui );
@@ -322,6 +324,12 @@ class Client : public Rpc {
 	int		protocolSecurity;  // server 'security' protocol
 	int		protocolUnicode;	// server 'unicode' protocol
 	int		protocolClientExts;
+
+	int		sendClientTotal;	// client files
+	int		recvClientTotal;
+	P4INT64		sendClientBytes;	// client bytes
+	P4INT64		recvClientBytes;
+	StrBuf		statCallback;		// server func name
 
         StrPtr *	GetProtocol( const StrPtr &var );
 

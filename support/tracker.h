@@ -90,6 +90,10 @@ enum TrackerType {
 	TT_LT_MODTIMES,			// modtime determinations, by libType
 	TT_LT_COPIES,			// copies, by libType
 	TT_LT_DELETES,			// deletes, by libType
+	TT_LT_S3UPLOADS,		// uploads to s3, by libType
+	TT_LT_S3DOWNLOADS,		// downloads from s3, by libType
+	TT_LT_S3DELETES,		// deletes from s3, by libType
+	TT_LT_S3STATS,			// stats to s3, by libType
 
 	TT_LAST
 }  ;

@@ -16,7 +16,7 @@
 # include <msgsupp.h>
 
 # include <datetime.h>
-# include <limits.h>
+
 
 # define MILLION (1000000)
 # define BILLION ((P4INT64) 1000000000L)
@@ -25,14 +25,14 @@
  * DateTime - date as stored in license file (string of time(0))
  */
 
-static int
+static time_t
 DateTimeParse( const char *&c, const char delim, Error *e )
 {
-	int r = 0;
+	time_t r = 0;
 
 	for( ; *c && isAdigit( c ) && *c != delim; ++c )
 	{
-	    if( r > ( INT_MAX - *c + '0' ) / 10 )
+	    if( r > ( LLONG_MAX - *c + '0' ) / 10 )
 	    {
 	        e->Set( MsgSupp::InvalidDate ) << c;
 	        return 0;
@@ -143,7 +143,7 @@ DateTime::Set( const char *date, Error *e )
 	// And turn it into an int.
 	// Return 0 if date no good (if any left, that is).
 
-	int offset = ParseOffset( date, odate, e );
+	time_t offset = ParseOffset( date, odate, e );
 	if( e->Test() )
 	    return;
 
@@ -160,11 +160,11 @@ DateTime::Set( const char *date, Error *e )
 // number of seconds, and returns that. If 's' points to a NUL terminator,
 // this routine returns 0. If 's' points to anything else, this routine
 // sets an error into 'e' and returns 0.
-int	
+time_t	
 DateTime::ParseOffset( const char *s, const char *odate, Error *e )
 {
 	int sign = 1;
-	int seconds = 0, hours = 0, minutes = 0;
+	time_t seconds = 0, hours = 0, minutes = 0;
 
 	if( !*s )
 	    return 0;
@@ -310,7 +310,7 @@ char *tzname[2] = { "PDT", "PST" };
 # define tzname _tzname
 # endif
 
-int
+time_t
 DateTime::TzOffset( int *retdst ) const
 {
 	int offset = 0;
@@ -451,6 +451,63 @@ DateTime::FmtISO8601( char *buf ) const
 	else
 	{
 	    strcpy( buf, "1970-01-01T00:00:01+00:00" );
+	}
+
+}
+
+void
+DateTime::FmtISO8601Min( char *buf ) const
+{
+	struct tm *tm = gmtime( &tval );
+
+	// Don't die for a bogus date.
+
+	if( tm )
+	{
+	    sprintf( buf, "%04d%02d%02dT%02d%02d%02dZ",
+	             tm->tm_year < 1900 ? tm->tm_year + 1900 : tm->tm_year,
+	             tm->tm_mon + 1,
+	             tm->tm_mday,
+	             tm->tm_hour,
+	             tm->tm_min,
+	             tm->tm_sec );
+	}
+	else
+	{
+	    strcpy( buf, "19700101T000001Z" );
+	}
+
+}
+
+
+static const char* dow[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+static const char* moy[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+/*
+ * format date to RFC5322
+ * E.g. Mon, 03 Jul 2023 14:40:10 GMT
+ */
+void
+DateTime::FmtRFC5322( char *buf ) const
+{
+	struct tm *tm = gmtime( &tval );
+
+	// Don't die for a bogus date.
+
+	if( tm )
+	{
+	    sprintf( buf, "%s, %02d %s %04d %02d:%02d:%02d GMT",
+	             dow[tm->tm_wday],
+	             tm->tm_mday,
+	             moy[tm->tm_mon],
+	             tm->tm_year + 1900,
+	             tm->tm_hour,
+	             tm->tm_min,
+	             tm->tm_sec );
+	}
+	else
+	{
+	    strcpy( buf, "Thu, 01 Jan 1970 00:00:01 GMT" );
 	}
 
 }

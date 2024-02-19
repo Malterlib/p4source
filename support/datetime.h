@@ -27,8 +27,8 @@ class DateTime {
  	void	Set( const int date ) { wholeDay = 0; tval = (time_t)date; }
 	void	SetNow() { Set( (int)Now() ); }
 
-	int 	Compare( const DateTime &t2 ) const { 
-                return (int)(tval - t2.tval); };
+	time_t 	Compare( const DateTime &t2 ) const { 
+	        return (tval - t2.tval); };
 
 	void	Fmt( char *buf ) const;
 	void	FmtDay( char *buf ) const;
@@ -38,22 +38,24 @@ class DateTime {
 	void 	FmtElapsed( char *buf, const DateTime &t2 );
 	void	FmtUnifiedDiff( char *buf ) const;
 	void	FmtISO8601( char *buf ) const;
+	void	FmtISO8601Min( char *buf ) const;
+	void	FmtRFC5322( char *buf ) const;
 
 	void	SetGit( const StrPtr &gitDate, Error *e );
 	void	FmtGit( StrBuf &buf ) const;
 
-	int	Value() const { return (int)tval; }
-	int	Tomorrow() const { return (int)tval + 24*60*60; }
+	time_t	Value() const { return tval; }
+	time_t	Tomorrow() const { return tval + 24*60*60; }
 	int	IsWholeDay() const { return wholeDay; }
 
-	static int Never() { return 0; }
-	static int Forever() { return 2147483647; }
+	static time_t Never() { return 0; }
+	static time_t Forever() { return (time_t)2147483647; }
 
 	// for stat() and utime() conversion
 
 	static time_t Localize( time_t centralTime );
 	static time_t Centralize( time_t localTime );	
-	int    TzOffset( int *isdst = 0 ) const;
+	time_t    TzOffset( int *isdst = 0 ) const;
 
     protected:
 	time_t	Now();
@@ -62,7 +64,7 @@ class DateTime {
 	time_t	tval;
 	int	wholeDay;
 
-	int	ParseOffset( const char *s, const char *odate, Error *e );
+	time_t	ParseOffset( const char *s, const char *odate, Error *e );
 };
 
 class DateTimeNow : public DateTime {

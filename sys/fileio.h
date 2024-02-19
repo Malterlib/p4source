@@ -36,6 +36,7 @@ class FileIO : public FileSys {
 
 	virtual int	Stat();
 	virtual int     GetOwner();
+	virtual int	StatAccessTime();
 	virtual int	StatModTime();
 	virtual void	StatModTimeHP(DateTimeHighPrecision *modTime);
 	virtual bool	HasOnlyPerm( FilePerm perms );
@@ -286,6 +287,7 @@ class FileIOEmpty : public FileSys {
 
 	virtual int	Stat() { return FSF_EMPTY; }
 	virtual int	StatModTime() { return 0; }
+	virtual int	StatAccessTime() { return 0; }
 	virtual void	Truncate( Error *e ) {}
 	virtual void	Truncate( offL_t offset, Error *e ) {}
 	virtual void	Chmod( FilePerm perms, Error *e ) {}
@@ -317,6 +319,7 @@ class FileIOSymlink : public FileIO {
 	virtual void	Close( Error *e );
 
 	virtual int	StatModTime();
+	virtual int	StatAccessTime();
 	virtual void	Truncate( Error *e );
 	virtual void	Truncate( offL_t offset, Error *e );
 	virtual void	Chmod( FilePerm perms, Error *e );
@@ -378,6 +381,7 @@ class FileIOApple : public FileIO {
 	virtual void	Set( const StrPtr &name, Error *e );
 
 	virtual int	StatModTime();
+	virtual int	StatAccessTime();
 	virtual void	StatModTimeHP(DateTimeHighPrecision *modTime);
 	virtual void	Truncate( Error *e );
 	virtual void	Truncate( offL_t offset, Error *e );

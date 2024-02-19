@@ -143,6 +143,11 @@ struct RpcTrack {
 	Error		recvError;
 	int		duplexFrecv;
 	int		duplexRrecv;
+
+	int		sendDirectTotal;	// server files
+	int		recvDirectTotal;
+	P4INT64		sendDirectBytes;	// server bytes
+	P4INT64		recvDirectBytes;
 } ;
 
 class AltDispatcher;
@@ -400,9 +405,14 @@ class Rpc : public StrDict {
 	P4INT64		recvBytes;
 	int		sendTime;
 	int		recvTime;
-
 	Timer		*timer;
 	KeepAlive	*keep;
+
+public:
+	int		sendDirectTotal;		// server files
+	int		recvDirectTotal;
+	P4INT64		sendDirectBytes;		// server bytes
+	P4INT64		recvDirectBytes;
 } ;
 
 enum RpcUtilityType {

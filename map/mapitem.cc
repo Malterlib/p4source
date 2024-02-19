@@ -91,6 +91,20 @@ MapItem::Move( int slot )
 }
 
 /*
+ * MapItem::Translate - translate a string from one side to the other
+ */
+int
+MapItem::Translate( MapTableT dir, const StrPtr &from, StrBuf &to )
+{
+	MapParams params;
+
+	if ( !Ths( dir )->Match2( from, params ) )
+	    return 0;
+	Ohs( dir )->Expand( from, to, params );
+	return 1;
+}
+
+/*
  * MapItem::Tree - recursively construct a trinary sort tree
  */
 
