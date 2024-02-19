@@ -138,9 +138,10 @@ class DateTimeHighPrecision
 	// return < 0, = 0, or > 0 if *this < rhs, *this == rhs, or *this > rhs, respectively
 	int 	Compare( const DateTimeHighPrecision &rhs ) const;
 
-    private:
-
 	P4INT64	ToNanos() const;
+	P4INT64	ToMs() const;
+
+    private:
 
 	time_t	seconds; // Since 1/1/1970, natch
 	int	nanos;

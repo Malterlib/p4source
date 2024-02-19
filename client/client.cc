@@ -7,8 +7,10 @@
 # include <stdhdrs.h>
 
 # include <debug.h>
+# include <tunable.h>
 # include <strbuf.h>
 # include <strdict.h>
+# include <strtree.h>
 # include <strarray.h>
 # include <strtable.h>
 # include <error.h>
@@ -17,6 +19,7 @@
 # include <transdict.h>
 # include <options.h>
 # include <handler.h>
+# include <runcmd.h>
 # include <rpc.h>
 # include <ident.h>
 # include <enviro.h>
@@ -38,6 +41,8 @@
 # include "clientmerge.h"
 # include "clientscript.h"
 # include "client.h"
+
+#include "clientaltsynchandler.h"
 
 void clientTrust( Client *, Error * );
 
@@ -102,6 +107,8 @@ Client::Client( Enviro *e ) : Rpc( &service )
 	service.Dispatcher( clientDispatch );
 
 	service.SetProtocol( P4Tag::v_cmpfile ); // has clientCompareFile #1737
+	if( ClientAltSyncHandler::IsSupported() )
+	    service.SetProtocol( P4Tag::v_altSync );
 	service.SetProtocol( P4Tag::v_client, P4Tag::l_client );
 	apiVer = atoi( P4Tag::l_client );
 	apiSet = 0;
@@ -284,8 +291,9 @@ Client::RunTag( const char *func, ClientUser *u )
 
 	if( u )
 	{
-	    u->varList = this;
-	    u->enviro = enviro;
+	    u->SetVarList( this );
+	    u->SetEnviro( enviro );
+
 	    if( output_charset )
 		u->SetOutputCharset( output_charset );
 	}
@@ -494,16 +502,18 @@ Client::GetEnv()
 	 */
 
 	if( is_unicode )
-        {
-            SetVar( P4Tag::v_unicode );
-            SetVar( P4Tag::v_charset, content_charset );
-        }
-        else // no charset was defined
-        {
-            int cs = GuessCharset();
-            if (cs != 0)
-                SetVar( P4Tag::v_charset, cs );
-        }
+	{
+	    SetVar( P4Tag::v_unicode );
+	    SetVar( P4Tag::v_charset, content_charset );
+	}
+	else // no charset was defined
+	{
+	    int cs = GuessCharset();
+	    if( cs != 0 )
+	        SetVar( P4Tag::v_charset, cs );
+	}
+
+	SetVar( P4Tag::v_utf8bom, p4tunable.Get( P4TUNE_FILESYS_UTF8BOM ) );
 
 	SetVar( P4Tag::v_clientCase, StrBuf::CaseUsage() );
 
@@ -734,7 +744,7 @@ void
 Client::FstatPartialAppend( StrDict *part )
 {
 	if( !fstatPartial )
-	    fstatPartial = new StrBufDict;
+	    fstatPartial = new StrBufTreeIdx;
 
 	StrRef var, val;
 

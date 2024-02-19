@@ -162,9 +162,44 @@ static const int CmpGrid[6][6] = {
 { /* DOTS */	0,	-1,	 -1,	  0,	   0,	    0 },
 } ;
 
+static const int StrictCmpGrid[6][6] = {
+/*		EOS	CHAR	 SLASH	  PERC	   STAR     DOTS */
+
+{ /* EOS */	0,	-1,	 -1,	 -1,	  -1,	   -1 },
+{ /* CHAR */	1,	-2,	 -2,	  1,	   1,	    1 },
+{ /* SLASH */	1,	-2,	  2,	  1,	   1,	    1 },
+{ /* PERC */	1,	-1,	 -1,	  3,	   3,	    1 },
+{ /* STAR */	1,	-1,	 -1,	  3,	   3,	    1 },
+{ /* DOTS */	1,	-1,	 -1,	 -1,	  -1,	    2 },
+} ;
+
 int
-MapHalf::Compare( const MapHalf &item ) const
+EffectiveParamNum( const MapChar *mc, int stars )
 {
+	// Determine effective parameter number for %%n or * MapChar,
+	// given the number of those types of chars seen so far.
+	// The idea is to allow us to compare sanitized and unsanitized
+	// maphalfs and similar mixes of * and %%n such that:
+	//   %%1%%2 == **
+	//   %%1*   == %%1*
+	//   %%2%%1 != **
+	//   *%%1   != %%1*
+	switch( mc->cc )
+	{
+	    case cPERC:	return mc->paramNumber - PARAM_BASE_PERCENT;
+	    case cSTAR:	return stars;
+	    default:	return -1;
+	}
+}
+
+int
+MapHalf::Compare( const MapHalf &item, bool strict ) const
+{
+	// The default comparison is for MapTable sorting and returns
+	// 0 in some cases where the halves aren't exactly equal but
+	// the difference doesn't matter for the sort.
+	// The 'strict' grid is more suitable for equality operations.
+	const int (&grid)[6][6] = strict ? StrictCmpGrid : CmpGrid;
 	MapChar *mc1 = mapChar;
 	MapChar *mc2 = item.mapChar;
 
@@ -178,11 +213,12 @@ MapHalf::Compare( const MapHalf &item ) const
 
 	// Now do more sensitive compare
 
+	int stars = 0;
 	for( ;; ++mc1, ++mc2 )
 	{
 	    int d;
 
-	    switch( CmpGrid[ mc1->cc ][ mc2->cc ] )
+	    switch( grid[ mc1->cc ][ mc2->cc ] )
 	    {
 	    case -1:	return -1;
 	    case 1:	return 1;
@@ -190,6 +226,10 @@ MapHalf::Compare( const MapHalf &item ) const
 	    case -2:	if( ( d = ( *mc1 - *mc2 ) ) )
 			    return d;
 	    case 2:	break;
+	    case 3:	stars++;
+			if( ( d = ( EffectiveParamNum( mc1, stars )
+				  - EffectiveParamNum( mc2, stars ) ) ) )
+			    return d;
 	    }
 	}
 }
@@ -750,9 +790,10 @@ MapHalf::Join( MapHalf *map2, Joiner &joiner )
 	joiner.Clear();
 	int backup = BACKUP_NONE;
 	int wilds = 0;
-	int maxWildChars = p4tunable.Get( P4TUNE_MAP_MAXWILD );
+	const int maxWildChars = p4tunable.Get( P4TUNE_MAP_MAXWILD );
+	const int debugJoinhalf = DEBUG_JOINHALF;
 
-	if( DEBUG_JOINHALF )
+	if( debugJoinhalf )
 	    p4debug.printf( "--- '%s','%s' ----\n", Text(), map2->Text() );
 
 	// Optimization: match the non-wild initial substrings first.
@@ -784,7 +825,7 @@ MapHalf::Join( MapHalf *map2, Joiner &joiner )
 	    if( a == aMATCH && !( *mc1 == *mc2 ) )
 		a = aMISS;
 
-	    if( DEBUG_JOINHALF )
+	    if( debugJoinhalf )
 	    {
 		MapChar *c;
 		char x;
@@ -996,7 +1037,7 @@ MapHalf::Join( MapHalf *map2, Joiner &joiner )
 		break;
 	    }
 
-	    if( DEBUG_JOINHALF )
+	    if( debugJoinhalf )
 	    {
 		int i; 
 		int j;

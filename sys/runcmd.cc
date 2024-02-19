@@ -1205,11 +1205,11 @@ RunCommandIo::Write( const StrPtr &in, Error *e )
  */
 
 int
-RunCommandIo::Read( char *buf, int len, Error *e )
+RunCommandIo::Read( char *buf, int len, Error *e, int closeIn )
 {
 	// Close write fd before reading.
 
-	if( fds[1] != -1 )
+	if( closeIn && fds[1] != -1 )
 	{
 	    close( fds[1] );
 	    fds[1] = -1;
@@ -1305,6 +1305,40 @@ RunCommandIo::Read( const StrPtr &out, Error *e )
 	// Close read fd at end of reading.
 
 	return Read( out.Text(), out.Length(), e );
+}
+
+/*
+ * RunCommandIo::ReadLine() - read a line from the running command's stdout
+ */
+
+int
+RunCommandIo::ReadLine( StrBuf &out, StrBuf &buf, Error *e )
+{
+	// If anything buffered, return it first.
+
+	int len = 4096;
+	char *c = 0, *s;
+	while( ( s = buf.Text() ) && !( c = strchr( s, '\n' ) ) )
+	{
+	    // Read stdout into result buffer; no closing
+	    int oldLen = buf.Length();
+	    int space = buf.BufSize() - buf.Length();
+	    int read = 0;
+	    if( space > 0 )
+	        read = Read( buf.Text() + oldLen, space, e, 0 );
+	    else
+	        read = Read( buf.Alloc( len ), len, e, 0 );
+	    buf.SetLength( read + oldLen );
+	    if( read <= 0 )
+	        buf << "\n";
+	    buf.Terminate();
+	}
+
+	out.Set( s, c + 1 - s );
+	out.Terminate();
+	StrBuf tmp = c + 1;
+	buf = tmp;
+	return out.Length();
 }
 
 /*

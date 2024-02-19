@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgServer2 error code is: 246
+ * Current high value for a MsgServer2 error code is: 270
  *                                                   Max code is 1023!!!
  *
  * The MsgServer2 class contains overflow messages from MsgServer.
@@ -106,7 +106,7 @@ ErrorId MsgServer2::FailbackFConfigsMissing= { ErrorOf( ES_SERVER2, 198, E_FAILE
 ErrorId MsgServer2::UseFailoverB           = { ErrorOf( ES_SERVER2, 199, E_FAILED, EV_USAGE, 0 ), "Usage: %'failover -B [ -y ] [ -w <quiesce wait> ] [ -v <verification time> ] [ <failback message> ]'%" } ;
 ErrorId MsgServer2::FailbackStandbyNotRestricted = { ErrorOf( ES_SERVER2, 200, E_FAILED, EV_ADMIN, 0 ), "Failback must be run from a restricted standby server. Use the 'p4d -Fm' command to create a restricted standby that will be ready for failback." } ;
 ErrorId MsgServer2::FailbackStandbyBad     = { ErrorOf( ES_SERVER2, 245, E_FAILED, EV_ADMIN, 0 ), "Failover or failback has occurred from this server. It cannot not be determined which occurred since both 'failoverconfigs' and 'failbackconfigs' were found. Use '%'p4d -Fm'%' to convert to a restricted standby if this is a failed over server, '%'p4d -Fs'%' command to convert to a standby if this is a failed back server, or '%'p4d -xD'%' to change the server ID and bypass the failback process." } ;
-ErrorId MsgServer2::FailoverRunFailback    = { ErrorOf( ES_SERVER2, 246, E_FAILED, EV_ADMIN, 0 ), "Failback, not failover, should be run from this server. Run '%'p4 failback'%' instead, or use '%'p4 failover --force'%' to run failover." } ;
+ErrorId MsgServer2::FailoverRunFailback    = { ErrorOf( ES_SERVER2, 246, E_FAILED, EV_ADMIN, 0 ), "Failback, not failover, should be run from this server. Run '%'p4 failback'%' instead." } ;
 ErrorId MsgServer2::FailbackNeedsFm        = { ErrorOf( ES_SERVER2, 243, E_FAILED, EV_ADMIN, 0 ), "Failover has occurred from this server. Use the '%'p4d -Fm'%' command to convert this server into a restricted standby that will be ready for failback." } ;
 ErrorId MsgServer2::FailbackNeedsFs        = { ErrorOf( ES_SERVER2, 244, E_FAILED, EV_ADMIN, 0 ), "Failback has occurred from this server. Use the '%'p4d -Fs'%' command to convert this server into a standby for the failed back server." } ;
 ErrorId MsgServer2::ServerIDReused         = { ErrorOf( ES_SERVER2, 51, E_FAILED, EV_ADMIN, 1 ), "Cannot reuse server ID '%serverID%' after failover." } ;
@@ -213,7 +213,7 @@ ErrorId MsgServer2::UseVerifyR             = { ErrorOf( ES_SERVER2, 163, E_FAILE
 ErrorId MsgServer2::InfoCommitServer       = { ErrorOf( ES_SERVER2, 164, E_INFO, EV_NONE, 1 ), "Commit server ID: %commitServerId%" };
 ErrorId MsgServer2::InfoEdgeServer         = { ErrorOf( ES_SERVER2, 165, E_INFO, EV_NONE, 1 ), "Upstream edge server ID: %edgeServerId%" };
 ErrorId MsgServer2::MovePairSplit          = { ErrorOf( ES_SERVER2, 166, E_FAILED, EV_NOTYET, 0 ), "Cannot submit half of a moved file pair." } ;
-ErrorId MsgServer2::UseTopology            = { ErrorOf( ES_SERVER2, 167, E_FAILED, EV_USAGE, 0 ), "Usage: %'topology [ [ -a | -t numOfDays ] [ -F filter ] [ -T field... ] ] | [ -D date [ -y ] [ -e ] [ -s serveraddress ] ] | [ -d [ -y ] [ -s serveraddress -i serverID [ -p targetaddress ] ] | [ -c date [ -e ] ] | [ -l lastSeenDate [ -e ] ] ]'%" } ;
+ErrorId MsgServer2::UseTopology            = { ErrorOf( ES_SERVER2, 167, E_FAILED, EV_USAGE, 0 ), "Usage: %'topology [ [ -a | -t numOfDays ] [ -F filter ] [ -T field... ] ] | [ -D date [ -y ] [ -e ] [ -s serveraddress ] [ -i serverID ] [ -p targetaddress ] ] | [ -d [ -y ] [ -s serveraddress -i serverID [ -p targetaddress ] ] | [ -c date [ -e ] ] | [ -l lastSeenDate [ -e ] ] ] | [ -m [ -y ] -s serveraddress -i serverID [ -p targetaddress ] -S newserveraddress -I newserverID [ -P newtargetaddress ] ]'%" } ;
 ErrorId MsgServer2::TopologyOnCurrentSvr   = { ErrorOf( ES_SERVER2, 168, E_INFO, EV_NONE, 1 ), "Topology command was run on server - %address%" } ;
 ErrorId MsgServer2::FileNoMatchStgDigest   = { ErrorOf( ES_SERVER2, 169, E_FAILED, EV_ADMIN, 2 ), "The archive does not match the storage digest %depotpath%#%rev%." } ;
 ErrorId MsgServer2::FileNoMatchStgSize     = { ErrorOf( ES_SERVER2, 170, E_FAILED, EV_ADMIN, 2 ), "The archive does not match the storage size %depotpath%#%rev%." } ;
@@ -241,7 +241,7 @@ ErrorId MsgServer2::ThreadMustBeNumeric    = { ErrorOf( ES_SERVER2, 202, E_FAILE
 ErrorId MsgServer2::ThreadBiggerMinusTwo   = { ErrorOf( ES_SERVER2, 203, E_FAILED, EV_USAGE, 1 ), "Thread count must be zero or greater. '%arg%'." } ;
 ErrorId MsgServer2::NoStdoutPDump          = { ErrorOf( ES_SERVER2, 204, E_FAILED, EV_ADMIN, 0 ), "Parallel database dumping is not allowed to stdout." } ;
 ErrorId MsgServer2::NoDirPDump             = { ErrorOf( ES_SERVER2, 205, E_FAILED, EV_ADMIN, 1 ), "The target directory %dir% must not pre-exist." } ;
-ErrorId MsgServer2::BadJournalSubOpt       = { ErrorOf( ES_SERVER2, 206, E_FAILED, EV_ADMIN, 0 ), "Unsupported suboption to -j. Must be -jc[s|p|pm], -jd[s|p|ps], -jr[p|F|c|pF|pc]." } ;
+ErrorId MsgServer2::BadJournalSubOpt       = { ErrorOf( ES_SERVER2, 206, E_FAILED, EV_ADMIN, 0 ), "Unsupported suboption to -j. Must be -jc[s|p|pm], -jd[s|p|ps|pm], -jr[p|F|c|pF|pc], -jv[v|p|pv]." } ;
 ErrorId MsgServer2::LicenseExpiryWarning   = { ErrorOf( ES_SERVER2, 207, E_WARN, EV_ADMIN, 1 ), "Your license is due to expire on %expiry_date%; please contact sales@perforce.com to obtain an updated license file to avoid downtime." } ;
 ErrorId MsgServer2::InfoProxyCacheRoot     = { ErrorOf( ES_SERVER2, 208, E_INFO, EV_NONE, 1 ), "Proxy cacheRoot: %root%" } ;
 ErrorId MsgServer2::InfoProxyRoot          = { ErrorOf( ES_SERVER2, 209, E_INFO, EV_NONE, 1 ), "Proxy root: %root%" } ;
@@ -278,3 +278,25 @@ ErrorId MsgServer2::RenameClientNotAllowed = { ErrorOf( ES_SERVER2, 239, E_FAILE
 ErrorId MsgServer2::RenameClientAdminSuper = { ErrorOf( ES_SERVER2, 240, E_FAILED, EV_PROTECT, 0 ), "Admin or super permission is required to rename a client." } ;
 ErrorId MsgServer2::RenameClientSuper      = { ErrorOf( ES_SERVER2, 241, E_FAILED, EV_PROTECT, 0 ), "Super permission is required to rename a client." } ;
 ErrorId MsgServer2::RenameClientNotOwner   = { ErrorOf( ES_SERVER2, 242, E_FAILED, EV_ILLEGAL, 1 ), "The '%oldClient%' client is owned by another user; admin or super permission is required to rename another user's client." } ;
+ErrorId MsgServer2::PreserveChangeNumberConflict = { ErrorOf( ES_SERVER2, 247, E_INFO, EV_NONE, 0), "Cannot fetch changes because change numbers can not be preserved" } ;
+ErrorId MsgServer2::DistributionBlockSubmit      = { ErrorOf( ES_SERVER2, 248, E_FAILED, EV_ILLEGAL, 0 ), "Cannot submit on distribution server." } ;
+ErrorId MsgServer2::DistributionServerOverrides  = { ErrorOf( ES_SERVER2, 249, E_FAILED, EV_ADMIN, 0 ), "This server is configured as a type of distribution. P4TARGET/db.replication/lbr.replication must not be set." } ;
+ErrorId MsgServer2::MissingParallelFile    = { ErrorOf( ES_SERVER2, 250, E_FAILED, EV_ADMIN, 3 ), "Missing checksum file(s) in checkpoint directory '%dir%', expecting %ex% found %seen%." } ;
+ErrorId MsgServer2::AltSyncNoSupport       = { ErrorOf( ES_SERVER2, 251, E_FAILED, EV_CLIENT, 0 ), "Client does not support P4ALTSYNC, required for this workspace." } ;
+ErrorId MsgServer2::AltSyncNotConfigured   = { ErrorOf( ES_SERVER2, 252, E_FAILED, EV_CLIENT, 0 ), "Client does not have P4ALTSYNC configured, required for this workspace." } ;
+ErrorId MsgServer2::AltSyncNoVersion       = { ErrorOf( ES_SERVER2, 253, E_FAILED, EV_CLIENT, 0 ), "AltSync agent did not send an altSync protocol version." };
+ErrorId MsgServer2::AltSyncBadVersion      = { ErrorOf( ES_SERVER2, 254, E_FAILED, EV_CLIENT, 1 ), "AltSync agent using unsupported altSync protocol version: %version%" } ;
+ErrorId MsgServer2::AltSyncActive          = { ErrorOf( ES_SERVER2, 255, E_INFO, EV_CLIENT, 2 ), "AltSync agent '[%prog%|unknown]' in use using altSync protocol version: %version%" } ;
+ErrorId MsgServer2::UpgradeAuthDown        = { ErrorOf( ES_SERVER2, 256, E_FAILED, EV_ADMIN, 0 ), "Server upgrade cannot proceed because the authentication server is not accessible." } ;
+ErrorId MsgServer2::UpgradeAuth            = { ErrorOf( ES_SERVER2, 257, E_FAILED, EV_ADMIN, 0 ), "The authentication server must be upgraded before this server can upgrade." } ;
+ErrorId MsgServer2::UpgradeAuthNoLicense   = { ErrorOf( ES_SERVER2, 258, E_FAILED, EV_ADMIN, 0 ), "The authentication server must have a valid license before this server can upgrade." } ;
+ErrorId MsgServer2::UpgradeAuthMaintenance = { ErrorOf( ES_SERVER2, 259, E_FAILED, EV_ADMIN, 0 ), "Server upgrade cannot proceed because the authentication server is running in maintenance mode." } ;
+ErrorId MsgServer2::UpgradeAuthRestricted  = { ErrorOf( ES_SERVER2, 260, E_FAILED, EV_ADMIN, 0 ), "Server upgrade cannot proceed because the authentication server is running in restricted mode." } ;
+ErrorId MsgServer2::LowResourceTerm        = { ErrorOf( ES_SERVER2, 261, E_FATAL, EV_TOOBIG, 1 ), "Server low on resources (%type%), command terminated." } ;
+ErrorId MsgServer2::ImpatientPauseTerm     = { ErrorOf( ES_SERVER2, 262, E_FATAL, EV_TOOBIG, 1 ), "Waited too long (%time%s) while command paused;  terminated." } ;
+ErrorId MsgServer2::TooManyPausedTerm      = { ErrorOf( ES_SERVER2, 263, E_FATAL, EV_TOOBIG, 0 ), "Too many commands paused;  terminated." } ;
+ErrorId MsgServer2::TooMuchResourceMonitor = { ErrorOf( ES_SERVER2, 264, E_FATAL, EV_TOOBIG, 0 ), "There is already a 'resource-monitor' background process running." } ;
+ErrorId MsgServer2::UseAdminResourceMonitor= { ErrorOf( ES_SERVER2, 265, E_FAILED, EV_USAGE, 0 ), "Usage: %'admin resource-monitor'%" } ;
+ErrorId MsgServer2::StartupCapabilities    = { ErrorOf( ES_SERVER2, 266, E_INFO, EV_NONE, 5 ), "Perforce Server operating system capabilities (%date%, PID %pid%, version %ver%):  OOM protection (%oom%), OS-supplied resource pressure (%psi%)." };
+ErrorId MsgServer2::BadPressureThresholds  = { ErrorOf( ES_SERVER2, 267, E_WARN, EV_ADMIN, 0 ), "Resource monitoring medium/high threshold configuration invalid - using defaults.\n" } ;
+ErrorId MsgServer2::BadJField              = { ErrorOf( ES_SERVER2, 270, E_FAILED, EV_USAGE, 2 ), "Bad jfield option specified '%opt%'. Must be one of %optlist%" } ;

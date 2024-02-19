@@ -17,13 +17,8 @@
  * We keep these to maintain compatibility between newer api clients
  * and older servers which send old ErrorIds.
  *
- * Its okay to add a message in the middle of the file.
- *
- * When adding a new error make sure its greater than the current high
- * value and update the following number:
- *
- * Current high value for a MsgDm error code is: 1023
- *                                               Max code is 1023!!!
+ * DO NOT ADD NEW ERRORS TO THIS FILE.  Max subcode is 1023 and we're full!
+ * New data manager messages go in MsgDm2 from this point on.
  */
 
 # include <error.h>

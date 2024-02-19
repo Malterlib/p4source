@@ -3,10 +3,19 @@ SubDir P4 zlib ;
 local CCFLAGS = $(CCFLAGS) [ FDefines Z_PREFIX ] ;
 CCFLAGS = [ FRemoveAny $(CCFLAGS) : -Wparentheses ] ;
 
+if $(OS) != NT
+{
+	CCFLAGS += -Wno-unused-variable ;
+}
+
+if $(CLANGVER)
+{
+	CCFLAGS += -Wno-pointer-sign ;
+}
+
 P4APILibrary $(SUPPORTLIB) : 
 	adler32.c
 	crc32.c
-	deflate.c
 	inffast.c
 	inftrees.c
 	trees.c
@@ -17,13 +26,20 @@ if $(USE_OPTIMIZED_ZLIB) = 1
 {
 	if $(OS) != NT
 	{
-	    CCFLAGS += -mpclmul -msse4.2 ;
+	    CCFLAGS += -mpclmul ;
+
+	    if $(OSPLAT) != ARM64
+	    {
+	        # Clang/ARM64 doesn't know this.
+	        CCFLAGS += -msse4.2 ;
+	    }
 	}
 
 	P4APILibrary $(SUPPORTLIB) : 
 	    adler32_simd.c
 	    crc_folding.c
 	    crc32_simd.c
+	    deflate-opt.c
 	    fill_window_sse.c
 	    inffast_chunk.c
 	    inflate-opt.c
@@ -53,13 +69,13 @@ if $(USE_OPTIMIZED_ZLIB) = 1
 	ObjectDefines adler32_simd.c : ADLER32_SIMD_SSSE3 INFLATE_CHUNK_SIMD_SSE2 ;
 	ObjectDefines crc32.c : CRC32_SIMD_SSE42_PCLMUL ;
 	ObjectDefines crc32_simd.c : CRC32_SIMD_SSE42_PCLMUL ;
-	ObjectDefines deflate.c : CRC32_SIMD_SSE42 ; # Perforce-local addition. 
 	ObjectDefines inflate-opt.c : INFLATE_CHUNK_SIMD_SSE2 INFLATE_CHUNK_READ_64LE ;
 	ObjectDefines inffast_chunk.c : INFLATE_CHUNK_SIMD_SSE2 INFLATE_CHUNK_READ_64LE ;
 }
 else
 {
 	P4APILibrary $(SUPPORTLIB) : 
+	    deflate.c
 	    inflate.c
 	    simd_stub.c
 	;

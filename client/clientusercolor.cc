@@ -146,6 +146,12 @@ ClientUserColor::ClientUserColor(
 	if( isatty( fileno( stderr ) ) )
 	    errColor = 1;
 
+#ifdef OS_NT
+	// Windows console colours apply to both stdout and stderr
+	// If either are attached to a pipe, disable colour
+	outColor = errColor = outColor && errColor;
+#endif
+
 }
 
 ClientUserColor::~ClientUserColor()

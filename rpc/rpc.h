@@ -270,6 +270,7 @@ class Rpc : public StrDict {
 	void		VClear();
 	void		VReset();
 	void		VRemoveVar( const StrPtr &var );
+	int		VGetCount();
 
 	virtual int	GetArgc();
 	virtual StrPtr *GetArgv();

@@ -316,6 +316,20 @@ class Options
 	                MissingCount   , // heartbeat -c
 	                LocalLicense   , // license -u -l
 	                AutoReload     , // labels -R
+			IntervalMillis , // --interval-ms | -I
+	                Threshold      , // topology -t
+	                DatedEarlier   , // topology -e
+	                DeleteMarker   , // topology -d
+	                DeletePurge    , // topology -D
+	                MoveTopology   , // topology -m
+	                ServerAddress  , // topology -s
+	                ServerID       , // topology -i
+	                TargetAddress  , // topology -p
+	                NewServerAddress, // topology -S
+	                NewServerID    , // topology -I
+	                NewTargetAddress, // topology -P
+	                CreationDate   , // topology -c
+	                LastSeenDate   , // topology -l
 
 	        // options which have only long-form option names go here:
 
@@ -417,6 +431,13 @@ class Options
 			UseStreamChange	, // --use-stream-change
 			HasStream       , // --stream
 			NoStream        , // --nostream
+			PreserveChangeNumbers, // --preserve-change-numbers
+			Limit           , // --limit #
+			Type            , // --type checkpoint|dump....
+			Result          , // --result pass|fail
+			JNum            , // --num #
+			JField          , // --jfield f1,f2,f3
+			ControlTweaks   , // --control-tweaks
 #ifdef _DEBUG
 			DebugBreak,    // --debugbreak
 #endif

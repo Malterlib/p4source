@@ -964,6 +964,7 @@ NetSslCredentials::MakeSslCredentials( Error *e )
 	retval = EVP_PKEY_CTX_set_rsa_keygen_bits( ctx, SSL_X509_NUMBITS );
 	SSLHANDLEFAIL( retval, e, "EVP_PKEY_CTX_set_rsa_keygen_bits", MsgRpc::SslCertGen, fail );
 	retval = EVP_PKEY_keygen( ctx, &privateKey );
+	EVP_PKEY_CTX_free( ctx );
 	SSLHANDLEFAIL( retval, e, "EVP_PKEY_keygen", MsgRpc::SslCertGen, fail );
 # endif
 

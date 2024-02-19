@@ -47,6 +47,9 @@ void clientOpenMatch( Client *client, ClientFile *f, Error *e );
 void clientCloseMatch( Client *client, ClientFile *f, Error *e );
 void clientAckMatch( Client *client, Error *e );
 
+int AltSyncCheckFile( Client *client, StrPtr *confirm,
+                      const char *status, const char *ntype, Error *e );
+
 enum XDir { FromServer, FromClient };
 
 class ClientSvc

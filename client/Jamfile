@@ -51,6 +51,7 @@ if $(CLANGVER) && [ FVersionCmp $(CLANGVER) : 6.0.0 ] >= 0 || $(GCCVER) && [ FVe
 P4APILibrary $(CLIENTLIB) :
 	client.cc
 	clientapi.cc
+	clientaltsynchandler.cc
 	clientenv.cc
 	clienti18n.cc
 	clientinit.cc
@@ -75,11 +76,12 @@ P4APILibrary $(CLIENTLIB) :
 	serverhelperapi.cc
 	;
 
-P4APILibrary $(P4SCRIPT_C) : clientscript.cc ;
+P4APILibrary $(P4SCRIPT_C) : clientscript.cc p4libs_ext.cc ;
 P4Library $(P4SCRIPT_CSTUB) : clientscript_stub.cc ;
 
 ObjectC++Flags p4libs.cc : -I $(P4)/script/libs/sqlite3 -I $(P4)/script/libs/cURL -I $(P4)/zlib -I$(SSLINCDIR) ;
 ObjectC++Flags clientextpackage.cc clienttrust.cc clientlegal.cc : -I$(SSLINCDIR) ;
+ObjectC++Flags p4libs_ext.cc : -I $(P4)/script/libs/sqlite3 -I $(P4)/script/libs/cURL ;
 
 LinkMallocLib p4 ;
 #LinkLibraries p4 : $(P4MEMORYMGR_STUB) ;

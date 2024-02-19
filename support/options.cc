@@ -180,7 +180,7 @@ Options::OptionInfo Options::list[] = {
 	{ "leave-keywords",     Options::LeaveKeywords,'k', 0,
 	                      &MsgSupp::OptionLeaveKeywords },
 	{ "leave-keywords",     Options::LeaveKeywords2,'K', 0,
-	                      &MsgSupp::OptionLeaveKeywords },
+	                      &MsgSupp::OptionLeaveKeywords2 },
 	{ "file",               Options::OutputFile,   'o', ':',
 	                      &MsgSupp::OptionOutputFile },
 	{ "input-file",         Options::InputFile,    'i', ':',
@@ -547,6 +547,34 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionLocalLicense },
 	{ "autoreload",         Options::AutoReload, 'R', 0,
 	                      &MsgSupp::OptionAutoReload },
+	{ "interval-ms",        Options::IntervalMillis, 'I', '#',
+	                      &MsgSupp::OptionIntervalMillis },
+	{ "threshold",          Options::Threshold, 't', '#',
+	                      &MsgSupp::OptionThreshold },
+	{ "dated-earlier",      Options::DatedEarlier, 'e', 0,
+	                      &MsgSupp::OptionDatedEarlier },
+	{ "delete-marker",      Options::DeleteMarker, 'd', 0,
+	                      &MsgSupp::OptionDeleteMarker },
+	{ "delete-purge",       Options::DeletePurge, 'D', ':',
+	                      &MsgSupp::OptionDeletePurge },
+	{ "move-topology",      Options::MoveTopology, 'm', 0,
+	                      &MsgSupp::OptionMoveTopology },
+	{ "server-address",     Options::ServerAddress, 's', ':',
+	                      &MsgSupp::OptionServerAddress },
+	{ "serverid",           Options::ServerID, 'i', ':',
+	                      &MsgSupp::OptionServerID },
+	{ "target-address",     Options::TargetAddress, 'p', ':',
+	                      &MsgSupp::OptionTargetAddress },
+	{ "new-server-address", Options::NewServerAddress, 'S', ':',
+	                      &MsgSupp::OptionNewServerAddress },
+	{ "new-serverid",       Options::NewServerID, 'I', ':',
+	                      &MsgSupp::OptionNewServerID },
+	{ "new-target-address", Options::NewTargetAddress, 'P', ':',
+	                      &MsgSupp::OptionNewTargetAddress },
+	{ "creation-date",      Options::CreationDate, 'c', ':',
+	                      &MsgSupp::OptionCreationDate },
+	{ "last-seen-date",     Options::LastSeenDate, 'l', ':',
+	                      &MsgSupp::OptionLastSeenDate },
 
 	// Options below this line have no short-form equivalent:
 
@@ -737,6 +765,20 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionHasStream },
 	{ "nostream",           Options::NoStream, 0, 0,
 	                      &MsgSupp::OptionNoStream },
+	{ "preserve-change-numbers", Options::PreserveChangeNumbers, 0, 0,
+	                      &MsgSupp::OptionPreserveChangeNumbers },
+	{ "limit", Options::Limit, 0, '#',
+	                      &MsgSupp::OptionLimit },
+	{ "type", Options::Type, 0, ':',
+	                      &MsgSupp::OptionType },
+	{ "result", Options::Result, 0, ':',
+	                      &MsgSupp::OptionResult },
+	{ "jnum", Options::JNum, 0, '#',
+	                      &MsgSupp::OptionJNum },
+	{ "jfield", Options::JField, 0, ':',
+	                      &MsgSupp::OptionJField },
+	{ "control-tweaks",     Options::ControlTweaks, 0, ':',
+	                      0 },
 
 #ifdef _DEBUG
 	{ "debugbreak",         Options::DebugBreak,  0, 0,
@@ -889,9 +931,8 @@ Options::ParseLong( int &argc, StrPtr *&argv, const char *opts,
 
 		    if( list[i].valueType == '#' && 
 	                (!vals[ optc - 1 ].IsNumeric() ||
-			  ( vals[ optc - 1 ].IsNumeric() &&
-			  !vals[ optc - 1 ].Atoi64( &intTmp ) ) ||
-			  vals[ optc - 1 ].Atoi64() < 0 ) )
+			  !vals[ optc - 1 ].Atoi64( &intTmp ) ||
+			  intTmp < 0 ) )
 		    {
 			e->Set( MsgSupp::NeedsNonNegArg ) << optMsg;
 			goto usage;
@@ -1002,9 +1043,8 @@ Options::ParseLong( int &argc, StrPtr *&argv, const char *opts,
 
 		    if( f[1] == '#' && 
 	                (!vals[ optc - 1 ].IsNumeric() ||
-			  ( vals[ optc - 1 ].IsNumeric() &&
-			  !vals[ optc - 1 ].Atoi64( &intTmp ) ) ||
-			  vals[ optc - 1 ].Atoi64() < 0 ) )
+			  !vals[ optc - 1 ].Atoi64( &intTmp ) ||
+			  intTmp < 0 ) )
 		    {
 			StrRef a( f, 1 );
 			e->Set( MsgSupp::NeedsNonNegArg ) << a;
@@ -1164,9 +1204,8 @@ Options::ParseTest( int &argc, StrPtr *&argv, const char *opts,
 
 		    if( list[i].valueType == '#' && 
 	                (!vals[ optc - 1 ].IsNumeric() ||
-			  ( vals[ optc - 1 ].IsNumeric() &&
-			  !vals[ optc - 1 ].Atoi64( &intTmp ) ) ||
-			  vals[ optc - 1 ].Atoi64() < 0 ) )
+			  !vals[ optc - 1 ].Atoi64( &intTmp ) ||
+			  intTmp < 0 ) )
 		    {
 			e->Set( MsgSupp::NeedsNonNegArg ) << optMsg;
 			continue;
@@ -1245,7 +1284,8 @@ Options::ParseTest( int &argc, StrPtr *&argv, const char *opts,
 
 		    if( f[1] == '#' && 
 	                (!vals[ optc - 1 ].IsNumeric() ||
-			  vals[ optc - 1 ].Atoi64() < 0 ) )
+			  !vals[ optc - 1 ].Atoi64( &intTmp ) ||
+			  intTmp < 0 ) )
 		    {
 			StrRef a( f, 1 );
 			e->Set( MsgSupp::NeedsNonNegArg ) << a;

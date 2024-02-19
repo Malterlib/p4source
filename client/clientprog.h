@@ -49,5 +49,6 @@ class ClientProgressText : public ClientProgress
 	int	backup;
 	StrBuf	desc;
 	bool	done;
+	int	units;
 
 };

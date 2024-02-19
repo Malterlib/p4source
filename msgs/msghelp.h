@@ -35,6 +35,7 @@ class MsgHelp {
 	static ErrorId HelpAnnotate;
 	static ErrorId HelpAdmin;
 	static ErrorId HelpAdministration;
+	static ErrorId HelpAdminResourceMonitor;
 	static ErrorId HelpArchive;
 	static ErrorId HelpAttribute;
 	static ErrorId HelpBackup;
@@ -180,6 +181,7 @@ class MsgHelp {
 	static ErrorId HelpSearch;
 	static ErrorId HelpServer;
 	static ErrorId HelpServerid;
+	static ErrorId HelpServerResources;
 	static ErrorId HelpServers;
 	static ErrorId HelpSet;
 	static ErrorId HelpShelve;

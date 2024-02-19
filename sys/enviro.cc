@@ -53,6 +53,7 @@ const char p4enviro[] = "P4ENVIRO";
 
 const static char *const envVars[] = {
 	"P4ALIASES",
+	"P4ALTSYNC",
 	"P4AUDIT",
 	"P4AUTH",
 	"P4BROKEROPTIONS",

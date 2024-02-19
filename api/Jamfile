@@ -21,13 +21,20 @@ P4Api p4api :
 
 	Jamfile.api
 
+	# all-in-one lib (with extensions)
 	$(P4APILIB)
+
+	# individual libs (in link order)
 	$(CLIENTLIB)
 	$(RPCLIB)
+	# begin extension support
 	$(P4SCRIPT_C)
 	$(P4SCRIPT)
 	$(P4SCRIPT_CURL)
 	$(P4SCRIPT_SQLITE)
+	# or extensions stub
+	$(P4SCRIPT_CSTUB)
+	# end extensions libs
 	$(SUPPORTLIB)
 
 	base64.h
@@ -121,12 +128,11 @@ P4Main p4api : p4api.cc ;
 LinkLibraries p4api :
 	$(CLIENTLIB)
 	$(RPCLIB)
-	$(P4SCRIPT_C)
-	$(P4SCRIPT)
-	$(P4SCRIPT_CURL)
-	$(P4SCRIPT_SQLITE)
+	$(P4SCRIPT_CSTUB)
 	$(SUPPORTLIB)
 	;
+
+LinkMallocLib p4api ;
 
 P4Main p4dvcsapi : p4dvcsapi.cc ;
 
@@ -139,3 +145,5 @@ LinkLibraries p4dvcsapi :
 	$(P4SCRIPT_SQLITE)
 	$(SUPPORTLIB)
 	;
+
+LinkMallocLib p4dvcsapi ;

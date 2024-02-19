@@ -49,6 +49,7 @@ class MsgDb {
 	static ErrorId DelNoLock;
 	static ErrorId Delete;
 	static ErrorId Locking;
+	static ErrorId LockingLoop;
 	static ErrorId EndXact;
 	static ErrorId GetNoGet;
 	static ErrorId TableUnknown;
@@ -87,6 +88,7 @@ class MsgDb {
 	static ErrorId MustExpire;
 	static ErrorId Checksum;
 	static ErrorId WrongApp;
+	static ErrorId LicenseWrongService;
 	static ErrorId PlatPre972;
 	static ErrorId LicenseRead;
 	static ErrorId LicenseBad;
@@ -114,6 +116,9 @@ class MsgDb {
 
 	static ErrorId GenNumPageTooNew;
 	static ErrorId BadRecoverTbl;
+
+	static ErrorId DbTreeDuplicate;
+	static ErrorId DbTreeNotFound;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

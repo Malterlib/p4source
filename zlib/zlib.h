@@ -1,3 +1,5 @@
+/* Note that this is a modified version of zlib.h */
+
 /* zlib.h -- interface of the 'zlib' general purpose compression library
   version 1.2.11, January 15th, 2017
 

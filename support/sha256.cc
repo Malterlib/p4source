@@ -109,7 +109,7 @@ Sha256Digester::Final( StrBuf &output )
 	unsigned char c[EVP_MAX_MD_SIZE];
 	unsigned int hash_len = 0;
 	EVP_DigestFinal_ex( (EVP_MD_CTX*)ctx, c, &hash_len );
-	StrOps::OtoX( c, hash_len, output );
+	StrOps::OtoXlower( c, hash_len, output );
 }
 
 # endif

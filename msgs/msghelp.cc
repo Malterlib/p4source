@@ -18,7 +18,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgHelp error code is: 275
+ * Current high value for a MsgHelp error code is: 277
  */
 
 ErrorId MsgHelp::NoHelp = { ErrorOf( ES_HELP, 1, E_FAILED, EV_USAGE, 1 ),
@@ -680,12 +680,29 @@ R"(
 	submit.
 	Imported files are never tamper-checked.
 
+    p4 unload -o localFile
+	The -o localFile flag redirects the output to the specified file on
+	the client filesystem. The client, label, or stream is not actually
+	unloaded; instead, the data that would have been written to the
+	unload depot is written to the local file.
+
+    p4 unsubmit -c N
+	Unsubmits the specified changelist by changelist number. Each
+	changelist is unsubmitted independently, but if you specify
+	multiple interdependent changelists, you must specify them in
+	descending changelist order.
+
     p4 -ztzoffset=N verify
 	Operating a replica in a timezone other than the master's timezone
 	can cause files of type +k which use $Date$ or $DateTime$ keywords
 	to verify as BAD! Specify the master's timezone offset to cause the
 	replica to use that timezone for keyed file verification. This value
 	does not, however, affect the time zone name shown by $DateTimeTZ$.
+
+    Overlay mapping legacy behavior
+	The map.overlay.legacy configurable can be set in order to revert
+	overlay mapping behavior to its pre-2023.1 state.  This configurable
+	is currently scheduled to be removed in the 2025.1 release.
 
     Predefined Trigger Actions
 	The predefined trigger actions 'pass' and 'fail' are processed
@@ -790,18 +807,6 @@ R"(
     p4 -x cmdfile run
 	Runs the commands listed in cmdfile one after the next, using a
 	single connection to the server.
-
-    p4 unload -o localFile
-	The -o localFile flag redirects the output to the specified file on
-	the client filesystem. The client, label, or stream is not actually
-	unloaded; instead, the data that would have been written to the
-	unload depot is written to the local file.
-
-    p4 unsubmit -c N
-	Unsubmits the specified changelist by changelist number. Each
-	changelist is unsubmitted independently, but if you specify
-	multiple interdependent changelists, you must specify them in
-	descending changelist order.
 
     p4d -Cn
 	Forces the server to operate in case-sensitive mode (n=0) on Windows
@@ -974,6 +979,7 @@ R"(
 	                           2: 2006.1 integration engine
 	                           3: 2013.2 integration engine
 	dm.integ.maxact       100K Max db.integed edges considered for a file
+	dm.integ.maxbranch     100 Max branches explored for base selection
 	dm.integ.tweaks          0 Modify integrate behavior (engine=3 only):
 	                           1: Treat all 'copy' records as 'merge'
 	                           2: Treat all 'ignore' records as 'edit'
@@ -1011,6 +1017,7 @@ R"(
 	map.joinmax1           10K Produce at most map1+map2+joinmax1
 	map.joinmax2            1M Produce at most joinmax2
 	map.maxwild             10 Maximum number of wildcards per line
+	map.overlay.legacy       0 See 'Overlay mapping legacy behavior' above
 	net.bufsize             4K Network I/O buffer size
 	proxy.deliver.fix	 1 Enable fix for proxy hang
 	rcs.maxinsert           1G Max lines in RCS archive file
@@ -1071,6 +1078,7 @@ R"(
     Variable         Defines                         More information
     --------         -------                         ------------------------
     P4ALIASES        Name of aliases file            p4 help aliases
+    P4ALTSYNC        Alternative sync agent          P4 Command Reference
     P4CHARSET        Client's local character set    p4 help charset
     P4COMMANDCHARSET Client's local character set
                      (for command line operations)   p4 help charset
@@ -1109,8 +1117,8 @@ R"(
 
     Environment variables used by the Perforce server:
 
-    Variable         Defines                         More information
-    --------         -------                         ------------------------
+    Variable        Defines                          More information
+    --------        -------                          ------------------------
     P4AUDIT         Name of server audit file        p4d -h
     P4AUTH          Authentication server address    P4 Command Reference
     P4CHANGE        Global changelist server address P4 Command Reference
@@ -1373,7 +1381,8 @@ R"(
 	an earlier one: if files match both the earlier and later mappings,
 	then the file matching the later mapping is used. Overlay mappings
 	are supported only for client views, and enable you to map multiple
-	server directories to the same client directory.
+	server directories to the same client directory.  When multiple
+	directories are overlaid in this way, only the last one is writable.
 
 	A mapping line that begins with a & does not override earlier mappings
 	for the same depot path, allowing multiple 'ditto' versions of the
@@ -1633,16 +1642,17 @@ R"(
 ErrorId MsgHelp::HelpCredits = { ErrorOf( ES_HELP, 24, E_INFO, EV_NONE, 0 ),
 R"(
 	Helix Core, The fast versioning engine from Perforce Software.
-	Contributions from Jeff Anton, Michael Bishop, Ksenia Burlachenko,
-	Brian Campbell, Phil Champagne, Geri Clucas, Cal Collier, Scott Common,
-	Robert Cowham, Ed Daraki, Jake Dickson, Gary Gibbons, Jason Gibson,
-	Paul Haffenden, John Halbig, Wendy Heffner, Sven Erik Knop,
-	Joel Kovisto, Peter Kreps, Dave Lewak, Fred Malouf, Mark Mears,
-	Michael Alyn Miller, Adam Morriss, Alex Neumann, Bryan Pendleton,
-	Nick Poole, Mike Schonberg, Christopher Seiwald, Andy Shebanow,
-	Michael Shields, David Sielaff, Laxmi Sistla, Tony Smith, Sam Stafford,
-	James Strickland, Brett Taylor,	Patrycja Tomiak, Alan Teague,
-	Dulan Wettasinghe and Mark Wittenberg.
+	Contributions from Iustin Amihaesei, Jeff Anton, Michael Bishop,
+	Ksenia Burlachenko, Brian Campbell, Phil Champagne, Geri Clucas,
+	Cal Collier, Scott Common, Robert Cowham, Ed Daraki, Jake Dickson,
+	Jonathan Dyer, Gary Gibbons, Jason Gibson, Paul Haffenden, John Halbig,
+	Wendy Heffner, Sven Erik Knop, Joel Kovisto, Peter Kreps, Dave Lewak,
+	Fred Malouf, Mark Mears, Michael Alyn Miller, Adam Morriss,
+	Norman Morse, Alex Neumann, Bryan Pendleton, Nick Poole,
+	Giles Rainy Brown, Mike Schonberg, Christopher Seiwald, Andy Shebanow,
+	Michael Shields, David Sielaff, Lakshmi Sistla, Tony Smith,
+	Sam Stafford, James Strickland, Brett Taylor, Patrycja Tomiak,
+	Alan Teague, Dulan Wettasinghe and Mark Wittenberg.
 )"
 };
 
@@ -1728,7 +1738,7 @@ ErrorId MsgHelp::HelpAdmin = { ErrorOf( ES_HELP, 26, E_INFO, EV_NONE, 0 ),
 R"(
     admin -- Perform administrative operations on the server
 
-    p4 admin checkpoint [-z | -Z] [-p [-N threads] ] [prefix]
+    p4 admin checkpoint [-z | -Z] [-p [-m]] [-N threads] [prefix]
     p4 admin journal [-z] [prefix]
     p4 admin stop
     p4 admin restart
@@ -1736,6 +1746,8 @@ R"(
     p4 admin resetpassword -a | -u user
     p4 admin setldapusers
     p4 admin end-journal
+    p4 admin sysinfo
+    p4 admin resource-monitor
 
 	'p4 admin updatespecdepot', 'p4 admin resetpassword', and
 	'p4 admin end-journal' require 'super' access.  The others
@@ -1744,7 +1756,9 @@ R"(
 	'p4 admin checkpoint' causes the server to take a checkpoint and
 	to copy the journal to a numbered journal file.  This command is
 	equivalent to 'p4d -jc'. The '-p' option requests a parallel
-	checkpoint. The '-N threads' specifies the number of threads to
+	checkpoint. The '-m' option requests a multifile checkpoint and
+	may only be specified with the '-p' option.
+	The '-N threads' specifies the number of threads to
 	use during the parallel request.
 
 	'p4 admin journal' causes the server to save the journal to a
@@ -1798,8 +1812,36 @@ R"(
 	journal replicated by the 'journalcopy' thread in a standby
 	server. The 'journalcopy' thread is stopped.
 
+	'p4 admin sysinfo' displays the output from operating system reporting
+	commands run on the Helix Server's host. This is intended as a support
+	tool to gather information about the environment the Helix Server is
+	running in.
+
+	'p4 admin resource-monitor' - see 'p4 help admin-resource-monitor'
 )"
 };
+
+ErrorId MsgHelp::HelpAdminResourceMonitor = { ErrorOf( ES_HELP, 276, E_INFO,
+	                                               EV_NONE, 0 ),
+R"(
+    p4 admin resource-monitor -- Monitor system resources
+
+	This command monitors resources on the host operating system that the
+	Helix Core Server is running on.  This is the command that provides the
+	information the Helix Core Server uses to throttle incoming client
+	commands in order to keep itself responsive and from overloading the
+	operating system.  This command is intended to be run as a server
+	startup command, one per server instance.  Setting the
+	sys.pressure.os.[mem|cpu].high configurables to zero will disable
+	checking for the given resource.
+
+	See 'p4 help server-resources' for more information on server
+	handling of operating system resource pressure.
+
+	This command requires 'super' access.
+)"
+};
+
 
 ErrorId MsgHelp::HelpJournaldbchecksums = { ErrorOf( ES_HELP, 135, E_INFO, EV_NONE, 0 ),
 R"(
@@ -2451,6 +2493,12 @@ R"(
 
 		rmdir		Makes 'p4 sync' attempt to delete a workspace
 		normdir *	directory when all files in it are removed.
+
+		altsync		Instructs the client to use an alternative sync
+		noaltsync *	agent specified with P4ALTSYNC when performing
+				file operations in the workspace. This option
+				can only be changed when the client's have list
+				is empty.
 
 	SubmitOptions:  Flags to change submit behavior.
 
@@ -4128,6 +4176,8 @@ R"(
     sizes -- Display information about the size of the files in the depot
 
     p4 sizes [-a -S] [-s | -z] [-b size] [-h|-H] [-m max] file[revRange] ...
+    p4 sizes -C [-K] [-Q charset] [-B utf8bom] [-L line-ending] [-a -S]
+                [-h|-H] [-m max] file[revRange] ...
     p4 sizes -A [-a] [-s] [-b size] [-h|-H] [-m max] archivefile...
     p4 sizes -U unloadfile ...
 
@@ -4161,6 +4211,19 @@ R"(
 	metadata, the sizes command returns a size of "<n/a>".
 
 	'p4 verify -u' updates the metadata for all revisions that require it.
+
+	The -C flag reports the file size as expected in the workspace,
+	defaulting to the client's environment, accounting for line-endings,
+	charset conversion of unicode/utf8/utf16 filetypes (including the BOM
+	for utf8 type files) and keyword expansion for +k type files.
+	These variables can be explicitly overridden with the following flags:
+	   -B utf8bom     - Override 'filesys.utf8bom' for utf8 type files
+	   -K             - Collapse keywords for +k type files
+	   -L line-ending - Override the client's line ending setting
+	   -Q charset     - Override P4CHARSET for unicode type files
+
+	Where client file size information would not match the server's, the
+	size is calculated server-side on request and cached for future use.
 
 	The -A flag displays files in archive depots (see 'p4 help archive').
 
@@ -5340,11 +5403,15 @@ R"(
 
 	The -S option changes the order of output:
 
-	        -St     sort by filetype
 	        -Sd     sort by date
-	        -Sr     sort by head revision
 	        -Sh     sort by have revision
+	        -Sr     sort by head revision
 	        -Ss     sort by filesize
+	        -St     sort by filetype
+
+	Note that sorting is applied to all potential results matching
+	the file argument(s), and the totalFileCount field indicates
+	the number of results before the -m option is applied.
 
 	The -U flag displays information about unload files in the unload
 	depot (see 'p4 help unload').
@@ -5957,7 +6024,8 @@ ErrorId MsgHelp::HelpInteged = { ErrorOf( ES_HELP, 55, E_INFO, EV_NONE, 0 ),
 R"(
     integrated -- List integrations that have been submitted
 
-    p4 integrated [-b branch [-r]] [-s change] [--into-only] [file ...]
+    p4 integrated [-b branch [-r]] [-s change | -m max ]
+	          [--into-only] [file ...]
 
         The p4 integrated command lists integrations that have been submitted.
         To list unresolved integrations, use 'p4 resolve -n'.  To list
@@ -5972,7 +6040,11 @@ R"(
         target files and source files.  The -b branch flag is required.
 
         The -s flag takes a change number and shows integrations from that
-        change forward.
+        change forward. This option cannot be used with -m.
+
+        The -m flag limits integrations to the 'max' most recent. The
+        output is sorted by descending change number. This option cannot
+        be used with -s.
 
         The --into-only flag shows only integrations from this path into
         other paths, not integrations from other paths into this one,
@@ -7717,7 +7789,56 @@ R"more(
     FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
     ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
     DEALINGS IN THE SOFTWARE.
+)more"
+R"more(
+    Zlib
+    Jean-loup Gailly and Mark Adler, et all
+    -----------------------
 
+    Copyright (C) 1995-2017 Jean-loup Gailly and Mark Adler
+
+    This software is provided 'as-is', without any express or implied
+    warranty.  In no event will the authors be held liable for any damages
+    arising from the use of this software.
+
+    Permission is granted to anyone to use this software for any purpose,
+    including commercial applications, and to alter it and redistribute it
+    freely, subject to the following restrictions:
+
+    1. The origin of this software must not be misrepresented; you must not
+       claim that you wrote the original software. If you use this software
+       in a product, an acknowledgment in the product documentation would be
+       appreciated but is not required.
+    2. Altered source versions must be plainly marked as such, and must not be
+       misrepresented as being the original software.
+    3. This notice may not be removed or altered from any source distribution.
+
+
+    Arduino PID Library
+    Brett Beauregard
+    -----------------------
+
+    MIT License
+
+    Copyright (c) 2017 Brett Beauregard
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
 )more"
 };
 
@@ -7868,10 +7989,9 @@ ErrorId MsgHelp::HelpLogin = { ErrorOf( ES_HELP, 89, E_INFO, EV_NONE, 0 ),
 R"(
     login -- Log in to Perforce by obtaining a session ticket
 
-    p4 login [-a -p] [-h <host>] [user]
-    p4 login -s [-a | -h <host>] [user]
-    p4 login [-a -p] -r <remotespec> [--remote-user=X]
-    p4 login [-s] -r <remotespec> [--remote-user=X]
+    p4 login [-s | -p] [-a | -h host] [user]
+    p4 login [-s -a] -r <remotespec> [--remote-user=X]
+    p4 login [-p -a] -r <remotespec> [--remote-user=X]
 
 	The login command enables a user to access Perforce until the session
 	expires or the user logs out.
@@ -8364,6 +8484,10 @@ R"(
 	need to specify '-f' when deleting the depot, since the presence
 	of the archive files will prevent the depot deletion.
 
+	Performance may be affected when a large number of file revisions
+	are being obliterated, so it is recommended that the command be run
+	during a maintenance or quiet period on the server.
+
 	'p4 obliterate' requires 'admin' access, which is granted by 'p4
 	protect'.
 )"
@@ -8527,8 +8651,8 @@ ErrorId MsgHelp::HelpPrint = { ErrorOf( ES_HELP, 67, E_INFO, EV_NONE, 0 ),
 R"(
     print -- Write a depot file to standard output
 
-    p4 print [-a -A -K -o localFile -q -m max --offset offset --size size]
-	     file[revRange] ...
+    p4 print [-a -A -K -o localFile -q -m max --offset offset --size size
+	      -Q charset -B utf8bom -L line-ending] file[revRange] ...
     p4 print -U unloadfile ...
 
 	Retrieve the contents of a depot file to the client's standard output.
@@ -8550,6 +8674,16 @@ R"(
 
 	The -K flag suppresses keyword expansion (this replaced the -k flag
 	in 2022.1, which is now an alias for -K for backwards compatibility).
+
+	The -L flag allows the line ending of textual files to be explicitly
+	specified as either 'unix', 'win' or 'mac'.
+
+	The -Q flag allows the charset for unicode type files to be explicitly
+	specified, overriding the connection's P4CHARSET but not override the
+	charset of unicode files with versioned charsets.
+
+	The -B flag overrides the client-side 'filesys.utf8bom' setting,
+	controlling the presence of the byte-order-mark in utf8 type files.
 
 	The -o localFile flag redirects the output to the specified file on
 	the client filesystem. Multiple files may be written by using wildcards
@@ -9404,7 +9538,7 @@ R"(
 	The -d flags are also passed to the diff options in the 'p4 resolve'
 	dialog. Additional -d flags that modify the diff output but do not
 	modify merge behavior include -dn (RCS), -dc (context), -ds (summary),
-	and -du (unified). Note that 'p4 resolve' uses text from the client
+	and -du (unified). Note that 'p4 resolve' uses content from the depot
 	file if the files differ only in whitespace.
 
 	The -f flag enables previously resolved content to be resolved again.
@@ -9855,12 +9989,16 @@ R"(
     shelve -- Store files (or an open stream spec) from a pending changelist
     into the depot
 
-    p4 shelve [-p] [-As | [-Af] files]
+    p4 shelve [-p] [--parallel=threads=N[,batch=N][,min=N]]
+              [-As | [-Af] file ...]
     p4 shelve [-a option] [-p] -i [-f | -r] [-As | -Af]
+              [--parallel=threads=N[,batch=N][,min=N]]
     p4 shelve [-a option] [-p] -r -c changelist# [-As | -Af]
-    p4 shelve [-a option] [-p] -c changelist# [-f] [-As | [-Af] file ...]
+              [--parallel=threads=N[,batch=N][,min=N]]
+    p4 shelve [-a option] [-p] -c changelist# [-f]
+              [--parallel=threads=N[,batch=N][,min=N]]
+              [-As | [-Af] file ...]
     p4 shelve -d -c changelist# [-f] [-As | [-Af] file ...]
-              --parallel=threads=N[,batch=N][,min=N]
 
 	'p4 shelve' creates, modifies or deletes shelved files in a pending
 	changelist. Shelved files remain in the depot until they are deleted
@@ -9964,7 +10102,7 @@ R"(
 	and their defaults. Auto parallel shelve is turned off by unsetting
 	the net.parallel.shelve.threads configurable. A user may override
 	the configured auto parallel shelve options on the command line,
-	or may disable it via 'p4 shelve --parallel=0`.
+	or may disable it via 'p4 shelve --parallel=0'.
 )"
 };
 
@@ -9973,13 +10111,21 @@ R"(
     submit -- Submit open files and/or open stream spec to the depot
 
     p4 submit [-r -s -f option -K [-b | --noretransfer 0|1]]
-    p4 submit [-r -s -f option -K -b] file
+              [--parallel=threads=N[,batch=N][,min=N]]
+    p4 submit [-r -s -f option -K -b]
+              [--parallel=threads=N[,batch=N][,min=N]]
+              file ...
     p4 submit [-r -f option -K -b] [-So|-Sx] -d description
-    p4 submit [-r -f option -K -b] [-Sx] -d description file
+              [--parallel=threads=N[,batch=N][,min=N]]
+    p4 submit [-r -f option -K -b] [-Sx] -d description
+              [--parallel=threads=N[,batch=N][,min=N]]
+              file ...
     p4 submit [-r -f option -K [-b | --noretransfer 0|1]] -c changelist#
+              [--parallel=threads=N[,batch=N][,min=N]]
     p4 submit -e shelvedChange# [-b]
+              [--parallel=threads=N[,batch=N][,min=N]]
     p4 submit -i [-r -s -f option -K -b]
-              --parallel=threads=N[,batch=N][,min=N]
+              [--parallel=threads=N[,batch=N][,min=N]]
 
 	'p4 submit' commits a pending changelist and the files it contains to
 	the depot, and/or submit an open stream spec.
@@ -10019,7 +10165,7 @@ R"(
 	avoid file re-transfer when retrying a failed submit.
 
 	The --noretransfer flag is used to override the submit.noretransfer
-	configurable so the user can choose his preferred re-transfer
+	configurable so the user can choose the preferred re-transfer
 	behavior during the current submit operation.
 
 	The -So and -Sx flags can be used to control whether an open stream
@@ -10203,13 +10349,18 @@ R"(
     flush -- synonym for 'sync -k'
     update -- synonym for 'sync -s'
 
-    p4 sync [-E -f -L -n -N -k -K -q -r] [-m max] [file[revRange] ...]
+    p4 sync [-E -f -L -n -N -k -K -q -r] [-m max]
             [--use-stream-change=N]
-    p4 sync [-E -L -n -N -K -q -s] [-m max] [file[revRange] ...]
+            [--parallel=threads=N[,batch=N][,batchsize=N][,min=N][,minsize=N]]
+            [file[revRange] ...]
+    p4 sync [-E -L -n -N -K -q -s] [-m max]
             [--use-stream-change=N]
-    p4 sync [-E -L -n -N -K -p -q] [-m max] [file[revRange] ...]
+            [--parallel=threads=N[,batch=N][,batchsize=N][,min=N][,minsize=N]]
+            [file[revRange] ...]
+    p4 sync [-E -L -n -N -K -p -q] [-m max]
             [--use-stream-change=N]
-            --parallel=threads=N[,batch=N][,batchsize=N][,min=N][,minsize=N]
+            [--parallel=threads=N[,batch=N][,batchsize=N][,min=N][,minsize=N]]
+            [file[revRange] ...]
 
 	Sync updates the client workspace to reflect its current view (if
 	it has changed) and the current contents of the depot (if it has
@@ -10301,10 +10452,10 @@ R"(
 	transferring multiple files in parallel. Specify threads=N to request
 	files be sent concurrently, using N independent network connections.
 	The N threads grab work in batches; specify batch=N to control the
-	number of files in a batch, or batchsize=N to control the number of
+	number of files in a batch and/or batchsize=N to control the number of
 	bytes in a batch. A sync that is too small will not initiate parallel
 	file transfers; specify min=N to control the minimum number of files
-	in a parallel sync, or minsize=N to control the minimum number of
+	in a parallel sync and/or minsize=N to control the minimum number of
 	bytes in a parallel sync. Requesting progress indicators causes the
 	--parallel flag to be ignored.
 
@@ -10400,9 +10551,14 @@ R"(
     topology -- Display the list of connected servers (Technical Preview)
 
     p4 topology [-a | -t numOfDays] [-F filter] [-T field...]
-    p4 topology -D date [-y] [-e] [-s serveraddress]
+    p4 topology -D date [-y] [-e]
+	                [-s serveraddress [-i serverID] [-p targetaddress]]
     p4 topology -d [-y] [-s serveraddress -i serverID [-p targetaddress]] |
-	           [-c date [-e]] | [-l lastSeenDate [-e]]
+	                [-c date [-e]] | [-l lastSeenDate [-e]]
+    p4 topology -m [-y] -s serveraddress -i serverID
+	                -S newserveraddress -I newserverID
+    p4 topology -m [-y] -s serveraddress -i serverID -p targetaddress
+	                -S newserveraddress -I newserverID -P newtargetaddress
 
 	Reports the servers that are connected directly or indirectly to the
 	innermost server, including an indicator of the server this command is
@@ -10438,6 +10594,23 @@ R"(
 
 	The -s flag indicates the server address. This flag is mandatory to
 	delete records specific to that server address.
+
+	The -p flag indicates the target address.
+	
+	The -i flag indicates the serverid.
+
+	The -S flag indicates the new server address.
+
+	The -P flag indicates the new target address.
+
+	The -I flag indicates the new serverid.
+
+	The -m flag indicates the move marker. This flag ensures that the move
+	operation marks the specified source server record as being moved to
+	the target server. This will preview the results unless the -y flag is
+	also provided. If the topology record has the target address then
+	it is mandatory to provide both the source target address (-p) and the
+	new target address (-P).
 
 	The -t flag displays all the recent configurations of the server
 	services that have been recorded in the topology based on the requested
@@ -10923,7 +11096,12 @@ R"(
 		    %%triggerMeta_name%% -- name from trigger definition
 		    %%triggerMeta_trigger%% -- second field in trigger definition
 		    %%user%% -- the user issuing the command
-
+		    %%sessionsActive%% -- Number of active client commands.
+		    %%sessionsPaused%% -- Number of paused client commands.
+		    %%pauseRateCPU%% -- Percentage of commands blocked for CPU.
+		    %%pauseRateMem%% -- Percentage of commands blocked for mem.
+		    %%pressureMem%% -- low/medium/high memory pressure
+		    %%pressureCPU%% -- high CPU pressure
 		    %%changelist%% -- the changelist being submitted
 		    %%changeroot%% -- the root path of files submitted
 		    %%oldchangelist%% -- the pre-commit changelist number
@@ -11724,7 +11902,8 @@ ErrorId MsgHelp::HelpDbstat = { ErrorOf( ES_HELP, 113, E_INFO, EV_NONE, 0 ),
 R"(
     dbstat -- Display size or simple statistics for a database table
 
-    p4 dbstat [-h] [-f] | [-p [-w worklevel] [-n nofiles]] { -a | dbtable ... }
+    p4 dbstat [-h] [-f] | [-p [-w worklevel] [-n numfiles]]
+	        { -a | dbtable ... }
     p4 dbstat -s
 
 	The -h flag displays a histogram showing the distances between
@@ -11740,13 +11919,15 @@ R"(
 
 	The -p flag requests level and page count information for a database
 	table. Included in the output are details of how the file would
-	be split for a multifile checkpoit request. The -w worklevel
-	and -n nofiles flags override the similarly named configuration
-	variables. The 'worklevel' determines which level of the table
-	should be used to spilt the file. 'nofiles' gives an indication
-	of the number of split checkpoint files that would be generated.
+	be split for a multifile checkpoint request. The -w worklevel
+	and -n numfiles flags override the similarly named configurables
+	'db.checkpoint.worklevel' and 'db.checkpoint.numfiles'. The
+	'worklevel' determines which level of the table should be used to
+	split the table. 'numfiles' determines, along with the depth of the
+	database table, the number of checkpoint files that would be
+	generated.
 
-	The -a flag outputs infomation for all tables.
+	The -a flag outputs information for all tables.
 
 	The -s flag returns the size of the database table files.
 
@@ -12209,6 +12390,20 @@ R"(
 	                            0: Use non-threaded checkpointing
 	                            N: Use N threads to produce the
 	                               checkpoint
+	db.checkpoint.reqlevel   4 Only database files at this level or
+	                           deeper will be considered to be split
+	                           into multiple checkpoint files during
+	                           a checkpoint or dump request.
+	db.checkpoint.worklevel  3 The number of pages at this level of
+	                           a database file is used along with
+	                           'db.checkpoint.numfiles' to determine the
+	                           records keys for a multifile split.
+	db.checkpoint.numfiles  10 This is used to calculate the divisor of the
+	                           number of pages at the worklevel to
+	                           determine the record keys for a multifile
+	                           split. For more details, see the Helix
+	                           Core Server Administrator Guide on "Parallel
+	                           checkpointing, dumping and recovery".
 	db.monitor.addthresh     0 Milliseconds before adding command or
 	                           connection at monitor level 1 or 2
 	db.monitor.interval     30 Seconds between the terminate process check
@@ -12233,6 +12428,8 @@ R"(
 	                           a commit server during 'p4 labelsync'
 	dm.domain.accessupdate 300 Time interval to update domain access time
 	dm.domain.accessforce 3600 Time interval to force domain access time
+	dm.fetch.preservechangenumbers 0 Preserve change numbers on 'p4 fetch'
+	                                 or 'p4 push' to this server
 	dm.info.hide             0 Suppress output of sensitive info fields
 	dm.integ.streamspec      1 Default stream spec integration value
 	                           0: Stream spec integration is not allowed
@@ -12275,7 +12472,8 @@ R"(
 	                           2: noinherit Parentview for new release
 	                              streams; inherit ParentView for all
 	                              other streams
-	dm.topology.lastseenupdate 300 Time interval to update topology record.
+)"
+R"(	dm.topology.lastseenupdate 300 Time interval to update topology record.
 	                               It represents the time that a record
 	                               must age before it is re-written merely
 	                               to change its 'lastSeenDate' field.
@@ -12498,6 +12696,25 @@ R"(	run.clientexts.allow     1 Allow client-side Extensions to run
 	                           uuid: generate as uuid
 	                           checksum: generate as checksum
 	                           serverid: generate as serverid+change
+	sys.pressure.max.pause.time 300 Max seconds to wait while paused.
+	sys.pressure.max.paused 1000 Max number of processes allowed to be
+	                           paused.
+	sys.pressure.mem.high   95 Percentage of memory used for 'high'.
+	sys.pressure.mem.high.duration 1000 Milliseconds of time to average
+	                           input.
+	sys.pressure.mem.medium 80 Percentage of memory used for 'medium'.
+	sys.pressure.mem.medium.duration 1000 Milliseconds of time to average
+	                           input.
+	sys.pressure.os.cpu.high 100 Percentage of processes stalled for CPU.
+	sys.pressure.os.cpu.high.duration 2000 Milliseconds of time to average
+	                           input.
+	sys.pressure.os.mem.high 70 Percentage of processes stalled for memory.
+	sys.pressure.os.mem.high.duration 2000 Milliseconds of time to average
+	                           input.
+	sys.pressure.os.mem.medium 40 Percentage of processes stalled for
+	                           memory.
+	sys.pressure.os.mem.medium.duration 2000 Milliseconds of time to
+	                           average input.
 	sys.rename.max          10 Limit for retrying a failed file rename
 	sys.rename.wait       1000 Timeout in ms between file rename attempts
 	sys.threading.groups     0 Use multiple processor groups on Windows.
@@ -12613,6 +12830,7 @@ R"(
 	         %'standby'%: read-only replica server which uses %'journalcopy'%
 	         %'forwarding-standby'%: forwarding-replica which uses %'journalcopy'%
 	         %'local'%: personal server created by %'init'%
+	         %'distribution-server'%: content distribution server
 	    Type %''broker''%:
 	         %'broker'%: %'p4broker'% process
 	    Type %''proxy''%:
@@ -13119,9 +13337,11 @@ R"(
 	reload       Reload metadata for an unloaded client or label
 	renameclient Rename a client workspace throughout the database
 	renameuser   Completely rename a user throughout the database
+	resource-monitor Monitor system resources
 	restore      Restore archived revisions to their original location
 	storage      Display, verify, or update physical archive storage
 	streamspec   Edit the stream template
+	sysinfo      Collect/report system info
 	topology     Display the list of servers in this installation
 	triggers     Modify list of server triggers
 	typemap      Modify the file name-to-type mapping table
@@ -13145,6 +13365,9 @@ R"(
 
     See 'p4 help realtime' for more information about realtime performance
     counters.
+
+    See 'p4 help server-resources' for more information about how the server
+    can be configured to have awareness of operating system resource limits.
 )"
 };
 
@@ -13695,6 +13918,15 @@ R"(
 	the user must be renamed in both servers, using separate invocations
 	of 'p4 renameuser'. The commands may be run in either order.
 
+	Performance may be affected while the command is running due to the
+	locking of multiple database tables and processing of file revisions
+	with the ktext (text+k) file type.
+	It is recommended that the command be run during a maintenance or
+	quiet period on the server.
+
+	File revisions that use the %Author% RCS keyword will require their
+	MD5 digest stored in the database to be updated using 'p4 verify'.
+
 	'p4 renameuser' requires 'super' access granted by 'p4 protect'.
 )"
 };
@@ -13837,6 +14069,10 @@ R"(
 
 	The --remote-user flag may be used to specify the username for the
 	target server, overriding any RemoteUser field in the remote spec.
+
+	The --preserve-change-numbers flag may be used to preserve the
+	pushed change numbers on the target server. Push will fail
+	if there are any conflicting changelist numbers.
 
 	The -S flag specifies a stream name to restrict the files to be
 	included in the push.
@@ -14264,6 +14500,10 @@ R"(
 
 	The --remote-user flag may be used to specify the username for the
 	target server, overriding any RemoteUser field in the remote spec.
+
+	The --preserve-change-numbers flag may be used to preserve the
+	change numbers of the fetched changelists on this server. Fetch
+	will fail if there are any conflicting changelist numbers.
 
 	The -m flag specifies to perform a shallow fetch; only the last N
 	revisions of each file are fetched.
@@ -16349,6 +16589,243 @@ R"(
 	results. To execute the operation, specify the -y flag.
 
 )"
+};
+
+ErrorId MsgHelp::HelpServerResources = { ErrorOf( ES_HELP, 277, E_INFO, EV_NONE, 0 ),
+R"(
+	Helix Core Server System Resource Monitoring (Technical Preview)
+
+	The Helix Core Server has the ability to monitor the availability
+	of various operating system resources, and reduce the amount of
+	work it accepts if resource availability is running thin.  This
+	prevents over-subscription of resources, and helps maintain more
+	consistent performance.
+
+	The target use-case for resource monitoring is to prevent large
+	spikes of resource usage.  The server will even out the spike,
+	spreading the load over a larger period of time.
+
+	Servers with a high number of concurrently-running commands will
+	benefit the most from this.  Configuring server monitoring such that
+	its thresholds are above the day-to-day ceiling of load is suggested,
+	as it will result in the least amount of performance change from
+	the baseline.  Setting the thresholds too low will result in resource
+	under-utilization and unnecessary slowdowns.
+
+	The resources available for monitoring are CPU pressure and memory
+	usage.  Resource monitoring interfaces in operating systems are
+	not consistent, so not all resources can be monitored in the same
+	way everywhere.
+
+	Resource usage is categorized as being in a low/medium/high (0/1/2)
+	state.
+
+	When any resource is heading to or past its configured threshold, the
+	server begins pausing incoming commands until resource usage has
+	dropped below the threshold.  The paused state is entered after the
+	client-server connection has been established, but before the
+	requested command has begun executing.  The time a command is able to
+	spend in the paused state is controlled by the
+	'sys.pressure.max.pause.time' configurable.  Setting this configurable
+	to zero disables pausing commands entirely.  The total number of
+	commands the server will maintain in the paused state is controlled by
+	the 'sys.pressure.max.paused' configurable.  A variety of
+	administrative and replication commands are not subject to pausing and
+	may run at any resource pressure level.
+
+	When resource monitoring is enabled and running, 'p4 -ztag info' will
+	supply a non-zero timestamp for the 'resourcePressureLastUpdate'
+	field, representing the last time resource status was sampled.  When
+	the server is under resource pressure, the 'resourcePressure.*'
+	fields will show the rate at which commands are being paused at.
+
+	When command monitoring is enabled, paused commands are visible with
+	'p4 monitor show -s P' (the 'paused' monitor status).  The time spent
+	in the paused state is recorded in the tracking entries of server
+	P4LOG files and the command-end records of structured logs.
+
+	Client commands that request progress output from the server (e.g.
+	'p4 -I $command') will receive a 'command paused' message while their
+	commands are being paused.  No other feedback is sent to the client
+	while paused.
+
+	Extensions may register a single 'pressure-pause' hook, which will be
+	called periodically while a command going to be paused - the Extension
+	can choose to pause, unpause, or defer the choice to the server - this
+	can be used to implement site-specific throttling policy, picking and
+	choosing which commands must wait while the OS is under pressure.
+
+	The following configurables are available to customize server
+	resource-monitoring behavior:
+
+	    # Maximum number of seconds an individual command may wait while
+	    # paused before giving up and returning an error to the client.
+	    sys.pressure.max.pause.time
+
+	    # Maximum number of concurrently-paused client commands on the
+	    # server.  New incoming commands above this threshold will be
+	    # rejected with an error.
+	    sys.pressure.max.paused
+
+	    # Percentage-based memory thresholds, ranged 0-100, and is the
+	    # ratio of total system memory vs memory available to use without
+	    # swapping.
+	    sys.pressure.mem.high
+	    sys.pressure.mem.medium
+
+	    # OS-supplied resource pressure thresholds, ranged 0-100, defined
+	    # as the percentage of processes on the system stalled for the
+	    # resource.
+	    sys.pressure.os.cpu.high
+	    sys.pressure.os.mem.high
+	    sys.pressure.os.mem.medium
+
+	    # Window size for averaging samples of resource pressure.  The
+	    # larger the window, the less sensitive/responsive the server
+	    # will be to changes in pressure.  These values are milliseconds.
+	    sys.pressure.mem.high.duration
+	    sys.pressure.mem.medium.duration
+	    sys.pressure.os.cpu.high.duration
+	    sys.pressure.os.mem.high.duration
+	    sys.pressure.os.mem.medium.duration
+
+	The 'medium' and 'high' thresholds must not be the same, and the 'high'
+	threshold must be greater than 'medium'.  When changing their settings,
+	their default values will be used if these invariants are broken.
+
+	There are two options for configuring memory pressure monitoring.  The
+	first is percentage-based, which is calculated with the amount
+	of memory available to use without swapping, and the total of system
+	amount memory, in percent.  The second uses OS-supplied memory pressure
+	data, which (if the OS supports it), gives the server a more accurate
+	view of system status.  Both options may be configured together or
+	separately.  Disable either or both by setting their 'high'
+	configurable to zero.  The two options are complimentary, but serve
+	distinct use-cases.  Percentage-based data is best used on servers
+	that have a large enough buffer of free memory such that normal
+	load does not reach high levels.  Percentage-based configuration is
+	also how a site could reserve enough memory for the OS to maintain
+	a filesystem cache.  The OS-supplied pressure option is targeted
+	as the backstop that prevents application load from overrunning the
+	capacity of the OS/hardware, leading to system/application instability
+	and is suitable for any size of Helix Core Server installation.
+
+	The configurables 'sys.pressure.*.mem.medium' and
+	'sys.pressure.*.mem.high' mark the relevant thresholds for memory
+	monitoring.  The 'medium' level specifies where the server will try to
+	keep memory usage below.  The 'high' level is intended to be set below
+	where the operating system is about to thrash into swap or become
+	unstable (such as having processes subject to the OOM killer).  New
+	incoming commands received by the server while at the 'high' threshold
+	will be rejected outright.  Existing commands that request more memory
+	while the server is above the 'high' threshold may be canceled and
+	return an error to the client.  Note that the server does not
+	distinguish between memory used by other processes on the operating
+	system and its own when limiting its work - e.g. if a large external
+	process comes and consumes a lot of memory, the Helix Core Server can
+	throttle itself in response.
+
+	The OS-supplied memory pressure option is available on all Windows
+	versions, and on Linux with cgroup v2.  For Linux, the
+	'sys.pressure.os.mem.high' configurable represents the amount of time
+	some processes on the system are spending stalled waiting for the
+	memory.  See the Linux kernel's definition of
+	'Pressure Stall Information' (PSI) for further details.  Note that on
+	Windows, only the 'high' pressure state (low memory) is reported by
+	the OS, so 'sys.pressure.os.mem.medium' is not available.
+
+	CPU monitoring is only available on Linux platforms with cgroups v2
+	support configured.  The 'sys.pressure.os.cpu.high' configurable
+	represents the amount of time some processes on the system are spending
+	stalled waiting for CPU time.
+
+	For Linux cgroup support, only the system-wide '/proc/pressure/*' files
+	are considered.
+
+	Administrators are encouraged to consider their usage patterns and
+	hardware configuration and to evaluate non-default settings.
+	Setting the group 'MaxMemory' limit for all commands such that the
+	upper limit is never too high is a good idea, so the distance between
+	the medium memory threshhold and the high level has some multiple of
+	the biggest possible command's memory.  Memory checking within each
+	command as it is processing is also done at periodic intervals, so
+	the distance between the 'high' threshold and the real out-of-memory
+	zone for the operating system ought to have some room to accommodate
+	allocations between checks.
+
+	The prerequisites for the server to be able to respond to resource
+	pressure are:
+
+	    0) Operating system support
+
+	    1) Realtime monitoring counters enabled.
+
+	    2) The 'p4 admin resource-monitor' server startup command
+	       running (see 'p4 help admin-resource-monitor').
+
+	    3) Existing resource usage baselines have been established.
+
+	    4) Tweak pressure-related configurables to above-baseline values.
+
+	    5) Enough space between the baseline usage and the medium/high
+	       thresholds such that the command-pausing is not always on.
+
+	E.g.:
+
+	    p4 serverid $name
+	    p4 configure set rt.monitorfile=$monitor_file
+	    p4 configure set "$name#startup.1=admin resource-monitor"
+	    p4 admin restart
+
+	It is recommended that prior to enabling the full resource monitoring
+	configuration, that it be run in preview-mode for a while in order to
+	gauge the effect of the configured thresholds.  Preview-mode is when
+	the feature is fully configured, but 'sys.pressure.max.pause.time=0'
+        i.e. the 'p4 admin resource-monitor' background task is sampling
+	resources, setting pressure levels, but commands are not subject
+	to pausing - this allows the administrator the chance to evaluate the
+	configured thresholds against current server load prior to it
+	affecting commands.
+
+	To disable monitoring, there are a few options:
+
+	    0) Turn off the 'p4 admin resource-monitor' startup
+	       command, either with 'p4 monitor terminate', or by removing the
+	       startup configurable and restarting the server.
+
+	    1) Change the 'sys.pressure.max.pause.time' configurable to zero.
+
+	    2) Change the values of the configurable thresholds
+	       (sys.pressure...high) to zero.  Either resource type may be
+	       disabled independently.
+
+	To further protect the Helix Core Server from the effects of low
+	system resources, on Linux, the server can be configured to coordinate
+	with the system OOM killer (Out Of Memory), effectively shielding the
+	Helix Core Server from being killed when the operating system kernel
+	is running out of memory.  The Helix Core Server, when configured, will
+	change its OOM score during database writes, and restore it to the
+	default when done writing in order to protect its database integrity.
+
+	To enable OOM protection, the "sys resource" system capability must be
+	granted the the Helix Core Server executable ('p4d'), e.g. via:
+
+	    sudo setcap 'CAP_SYS_RESOURCE=+ep' p4d
+
+	The default score of -1000 effectively makes it impossible to kill the
+	server during low memory conditions.  It's possible to disable or
+	change the likelyhood of the OOM killer targeting a database writer via
+	the 'server.oom_adj_score' configurable.  A value of zero means 'off',
+	and increasing values between -1000 and 0 correspond to increasing
+	likelyhood of OOM kills.
+
+	To verify that the server is able to perform an OS-specific
+	resource-related task (i.e. the configuration is correct), look for
+	a server startup log message about capabilities, e.g. via:
+
+	    p4d -p localhost:$tmp_port -r $tmp_p4root -L -
+)"
+
 };
 
 // ErrorId graveyard: retired/deprecated ErrorIds.

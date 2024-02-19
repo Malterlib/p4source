@@ -35,13 +35,11 @@ SubDirHdrs $(P4) script libs cURL curl ;
 
 P4APILibrary $(P4SCRIPT_CURL) :
 	bearssl.c
-	gskit.c
 	gtls.c
 	hostcheck.c
 	keylog.c
 	mbedtls.c
 	mbedtls_threadlock.c
-	nss.c
 	openssl.c
 	rustls.c
 	sectransp.c

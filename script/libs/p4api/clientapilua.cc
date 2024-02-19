@@ -43,6 +43,7 @@ void ClientApiLua::doBindings( void* luaV, void* nsV,
 	    "Final"      , &ClientApiLua::fFinal,
 	    "Run"        , &ClientApiLua::fRun,
 	    "SetClient"  , &ClientApiLua::fSetClient,
+	    "SetHost"    , &ClientApiLua::fSetHost,
 	    "SetUser"    , &ClientApiLua::fSetUser,
 	    "SetPort"    , &ClientApiLua::fSetPort,
 	    "SetVersion" , &ClientApiLua::fSetVersion,
@@ -117,6 +118,11 @@ void ClientApiLua::fSetProtocol( const char *p, const char *v )
 void ClientApiLua::fSetClient( const char *c )
 {
 	ClientApi::SetClient( c );
+}
+
+void ClientApiLua::fSetHost( const char *h )
+{
+	ClientApi::SetHost( h );
 }
 
 const char* ClientApiLua::fGetPort()

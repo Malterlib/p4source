@@ -63,6 +63,29 @@ MapTable::operator=( MapTable &f )
         return ( *this );
 }
 
+bool
+MapTable::operator==( const MapTable &o ) const
+{
+	// Line-by-line table comparison, folding similar */%%n patterns
+	// together as best we can (see MapHalf::Compare).
+	// If you want a more semantic comparison that accounts for redundant
+	// lines etc, consider using Disambiguate/Join before comparing.
+	if( Count() != o.Count() )
+	    return false;
+	
+	MapItem *m = entry;
+	MapItem *n = o.entry;
+	while( m )
+	{
+	    if( m->Lhs()->Compare( *n->Lhs(), true ) ||
+	        m->Rhs()->Compare( *n->Rhs(), true ) )
+	        return false;
+	    m = m->Next();
+	    n = n->Next();
+	}
+	return true;
+}
+
 void
 MapTable::Clear() 
 {
@@ -929,22 +952,39 @@ MapTable::Translate(
 }
 
 /*
+ * MapTable::ConvertMap() -- return copy with fromFlag converted to toFlag.
+ */
+
+MapTable *
+MapTable::ConvertMap( MapFlag fromFlag, MapFlag toFlag )
+{
+	MapTable *m0 = new MapTable;
+	MapItem *map;
+
+	for( map = entry; map; map = map->Next() )
+	    if( map->Flag() == fromFlag )
+	    {
+	        if( toFlag != MfNull )
+	            m0->Insert( *map->Lhs(), *map->Rhs(), toFlag );
+	    }
+	    else
+	    {
+	        m0->Insert( *map->Lhs(), *map->Rhs(), map->Flag() );
+	    }
+
+	m0->Reverse();
+
+	return m0;
+}
+
+/*
  * MapTable::StripMap() - return copy without mapFlag entries.
  */
 
 MapTable *
 MapTable::StripMap( MapFlag mapFlag )
 {
-	MapTable *m0 = new MapTable;
-	MapItem *map;
-
-	for( map = entry; map; map = map->Next() )
-	    if( map->Flag() != mapFlag )
-		m0->Insert( *map->Lhs(), *map->Rhs(), map->Flag() );
-
-	m0->Reverse();
-
-	return m0;
+	return ConvertMap( mapFlag, MfNull );
 }
 
 /*

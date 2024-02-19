@@ -131,9 +131,13 @@ Threader::GetThreadCount()
 
 typedef std::atomic< int > THR_COUNT;
 
+// Per-thread pointer to the thread element in global list.
+P4MT std::atomic< P4INT64 >* _P4_NT_ThreadCurrentMemBytes = 0;
+
 #endif
 
-static NtThreadList *NT_ThreadList = 0;
+// Globally-visible instance, used by 'p4 admin resource-monitor'.
+NtThreadList *_P4_NT_ThreadList = 0;
 
 class MultiThreader : public Threader {
 
@@ -306,11 +310,15 @@ class MultiThreader : public Threader {
 	    // Since we are running in the same address space as parent
 	    // process we don't want to call DisService.
 
-	    NT_ThreadList->AddThread( t, GetCurrentThreadId() );
+	    NtThreadList::ThreadInfo* ti =
+	        _P4_NT_ThreadList->AddThread( t, GetCurrentThreadId() );
+#ifdef HAS_CPP11
+	    _P4_NT_ThreadCurrentMemBytes = &ti->mem;
+#endif
 
 	    t->Run();
 
-	    if( !NT_ThreadList->RemoveThread( t ) )
+	    if( !_P4_NT_ThreadList->RemoveThread( t ) )
 	    {
 	        Error e;
 	        char msg[128];
@@ -360,8 +368,8 @@ class MultiThreader : public Threader {
 	{
 	    if( useProcessorGroups )
 	        InitProcessorInfo();
-	    delete NT_ThreadList;
-	    NT_ThreadList = new NtThreadList();
+	    delete _P4_NT_ThreadList;
+	    _P4_NT_ThreadList = new NtThreadList();
 	}
 
 	void Launch( Thread *t )
@@ -418,7 +426,7 @@ class MultiThreader : public Threader {
 	    AssertLog.Report( &e );
 
 	    int retries = 0;
-	    while( ! NT_ThreadList->Empty() && retries++ < 15 )
+	    while( ! _P4_NT_ThreadList->Empty() && retries++ < 15 )
 		sleep( 1 );
 	    if( retries < 15 )
 		return;
@@ -439,7 +447,7 @@ class MultiThreader : public Threader {
 
 	void Reap()
 	{
-	    if( NT_ThreadList->Empty() )
+	    if( _P4_NT_ThreadList->Empty() )
 		return;
 
 	    if( restarted && canDowngrade )
@@ -460,12 +468,12 @@ class MultiThreader : public Threader {
 	        cancelled = 1;
 	    }
 
-	    NT_ThreadList->SuspendThreads();
+	    _P4_NT_ThreadList->SuspendThreads();
 	}
 
 	int GetThreadCount()
 	{
-	    return NT_ThreadList->GetThreadCount();
+	    return _P4_NT_ThreadList->GetThreadCount();
 	}
 } ;
 

@@ -7,11 +7,12 @@
  * This file is part of Perforce - the FAST SCM System.
  */
 
+#include <stdhdrs.h>
+
 #include <windows.h>
 #include <stdio.h>
 #include <winsvc.h>
 #include "ntthdlist.h"
-
 
 NtThreadList::NtThreadList()
 {
@@ -35,13 +36,16 @@ NtThreadList::~NtThreadList()
 	DeleteCriticalSection( &section );
 }
 
-void
+NtThreadList::ThreadInfo*
 NtThreadList::AddThread( void *k, DWORD t )
 {
 	NtThreadEntry *entry = new NtThreadEntry();
 	entry->key = k;
 	entry->tid = t;
 	entry->prev = 0;
+# if defined( OS_NT ) && defined( HAS_CPP11 )
+	entry->info.mem = 0;
+# endif
 
 	EnterCriticalSection( &section );
 	entry->next = head;
@@ -50,6 +54,8 @@ NtThreadList::AddThread( void *k, DWORD t )
 	head = entry;
 	listSize++;
 	LeaveCriticalSection( &section );
+
+	return &entry->info;
 }
 
 int
@@ -152,4 +158,25 @@ NtThreadList::GetThreadCount()
 	result = listSize;
 	LeaveCriticalSection( &section );
 	return result;
+}
+
+P4INT64
+NtThreadList::TotalMem()
+{
+	P4INT64 total = 0;
+	NtThreadEntry *entry;
+
+	EnterCriticalSection( &section );
+	entry = head;
+
+	while( entry )
+	{
+# if defined( OS_NT ) && defined( HAS_CPP11 )
+	    total += entry->info.mem.load( std::memory_order_relaxed );
+# endif
+	    entry = entry->next;
+	}
+
+	LeaveCriticalSection( &section );
+	return total;
 }

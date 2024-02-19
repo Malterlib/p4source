@@ -18,7 +18,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgClient error code is: 97
+ * Current high value for a MsgClient error code is: 104
  */
 
 # include <error.h>
@@ -129,6 +129,15 @@ ErrorId MsgClient::CantRevertDirectoryNotEmpty = { ErrorOf( ES_CLIENT, 94, E_FAI
 ErrorId MsgClient::BadFiletype         = { ErrorOf( ES_CLIENT, 95, E_FATAL, EV_ILLEGAL, 1 ), "Bad filetype code: %type%" };
 ErrorId MsgClient::BadLineEndingFlag   = { ErrorOf( ES_CLIENT, 96, E_FATAL, EV_ILLEGAL, 2 ), "Bad line ending flag (%flag%) in filetype code: %type%" };
 ErrorId MsgClient::BadUncompressFlag   = { ErrorOf( ES_CLIENT, 97, E_FATAL, EV_ILLEGAL, 2 ), "Bad uncompress flag (%flag%) in filetype code: %type%" };
+
+ErrorId MsgClient::AltSyncBadJSON      = { ErrorOf( ES_CLIENT, 98, E_FAILED, EV_CLIENT, 1 ), "AltSync Error: Invalid JSON response: %blob%" };
+ErrorId MsgClient::AltSyncNoResult     = { ErrorOf( ES_CLIENT, 99, E_FAILED, EV_CLIENT, 1 ), "AltSync Error: JSON response missing 'result' key: %blob%" };
+ErrorId MsgClient::AltSyncBadResult    = { ErrorOf( ES_CLIENT, 100, E_FAILED, EV_CLIENT, 1 ), "AltSync Error: JSON response contains invalid 'result' value: %blob%" };
+ErrorId MsgClient::AltSyncErr          = { ErrorOf( ES_CLIENT, 101, E_FAILED, EV_CLIENT, 1 ), "AltSync Error: %err%" };
+ErrorId MsgClient::AltSyncUnhandledPass= { ErrorOf( ES_CLIENT, 102, E_FAILED, EV_CLIENT, 1 ), "AltSync Error: Cannot passthrough AltSync command: %cmd%" };
+ErrorId MsgClient::AltSyncNotSupported = { ErrorOf( ES_CLIENT, 103, E_FAILED, EV_CLIENT, 0 ), "AltSync Error: P4API was not built with AltSync support." };
+ErrorId MsgClient::AltSyncFailStart    = { ErrorOf( ES_CLIENT, 104, E_FAILED, EV_CLIENT, 0 ), "AltSync Error: Failed to start AltSync agent." };
+
 
 // ErrorId graveyard: retired/deprecated ErrorIds.
 

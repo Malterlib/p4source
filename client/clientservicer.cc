@@ -16,6 +16,7 @@
 # include <strarray.h>
 # include <strtable.h>
 # include <error.h>
+# include <runcmd.h>
 # include <mapapi.h>
 # include <handler.h>
 # include <rpc.h>
@@ -44,6 +45,7 @@
 # include "clientprog.h"
 
 # include "clientservice.h"
+# include "clientaltsynchandler.h"
 
 /*
  * ReconcileHandle - handle reconcile's list of files to skip when adding
@@ -190,6 +192,17 @@ clientReconcileEdit( Client *client, Error *e )
 	    if( e->Test() )
 		return;
 	}
+	
+	if( AltSyncCheckFile( client, confirm, status, ntype, e ) )
+	{
+	    if( !strcmp( status, "missing" ) )
+	        recHandle->delCount++;
+	    else
+	        recHandle->pathArray->Put()->Set( f->Name() );
+	    return;
+	}
+	if( e->Test() )
+	    return;
 
 	if( !( statVal & ( FSF_SYMLINK|FSF_EXISTS ) ) )
 	{

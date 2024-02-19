@@ -14,6 +14,7 @@
 # include <strbuf.h>
 # include <strops.h>
 # include <error.h>
+# include <tunable.h>
 
 # include <keepalive.h>
 # include "netportparser.h"
@@ -89,11 +90,23 @@ RpcTransport::Receive( StrBuf *s, Error *re, Error *se )
 	}
 
 	// Now allocate the buffer and read the data.
-
-	if( !( NetBuffer::Receive( s->Alloc( length ), length, re, se ) ) )
+	// Try not to allocate the posted buffer size in the message header
+	// in case the client sends a malicious request to cause repeated
+	// excessive memory allocation for a denial-of-service attack.
+	// Rather, we allocate a small installment at a time and reallocate
+	// the buffer as the client continues to send data.
+	// Lastly, we choose the same buffer chunk size as the underlying
+	// NetBuffer's recvBuf for efficiency. 
+	const int rcvsize = p4tunable.Get( P4TUNE_NET_RCVBUFSIZE );
+	while( length > 0 )
 	{
-	    re->Set( MsgRpc::Read );
-	    return -1;
+	    int n = length > rcvsize ? rcvsize : length;
+	    if( !( NetBuffer::Receive( s->Alloc( n ), n, re, se ) ) )
+	    {
+		re->Set( MsgRpc::Read );
+		return -1;
+	    }
+	    length -= n;
 	}
 
 	return 1;

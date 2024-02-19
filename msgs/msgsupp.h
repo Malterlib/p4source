@@ -431,6 +431,26 @@ class MsgSupp {
 	static ErrorId OptionUseStreamChange;
 	static ErrorId OptionHasStream;
 	static ErrorId OptionNoStream;
+	static ErrorId OptionPreserveChangeNumbers;
+	static ErrorId OptionLimit;
+	static ErrorId OptionType;
+	static ErrorId OptionResult;
+	static ErrorId OptionJNum;
+	static ErrorId OptionJField;
+	static ErrorId OptionIntervalMillis;
+	static ErrorId OptionThreshold;
+	static ErrorId OptionDatedEarlier;
+	static ErrorId OptionDeleteMarker;
+	static ErrorId OptionDeletePurge;
+	static ErrorId OptionMoveTopology;
+	static ErrorId OptionServerAddress;
+	static ErrorId OptionServerID;
+	static ErrorId OptionTargetAddress;
+	static ErrorId OptionNewServerAddress;
+	static ErrorId OptionNewServerID;
+	static ErrorId OptionNewTargetAddress;
+	static ErrorId OptionCreationDate;
+	static ErrorId OptionLastSeenDate;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

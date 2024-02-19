@@ -250,6 +250,7 @@ class Client : public Rpc {
 	const StrArray	*GetConfigs();
 	const StrPtr	&GetLoginSSO();
 	const StrPtr	&GetSyncTrigger();
+	const StrPtr	&GetAltSyncTrigger();
 	const StrPtr	&GetIgnoreFile();
 	const StrPtr	&GetInitRoot();
 	const StrPtr	&GetVersion();
@@ -392,6 +393,7 @@ class Client : public Rpc {
 	StrBuf		pBuf;		// for salting password key
 	StrBuf		loginSSO;	// single signon binary
 	StrBuf		syncTrigger;	// sync trigger binary
+	StrBuf		altSyncTrigger;	// alt-sync trigger binary
 	StrBuf		ignorefile;	// ignore filename
 	StrBuf		exeName;
 	StrBuf		charsetVar;

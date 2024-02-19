@@ -1,3 +1,5 @@
+/* Note that this is a modified version of inffast_chunk.h */
+
 /* inffast_chunk.h -- header to use inffast_chunk.c
  * Copyright (C) 1995-2003, 2010 Mark Adler
  * Copyright (C) 2017 ARM, Inc.

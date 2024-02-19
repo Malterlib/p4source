@@ -597,6 +597,18 @@ NetSslTransport::CreateAndInitializeSslContext( const char *conntypename )
 			conntypename, tlsmin, tlsmax );
     }
 
+# if OPENSSL_VERSION_NUMBER >= 0x30000000L
+    // If using lower than TLS1.2, we need to enable lower security
+    if( tlsmin < 12 || tlsmax < 12 )
+    {
+	SSL_CTX_set_security_level( ctxp, 0 );
+	SNPRINTF1( msgbuf, bufsize,
+	    "NetSslTransport::Ssl%sInit SSL_CTX_set_security_level(0)",
+	    conntypename );
+	SSLLOGFUNCTION( msgbuf );
+    }
+# endif
+
     // disallow protocols below the requested minimum
     for( TlsVersion *vp = tlsVersions; vp->value; vp++ )
     {

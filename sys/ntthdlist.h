@@ -20,28 +20,40 @@
 #ifndef NTTHDLIST_H__
 #define NTTHDLIST_H__
 
+# if defined( OS_NT ) && defined( HAS_CPP11 )
+#include <atomic>
+# endif
+
 class NtThreadList
 {
-    struct NtThreadEntry {
-	    void                 *key;
-	    DWORD                 tid;
-	    struct NtThreadEntry *next;
-	    struct NtThreadEntry *prev;
-    } ;
-
     public:
+
+    struct ThreadInfo
+    {
+# if defined( OS_NT ) && defined( HAS_CPP11 )
+	    std::atomic< P4INT64 >	mem;
+# endif
+    };
 
 		    NtThreadList();
     	virtual	    ~NtThreadList();
 
-	void		AddThread( void *k, DWORD tid );
+	ThreadInfo*	AddThread( void *k, DWORD tid );
 	int		RemoveThread( void *k );
 	void		SuspendThreads();
 	int		Empty();
-
 	int		GetThreadCount();
+	P4INT64		TotalMem();
 
     private:
+
+    struct NtThreadEntry {
+	    void                 *key;
+	    DWORD                 tid;
+	    ThreadInfo            info;
+	    struct NtThreadEntry *next;
+	    struct NtThreadEntry *prev;
+    } ;
 
 	NtThreadEntry		*head;
 	CRITICAL_SECTION	section;

@@ -669,6 +669,17 @@
 	# using it directly, as this may go away someday.
 	if $(OSPLAT:U) = AMD64 { OSPLAT = X86_64 ; }
 
+	OSVERLONG = $(OSVER:E=0) ;
+	if $(OS) = "MACOSX"
+	{
+		local dot = "" ;
+		for i in [ FStringToList $(OSVER) ] { dot = $(dot)"." ; }
+		if $(dot) = ".."
+		{
+			OSVERLONG = $(OSVER)"00" ;
+		}
+	}
+
 	# This is jam idiomatic, but the result is that
 	# P4BIN is set to ../p4-bin (relative to P4)
 
@@ -759,7 +770,7 @@
 		OS_$(OS)$(OSVER)
 		OS_$(OS)$(OSPLAT:U)
 		OS_$(OS)$(OSVER)$(OSPLAT:U)
-		"OS_VER=$(OSVER:E=0)" ;
+		"OS_VER=$(OSVERLONG)" ;
 
 	HDRS +=
 		[ FSubDirPath P4 msgs ]
@@ -784,10 +795,10 @@
 	# to include LLVM/Clang's libc++.
 	STATIC_LIBSTDC++ = no ;
 	# This really ought to be renamed LINK_WITH_STL since some operating systems use a different name.
- 	LINK_WITH_STDC++ = p4 p4d p4p p4broker p4broker_ja p4zk p4sandbox p4sandbox_ja p4vc browsechild mkconf p4dvcsapi p4api perfmerge perfsplit p4migrate license p4dctl ;
+ 	LINK_WITH_STDC++ = p4 p4d p4p p4broker p4zk p4sandbox p4sandbox_ja p4vc browsechild mkconf p4dvcsapi p4api perfmerge perfsplit p4migrate license p4dctl ;
 
 	# Some parts of libsupp now require symbols from pthread
-	LINK_WITH_PTHREAD = p4 p4d p4p p4broker p4broker_ja p4sandbox p4sandbox_ja p4ftpd browsechild p4api p4dvcsapi mkconf p4dctl license ;
+	LINK_WITH_PTHREAD = p4 p4d p4p p4broker p4sandbox p4sandbox_ja p4ftpd browsechild p4api p4dvcsapi mkconf p4dctl license ;
 
 	# SSL configuration:
 	# Define SSL to include netssl* source code into the libraries and executables
@@ -1036,6 +1047,27 @@
 	    LINKFLAGS += -fsanitize=thread ;
 	    LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.tsan_cxx-x86_64.a ;
 	    LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.tsan-x86_64.a ;
+
+	case msvc-asan :
+	    # https://docs.microsoft.com/en-us/cpp/sanitizers/asan?view=msvc-170
+	    # https://docs.microsoft.com/en-us/cpp/sanitizers/asan-known-issues?view=msvc-170
+	    # Note that this probably only works on Windows 10 and newer.
+	    # We'd like to also use /fsanitize-address-use-after-return but it's buggy (MSVC 2022)
+
+	    if $(MALLOC_OVERRIDE) = yes || $(USE_SMARTHEAP) = yes
+	    {
+	        # Running p4-test/server/test_tools/canary.t and
+	        # seeing what fails will say what won't work.  Enough
+		# does work to make it useful.
+	        exit ERROR:  Parts of the ASAN build are incompatible with a memory manager. ;
+	    }
+
+	    CCFLAGS  += /fsanitize=address /Zi /DEBUG:full ;
+	    C++FLAGS += /fsanitize=address /Zi /DEBUG:full ;
+	    LINK += /InferASanLibs /incremental:no /debug:full ;
+	    # This library is located in a directory like
+	    # C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.32.31326\lib\x64
+	    LINK += /wholearchive:clang_rt.asan_cxx_dbg-x86_64.lib ;
 
 	case *vsdebug* : # special-target builds; see NT section
 
@@ -1692,7 +1724,12 @@
 
 		if $(JAMFAST)
 		{
-			if $(PRODUCTION)
+			# As of Visual Studio 2017 and our API being Open Source,
+			# we allow the use of /Z7 in JAMFAST. /Zi with a parallel
+			# multi-target build like  'jam p4 p4d' causes LNK4099
+			# errors, whereas /Z7 does not.  A PDB file is created in
+			# either case.
+			if $(PRODUCTION) && [ FVersionCmp $(MSVSVER) : 15 ] < 0
 			{
 				Exit Do not use JAMFAST with PRODUCTION, since JAMFAST embeds
 				     debug symbols directly in object files. ;
@@ -1868,6 +1905,9 @@
 		case dyn_vsdebug_idl1 :
 			RCFLAGS      = /d NDEBUG /r $(_Z) ;
 			$(GENFLAGS) += /MDd -DITERATOR_DEBUG_LEVEL=1 ;
+
+		case msvc-asan :
+			$(GENFLAGS) += /MTd ;
 
 		case * :
 			# Static link version, for command line products
@@ -3199,7 +3239,7 @@
 
 			if [ FVersionCmp $(SSLVER) : 1.1 ] >= 0
 			{
-				SetDefaultDirName SSLLIBDIR : [ FDirName $(SSLPREFIX) lib.$(EXEC_SUB_TOKENS[1]) vs$(MSVSVER) $(d) $(dyn) ] ;
+				SetDefaultDirName SSLLIBDIR : [ FDirName $(SSLPREFIX) lib.$(EXEC_SUB_TOKENS[1]) vs$(MSVSVER) $(dyn) $(d) ] ;
 				SSLLIB    ?= [ FDirName $(SSLLIBDIR) libssl.lib ] ;
 				CRYPTOLIB ?= [ FDirName $(SSLLIBDIR) libcrypto.lib ] ;
 			}
@@ -3252,6 +3292,7 @@
 				# If we don't have OpenSSL, this will fail!
 				LDAPLIB ?= $(OPENLDAPLIBDIR)/libldap.a
 				           $(OPENLDAPLIBDIR)/liblber.a
+				           $(OPENLDAPLIBDIR)/liblutil.a
 				           $(CYRUSSASLPLIBDIR)/libsasl2.a ;
 			}
 		}

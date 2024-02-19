@@ -2,7 +2,13 @@ Instructions and hints regarding the Zlib library.
 --------------------------------------------------------------------------------
 
 Zlib site: http://zlib.net/
-perforce:1666 import directory: //depot/import/zlib/...
+perforce:1666 import directory: //3rd_party/cpp_libraries/zlib...
+
+This directory is composed of pieces from two Zlib forks.  Primarily it is
+from the Chromium fork, with the deflate code coming from Cloudflare's.
+
+    https://github.com/chromium/chromium/tree/main/third_party/zlib/
+    https://github.com/cloudflare/zlib/tree/gcc.amd64
 
 When upgrading Zlib, ensure that job022258 (Mangle zlib linker-visible names)
 does not regress.  This is to support users linking against both our API and
@@ -27,10 +33,11 @@ non-C++ APIs such as p4-java.  Testing on platforms with different endianness
 is prudent.
 
 
-The gnu compiler generates the pshufb instructions in the inline v_load8_dup()
-routine. This instruction only works with CPUs that support SSSE3 extensions.
-Some very old CPUs our customers are using don't have this faeture and
-get SIGILL signals when asked to inflate bytes on the server and client.
+Compilers can generate the pshufb instruction in the optimized
+versions of some functions. This instruction only works with CPUs that
+support SSSE3 extensions.  Some very old CPUs (e.g. AMD Phenom II)
+don't have this faeture and get SIGILL signals when asked to inflate
+bytes on the server and client.
 
 A fix has been made to place all the functions that use pshufb into a
 single source file, inffast_chunk.c. These two functions are

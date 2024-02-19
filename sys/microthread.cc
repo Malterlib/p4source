@@ -300,7 +300,9 @@ MicroThreadPool::AddThread( MicroThread * t )
 	DEBUGPRINTF( DEBUG_POOL, "add thread limit %d, count %d", activeLimit, active.Count());
 	if( activeLimit <= 0 || active.Count() < activeLimit )
 	{
+	    poolMutex.ReleaseMutex();
 	    int failed = t->RunWork();
+	    poolMutex.GetMutex();
 	    if( failed )
 	    {
 	        int acount = active.Count();

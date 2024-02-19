@@ -18,6 +18,7 @@
 
 StrDict::~StrDict()
 {
+	delete iterator;
 }
 
 void
@@ -27,8 +28,12 @@ StrDict::CopyVars( StrDict &dict )
 
 	Clear();
 
-	for( int i = 0; dict.GetVar( i, var, val ); i++ )
+	StrDictIterator *itor = dict.GetIterator();
+	while( itor->Get( var, val ) )
+	{
 	    SetVar( var, val );
+	    itor->Next();
+	}
 }
 
 void
@@ -238,6 +243,16 @@ StrDict::Load( FILE * in )
 		SetVar( StrRef( val, e - val ), StrRef( e + 1 ) );
 	
 	return 1;
+}
+
+StrDictIterator *
+StrDict::GetIterator()
+{
+	if( !iterator )
+	    iterator = new StrDictBasicIterator( this );
+	else
+	    iterator->Reset();
+	return iterator;
 }
 
 void

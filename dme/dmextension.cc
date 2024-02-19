@@ -54,11 +54,6 @@ void Extension::doBindings( Error* e )
 	rhePimpl->doBindings( e );
 }
 
-ExtensionCallerData* Extension::GetECD()
-{
-	return ecd ? &**ecd : nullptr;
-}
-
 p4_std_any::p4_any Extension::RunCallBack( const char* name, Error* e )
 {
 	return rhePimpl->RunCallBack( name, e );

@@ -61,6 +61,8 @@ enum P4DebugType {
 	DT_STM,		// Stream materialize for fstat,files,dirs
 	DT_PCHECK,	// Parallel checkpoint
 	DT_TOPOLOGY,	// Topology
+	DT_RESOURCE,	// OS resources
+	DT_P4MIGRATE,	// p4migrate related
 	DT_LAST
 }  ;
 
@@ -82,6 +84,9 @@ class P4Tunable {
 	int		Get( int t ) const {
 	    return t < DT_LAST && list2[t] != -1 && list2[t] > list[t].value ?
 	        list2[t] : list[t].value;
+	}
+	int		GetOriginalValue( int t ) const {
+	    return list[t].original;
 	}
 	int		GetLevel( const char *n ) const;
 	StrBuf		GetString( const char *n ) const;

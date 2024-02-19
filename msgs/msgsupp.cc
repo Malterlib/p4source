@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSupp error code is: 413
+ * Current high value for a MsgSupp error code is: 435
  */
 
 # include <error.h>
@@ -448,6 +448,26 @@ ErrorId MsgSupp::OptionCompressed         = { ErrorOf( ES_SUPP, 407, E_INFO, EV_
 ErrorId MsgSupp::OptionStreamViews        = { ErrorOf( ES_SUPP, 410, E_INFO, EV_NONE, 0 ), "%'--streamviews'%: reports results for streams in the context of the stream." } ;
 ErrorId MsgSupp::OptionHasStream          = { ErrorOf( ES_SUPP, 412, E_INFO, EV_NONE, 0 ), "%'--stream'%: reports results for changes that contain a stream spec." } ;
 ErrorId MsgSupp::OptionNoStream           = { ErrorOf( ES_SUPP, 413, E_INFO, EV_NONE, 0 ), "%'--nostream'%: reports results for changes without a stream spec." } ;
+ErrorId MsgSupp::OptionPreserveChangeNumbers = { ErrorOf(ES_SUPP, 414, E_INFO, EV_NONE, 0), "%'--preserve-change-numbers'%: preserve changelist numbers on push/fetch" };
+ErrorId MsgSupp::OptionLimit              = { ErrorOf(ES_SUPP, 415, E_INFO, EV_NONE, 0), "%'--limit'%: limit number of entries displayed." };
+ErrorId MsgSupp::OptionType               = { ErrorOf(ES_SUPP, 416, E_INFO, EV_NONE, 0), "%'--type'%: filter on checkpoint history type." };
+ErrorId MsgSupp::OptionResult             = { ErrorOf(ES_SUPP, 417, E_INFO, EV_NONE, 0), "%'--result'%: filter on result, 'pass' or 'fail'." };
+ErrorId MsgSupp::OptionJNum               = { ErrorOf(ES_SUPP, 418, E_INFO, EV_NONE, 0), "%'--jnum'%: filter on journal number." };
+ErrorId MsgSupp::OptionJField             = { ErrorOf(ES_SUPP, 419, E_INFO, EV_NONE, 0), "%'--jfield'%: select ckphist fields displayed." };
+ErrorId MsgSupp::OptionIntervalMillis     = { ErrorOf( ES_SUPP, 422, E_INFO, EV_NONE, 0 ), "%'--interval-ms (-I)'%: poll time in milliseconds." } ;
+ErrorId MsgSupp::OptionThreshold          = { ErrorOf( ES_SUPP, 423, E_INFO, EV_NONE, 0 ), "%'--threshold (-t)'%: threshold to display the recent servers\' configurations." } ;
+ErrorId MsgSupp::OptionDatedEarlier       = { ErrorOf( ES_SUPP, 424, E_INFO, EV_NONE, 0 ), "%'--dated-earlier (-e)'%: topology records dated earlier than the specified date." } ;
+ErrorId MsgSupp::OptionDeleteMarker       = { ErrorOf( ES_SUPP, 425, E_INFO, EV_NONE, 0 ), "%'--delete-marker (-d)'%: marks the topology record as deleted." } ;
+ErrorId MsgSupp::OptionDeletePurge        = { ErrorOf( ES_SUPP, 426, E_INFO, EV_NONE, 0 ), "%'--delete-purge (-D)'%: deletes the topology record." } ;
+ErrorId MsgSupp::OptionMoveTopology       = { ErrorOf( ES_SUPP, 427, E_INFO, EV_NONE, 0 ), "%'--move-topology (-m)'%: moves the topology record." } ;
+ErrorId MsgSupp::OptionServerAddress      = { ErrorOf( ES_SUPP, 428, E_INFO, EV_NONE, 0 ), "%'--server-address (-s)'%: server address." } ;
+ErrorId MsgSupp::OptionServerID           = { ErrorOf( ES_SUPP, 429, E_INFO, EV_NONE, 0 ), "%'--serverid (-i)'%: serverid." } ;
+ErrorId MsgSupp::OptionTargetAddress      = { ErrorOf( ES_SUPP, 430, E_INFO, EV_NONE, 0 ), "%'--target-address (-p)'%: target address." } ;
+ErrorId MsgSupp::OptionNewServerAddress   = { ErrorOf( ES_SUPP, 431, E_INFO, EV_NONE, 0 ), "%'--new-server-address (-S)'%: new server address." } ;
+ErrorId MsgSupp::OptionNewServerID        = { ErrorOf( ES_SUPP, 432, E_INFO, EV_NONE, 0 ), "%'--new-serverid (-I)'%: new serverid." } ;
+ErrorId MsgSupp::OptionNewTargetAddress   = { ErrorOf( ES_SUPP, 433, E_INFO, EV_NONE, 0 ), "%'--new-target-address (-P)'%: new target address." } ;
+ErrorId MsgSupp::OptionCreationDate       = { ErrorOf( ES_SUPP, 434, E_INFO, EV_NONE, 0 ), "%'--creation-date (-c)'%: topology record creation date." } ;
+ErrorId MsgSupp::OptionLastSeenDate       = { ErrorOf( ES_SUPP, 435, E_INFO, EV_NONE, 0 ), "%'--last-seen-date (-l)'%: topology record last seen date." } ;
 
 // ErrorId graveyard'%: retired/deprecated ErrorIds.
 

@@ -49,6 +49,9 @@ class RpcRecvBuffer
 	void		RemoveVar( const StrPtr &v )
 			{ syms.RemoveVar( v.Text() ); }
 
+	int		GetCount()
+			{ return syms.GetCount(); }
+
 	int		GetArgc() { return args.Count(); }
 	StrPtr *	GetArgv() { return args.Table(); }
 

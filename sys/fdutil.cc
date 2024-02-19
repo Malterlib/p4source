@@ -16,6 +16,8 @@
 # include <stdhdrs.h>
 # include <largefile.h>
 # include <fdutil.h>
+# include <debug.h>
+# include <tunable.h>
 
 # if defined( OS_SOLARIS ) && !defined( OS_SOLARIS25 )
 # define flockL flock64
@@ -88,7 +90,9 @@ lockFile( FD_TYPE fd, int flag, int (*cb)(void *), void *arg )
 # else
 # if defined(LOCK_UN) && !defined(sgi) && !defined(OS_QNX) && !defined(OS_AIX)
 
-	if( !cb )
+	int timeout = cb ? p4tunable.Get( P4TUNE_FILESYS_LOCKTIMEOUT ) : 0;
+
+	if( !cb || !timeout )
 	{
 	    switch( flag )
 	    {
@@ -108,8 +112,8 @@ lockFile( FD_TYPE fd, int flag, int (*cb)(void *), void *arg )
 	    struct itimerval t;
 	    struct sigaction sa;
 	
-	    t.it_value.tv_sec = 1;
-	    t.it_value.tv_usec = 0;
+	    t.it_value.tv_sec = timeout / 1000;
+	    t.it_value.tv_usec = ( timeout % 1000 ) * 1000;
 	    t.it_interval.tv_sec = 0;
 	    t.it_interval.tv_usec = 0;
 	
@@ -382,6 +386,8 @@ lockFileByHandle(HANDLE h, int flag, int (*cb)(void *), void *arg )
 	ol.OffsetHigh	= 0xFFFFFFFF;
 	ol.hEvent	= 0;
 
+	DWORD timeout = cb ? p4tunable.Get( P4TUNE_FILESYS_LOCKTIMEOUT ) : 0;
+
 	switch( flag )
 	{
 	case LOCKF_UN:    return UnlockFileEx(h, 0, 1, 0, &ol) ? 0 : -1;
@@ -397,7 +403,7 @@ lockFileByHandle(HANDLE h, int flag, int (*cb)(void *), void *arg )
 
 	bool ret = LockFileEx( h, f, 0, 1, 0, &ol );
 
-	if( !ret && cb )
+	if( !ret && cb && timeout )
 	{
 	    // If using overlapped IO, a failure may actually just
 	    // indicate that the IO is pending
@@ -409,7 +415,7 @@ lockFileByHandle(HANDLE h, int flag, int (*cb)(void *), void *arg )
 	        // IO is pending, wait 1s or until
 	        // the operation is complete.
 
-	        DWORD res = WaitForSingleObjectEx( h, 1000, true );
+	        DWORD res = WaitForSingleObjectEx( h, timeout, true );
 
 	        // Lock was successful, return
 	        if( res == WAIT_OBJECT_0 )
@@ -436,7 +442,7 @@ lockFileByHandle(HANDLE h, int flag, int (*cb)(void *), void *arg )
 	    }
 	}
 
-	if( !ret && !cb )
+	if( !ret && ( !cb || !timeout ) )
 	{
 	    // If using overlapped IO, a failure may actually just
 	    // indicate that the IO is pending

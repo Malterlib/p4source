@@ -43,6 +43,13 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	asyn-thread.c
 	curl_base64.c
 	bufref.c
+	bufq.c
+	cf-h1-proxy.c
+	cf-h2-proxy.c
+	cf-haproxy.c
+	cf-https-connect.c
+	cf-socket.c
+	cfilters.c
 	conncache.c
 	connect.c
 	content_encoding.c
@@ -64,10 +71,12 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	curl_sasl.c
 	curl_sspi.c
 	curl_threads.c
+	curl_trc.c
 	c-hyper.c
 	dict.c
 	doh.c
 	dynbuf.c
+	dynhds.c
 	easy.c
 	easygetopt.c
 	easyoptions.c
@@ -91,6 +100,7 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	hostsyn.c
 	hsts.c
 	http.c
+	http1.c
 	http2.c
 	http_aws_sigv4.c
 	http_chunks.c
@@ -98,8 +108,7 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	http_negotiate.c
 	http_ntlm.c
 	http_proxy.c
-	h2h3.c
-	idn_win32.c
+	idn.c
 	if2ip.c
 	imap.c
 	inet_ntop.c
@@ -109,6 +118,7 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	llist.c
 	md4.c
 	curl_md5.c
+	macos.c
 	memdebug.c
 	mime.c
 	mprintf.c
@@ -156,9 +166,10 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	version.c
 	version_win32.c
 	warnless.c
-	wildcard.c
 	ws.c
 	;
-	
+
 SubInclude p4 script libs cURL vauth ;
 SubInclude p4 script libs cURL vtls ;
+SubInclude p4 script libs cURL vquic ;
+

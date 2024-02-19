@@ -62,6 +62,7 @@ P4APILibrary $(SUPPORTLIB) :
 	strdict.cc
 	strops.cc
 	strtable.cc
+	strtree.cc
 	strxml.cc
 	ticket.cc
 	tracker.cc

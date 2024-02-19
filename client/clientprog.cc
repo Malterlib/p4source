@@ -31,6 +31,7 @@ ClientProgressText::Description( const StrPtr *description, int units )
 	cnt = 0;
 	backup = 0;
 	total = 0;
+	this->units = units;
 }
 
 void
@@ -63,7 +64,7 @@ ClientProgressText::Update( long pos )
 	    res << pct;
 	    res.Extend( '%' );
 	}
-	else
+	else if( units )
 	    res << pos;
 	res.Extend( ' ' );
 	res.Extend( "|/-\\"[ cnt++ & 3 ] );

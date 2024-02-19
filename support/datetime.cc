@@ -665,6 +665,12 @@ DateTimeHighPrecision::ToNanos() const
 	return seconds * BILLION + nanos;
 }
 
+P4INT64
+DateTimeHighPrecision::ToMs() const
+{
+	return ToNanos() / MILLION;
+}
+
 void
 DateTimeHighPrecision::Now()
 {

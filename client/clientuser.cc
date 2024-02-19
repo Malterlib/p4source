@@ -63,6 +63,12 @@ ClientUser::ClientUser( int autoLoginPrompt, int apiVersion )
 	apiVer = apiVersion;
 	if( apiVersion == -1 )
 	    apiVer = atoi( P4Tag::l_client );
+
+# ifdef HAS_CPP11
+	setterGuard = new std::mutex;
+# else
+	setterGuard = 0;
+# endif
 }
 
 /*
@@ -71,8 +77,11 @@ ClientUser::ClientUser( int autoLoginPrompt, int apiVersion )
 
 ClientUser::~ClientUser()
 {
-    delete transfer;
-    delete ssoHandler;
+	delete transfer;
+	delete ssoHandler;
+# ifdef HAS_CPP11
+	delete (std::mutex *)setterGuard;
+# endif
 }
 
 /*
@@ -949,4 +958,22 @@ int
 ClientUser::IsOutputTaggedWithErrorLevel()
 {
 	return outputTaggedWithErrorLevel;
+}
+
+void
+ClientUser::SetEnviro( Enviro *env )
+{
+# ifdef HAS_CPP11
+	std::lock_guard<std::mutex> lock( *(std::mutex *)setterGuard );
+# endif
+	enviro = env;
+}
+
+void
+ClientUser::SetVarList( StrDict *l )
+{
+# ifdef HAS_CPP11
+	std::lock_guard<std::mutex> lock( *(std::mutex *)setterGuard );
+# endif
+	varList = l;
 }

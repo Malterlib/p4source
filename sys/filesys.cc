@@ -33,6 +33,7 @@
 # include "enviro.h"
 # include "errno.h"
 # include "hostenv.h"
+# include "pressuremonitor.h"
 # include "sysinfo.h"
 # define USE_ERRNO
 

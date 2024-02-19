@@ -142,7 +142,8 @@ enum MapTableT {
 } ;
 
 enum MapFlag {
-	MfMap,		// map
+	MfNull	 = -1,
+	MfMap	 =  0,	// map
 	MfUnmap,	// -map
 	MfRemap,	// +map
 	MfHavemap,	// $map
@@ -168,12 +169,15 @@ class MapTable {
 			MapTable();
 			~MapTable();
 
-	MapTable& operator=( MapTable &f );
+	MapTable&	operator=( MapTable &f );
+	bool		operator==( const MapTable &o ) const;
+	bool		operator!=( const MapTable &o ) const
+			{ return !( *this == o ); }
 
 	int		Better( MapTable &other, MapTableT direction );
 	MapItem *	Check( MapTableT direction, const StrPtr &from );
 	void		Clear();
-	int		Count() { return count; }
+	int		Count() const { return count; }
 	void		Disambiguate();
 	void		Dump( const char *trace, int fmt=0 );
 	void		DumpTree( MapTableT dir, const char *trace );
@@ -208,6 +212,7 @@ class MapTable {
 	void		Remove( int slot );
 	void		Reverse();
 	MapStrings *	Strings( MapTableT dir );
+	MapTable *	ConvertMap( MapFlag fromFlag, MapFlag toFlag );
 	MapTable *	StripMap( MapFlag mapFlag );
 	MapTable *	Swap( MapTable *m );
 	int		CountByFlag( MapFlag mapFlag );

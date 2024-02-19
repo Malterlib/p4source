@@ -121,7 +121,8 @@ class MapHalf : public StrBuf {
 
 	void		operator =( const StrPtr &newHalf );
 
-	int		Compare( const MapHalf &item ) const;
+	int		Compare( const MapHalf &item,
+				 bool strict = false ) const;
 	int		GetCommonLen( MapHalf *prev );
 	int		GetFixedLen() { return fixedLen; }
 	void		Expand( const StrPtr &from, StrBuf &to, MapParams &p );

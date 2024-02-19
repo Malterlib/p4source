@@ -576,7 +576,33 @@ NetTcpTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 int
 NetTcpTransport::DuplexReady()
 {
-		return !p4tunable.Get( P4TUNE_NET_AUTOTUNE );
+	/*
+	 * Always return true (1) unless net.autotune is set
+	 * to the new value (2), which will return false (0).
+	 *
+	 * The (new and undoc) net.autotune value of 2
+	 * behaves like net.autotune=1 did prior to job110437
+	 * (returns !net.autotune).
+	 * This is very useful for testing, as well as providing
+	 * a way to revert behavior in the field if this change
+	 * causes trouble for a customer.
+	 *
+	 * Prior to this change, DuplexReady() always returned false
+	 * if net.autotune was enabled, which makes Rpc::Dispatch() 2nd-level
+	 * Dispatch() calls do nothing (if not flushing or handling errors);
+	 * it also makes RpcMulti::Dispatch() calls not dispatch callbacks.
+	 * As a result, under some circumstances (the details of which I don't
+	 * fully understand but seem to require submitting much data and many
+	 * files), Rpc and/or MultiRpc stop dispatching callbacks and
+	 * the data transfer stalls forever.
+	 *
+	 * This change enables Rpc and MultiRpc to dispatch callbacks
+	 * when net.autotune is enabled, preventing these stalls.
+	 */
+
+	int	autotune = p4tunable.Get( P4TUNE_NET_AUTOTUNE );
+
+	return autotune < 2 ? 1 : 0;
 }
 
 int

@@ -487,6 +487,27 @@ Client::GetSyncTrigger()
 }
 
 const StrPtr &
+Client::GetAltSyncTrigger()
+{
+	char *c;
+
+	if( altSyncTrigger.Length() )
+	{
+	    // OK.
+	}
+	else if ( ( c = enviro->Get( "P4ALTSYNC" ) ) )
+	{
+	    altSyncTrigger.Set( c );
+	}
+	else
+	{
+	    altSyncTrigger.Set( "unset" );
+	}
+
+	return altSyncTrigger;
+}
+
+const StrPtr &
 Client::GetIgnoreFile()
 {
 	char *c;

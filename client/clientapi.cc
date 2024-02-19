@@ -38,11 +38,12 @@ int	ClientApi::IsUnicode() { return client->IsUnicode(); }
 void	ClientApi::RunTag( const char *f, ClientUser *u ) { client->RunTag( f, u ); }
 void	ClientApi::WaitTag( ClientUser *u ) { client->WaitTag( u ); }
 
-StrPtr  *ClientApi::VGetVar( const StrPtr &var ) { return client->translated->GetVar( var ); }
-void    ClientApi::VSetVar( const StrPtr &var, const StrPtr &val ) { client->translated->SetVar( var, val ); }
-void    ClientApi::VSetVarV( const char *var ) { client->SetVarV( var ); }
-StrPtr  *ClientApi::GetEVar( const StrPtr &var ) { return client->GetEVar( &var ); }
-void    ClientApi::SetEVar( const StrPtr &var, const StrPtr &val ) { client->SetEVar( &var, &val ); }
+StrPtr	*ClientApi::VGetVar( const StrPtr &var ) { return client->translated->GetVar( var ); }
+void	ClientApi::VSetVar( const StrPtr &var, const StrPtr &val ) { client->translated->SetVar( var, val ); }
+void	ClientApi::VSetVarV( const char *var ) { client->SetVarV( var ); }
+int	ClientApi::VGetCount() { return client->translated->GetCount(); }
+StrPtr	*ClientApi::GetEVar( const StrPtr &var ) { return client->GetEVar( &var ); }
+void	ClientApi::SetEVar( const StrPtr &var, const StrPtr &val ) { client->SetEVar( &var, &val ); }
 
 void 	ClientApi::SetArgv( int ac, char *const *av ) { client->SetArgv( ac, av ); }
 void 	ClientApi::SetCharset( const char *c ) { client->SetCharset( c ); }

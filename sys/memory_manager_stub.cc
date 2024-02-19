@@ -73,19 +73,20 @@ void SH_free( void *ptr )
 
 # include <stdhdrs.h>
 # include <strbuf.h>
-# include "malloc_stats.h"
+# include "malloc_utils.h"
 
-char * MallocStats::MemMgrVersion( StrBuf *buf )
+char * MallocUtils::MemMgrVersion( StrBuf *buf )
 {
 	*buf = "standard library manager";
 	return buf->Text();
 }
 
-P4INT64 MallocStats::ThreadPeakMemBytes() { return 0; };
-P4INT64 MallocStats::ThreadCurrentMemBytes() { return 0; };
-P4INT64 MallocStats::CurrentThreadMegaBytes() { return 0; };
-P4INT64 MallocStats::PeakThreadMaxMegaBytes() { return 0; };
-P4INT64 MallocStats::PeakThreadMegaBytes() { return 0; };
-void MallocStats::ResetThreadStatsPeak() {};
+P4INT64 MallocUtils::ThreadPeakMemBytes() { return 0; };
+P4INT64 MallocUtils::ThreadCurrentMemBytes() { return 0; };
+P4INT64 MallocUtils::CurrentThreadMegaBytes() { return 0; };
+P4INT64 MallocUtils::PeakThreadMaxMegaBytes() { return 0; };
+P4INT64 MallocUtils::PeakThreadMegaBytes() { return 0; };
+void MallocUtils::ResetThreadStatsPeak() {};
+void MallocUtils::FreeThreadMemoryCache() {};
 
 # endif

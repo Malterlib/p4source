@@ -7,7 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -35,12 +35,6 @@
 /* Define if you have the <arpa/inet.h> header file.  */
 /* #define HAVE_ARPA_INET_H 1 */
 
-/* Define if you have the <assert.h> header file.  */
-/* #define HAVE_ASSERT_H 1 */
-
-/* Define if you have the <errno.h> header file.  */
-/* #define HAVE_ERRNO_H 1 */
-
 /* Define if you have the <fcntl.h> header file.  */
 #define HAVE_FCNTL_H 1
 
@@ -55,18 +49,6 @@
 
 /* Define if you have the <netinet/in.h> header file.  */
 /* #define HAVE_NETINET_IN_H 1 */
-
-/* Define if you have the <signal.h> header file. */
-#define HAVE_SIGNAL_H 1
-
-/* Define if you have the <ssl.h> header file.  */
-/* #define HAVE_SSL_H 1 */
-
-/* Define if you have the <stdlib.h> header file.  */
-#define HAVE_STDLIB_H 1
-
-/* Define if you have the <process.h> header file.  */
-/* #define HAVE_PROCESS_H 1 */
 
 /* Define if you have the <sys/param.h> header file.  */
 /* #define HAVE_SYS_PARAM_H 1 */
@@ -98,9 +80,6 @@
 /* Define if you have the <termios.h> header file.  */
 /* #define HAVE_TERMIOS_H 1 */
 
-/* Define if you have the <time.h> header file.  */
-#define HAVE_TIME_H 1
-
 /* Define if you have the <unistd.h> header file.  */
 #if defined(__MINGW32__) || defined(__LCC__)
 #define HAVE_UNISTD_H 1
@@ -121,9 +100,6 @@
 
 /* Define if you have the ANSI C header files.  */
 #define STDC_HEADERS 1
-
-/* Define if you can safely include both <sys/time.h> and <time.h>.  */
-/* #define TIME_WITH_SYS_TIME 1 */
 
 /* ---------------------------------------------------------------- */
 /*                             FUNCTIONS                            */
@@ -305,8 +281,9 @@
 /* ---------------------------------------------------------------- */
 
 /* Define cpu-machine-OS */
-#undef OS
+#ifndef OS
 #define OS "i386-pc-win32ce"
+#endif
 
 /* Name of package */
 #define PACKAGE "curl"

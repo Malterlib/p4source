@@ -19,6 +19,7 @@
 # include <strops.h>
 # include <strarray.h>
 # include <strtable.h>
+# include <strtree.h>
 # include <error.h>
 # include <mapapi.h>
 # include <runcmd.h>
@@ -30,11 +31,11 @@
 # include <charcvt.h>
 # include <transdict.h>
 # include <debug.h>
+# include <datetime.h>
 # include <tunable.h>
 # include <ignore.h>
 # include <timer.h>
 # include <progress.h>
-# include <msgscript.h>
 
 # include <p4tags.h>
 
@@ -44,18 +45,23 @@
 # include <enviro.h>
 # include <ticket.h>
 
+# include <msgscript.h>
 # include <dmextension.h>
 # include <dmextension_c.h>
 
 # include "clientmerge.h"
 # include "clientresolvea.h"
 # include "clientuser.h"
+
 # include <msgclient.h>
 # include <msgsupp.h>
+# include <msgrpc.h>
+
 # include "clientservice.h"
 # include "clientscript.h"
 # include "client.h"
 # include "clientprog.h"
+# include "clientaltsynchandler.h"
 
 # define SSOMAXLENGTH 131072    // max sso message 128k
 
@@ -244,6 +250,7 @@ ClientSvc::FileFromPath( Client *client, const char *vName, const char *vType,
 {
 	StrPtr *clientPath = client->transfname->GetVar( vName, e );
 	StrPtr *clientType = vType ? client->GetVar( vType ) : 0;
+	StrPtr *utf8bom = client->GetVar( P4Tag::v_utf8bom );
 
 	if( e->Test() )
 	    return 0;
@@ -272,6 +279,22 @@ ClientSvc::FileFromPath( Client *client, const char *vName, const char *vType,
 	    delete f;
 	    return 0;
 	}
+
+	// If we've been instructed to override the BOM on UTF8, do it now
+	if( (type & FST_MASK) == FST_UTF8 && utf8bom && utf8bom->IsNumeric() )
+	{
+	    int b = utf8bom->Atoi();
+	    int c = (int)CharSetApi::UTF_8_BOM;
+# ifdef OS_NT
+	    if( b == 0 )
+	        c = (int)CharSetApi::UTF_8;
+# else
+	    if( b != 1 ) // meaning either 0 or 2
+	        c = (int)CharSetApi::UTF_8;
+# endif
+	    f->SetContentCharSetPriv( c );
+	}
+
 	return f;
 }
 
@@ -423,6 +446,9 @@ clientOpenFile( Client *client, Error *e )
 	StrPtr *digest = client->GetVar( P4Tag::v_digest );
 	StrPtr *digestType = client->GetVar( P4Tag::v_digestType );
 	bool do_checksum = false;
+
+	if( noclobber && *noclobber == P4Tag::v_false )
+	    noclobber = 0;
 
 	// clear syncTime
 
@@ -879,6 +905,9 @@ clientMoveFile( Client *client, Error *e )
 	if( e->Test() )
 	    return;
 
+	if( rmdir && *rmdir == P4Tag::v_false )
+	    rmdir = 0;
+
 	FileSys *s = ClientSvc::File( client, e );
 
 	if( e->Test() || !s )
@@ -970,6 +999,17 @@ clientDeleteFile( Client *client, Error *e )
 	StrPtr *revertmovermdir = client->GetVar( P4Tag::v_revertmovermdir );
 	StrPtr *digest = client->GetVar( P4Tag::v_digest );
 	StrPtr *digestType = client->GetVar( P4Tag::v_digestType );
+	StrPtr *confirm = client->GetVar( P4Tag::v_confirm );
+	StrPtr *altsync = client->GetVar( P4Tag::v_altSync );
+
+	if( noclobber && *noclobber == P4Tag::v_false )
+	    noclobber = 0;
+
+	if( rmdir && *rmdir == P4Tag::v_false )
+	    rmdir = 0;
+
+	FileSys *f = 0;
+	int stat = 0;
 
 	// clear syncTime
 
@@ -978,17 +1018,20 @@ clientDeleteFile( Client *client, Error *e )
 	if( e->Test() && !e->IsFatal() )
 	{
 	    client->OutputError( e );
-	    return;
+	    goto end;
 	}
 
-	FileSys *f = ClientSvc::File( client, e );
+	f = ClientSvc::File( client, e );
 
 	if( e->Test() || !f )
-	    return;
+	{
+	    client->OutputError( e );
+	    goto end;
+	}
 
 	// stat the file
 
-	int stat = f->Stat();
+	stat = f->Stat();
 
 	// Don't try to unlink a directory. It won't work, and it will be
 	// confusing. Worse, it might mess up directory permissions.
@@ -997,7 +1040,7 @@ clientDeleteFile( Client *client, Error *e )
 	            (FSF_EXISTS | FSF_DIRECTORY) )
 	{
 	    delete f;
-	    return;
+	    goto end;
 	}
 
 	// Don't delete modified files noclobber allwrite (digestType set)
@@ -1020,7 +1063,7 @@ clientDeleteFile( Client *client, Error *e )
 		    << f->Name();
 		client->OutputError( e );
 		delete f;
-		return;
+		goto end;
 	    }
 	}
 
@@ -1038,7 +1081,7 @@ clientDeleteFile( Client *client, Error *e )
 	    e->Set( MsgClient::ClobberFile ) << f->Name();
 	    client->OutputError( e );
 	    delete f;
-	    return;
+	    goto end;
 	}
 
 	// In the case of reverting a file that was moved to a directory of the
@@ -1052,7 +1095,7 @@ clientDeleteFile( Client *client, Error *e )
 	    {
 	        client->OutputError( e );
 	        delete f;
-	        return;
+	        goto end;
 	    }
 
 	    if( uaCount > 1 )
@@ -1067,7 +1110,7 @@ clientDeleteFile( Client *client, Error *e )
 	        e->Set( MsgClient::DirectoryNotEmpty ) << revertmovermdir;
 	        client->OutputError( e );
 	        delete f;
-	        return;
+	        goto end;
 	    }
 
 	}
@@ -1097,7 +1140,7 @@ clientDeleteFile( Client *client, Error *e )
 	        f->Chmod( FPM_RO, e );
 
 	    delete f;
-	    return;
+	    goto end;
 	}
 
 	// Clear unlink error of non-existent file.
@@ -1110,10 +1153,26 @@ clientDeleteFile( Client *client, Error *e )
 	{
 	    if( rmdir && *rmdir == "preserveCWD" )
 	        f->PreserveCWD();
+
+	    if( altsync )
+	    {
+	        ClientAltSyncHandler *handler =
+	            ClientAltSyncHandler::GetAltSyncHandler( client, e );
+	
+	        if( !e->Test() )
+	            f->PreserveRoot( handler->GetClientRoot() );
+	    }
+
 	    f->RmDir();
 	}
 
 	delete f;
+
+end:
+	// Ack fallthough
+
+	if( confirm )
+	    clientAck( client, e );
 }
 
 void
@@ -1122,17 +1181,23 @@ clientChmodFile( Client *client, Error *e )
 	client->NewHandler();
 	StrPtr *perms = client->GetVar( P4Tag::v_perms, e );
 	StrPtr *modTime = client->GetVar( P4Tag::v_time );
+	StrPtr *confirm = client->GetVar( P4Tag::v_confirm );
+
+	FileSys *f = 0;
 
 	if( e->Test() && !e->IsFatal() )
 	{
 	    client->OutputError( e );
-	    return;
+	    goto end;
 	}
 
-	FileSys *f = ClientSvc::File( client, e );
+	f = ClientSvc::File( client, e );
 
 	if( e->Test() || !f )
-	    return;
+	{
+	    client->OutputError( e );
+	    goto end;
+	}
 
 	// Set mode and time.  Mode is sensitive to exec bit.
 	// Don't try and set the time if the file is not writable.
@@ -1153,7 +1218,14 @@ clientChmodFile( Client *client, Error *e )
 
 	// Report non-fatal error and clear it.
 
-	client->OutputError( e );
+	if( e->Test() )
+	    client->OutputError( e );
+
+end:
+	// Ack fallthough
+
+	if( confirm )
+	    clientAck( client, e );
 }
 
 void
@@ -1350,6 +1422,7 @@ clientCheckFile( Client *client, Error *e )
 	StrPtr *clientPath = client->transfname->GetVar( P4Tag::v_path, e );
 	StrPtr *clientType = client->GetVar( P4Tag::v_type );
 	StrPtr *wildType = client->GetVar( P4Tag::v_type2 );
+	StrPtr *msgType = client->GetVar( P4Tag::v_type3 );
 	StrPtr *forceType = client->GetVar( P4Tag::v_forceType );
 	StrPtr *digest = client->GetVar( P4Tag::v_digest );
 	StrPtr *digestType = client->GetVar( P4Tag::v_digestType );
@@ -1421,6 +1494,10 @@ clientCheckFile( Client *client, Error *e )
 
 	const char *status = "exists";
 	const char *ntype = clientType ? clientType->Text() : "text";
+
+	if( AltSyncCheckFile( client, confirm, status, ntype, e ) ||
+	    e->Test() )
+	    return;
 
 	// For adding files,  checkSize is a maximum (or use alt type)
 	// For flush,  checkSize is an optimization check on binary files.
@@ -1620,8 +1697,8 @@ clientCheckFile( Client *client, Error *e )
 		    msg.Set( MsgClient::CheckFileAssumeWild ) 
 		        << f->Name() << c->type << ntype << wildType;
 	        else
-		    msg.Set( MsgClient::CheckFileAssume ) 
-		        << f->Name() << c->type << ntype;
+		    msg.Set( MsgClient::CheckFileAssume ) << f->Name()
+		        << c->type << ( msgType ? msgType->Text() : ntype );
 
 		client->GetUi()->Message( &msg );
 		break;
@@ -3825,6 +3902,139 @@ clientOpenUrl( Client *client, Error *e )
 	client->GetUi()->HandleUrl( url );
 }
 
+static const RpcDispatch *
+GetClientRpcFunction( StrPtr *func, Error *e )
+{
+	if( !func )
+	    return 0;
+
+	int i = 0;
+	while( clientDispatch[i].opName )
+	{
+	    if( !strcmp( func->Text(), clientDispatch[i].opName ) )
+	        return &clientDispatch[i];
+
+	    i++;
+	}
+
+	e->Set( MsgRpc::UnReg ) << func;
+	return 0;
+}
+
+void
+clientAltSync( Client *client, Error *e )
+{
+	client->NewHandler();
+	StrPtr *altSync = client->GetVar( P4Tag::v_altSync, e );
+	StrPtr *confirm = client->GetVar( P4Tag::v_confirm );
+	StrPtr *decline = client->GetVar( P4Tag::v_decline );
+	StrPtr *asResults = client->GetVar( P4Tag::v_altSyncResults );
+	const RpcDispatch *passFunc =
+	    GetClientRpcFunction( client->GetVar( P4Tag::v_passFunc ), e );
+
+	if( e->Test() )
+	    return;
+
+	ClientAltSyncHandler *handler =
+	    ClientAltSyncHandler::GetAltSyncHandler( client, e );
+	if( e->Test() )
+	    return;
+
+	if( !handler )
+	{
+	    client->SetVar( P4Tag::v_status, "unset" );
+	    if( decline ? decline : confirm )
+	        client->Confirm( decline ? decline : confirm );
+	    return;
+	}
+
+	bool pass = false;
+	StrBufTree results;
+	if( handler->AltSync( e, asResults ? &results : 0, &pass ) ||
+	    e->Test() )
+	{
+	    if( e->Test() )
+	    {
+	        client->GetUi()->HandleError( e );
+	        e->Clear();
+	    }
+	    client->SetVar( P4Tag::v_status, "fail" );
+	    return;
+	}
+	else
+	{
+	    // Handle passthrough cases
+	    if( pass && passFunc )
+	    {
+	        (*passFunc->function)( client, e );
+	        return;
+	    }
+	    if( pass )
+	    {
+	        e->Set( MsgClient::AltSyncUnhandledPass ) << altSync;
+	        client->OutputError( e );
+	        client->SetVar( P4Tag::v_status, "fail" );
+	        if( confirm )
+	            clientAck( client, e );
+	        return;
+	    }
+
+	    if( asResults )
+	    {
+	        StrPtr *val;
+	        StrBuf tmp;
+	        char *vars[128];
+	        int count = StrOps::Words( tmp, asResults->Text(),
+	                                   vars, 128, ',' );
+	        for( int i = 0; i < count; i++ )
+	            if( ( val = results.GetVar( vars[i] ) ) )
+	                client->SetVar( vars[i], val );
+	    }
+
+	    client->SetVar( P4Tag::v_status, "pass" );
+	}
+
+	// Ack fallthough
+
+	if( confirm )
+	    clientAck( client, e );
+}
+
+
+int
+AltSyncCheckFile( Client *client, StrPtr *confirm, const char *status,
+                  const char *ntype, Error *e )
+{
+	if( !client->GetVar( P4Tag::v_altSync ) )
+	    return 0;
+
+	// Ask altSync if the file is virtual
+
+	ClientAltSyncHandler *handler =
+	    ClientAltSyncHandler::GetAltSyncHandler( client, e );
+	if( e->Test() )
+	    return 1;
+
+	StrBufDict results;
+	if( handler && !handler->AltSync( e, &results ) )
+	{
+	    StrPtr *dres = results.GetVar( "checkFile" );
+	    status = dres && *dres == "same"    ? "same" :
+	             dres && *dres == "missing" ? "missing" :
+	             dres && *dres == "virtual" ? "virtual" :
+	                                          "exists";
+	    if( dres && *dres != "exists" )
+	    {
+	        client->SetVar( P4Tag::v_type, ntype );
+	        client->SetVar( P4Tag::v_status, status );
+	        client->Confirm( confirm );
+	        return 1;
+	    }
+	}
+
+	return 0;
+}
+
 void clientReceiveFiles( Client *client, Error *e );
 
 /*
@@ -3878,6 +4088,8 @@ const RpcDispatch clientDispatch[] = {
 	{ P4Tag::c_FstatInfo,	RpcCallback(clientFstatInfo) },
 	{ P4Tag::c_FstatPartial,RpcCallback(clientFstatPartial) },
 	{ P4Tag::c_OpenUrl,	RpcCallback(clientOpenUrl) },
+
+	{ P4Tag::c_AltSync,	RpcCallback(clientAltSync) },
 
 	{ P4Tag::c_Ack,		RpcCallback(clientAck) },
 	{ P4Tag::c_Ping,	RpcCallback(clientPing) },

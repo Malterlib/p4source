@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgDb error code is: 100
+ * Current high value for a MsgDb error code is: 104
  */
 
 # include <error.h>
@@ -66,6 +66,7 @@ ErrorId MsgDb::ScanFormat              = { ErrorOf( ES_DB, 24, E_FATAL, EV_FAULT
 ErrorId MsgDb::DelNoLock               = { ErrorOf( ES_DB, 25, E_FATAL, EV_FAULT, 1 ), "dbdel %table%: no write lock!" } ;//NOTRANS
 ErrorId MsgDb::Delete                  = { ErrorOf( ES_DB, 26, E_FATAL, EV_FAULT, 1 ), "Database delete error on %table%!" } ;//NOTRANS
 ErrorId MsgDb::Locking                 = { ErrorOf( ES_DB, 27, E_FATAL, EV_FAULT, 1 ), "Database locking error on %table%!" } ;//NOTRANS
+ErrorId MsgDb::LockingLoop             = { ErrorOf( ES_DB, 103, E_FATAL, EV_FAULT, 1 ), "Recursive database lock detected on %table%!" };//NOTRANS
 ErrorId MsgDb::EndXact                 = { ErrorOf( ES_DB, 28, E_FATAL, EV_FAULT, 1 ), "End xact with %table% still locked!" } ;//NOTRANS
 ErrorId MsgDb::GetNoGet                = { ErrorOf( ES_DB, 64, E_FATAL, EV_FAULT, 1 ), "GetDb of %table% without prior get!" } ;//NOTRANS
 ErrorId MsgDb::ValidationFoundProblems = { ErrorOf( ES_DB, 86, E_FAILED, EV_ADMIN, 1 ), "Problems were found in %numTables% table(s)." } ;
@@ -105,10 +106,11 @@ ErrorId MsgDb::ServerTooNew            = { ErrorOf( ES_DB, 54, E_FAILED, EV_ADMI
 ErrorId MsgDb::MustExpire              = { ErrorOf( ES_DB, 55, E_FAILED, EV_ADMIN, 0 ), "License must expire." } ;
 ErrorId MsgDb::Checksum                = { ErrorOf( ES_DB, 56, E_FAILED, EV_ADMIN, 0 ), "Invalid checksum string." } ;
 ErrorId MsgDb::WrongApp                = { ErrorOf( ES_DB, 57, E_FAILED, EV_ADMIN, 1 ), "This server is only licensed for %users% use." } ;
+ErrorId MsgDb::LicenseWrongService     = { ErrorOf( ES_DB, 104, E_FAILED, EV_ADMIN, 1 ), "Server license is not valid for server type %type%." } ;
 ErrorId MsgDb::PlatPre972              = { ErrorOf( ES_DB, 58, E_FAILED, EV_UPGRADE, 0 ), "Can't have platforms for pre-97.2 servers." } ;
 ErrorId MsgDb::LicenseRead             = { ErrorOf( ES_DB, 59, E_FAILED, EV_ADMIN, 0 ), "Error reading license file." } ;
 ErrorId MsgDb::LicenseBad              = { ErrorOf( ES_DB, 60, E_FAILED, EV_ADMIN, 0 ), "License file invalid." } ;
-ErrorId MsgDb::AddressChanged          = { ErrorOf( ES_DB, 75, E_FAILED, EV_ADMIN, 0 ), "Server license %'IP'%address changed, cannot proceed." } ;
+ErrorId MsgDb::AddressChanged          = { ErrorOf( ES_DB, 75, E_FAILED, EV_ADMIN, 2 ), "Server license %'IPAddress'% changed from %ipaddr% to %newip%, cannot proceed." } ;
 ErrorId MsgDb::LicenseNeedsApplication = { ErrorOf( ES_DB, 83, E_FAILED, EV_ADMIN, 0 ), "License needs an application." } ;
 ErrorId MsgDb::BadIPservice            = { ErrorOf( ES_DB, 88, E_FAILED, EV_ADMIN, 0 ), "Licensed client service cannot be %'localhost'% %'(127.0.0.1'% or %'::1)'%" } ;//CONTENTIOS
 ErrorId MsgDb::BadXCapLine             = { ErrorOf( ES_DB, 98, E_FAILED, EV_ADMIN, 1 ), "Extra capability line malformed: %line%" } ;
@@ -131,6 +133,10 @@ ErrorId MsgDb::CaseMismatch	       = { ErrorOf( ES_DB, 77, E_FATAL, EV_FAULT, 0 
 
 ErrorId MsgDb::GenNumPageTooNew	       = { ErrorOf( ES_DB, 96, E_FATAL, EV_FAULT, 0 ), "Generation number on page repeatedly newer than generation number on metapage." } ;
 ErrorId MsgDb::BadRecoverTbl           = { ErrorOf( ES_DB, 100, E_INFO, EV_FAULT, 2 ), "Parallel recovery file for table %tbl1% contains a record for table %tbl2%" };
+
+ErrorId MsgDb::DbTreeDuplicate	       = { ErrorOf( ES_DB, 101, E_FAILED, EV_FAULT, 0 ), "Record already exists in DbTree." } ;
+ErrorId MsgDb::DbTreeNotFound	       = { ErrorOf( ES_DB, 102, E_FAILED, EV_FAULT, 0 ), "Record not found in DbTree." } ;
+
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 
 ErrorId MsgDb::MaxResults              = { ErrorOf( ES_DB, 32, E_FAILED, EV_ADMIN, 1 ), "Request too large (over %maxResults%); see 'p4 help maxresults'." } ;//NOTRANS

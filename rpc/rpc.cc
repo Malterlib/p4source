@@ -660,6 +660,12 @@ Rpc::VClear()
 	sendBuffer->Clear();
 }
 
+int
+Rpc::VGetCount()
+{
+	return recvBuffer->GetCount();
+}
+
 void
 Rpc::VReset()
 {

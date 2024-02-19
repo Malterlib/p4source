@@ -214,6 +214,15 @@ FileSys::RmDir( const StrPtr &path, Error *e )
 	    }
 	}
 
+	if( preserveRoot.Length() )
+	{
+	    if( !StrPtr::SCompare( p->Text(), preserveRoot.Text() ) )
+	    {
+	        delete p;
+	        return;
+	    }
+	}
+
 	// Remove the directory.
 	// Bail on failure.
 

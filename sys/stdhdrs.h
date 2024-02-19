@@ -750,6 +750,14 @@ enum LineType { LineTypeRaw, LineTypeCr, LineTypeCrLf, LineTypeLfcrlf };
 # define P4INT64 int
 # endif
 
+
+
+/*
+ * P4UINT64 - an unsigned 64 bit int.
+ */
+
+# define P4UINT64 unsigned P4INT64
+
 /*
  * offL_t - size of files or offsets into files
  */
@@ -925,6 +933,34 @@ typedef int FD_PTR;
 #   include <thread>
 #   include <mutex>
 #  endif
+# endif
+
+
+// endian defines.
+# undef P4_LITTLE_ENDIAN
+# undef P4_BIG_ENDIAN
+
+# if defined( OS_LINUX ) || defined(OS_MACOSX) || defined(OS_DARWIN)
+
+#   if __BYTE_ORDER == __LITTLE_ENDIAN
+#     define P4_LITTLE_ENDIAN 1
+#   endif
+#   if __BYTE_ORDER == __BIG_ENDIAN
+#     define P4_BIG_ENDIAN 1
+#   endif
+
+# endif
+
+# if defined( OS_NT )
+
+#   define P4_LITTLE_ENDIAN 1
+
+# endif
+
+# if !defined( P4_LITTLE_ENDIAN ) && !defined( P4_BIG_ENDIAN )
+// Endian defines not working on builds (php) that
+// do not define OS type. Disable this guard until fixed.
+//#   error "Unable to determine the endianess of the platform"
 # endif
 
 # endif // P4STDHDRS_H

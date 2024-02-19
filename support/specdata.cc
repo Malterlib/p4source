@@ -14,7 +14,7 @@
 
 # include <strbuf.h>
 # include <strdict.h>
-# include <strtable.h>
+# include <strtree.h>
 
 # include <error.h>
 # include <errorlog.h>
@@ -208,7 +208,7 @@ SpecDataTable::SpecDataTable( StrDict *dict )
 	}
 	else
 	{
-	    table = new StrBufDict;
+	    table = new StrBufTree;
 	    privateTable = 1;
 	}
 }

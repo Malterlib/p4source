@@ -233,8 +233,8 @@ class FileSysBuffer
 	virtual int	Read( char *buf, int len, Error *e ) = 0;
 	virtual void	Close( Error *e ) = 0;
 
-	virtual void	Seek( offL_t offset, Error* e ) {}
-	virtual void	SizeHint( offL_t size ) {}
+	virtual void	Seek( offL_t /* offset */, Error* /* e */ ) {}
+	virtual void	SizeHint( offL_t /* size */ ) {}
 } ;
 
 class FileSys {
@@ -316,6 +316,7 @@ class FileSys {
 	// RmDir() should not erase your cwd (mainly for DVCS)
 
 	void		PreserveCWD() { preserveCWD = 1; }
+	void		PreserveRoot( StrPtr root ) { preserveRoot = root; }
 
 	// Initialize digest
 
@@ -377,9 +378,9 @@ class FileSys {
 	virtual void	ChmodTime( Error *e ) = 0;
 	virtual void	ChmodTimeHP( const DateTimeHighPrecision & /* modTime */, Error * /* e */ ) {};
 	virtual void	SetAttribute( FileSysAttr, Error * ) { };
-	virtual void	SetExtendedAttribute( StrPtr *name, StrPtr *val, Error * ) {};
-	virtual void	GetExtendedAttribute( StrPtr *name, StrBuf *val, Error *e ) {};
-	virtual void	GetExtendedAttributes( StrBufDict *attrs, Error * ) {};
+	virtual void	SetExtendedAttribute( StrPtr * /* name */, StrPtr * /* val */, Error * ) {};
+	virtual void	GetExtendedAttribute( StrPtr * /* name */, StrBuf * /* val */, Error * ) {};
+	virtual void	GetExtendedAttributes( StrBufDict * /* attrs */, Error * ) {};
 
 	virtual void	Fsync( Error * ) { }
 
@@ -495,6 +496,7 @@ class FileSys {
 
 	int		isTemp;
 	int		preserveCWD;
+	StrBuf		preserveRoot;
 
 	int		charSet;
 	int		content_charSet;

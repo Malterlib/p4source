@@ -25,6 +25,7 @@ class ClientApiLua : public ClientApi
 	    void fSetProg( const char *p );
 	    void fSetProtocol( const char *p, const char *v );
 	    void fSetClient( const char *c );
+	    void fSetHost( const char *h );
 	    const char* fGetPort();
 	    const char* fGetUser();
 	    const char* Null() const;

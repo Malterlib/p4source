@@ -27,6 +27,7 @@ P4APILibrary $(SUPPORTLIB) :
 	filestrbuf.cc
 	filesys.cc
 	filetmp.cc
+	hostcfg.cc
 	hostenv.cc
 	fdutil.cc
 	memfile.cc
@@ -38,6 +39,9 @@ P4APILibrary $(SUPPORTLIB) :
 	pathsys.cc
 	pathvms.cc
 	pid.cc
+	pipeio.cc
+	pressuremonitor.cc
+	proc_utils.cc
 	readfile.cc
 	resvmem.cc
 	runcmd.cc
@@ -45,6 +49,7 @@ P4APILibrary $(SUPPORTLIB) :
 	signaler.cc 
 	stdhdrs.cc
 	sysinfo.cc
+	sysinfo-resource.cc
 	threading.cc
 	timer.cc
 	zfilestream.cc
@@ -71,7 +76,7 @@ else
 	P4Library $(SHSTUBLIB) : shstub.cc ;
 }
 
-if $(OS) = MACOSX && [ FVersionCmp $(OSVER) : 1010 ] = -1
+if $(OS) = MACOSX && [ FVersionCmp $(OSVERLONG) : 1010 ] = -1
 {
 	P4APILibrary $(SUPPORTLIB) : 
 		macfile.cc
@@ -112,7 +117,7 @@ if $(OS) = VMS
 }
 
 P4Library $(P4MEMORYMGR) : 
-	malloc_stats.cc
+	malloc_utils.cc
 	;
 
 P4Library $(P4MEMORYMGR_STUB) : 

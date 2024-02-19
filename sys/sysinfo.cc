@@ -12,6 +12,7 @@
 # include <strbuf.h>
 # include <strdict.h>
 # include <strtable.h>
+# include "pressuremonitor.h"
 # include "sysinfo.h"
 # include "runcmd.h"
 # include "pid.h"
@@ -110,6 +111,26 @@ void SystemInfo::Collect( StrBufDict& output, Error* e )
 	      { "sh", "-c", "cat /sys/class/dmi/id/bios_*" },
 	      { "sh", "-c", "cat /sys/class/dmi/id/board_vendor /sys/class/dmi/id/board_name  /sys/class/dmi/id/board_version" },
 	      { "p4", "set" },
+	      { "sh", "-c", "uptime" },
+	      { "sh", "-c", "whoami" },
+	      { "sh", "-c", "uname -a" },
+	      { "sh", "-c", "id" },
+	      { "sh", "-c", "cat /proc/self/cgroup" }, // What the current cgroup for this process is.
+	      // Will say 'cgroup', or 'cgroup2', or both.  This duplicates the
+	      // unfiltered 'mount' output, but is easier to eyeball.
+	      { "sh", "-c", "mount | grep '^cgroup' | awk '{print $1}' | uniq" },
+	      // Exists if v2
+	      { "sh", "-c", "ls /sys/fs/cgroup/cgroup.controllers" },
+	      { "sh", "-c", "grep PSI /boot/config-$(uname --kernel-release)" },
+	      // Kernel command-line.  Needs psi=1 if kernel compiled with
+	      // CONFIG_PSI_DEFAULT_DISABLED=y
+	      { "sh", "-c", "cat /proc/cmdline" },
+	      // This is the default path for a cgroupv2 systemd-managed distro.
+	      { "sh", "-c", "cat /sys/fs/cgroup/user.slice/user-$(id -u).slice/user@$(id -u).service/cgroup.controllers" },
+	      { "sh", "-c", "ls /sys/fs/cgroup/user.slice/user-$(id -u).slice/user@$(id -u).service/" },
+	      { "sh", "-c", "cat /sys/fs/cgroup/user.slice/user-$(id -u).slice/user@$(id -u).service/memory.pressure" },
+	      // system-wide
+	      { "sh", "-c", "tail /proc/pressure/*" },
 	    };
 
 # endif // OS_LINUX

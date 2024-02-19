@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgDm2 error code is: 93
+ * Current high value for a MsgDm2 error code is: 117
  *                                               Max code is 1023!!!
  */
 
@@ -40,7 +40,11 @@ ErrorId MsgDm2::RequiresAutoIdOrPosCode = { ErrorOf( ES_DM2, 7, E_FAILED, EV_FAU
 ErrorId MsgDm2::CannotRecreateDeleteField = { ErrorOf( ES_DM2, 8, E_FAILED, EV_FAULT, 0 ), "New field code '%code% %tag%' was previously deleted and may not be recreated." } ;
 ErrorId MsgDm2::SpecRepairDisallowNNN = { ErrorOf( ES_DM2, 18, E_FAILED, EV_FAULT, 1 ), "'NNN' fields are disallowd during 'p4 spec --repair' :  field '%tag%'." } ;
 ErrorId MsgDm2::SpecRepairNoCustomSpec = { ErrorOf( ES_DM2, 19, E_FAILED, EV_FAULT, 0 ), "--repair disallowed on default spec." } ;
-ErrorId MsgDm2::UnshelveStreamResolve   = { ErrorOf( ES_DM2, 9, E_INFO, EV_USAGE, 3 ), "%streamSpec% - must resolve shelved stream spec %streamSpec%@%change% before submitting" } ;
+ErrorId MsgDm2::IntegIntoReadOnlyOverlay = { ErrorOf( ES_DM2, 108, E_INFO, EV_NONE, 2 ), "%depotFile% - can't %action% into file that is overlaid in client's View" } ;
+ErrorId MsgDm2::OpenReadOnlyOverlay      = { ErrorOf( ES_DM2, 109, E_INFO, EV_NONE, 2 ), "%depotFile% - can't %action% file that is overlaid in client's View" } ;
+ErrorId MsgDm2::OpenWarnOverlay          = { ErrorOf( ES_DM2, 110, E_INFO, EV_USAGE, 2 ), "%depotFile% - warning: cannot submit file that is overlaid in client's View" } ;
+ErrorId MsgDm2::UnshelveBadOverlay       = { ErrorOf( ES_DM2, 111, E_FAILED, EV_NOTYET, 2 ), "%depotFile% - can't unshelve from revision at change %change% (overlaid in client's View)" } ;
+ErrorId MsgDm2::UnshelveStreamResolve    = { ErrorOf( ES_DM2, 9, E_INFO, EV_USAGE, 3 ), "%streamSpec% - must resolve shelved stream spec %streamSpec%@%change% before submitting" } ;
 ErrorId MsgDm2::StreamSpecIntegOkay     = { ErrorOf( ES_DM2, 10, E_INFO, EV_NONE, 8 ), "Stream spec %targetStreamSpec%@%targetChange% - %action% field %field% from %sourceStreamSpec%@%fromChange%[ using base %baseStreamSpec%][@%baseChange%]" } ;
 ErrorId MsgDm2::CheckFailedNoDB         = { ErrorOf( ES_DM2, 11, E_FAILED, EV_NONE, 1 ), "%table% not found in default/specified server root" } ;
 ErrorId MsgDm2::NoStreamSpecPermsWarn   = { ErrorOf( ES_DM2, 12, E_INFO, EV_PROTECT, 0 ), "You don't have streamspec permission for this operation." } ;
@@ -55,6 +59,7 @@ ErrorId MsgDm2::LbrRevVerOutOfRange     = { ErrorOf( ES_DM2, 22, E_FAILED, EV_NO
 ErrorId MsgDm2::GblLockIndexMismatch    = { ErrorOf( ES_DM2, 23, E_FAILED, EV_FAULT, 2 ), "Index mismatch! Wrong depotFile: expected '%file1%', got '%file2%'" } ;
 ErrorId MsgDm2::GblLockIndexMissing     = { ErrorOf( ES_DM2, 24, E_FAILED, EV_FAULT, 1 ), "Index missing! No index found for depotFile'%dfile%'" } ;
 ErrorId MsgDm2::GblLockMissing          = { ErrorOf( ES_DM2, 25, E_FAILED, EV_FAULT, 1 ), "Commit server didn't report back on locking '%dfile%'" } ;
+ErrorId MsgDm2::GblUnlockMissing        = { ErrorOf(ES_DM2, 94, E_FAILED, EV_FAULT, 1), "Commit server didn't report back on unlocking '%dfile%'" };
 ErrorId MsgDm2::StreamlogInteg          = { ErrorOf( ES_DM2, 26, E_INFO, EV_UNKNOWN, 4 ), "%how% %fromFile%%fromRev% '%field%' " } ;
 ErrorId MsgDm2::RemoteAutoGenSpecFailed = { ErrorOf( ES_DM2, 27, E_FAILED, EV_FAULT, 1 ), "Failed to autogen field id in %specName% spec on commit server." } ;
 ErrorId MsgDm2::StreamParentViewMustBeOpen = { ErrorOf( ES_DM2, 28, E_FAILED, EV_FAULT, 1 ), "Stream spec %streamname% must be open in the current client to change the Parent View field." } ;
@@ -82,10 +87,10 @@ ErrorId MsgDm2::ReopenHasMoved          = { ErrorOf( ES_DM2, 49, E_INFO, EV_NONE
 ErrorId MsgDm2::TopologyData            = { ErrorOf( ES_DM2, 50, E_INFO, EV_NONE, 12 ), "%address% [%destaddress% ][%serverID% ]%date% [%type% ][%encryption% ][%svcUser% ][%lsDate% ][%svrRecType% ][%tAddr% ][%tDAddr% ][%tSvrID% ]" } ;
 ErrorId MsgDm2::StreamViewMatchData     = { ErrorOf( ES_DM2, 51, E_INFO, EV_NONE, 4 ), "Stream %stream% %pathtype% %viewPath% %depotPath%" } ;
 ErrorId MsgDm2::NoTopologyRecord        = { ErrorOf( ES_DM2, 52, E_WARN, EV_ADMIN, 3 ), "No entries made in db.topology for server address: '%address%', dest address: '%destaddress%' and serverID: '%svrId%'." } ;
-ErrorId MsgDm2::NoServerIDSet              = { ErrorOf( ES_DM2, 53, E_WARN, EV_ADMIN, 0 ), "ServerID for the server should be set." } ;
+ErrorId MsgDm2::NoServerIDSet           = { ErrorOf( ES_DM2, 53, E_WARN, EV_ADMIN, 0 ), "ServerID for the server should be set and a server restart is required." } ;
 ErrorId MsgDm2::NoPartitionedToReadonly    = { ErrorOf( ES_DM2, 54, E_FAILED, EV_USAGE, 0 ), "Cannot change client type from 'partitioned' to 'readonly'." } ;
 ErrorId MsgDm2::TopologyRecDeleted      = { ErrorOf( ES_DM2, 55, E_INFO, EV_NONE, 4 ), "Deleted Topology Record: Addr-'%address%' DestAddr-'%destaddress%' SvrID-'%serverID%' Date-'%date%'" } ;
-ErrorId MsgDm2::TopologyRecNotFound     = { ErrorOf( ES_DM2, 56, E_FAILED, EV_FAULT, 0 ), "Specified topology record not found" } ;
+ErrorId MsgDm2::TopologyRecNotFound     = { ErrorOf( ES_DM2, 56, E_FAILED, EV_FAULT, 3 ), "Specified topology record[ with address '%addr%'][ target address '%taddr%'][ and server id '%svrID%'] not found" } ;
 ErrorId MsgDm2::LockNameNull            = { ErrorOf( ES_DM2, 57, E_FAILED, EV_ADMIN, 1 ), "ServerLock name is null. Lock type is %locktype%." } ;
 ErrorId MsgDm2::WorkRecNotFound         = { ErrorOf( ES_DM2, 58, E_FAILED, EV_ADMIN, 1 ), "The working record for %clientfile% not found." } ;
 ErrorId MsgDm2::StreamDeletedInChange   = { ErrorOf( ES_DM2, 59, E_FAILED, EV_CONTEXT, 2 ), "Stream '%stream%' was deleted in change %change%" } ;
@@ -97,7 +102,7 @@ ErrorId MsgDm2::RmtArchiveDeleteFailed      = { ErrorOf( ES_DM2, 64, E_FAILED, E
 ErrorId MsgDm2::RmtDeleteEdgeArchiveFailed  = { ErrorOf( ES_DM2, 65, E_FAILED, EV_FAULT, 0 ), "Failed to delete remote archive." } ;
 ErrorId MsgDm2::ComponentStreamInvalid  = { ErrorOf( ES_DM2, 66, E_FAILED, EV_UNKNOWN, 1 ), "The component stream '%stream%' is not valid." } ;
 ErrorId MsgDm2::ComponentTypeNotAvailable = { ErrorOf( ES_DM2, 67, E_FAILED, EV_UNKNOWN, 1 ), "The component type '%type%' is not available." } ;
-ErrorId MsgDm2::TopologyDelPreview       = { ErrorOf( ES_DM2, 68, E_INFO, EV_NONE, 0 ), "This is in preview mode. For actual [%op%|deletion], use '-y'." } ;
+ErrorId MsgDm2::TopologyDelPreview        = { ErrorOf( ES_DM2, 68, E_INFO, EV_NONE, 0 ), "This is in preview mode. For actual [%op%|deletion], use '-y'." } ;
 ErrorId MsgDm2::StreamHasComponentsDelete = { ErrorOf( ES_DM2, 69, E_FAILED, EV_NOTYET, 2 ), "Stream '%stream%' is a defined as a component in consuming stream '%consumer%'; cannot delete until the component definition is removed." } ;
 ErrorId MsgDm2::StreamHasComponentsOblit = { ErrorOf( ES_DM2, 70, E_FAILED, EV_NOTYET, 2 ), "Stream '%stream%' is a defined as a component in consuming stream '%consumer%'; cannot obliterate until the component definition is removed." } ;
 ErrorId MsgDm2::ComponentInvalidIsStream = { ErrorOf( ES_DM2, 71, E_FAILED, EV_USAGE, 1 ), "Stream '%stream%' cannot be defined as a component of itself." } ;
@@ -121,5 +126,22 @@ ErrorId MsgDm2::GroupsDataVerbose222              = { ErrorOf( ES_DM2, 88, E_INF
 ErrorId MsgDm2::TopologyDelRecMarker              = { ErrorOf( ES_DM2, 89, E_INFO, EV_NONE, 0 ), "The server(s) marked as deleted" } ;
 ErrorId MsgDm2::TopologyAmbiguity                 = { ErrorOf( ES_DM2, 90, E_WARN, EV_NONE, 1 ), "Ambiguity found for the topology record with server address '%address%'" } ;
 ErrorId MsgDm2::TopologyTargetDeleted             = { ErrorOf( ES_DM2, 91, E_WARN, EV_NONE, 2 ), "The target server '%targetAddr%' is marked as deleted for the server '%address%'" } ;
-ErrorId MsgDm2::TopologyRecAlreadyDeleted         = { ErrorOf( ES_DM2, 92, E_WARN, EV_NONE, 3 ), "The server with address - '%addr%', destaddress - '%daddr%' and serverid - '%svrID%' is already marked as deleted." } ;
+ErrorId MsgDm2::TopologyRecAlreadyDeleted         = { ErrorOf( ES_DM2, 92, E_WARN, EV_NONE, 3 ), "The server with address '%addr%', destaddress '%daddr%' and serverid '%svrID%' is already marked as deleted." } ;
 ErrorId MsgDm2::ComponentWritableNoChange         = { ErrorOf( ES_DM2, 93, E_FAILED, EV_USAGE, 0 ), "A writable component cannot be given a change specifier." } ;
+ErrorId MsgDm2::NoChangeOnDistribution            = { ErrorOf( ES_DM2, 95, E_FAILED, EV_USAGE, 0 ), "Cannot create new changelist on distribution server." } ;
+ErrorId MsgDm2::TopologyRecAlreadyMoved           = { ErrorOf( ES_DM2, 96, E_WARN, EV_NONE, 6 ), "The server with address '%addr%', destaddress '%daddr%' and serverid '%svrID%' is already moved to address '%taddr%', destaddress '%tdaddr%' and serverid '%tsvrID%'." } ;
+ErrorId MsgDm2::TopologyMoveRecMarker             = { ErrorOf( ES_DM2, 97, E_INFO, EV_NONE, 0 ), "The server marked as moved." } ;
+ErrorId MsgDm2::TopologyRecMoved                  = { ErrorOf( ES_DM2, 98, E_INFO, EV_NONE, 4 ), "Moved Topology Record: Addr '%address%' DestAddr '%destaddress%' SvrID '%serverID%' Date '%date%'" } ;
+ErrorId MsgDm2::TopologyMoveSame                 = { ErrorOf( ES_DM2, 99, E_FAILED, EV_USAGE, 0 ), "Server cannot be set as moved to itself." } ;
+ErrorId MsgDm2::TopologyFailedToMark             = { ErrorOf( ES_DM2, 100, E_FAILED, EV_NONE, 3 ), "Failed to mark the record : address '%addr%', destaddress '%daddr%', serverid '%svrID%' as 'movedFrom'." } ;
+ErrorId MsgDm2::TopologyMarkedMoveTo             = { ErrorOf( ES_DM2, 101, E_INFO, EV_NONE, 3 ), "Marked the record : address '%addr%', destaddress '%daddr%', serverid '%svrID%' as 'movedTo'." } ;
+ErrorId MsgDm2::SpecStreamSparsePinChangeComment = { ErrorOf( ES_DM2, 102, E_INFO, EV_NONE, 0 ), " @change will be automatically set to the latest parent change" } ;
+ErrorId MsgDm2::NoStreamTypeChangeToSparse       = { ErrorOf( ES_DM2, 103, E_FAILED, EV_NOTYET, 2 ), "Failed to change non-sparse stream '%stream%' to sparse type '%streamType%'." } ;
+ErrorId MsgDm2::NoStreamTypeChangeToNonSparse    = { ErrorOf( ES_DM2, 104, E_FAILED, EV_NOTYET, 2 ), "Failed to change sparse stream '%stream%' to non-sparse type '%streamType%'." } ;
+ErrorId MsgDm2::NoReparentSparse                 = { ErrorOf( ES_DM2, 105, E_FAILED, EV_USAGE, 2 ), "Cannot change parent of stream '%stream%' since it is a sparse stream of type '%streamType%'." } ;
+ErrorId MsgDm2::NoSparseChildren                 = { ErrorOf( ES_DM2, 106, E_FAILED, EV_USAGE, 3 ), "Stream '%parent%' cannot parent '%stream%' since it is a sparse stream of type '%streamType%'." } ;
+ErrorId MsgDm2::ComponentStreamInvalidSparse     = { ErrorOf( ES_DM2, 107, E_FAILED, EV_NONE, 2 ), "The stream '%stream%' is a sparse stream of type '%type%' and cannot be defined as a component." } ;
+ErrorId MsgDm2::NoAltSyncChangeWithHave          = { ErrorOf( ES_DM2, 112, E_FAILED, EV_USAGE, 0 ), "Cannot change client '%'altSync'%' option when have list is not empty." } ;
+ErrorId MsgDm2::MaxMemOS                         = { ErrorOf( ES_DM2, 113, E_FAILED, EV_ADMIN, 0 ), "Not enough OS memory available (past 'sys.pressure.mem.high' or 'sys.pressure.os.mem.high' threshold)." } ;
+ErrorId MsgDm2::StreamViewGenAtChangeSkip         = { ErrorOf( ES_DM2, 117, E_WARN, EV_NONE, 2 ), "Skipping stream view generation for %stream% at change %change%." } ;
+

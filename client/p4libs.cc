@@ -16,11 +16,6 @@
 # include <datetime.h>
 # include "p4libs.h"
 
-# ifdef HAS_EXTENSIONS
-# include <sqlite3.h>
-# include <curl/curl.h>
-# endif
-
 extern "C" {
 # include <x86.h>
 void x86_check_features();
@@ -85,6 +80,19 @@ static char* p4strdup( const char *s )
 	return P4_STRDUP( s );
 }
 
+extern void p4_sqlite3_shutdown();
+extern void p4_sqlite3_initialize();
+
+typedef void *(*p4_malloc_callback)(size_t size);
+typedef void (*p4_free_callback)(void *ptr);
+typedef void *(*p4_realloc_callback)(void *ptr, size_t size);
+typedef char *(*p4_strdup_callback)(const char *str);
+typedef void *(*p4_calloc_callback)(size_t nmemb, size_t size);
+extern void p4_curl_global_init_mem( p4_malloc_callback m,
+                              p4_free_callback f, p4_realloc_callback r,
+                              p4_strdup_callback s, p4_calloc_callback c );
+extern void p4_curl_global_cleanup();
+
 # endif
 # endif
 
@@ -121,11 +129,12 @@ void P4Libraries::Initialize( const int libraries, Error* e )
 
 	// https://www.sqlite.org/c3ref/initialize.html
 	if( libraries & P4LIBRARIES_INIT_SQLITE )
-	    sqlite3_initialize();
+	    p4_sqlite3_initialize();
 
 	// https://curl.haxx.se/libcurl/c/curl_global_init.html
 	if( libraries & P4LIBRARIES_INIT_CURL )
-	    curl_global_init_mem( CURL_GLOBAL_ALL, p4malloc, p4free, p4realloc, p4strdup, p4calloc );
+	    p4_curl_global_init_mem( p4malloc, p4free, p4realloc,
+	                             p4strdup, p4calloc );
 
 # endif
 }
@@ -172,10 +181,10 @@ void P4Libraries::Shutdown( const int libraries, Error* e )
 # ifdef HAS_EXTENSIONS
 
 	if( libraries & P4LIBRARIES_INIT_SQLITE )
-	    sqlite3_shutdown();
+	    p4_sqlite3_shutdown();
 
 	if( libraries & P4LIBRARIES_INIT_CURL )
-	    curl_global_cleanup();
+	    p4_curl_global_cleanup();
 
 # endif
 

@@ -13,6 +13,7 @@
 # include <strarray.h>
 # include <strdict.h>
 # include <strtable.h>
+# include <strtree.h>
 # include <spec.h>
 # include <options.h>
 
@@ -211,7 +212,7 @@ ClientUserMunge::Munge( StrDict *dict, StrPtrArray *fields, ClientUser *ui )
 
 	// Copy and modify the dict.
 
-	StrBufDict d( *dict );
+	StrBufTree d( *dict );
 	StrBuf field, value;
 
 	for( int i = 0 ; i < fields->Count() ; i++ )

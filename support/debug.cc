@@ -117,7 +117,8 @@ MT_STATIC P4DebugConfig *p4debughelp;
 
 P4Tunable::tunable P4Tunable::list[] = {
 
-	// P4Debug's collection
+	// P4Debug's collection.  When adding new entries, make sure to expand
+	// list2.
 
 	{ "db",		0, -1, -1, 10, 1, 1, 0, 1 },
 	{ "diff",	0, -1, -1, 10, 1, 1, 0, 1 },
@@ -159,6 +160,8 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "stm",	0, -1, -1, 10, 1, 1, 0, 1 },
 	{ "pcheck",	0, -1, -1, 10, 1, 1, 0, 1 },
 	{ "topology",	0, -1, -1, 10, 1, 1, 0, 1 },
+	{ "resource",	0, -1, -1, 10, 1, 1, 0, 1 },
+	{ "p4migrate",	0, -1, -1, 10, 1, 1, 0, 1 },
 
 	// P4Tunable's collection
 	//
@@ -168,8 +171,8 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "db.checkpoint.bufsize",	0,	B224K,	B16K,	BBIG,	1,	B1K,	0,	1 },
 	{ "db.checkpoint.threads",	0,	0,	0,	B4K,	1,	1,	0,	1 },
 	{ "db.checkpoint.worklevel",	0,	3,	2,	20,	1,	1,	0,	1 },
-	{ "db.checkpoint.reqlevel",	0,	4,	2,	20,	1,	1,	0,	1 },         
-	{ "db.checkpoint.nofiles",	0,	10,	1,	20000,	1,	1,	0,	1 },               
+	{ "db.checkpoint.reqlevel",	0,	4,	2,	20,	1,	1,	0,	1 },
+	{ "db.checkpoint.numfiles",	0,	10,	1,	20000,	1,	1,	0,	1 },
 	{ "db.experimental.logging",	0,	0,	0,	1,	1,	1,	0,	1 },
 	{ "db.internal.repair",		0,	0,	0,	1,	1,	1,	0,	1 },
 	{ "db.isalive",			0,	R10K,	1,	RBIG,	1,	R1K,	0,	1 },
@@ -202,6 +205,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "diff.slimit1",		0,	R10M,	R10K,	RBIG,	1,	R1K,	0,	0 },
 	{ "diff.slimit2",		0,	R100M,	R10K,	RBIG,	1,	R1K,	0,	0 },
 	{ "diff.sthresh",		0,	R50K,	R1K,	RBIG,	1,	R1K,	0,	0 },
+	{ "dm.altsync.enforce",		0,	1,	0,	1,	1,	1,	0,	0 },
 	{ "dm.annotate.maxsize",	0,	B10M,	0,	BBIG,	1,	B1K,	0,	0 },
 	{ "dm.batch.domains",		0,	0,	R1K,	RBIG,	1,	R1K,	0,	0 },
 	{ "dm.batch.net",		0,	R10K,	1,	RBIG,	1,	R1K,	0,	0 },
@@ -210,11 +214,12 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "dm.changes.thresh1",		0,	R50K,	1,	RBIG,	1,	R1K,	0,	0 },
 	{ "dm.changes.thresh2",		0,	R10K,	1,	RBIG,	1,	R1K,	0,	0 },
 	{ "dm.changeview.openable",	0,	0,	0,	1,	1,	1,	0,	0 },
-	{ "dm.client.initroot",	0,	0,	0,	1,	1,	1,	0,	0 },
+	{ "dm.client.initroot",		0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "dm.client.limitprotects",	0,	0,	0,	RBIG,	1,	1,	0,	0 },
 	{ "dm.copy.movewarn",		0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "dm.domain.accessupdate",	0,	300,	1,	RBIG,	1,	1,	0,	0 },
 	{ "dm.domain.accessforce",	0,	3600,	1,	RBIG,	1,	1,	0,	0 },
+	{ "dm.fetch.preservechangenumbers",0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "dm.flushforce",		0,	R10K,	1,	RBIG,	1,	R1K,	0,	0 },
 	{ "dm.flushtry",		0,	100,	1,	RBIG,	1,	R1K,	0,	0 },
 	{ "dm.fstat.maxcontent",	0,	B4M,	0,	B10M,	1,	B1K,	0,	0 },
@@ -225,17 +230,18 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "dm.info.hide",		0,	0,	0,	1,	1,	1,	0,	1 },
 	{ "dm.integ.engine",		0,	3,	0,	3,	1,	1,	0,	0 },
 	{ "dm.integ.maxact",		0,	R100K,	1,	RBIG,	1,	R1K,	0,	0 },
+	{ "dm.integ.maxbranch",		0,	100,	2,	RBIG,	1,	R1K,	0,	0 },
 	{ "dm.integ.streamspec",	0,	1,	0,	2,	1,	1,	0,	0 },
 	{ "dm.integ.tweaks",		0,	0,	0,	256,	1,	1,	0,	0 },
 	{ "dm.integ.undo",		0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "dm.integ.multiplestreams",	0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "dm.isalive",			0,	R50K,	1,	RBIG,	1,	R1K,	0,	0 },
 	{ "dm.keys.hide",		0,	0,	0,	2,	1,	1,	0,	0 },
-	{ "dm.labels.search.autoreload",	0,	0,	0,	2,	1,	1,	0,	0 },
+	{ "dm.labels.search.autoreload",0,	0,	0,	2,	1,	1,	0,	0 },
 	{ "dm.lock.batch",		0,	R10K,	1,	RBIG,	1,	R1K,	0,	0 },
-	{ "dm.locks.excl.batch.net",		0,	R10K,	1,	RBIG,	1,	R1K,	0,	0 },
-	{ "dm.locks.global.batch.net",		0,	R10K,	1,	RBIG,	1,	R1K,	0,	0 },
-	{ "dm.locks.global.result.batch.net",	0,	R10K,	1,	RBIG,	1,	R1K,	0,	0 },
+	{ "dm.locks.excl.batch.net",	0,	R10K,	1,	RBIG,	1,	R1K,	0,	0 },
+	{ "dm.locks.global.batch.net",	0,	R10K,	1,	RBIG,	1,	R1K,	0,	0 },
+	{ "dm.locks.global.result.batch.net", 0, R10K,	1,	RBIG,	1,	R1K,	0,	0 },
 	{ "dm.maxkey",			0,	B1K,	64,	B4K,	1,	B1K,	0,	1 }, // B4K = max(dbopen.pagesize) / 4
 	{ "dm.open.show.globallocks",	0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "dm.password.minlength",	0,	8,	0,	1024,	1,	1,	0,	0 },
@@ -290,6 +296,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "filesys.detectunicode",	0,	1,	0,	1,	1,	1,	0,	0 },
 	{ "filesys.detectutf8",		0,	2,	0,	2,	1,	1,	0,	0 },
 	{ "filesys.lockdelay",		0,	90,	1,	RBIG,	1,	1,	0,	0 },
+	{ "filesys.locktimeout",	0,	1000,	0,	RBIG,	1,	1,	0,	0 },
 	{ "filesys.locktry",		0,	100,	1,	RBIG,	1,	1,	0,	0 },
 	{ "filesys.maketmp",		0,	10,	1,	RBIG,	1,	R1K,	0,	0 },
 	{ "filesys.maxmap",		0,	B1G,	0,	BBIG,	1,	B1K,	0,	0 },
@@ -323,8 +330,10 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "map.joinmax1",		0,	R10K,	1,	200000, 1,	R1K,	0,	0 },
 	{ "map.joinmax2",		0,	R1M,	1,	RBIG,	1,	R1K,	0,	0 },
 	{ "map.maxwild",		0,	10,	1,	10,	1,	1,	0,	0 },
+	// map.overlay.legacy to be removed in 2025-ish once overlay fixes are accepted
+	{ "map.overlay.legacy", 	0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "merge.dl.endeol",		0,	0,	0,	1,	1,	1,	0,	0 },
-	{ "net.autotune",		0,	1,	0,	1,	1,	1,	0,	0 },
+	{ "net.autotune",		0,	1,	0,	2,	1,	1,	0,	0 },
 	{ "net.bufsize",		0,	B64K,	1,	BBIG,	1,	B1K,	0,	0 },
 	{ "net.keepalive.disable",	0,	0,	0,	1,	1,	R1K,	0,	0 },
 	{ "net.keepalive.idle",		0,	0,	0,	BBIG,	1,	R1K,	0,	0 },
@@ -365,7 +374,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "proxy.monitor.level",	0,	0,	0,	3,	1,	1,	0,	1 },
 	{ "rcs.maxinsert",		0,	R1G,	1,	RBIG,	1,	R1K,	0,	1 },
 	{ "rcs.nofsync",		0,	0,	0,	1,	1,	1,	0,	1 },
-	{ "rpc.delay",		0,	0,	0,      RBIG,   1,	1,	0,	0 },
+	{ "rpc.delay",			0,	0,	0,	RBIG,	1,	1,	0,	0 },
 	{ "rpc.durablewait",		0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "rpc.himark",			0,	2000,	2000,	BBIG,	1,	B1K,	0,	0 },
 	{ "rpc.lowmark",		0,	700,	700,	BBIG,	1,	B1K,	0,	0 },
@@ -373,6 +382,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "rpl.archive.graph",		0,	2,	0,	2,	1,	1,	0,	1 },
 	{ "rpl.awaitjnl.count",		0,	100,	1,	RBIG,	1,	R1K,	0,	1 },
 	{ "rpl.awaitjnl.interval",	0,	50,	1,	RBIG,	1,	R1K,	0,	1 },
+	{ "rpl.buffer.release",		0,	R1M,	1,	RBIG,	1,	R1K,	0,	1 },
 	{ "rpl.checksum.auto",		0,	0,	0,	3,	1,	1,	0,	1 },
 	{ "rpl.checksum.change",	0,	0,	0,	3,	1,	1,	0,	1 },
 	{ "rpl.checksum.table",		0,	0,	0,	2,	1,	1,	0,	1 },
@@ -413,6 +423,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "server.allowremotelocking",	0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "server.allowrewrite",	0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "server.global.client.views",	0,	0,	0,	1,	1,	1,	0,	0 },
+	{ "server.oom_adj_score",	0,	-1000,	-1000,	1000,	1,	1,	-1000,	0 },
 	{ "server.maxcommands",		0,	0,	0,	RBIG,	1,	R1K,	0,	1 },
 	{ "server.maxcommands.allow",	0,	1,	0,	1,	1,	1,	0,	1 },
 	{ "server.start.unlicensed",	0,	0,	0,	1,	1,	1,	0,	1 },
@@ -420,6 +431,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "filetype.maxtextsize",	0,	B10M,	0,	RBIG,	1,	R1K,	0,	0 },
 	{ "spec.hashbuckets",		0,	99,	0,	999,	1,	1,	0,	0 },
 	{ "spec.custom",		0,	0,	0,	1,	1,	1,	0,	0 },
+	{ "streams.sparse.enabled.undoc", 0,	0,	0,	1,	1,	1,	0,	0 }, // never make this configurable visible to the customer
 	{ "streamview.dots.low",	0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "streamview.sort.remap",	0,	0,	0,	1,	1,	1,	0,	0 },
 	{ "submit.collision.check",	0,	1,	0,	1,	1,	1,	0,	0 },
@@ -447,6 +459,8 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "cmd.memory.chkpt",		0,	0,	0,	BBIG,	1,	B1K,	0,	1 },
 	// ^^ Smart Heap tunables must be a continuous group ^^
 	// vv mimalloc tunables must be a continuous group vv
+	// mimalloc settings are first defined in mem/mimalloc/mimalloc.h's
+	// mi_option_t.  Defaults are in mem/mimalloc/options.c
 # if defined(_DEBUG) || defined(MEM_DEBUG)
 	{ "sys.memory.mi.showerrors",	0,	1,	0,	1,	1,	1,	0,	1 },
 # else
@@ -455,30 +469,66 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "sys.memory.mi.showstats",	0,	0,	0,	1,	1,	1,	0,	1 },
 	{ "sys.memory.mi.verbose",	0,	0,	0,	1,	1,	1,	0,	1 },
 	{ "sys.memory.mi.eagercommit",	0,	1,	0,	1,	1,	1,	0,	1 },
+	// NB: These two are deprecated in the mimalloc 2.x branch, and resetdecommits
+	// crashes when set to 1.
 # if defined(OS_NT) || (defined(OS_LINUX) && defined(__i386__))
 	{ "sys.memory.mi.eagerregioncommit",0,	0,	0,	1,	1,	1,	0,	1 },
-	{ "sys.memory.mi.resetdecommits",0,	1,	0,	1,	1,	1,	0,	1 },
+	{ "sys.memory.mi.resetdecommits",0,	0,	0,	1,	1,	1,	0,	1 },
 # else
-	{ "sys.memory.mi.eagerregioncommit",0,	1,	0,	1,	1,	1,	0,	1 },
+	{ "sys.memory.mi.eagerregioncommit",0,	0,	0,	1,	1,	1,	0,	1 },
 	{ "sys.memory.mi.resetdecommits",0,	0,	0,	1,	1,	1,	0,	1 },
 # endif
 	{ "sys.memory.mi.largeospages",	0,	0,	0,	1,	1,	1,	0,	1 },
 	{ "sys.memory.mi.reservehugeospages",0,	0,	0,	RBIG,	1,	1,	0,	1 },
-	{ "sys.memory.mi.reservehugeospagesat",0,	-1,	-1,	RBIG,	1,	1,	0,	1 },
-	{ "sys.memory.mi.reserveosmemory",0,	0,	0,	RBIG,	1,	1,	0,	1 },
+	{ "sys.memory.mi.reservehugeospagesat", 0, -1,	-1,	RBIG,	1,	1,	0,	1 },
+	{ "sys.memory.mi.reserveosmemory", 0,	0,	0,	RBIG,	1,	1,	0,	1 },
+	// Deprecated in mimalloc 2.x
 	{ "sys.memory.mi.segmentcache",	0,	0,	0,	RBIG,	1,	1,	0,	1 },
-	{ "sys.memory.mi.pagereset",	0,	1,	0,	1,	1,	1,	0,	1 },
+	{ "sys.memory.mi.pagereset",	0,	0,	0,	1,	1,	1,	0,	1 },
+	// This turned into abandoned_page_decommit in 2.x.
 	{ "sys.memory.mi.abandonedpagereset",0,	0,	0,	1,	1,	1,	0,	1 },
+	// Deprecated in mimalloc 2.x
 	{ "sys.memory.mi.segmentreset",	0,	0,	0,	1,	1,	1,	0,	1 },
+# ifdef OS_NT
+	{ "sys.memory.mi.eagercommitdelay",0,	4,	0,	RBIG,	1,	1,	0,	1 },
+# else
 	{ "sys.memory.mi.eagercommitdelay",0,	1,	0,	RBIG,	1,	1,	0,	1 },
-	{ "sys.memory.mi.resetdelay",	0,	100,	0,	RBIG,	1,	1,	0,	1 },
+# endif
+	// This was reset_delay in 1.x.
+	{ "sys.memory.mi.decommitdelay",0,	25,	0,	RBIG,	1,	1,	0,	1 },
 	{ "sys.memory.mi.usenumanodes",	0,	0,	0,	RBIG,	1,	1,	0,	1 },
 	{ "sys.memory.mi.limitosalloc",	0,	0,	0,	1,	1,	1,	0,	1 },
 	{ "sys.memory.mi.ostag",	0,	100,	0,	RBIG,	1,	1,	0,	1 },
 	{ "sys.memory.mi.maxerrors",	0,	16,	0,	RBIG,	1,	1,	0,	1 },
 	{ "sys.memory.mi.maxwarnings",	0,	16,	0,	RBIG,	1,	1,	0,	1 },
+	{ "sys.memory.mi.maxsegmentreclaim",0, 8,	0,	RBIG,	1,	1,	0,	1 },
+	{ "sys.memory.mi.allowdecommit",     0, 1,	0,	RBIG,	1,	1,	0,	1 },
+	{ "sys.memory.mi.segmentdecommitdelay",0, 500,	0,	RBIG,	1,	1,	0,	1 },
+	{ "sys.memory.mi.decommitextenddelay",0, 2,	0,	RBIG,	1,	1,	0,	1 },
 	// ^^ mimalloc tunables must be a continuous group ^^
 	{ "sys.memory.stacksize",	0,	0,	0,	B16K,	1,	B1K,	0,	1 },
+#ifndef OS_MACOSX
+	{ "sys.pressure.max.pause.time",0,	300,	0,	RBIG,	1,	1,	300,	0 },
+#else
+	// Pressure monitoring is not implemented on OSX.
+	{ "sys.pressure.max.pause.time",0,	0,	0,	0,	1,	1,	0,	0 },
+#endif
+	{ "sys.pressure.max.paused",	0,	1000,	0,	RBIG,	1,	1,	1000,	0 },
+	{ "sys.pressure.mem.high",	0,	95,	0,	100,	1,	1,	95,	0 },
+	{ "sys.pressure.mem.high.duration",
+	                                0,	1000,	100,	RBIG,	1,	1,	1000,	0 },
+	{ "sys.pressure.mem.medium",	0,	80,	0,	100,	1,	1,	80,	0 },
+	{ "sys.pressure.mem.medium.duration",
+	                                0,	1000,	100,	RBIG,	1,	1,	1000,	0 },
+	{ "sys.pressure.os.cpu.high",	0,	100,	0,	100,	1,	1,	100,	0 },
+	{ "sys.pressure.os.cpu.high.duration",
+	                                0,	2000,	100,	RBIG,	1,	1,	2000,	0 },
+	{ "sys.pressure.os.mem.high",	0,	70,	0,	100,	1,	1,	70,	0 },
+	{ "sys.pressure.os.mem.high.duration",
+	                                0,	2000,	100,	RBIG,	1,	1,	2000,	0 },
+	{ "sys.pressure.os.mem.medium",	0,	40,	0,	100,	1,	1,	40,	0 },
+	{ "sys.pressure.os.mem.medium.duration",
+	                                0,	2000,	100,	RBIG,	1,	1,	2000,	0 },
 	{ "sys.rename.max",		0,	10,	10,	RBIG,	1,	R1K,	0,	1 },
 	{ "sys.rename.wait",		0,	1000,	50,	RBIG,	1,	R1K,	0,	1 },
 	{ "sys.threading.groups",	0,	0,	0,	1,	1,	1,	0,	1 },
@@ -531,7 +581,7 @@ P4Tunable::stunable P4Tunable::slist[] = {
 P4MT int
 list2[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 }  ;
+	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}  ;
 
 int
 P4Tunable::IsKnown( const char *n )

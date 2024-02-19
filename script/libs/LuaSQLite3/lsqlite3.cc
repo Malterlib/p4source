@@ -248,6 +248,7 @@ static int cleanupvm(lua_State *L, sdb_vm *svm) {
 }
 
 static int stepvm(lua_State *L, sdb_vm *svm) {
+	(void)L;
     return sqlite3_step(svm->vm);
 }
 
@@ -579,36 +580,41 @@ static int dbvm_bind_values(lua_State *L) {
     return 1;
 }
 
-static int dbvm_bind_names(lua_State *L) {
-    sdb_vm *svm = lsqlite_checkvm(L, 1);
-    sqlite3_stmt *vm = svm->vm;
-    int count = sqlite3_bind_parameter_count(vm);
+static int dbvm_bind_table_fields (lua_State *L, int idx, int n, sqlite3_stmt *vm) {
     const char *name;
-    int result, n;
-    luaL_checktype(L, 2, LUA_TTABLE);
+    int result, i;
 
-    for (n = 1; n <= count; ++n) {
-        name = sqlite3_bind_parameter_name(vm, n);
+    for ( i = 1; i <= n; ++i ) {
+        name = sqlite3_bind_parameter_name(vm, i );
         if (name && (name[0] == ':' || name[0] == '$')) {
             lua_pushstring(L, ++name);
-            lua_gettable(L, 2);
-            result = dbvm_bind_index(L, vm, n, -1);
+            lua_gettable(L, idx);
+            result = dbvm_bind_index(L, vm, i, -1);
             lua_pop(L, 1);
         }
         else {
-            lua_pushinteger(L, n);
-            lua_gettable(L, 2);
-            result = dbvm_bind_index(L, vm, n, -1);
+            lua_pushinteger(L, i );
+            lua_gettable(L, idx);
+            result = dbvm_bind_index(L, vm, i, -1);
             lua_pop(L, 1);
         }
 
         if (result != SQLITE_OK) {
-            lua_pushinteger(L, result);
-            return 1;
+            return result;
         }
     }
+    return SQLITE_OK;
+}
 
-    lua_pushinteger(L, SQLITE_OK);
+static int dbvm_bind_names(lua_State *L) {
+    sdb_vm *svm = lsqlite_checkvm(L, 1);
+    sqlite3_stmt *vm = svm->vm;
+    int count = sqlite3_bind_parameter_count(vm);
+    int result;
+    luaL_checktype(L, 2, LUA_TTABLE);
+
+    result = dbvm_bind_table_fields (L, 2, count, vm);
+    lua_pushinteger(L, result);
     return 1;
 }
 
@@ -940,7 +946,7 @@ static int db_interrupt(lua_State *L) {
 static int db_db_filename(lua_State *L) {
     sdb *db = lsqlite_checkdb(L, 1);
     const char *db_name = luaL_checkstring(L, 2);
-    // sqlite3_db_filename may return NULL, in that case Lua pushes nil...
+    /* sqlite3_db_filename may return NULL, in that case Lua pushes nil... */
     lua_pushstring(L, sqlite3_db_filename(db->db, db_name));
     return 1;
 }
@@ -1322,7 +1328,6 @@ static void db_update_hook_callback(void *user, int op, char const *dbname, char
     sdb *db = (sdb*)user;
     lua_State *L = db->L;
     int top = lua_gettop(L);
-    lua_Number n;
 
     /* setup lua callback call */
     lua_rawgeti(L, LUA_REGISTRYINDEX, db->update_hook_cb);    /* get callback */
@@ -1948,7 +1953,13 @@ static int db_do_rows(lua_State *L, int(*f)(lua_State *)) {
     sdb *db = lsqlite_checkdb(L, 1);
     const char *sql = luaL_checkstring(L, 2);
     sdb_vm *svm;
-    lua_settop(L,2); /* db,sql is on top of stack for call to newvm */
+
+    int nargs = lua_gettop(L) - 2;
+    if (nargs > 0) {
+        lua_pushvalue(L, 1);
+        lua_pushvalue(L, 2);    /* copy db,sql on top of the stack for newvm */
+    }
+
     svm = newvm(L, db);
     svm->temp = 1;
 
@@ -1957,6 +1968,34 @@ static int db_do_rows(lua_State *L, int(*f)(lua_State *)) {
         if (cleanupvm(L, svm) == 1)
             lua_pop(L, 1); /* this should not happen since sqlite3_prepare_v2 will not set ->vm on error */
         lua_error(L);
+    }
+
+    if (nargs > 0) {
+        lua_replace(L, 1);
+        lua_remove(L, 2);  /* stack: vm, args.. */
+
+        if (nargs == 1 && lua_istable(L, 2)) {
+            int result;
+            if ((result = dbvm_bind_table_fields (L, 2, nargs, svm->vm)) != SQLITE_OK) {
+                lua_pushstring(L, sqlite3_errstr(result));
+                cleanupvm(L, svm);
+                lua_error(L);
+            }
+        } else if (nargs == sqlite3_bind_parameter_count(svm->vm)) {
+            int result, i;
+            for (i = 1; i <= nargs; i++) {
+                if ((result = dbvm_bind_index(L, svm->vm, i, i + 1)) != SQLITE_OK) {
+                    lua_pushstring(L, sqlite3_errstr(result));
+                    cleanupvm(L, svm);
+                    lua_error(L);
+                }
+            }
+        } else {
+            luaL_error(L, "Required either %d parameters or a single table, got %d.",
+                sqlite3_bind_parameter_count(svm->vm), nargs);
+        }
+        lua_pop(L, nargs);
+        lua_pushvalue(L, 1);
     }
 
     lua_pushcfunction(L, f);
@@ -2144,7 +2183,7 @@ static int lsqlite_newindex(lua_State *L) {
 /* Version number of this library
 */
 static int lsqlite_lversion(lua_State *L) {
-    lua_pushstring(L, LSQLITE_VERSION );
+    lua_pushstring(L, LSQLITE_VERSION);
     return 1;
 }
 
@@ -2347,7 +2386,7 @@ static const luaL_Reg dbbulib[] = {
     {"pagecount",   dbbu_pagecount  },
     {"finish",      dbbu_finish     },
 
-//  {"__tostring",  dbbu_tostring   },
+/*  {"__tostring",  dbbu_tostring   },   */
     {"__gc",        dbbu_gc         },
     {NULL, NULL}
 };

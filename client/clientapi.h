@@ -288,6 +288,7 @@ class ClientApi : public StrDict {
 
 	StrPtr 		*VGetVar( const StrPtr &var );
 	void		VSetVar( const StrPtr &var, const StrPtr &val );
+	int		VGetCount();
 
     private:
 	Client		*client;	// wrapped up RPC

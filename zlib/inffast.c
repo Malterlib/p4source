@@ -1,3 +1,5 @@
+/* Note that this is a modified version of inffast.c */
+
 /* inffast.c -- fast decoding
  * Copyright (C) 1995-2017 Mark Adler
  * For conditions of distribution and use, see copyright notice in zlib.h

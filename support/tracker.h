@@ -44,6 +44,7 @@ enum TrackerType {
 	TT_SERVER_CLOCK,		// lapse time in ms
 	TT_SERVER_CPU,			// CPU (user+system) in ms
 	TT_SERVER_MEM,			// Peak memory in megabytes
+	TT_SERVER_PAUSED,		// paused time in ms
 	TT_DB_LOCKS,			// times table locked
 	TT_DB_ROWS_IN,			// rows read/scanned
 	TT_DB_ROWS_OUT,			// rows put/deleted
