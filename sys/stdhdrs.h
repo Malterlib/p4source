@@ -211,7 +211,7 @@ extern int errno;
 # include <winldap.h>
 # include <winber.h>
 # include <wincrypt.h>
-# include <rpc.h>
+# include <p4rpc.h>
 # include <rpcdce.h>
 # endif // NEED_SRWLOCK
 # endif // OS_NT
