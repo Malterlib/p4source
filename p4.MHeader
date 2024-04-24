@@ -243,7 +243,7 @@ Compile
 	{
 		Dependency.Indirect true
 	}
-	%Dependency "Lib_Curl"
+	%Dependency "Lib_CURL_libcurl_static"
 	{
 		Dependency.Indirect true
 	}
