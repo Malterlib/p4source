@@ -324,7 +324,7 @@ class MultiThreader : public Threader {
 	        char msg[128];
 
 	        sprintf( msg, "Can't remove thread entry %d",
-	                 GetCurrentThreadId() );
+	                 (int)GetCurrentThreadId() );
 	        e.Set( E_FATAL, msg );
 	        AssertLog.Report( &e );
 	    }

@@ -331,6 +331,9 @@ RunProcess(
 	case RPM_Detach:
 	    creationFlags |= DETACHED_PROCESS;
 	    break;
+
+	default:
+		break;
 	}
 
 	if( !CreateProcess( 
