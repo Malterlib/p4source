@@ -341,6 +341,9 @@ RunProcess(
 	    StartInfo.dwFlags &= ~STARTF_USESTDHANDLES;
 	    StartInfo.wShowWindow = SW_HIDE;
 	    break;
+
+	default:
+		break;
 	}
 
 	if( !CreateProcess( 
