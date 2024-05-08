@@ -46,17 +46,20 @@ Compile
 		{
 			!!PlatformFamily "Windows"
 		}
+		ExtraGroups =+ "{Malterlib}/{Lib_Malterlib_Cryptography}/{DependOnBoringSSL}"
 	}
 	Compile
 	{
 		&
 		{
 			CompileDialect "C"
-			GeneratorFamily "Xcode"
+			Compiler "Clang"
 		}
 		Warnings_Parentheses false
 		Warnings_UnusedVariable false
 		Warnings_UnusedLabel false
+		Warnings_UnusedFunction false
+		Warnings_UnusedButSetVariable false
 		Warnings_OverloadedVirtual false
 		Warnings_CharSubscripts false
 		Warnings_Cxx11Narrowing false
@@ -86,7 +89,7 @@ Compile
 		}
 		Warnings_UnusedFunction false
 		{
-			!!GeneratorFamily "Xcode"
+			!!Compiler "Clang"
 		}
 	}
 	%Group "Source"
@@ -245,12 +248,6 @@ Compile
 	}
 	%Dependency "Lib_CURL_libcurl_static"
 	{
-		Dependency.Indirect true
-	}
-	%Dependency "Lib_BoringSSL_decrepit"
-	{
-		!DocumentationEnabled true
-
 		Dependency.Indirect true
 	}
 }

@@ -227,7 +227,7 @@ FileSys::RmDir( const StrPtr &path, Error *e )
 	// Bail on failure.
 
 # ifdef OS_NT
-	DWORD attr;
+	DWORD attr = 0;
 	const wchar_t *wp = NULL;
 
 	if( DOUNICODE || LFN )
