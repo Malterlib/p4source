@@ -265,7 +265,7 @@ NtService::ControlHandler( DWORD opcode )
  * pointer to invoke the appropriate virtual member function.
  */
 
-void 
+void __stdcall
 NtService::StaticRun( DWORD argc, char **argv )
 {
 	if( ! global_this )
