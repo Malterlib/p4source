@@ -71,7 +71,7 @@ class NtService
 
 	static NtService *global_this; 
 	static void WINAPI ControlHandler( DWORD opcode );
-	static void StaticRun( DWORD argc, char **argv );
+	static void __stdcall StaticRun( DWORD argc, char **argv );
 
 	// Called by ControlHanlder
 
