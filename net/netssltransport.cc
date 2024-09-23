@@ -355,7 +355,7 @@ SslErrorNames	sslErrorNames[] = {
     {SSL_ERROR_ZERO_RETURN,		" (Zero_Return)"},	//  6
     {SSL_ERROR_WANT_CONNECT,		" (Want_Connect)"},	//  7
     {SSL_ERROR_WANT_ACCEPT,		" (Want_Accept)"},	//  8
-# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+# if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(OPENSSL_IS_BORINGSSL)
     {SSL_ERROR_WANT_ASYNC,		" (Want_Async)"},	//  9
 # endif // OPENSSL >= 1.1.x
 # if OPENSSL_VERSION_NUMBER >= 0x30000000L
@@ -1478,7 +1478,9 @@ NetSslTransport::SslHandshake( Error *e )
 			switch( ERR_GET_REASON( errErrorNum ) )
 			{
 			    case SSL_R_UNSUPPORTED_PROTOCOL:
-			    case SSL_R_NO_PROTOCOLS_AVAILABLE:
+#if !defined(OPENSSL_IS_BORINGSSL)
+				case SSL_R_NO_PROTOCOLS_AVAILABLE:
+#endif
 				e->Set( MsgRpc::SslProtocolError )
 				    << GetPortParser().String()
 				    << sslErrorBuf;
@@ -1533,7 +1535,7 @@ NetSslTransport::SslHandshake( Error *e )
 
 		// these all fall through as well
 	    case SSL_ERROR_WANT_X509_LOOKUP:
-# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+# if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(OPENSSL_IS_BORINGSSL)
 	    case SSL_ERROR_WANT_ASYNC:
 # endif // OPENSSL >= 1.1.x
 # if OPENSSL_VERSION_NUMBER >= 0x30000000L

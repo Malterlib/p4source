@@ -13,6 +13,7 @@ Compile
 		"client"->MakeAbsolute()
 		, "sys"->MakeAbsolute()
 		, "support"->MakeAbsolute()
+		, "blake3"->MakeAbsolute()
 		, "msgs"->MakeAbsolute()
 		, "i18n"->MakeAbsolute()
 	]
