@@ -283,7 +283,11 @@ StrBuf ExtensionData::GetScriptMainPath()
 {
 	StrBuf path;
 
-	PathSys *p = PathSys::Create();
+	Error eIgnore;
+	// This always uses Unix paths since it works on Windows and Unix
+	// and this path ends up in db.trigger where it'll be run on both
+	// platforms in mixed Windows/Unix replication setups.
+	PathSys *p = PathSys::Create( StrRef( "UNIX" ), &eIgnore );
 	p->Set( archiveDir->Path() );
 	p->SetLocal( *p, StrRef( "main.lua" ) );
 	path = p->Text();

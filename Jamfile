@@ -63,6 +63,12 @@ if $(WIN32_WINNT)
 	 CCFLAGS = -D_WIN32_WINNT=$(WIN32_WINNT) [ FRemoveAny  $(CCFLAGS) : -D_WIN32_WINNT=0x0501 ] ;
 }
 
+if $(BUILD) = "valgrind"
+{
+	C++FLAGS += -DHAS_VALGRIND ;
+	CCFLAGS += -DHAS_VALGRIND ;
+}
+
 if $(OS) = NT
 {
 	C++FLAGS += /EHsc ;
@@ -107,6 +113,12 @@ if $(USE_OPTIMIZED_ZLIB) != 0 && $(USE_OPTIMIZED_ZLIB) != 1
 	    USE_OPTIMIZED_ZLIB  = 1 ;
 	    DEFINES += USE_OPTIMIZED_ZLIB ;
 	}
+}
+
+if [ CompilerIsModern ] = 1 && $(OS) != "MINGW" && $(OSPLAT:U) != "X86"
+{
+	USE_CDC = 1 ;
+	DEFINES += USE_CDC ;
 }
 
 if $(MALLOC_OVERRIDE) = yes
@@ -211,6 +223,8 @@ SubInclude P4 zlib ;
 SubInclude P4 broker ; # Must be after db
 
 if $(X3) = yes { SubInclude P4 xfer3rd ; }
+
+if $(USE_CDC) = 1 { SubInclude P4 blake3 ; }
 
 if $(PRODUCTION) { API ?= x ; }
 

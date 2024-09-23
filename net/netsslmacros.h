@@ -117,6 +117,22 @@
         }  \
     } while(0);
 
+// like SSLLOGFUNCTION, but uses the second param rather than  ERR_get_error()
+#define SSLLOGFUNC( func, ssl_errnum ) \
+    do { \
+        if( SSLDEBUG_FUNCTION ) \
+        { \
+            if ( ( ssl_errnum ) > 1 ) \
+            { \
+                char sslError[256]; \
+                ERR_error_string_n( ssl_errnum, sslError, 256 ); \
+                if( SSLDEBUG_ERROR ) \
+                    p4debug.printf("%s Failed: %s\n", func, sslError); \
+            } else \
+                p4debug.printf("%s: Successfully called\n", func );  \
+        }  \
+    } while(0);
+
 #define SSLHANDLEFAIL( x, err, func, msgtag, tag ) \
     do { \
         if ( !x ) \

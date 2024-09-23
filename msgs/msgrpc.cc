@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgRpc error code is: 79
+ * Current high value for a MsgRpc error code is: 84
  */
 # include <stdhdrs.h>
 # include <error.h>
@@ -55,7 +55,12 @@ ErrorId MsgRpc::Break                  = { ErrorOf( ES_RPC, 21, E_FAILED, EV_COM
 ErrorId MsgRpc::MaxWait                = { ErrorOf( ES_RPC, 39, E_FAILED, EV_COMM, 2 ), "TCP %operation% exceeded maximum configured duration of %seconds% seconds." } ;
 ErrorId MsgRpc::NameResolve            = { ErrorOf( ES_RPC, 37, E_FAILED, EV_COMM, 1 ), "%errortext%" } ;  //  unique error for name resolution failure
 ErrorId MsgRpc::SslAccept              = { ErrorOf( ES_RPC, 38, E_FAILED, EV_COMM, 1 ), "SSL connection accept failed %error%.\n\tClient must add SSL protocol prefix to P4PORT." } ;
+ErrorId MsgRpc::SslAcceptFailed        = { ErrorOf( ES_RPC, 80, E_FAILED, EV_COMM, 2 ), "SSL connection accept failed %acceptFailedError% %failReason%." } ;
+ErrorId MsgRpc::SslAcceptTimeout       = { ErrorOf( ES_RPC, 81, E_FAILED, EV_COMM, 1 ), "SSL connection accept failed (timeout) %acceptTimeoutError%." } ;
 ErrorId MsgRpc::SslConnect             = { ErrorOf( ES_RPC, 23, E_FAILED, EV_COMM, 2 ), "SSL connect to %host% failed %error%.\n\tRemove SSL protocol prefix from P4PORT or fix the TLS settings." } ;
+ErrorId MsgRpc::SslConnectFailed       = { ErrorOf( ES_RPC, 82, E_FAILED, EV_COMM, 3 ), "SSL connect to %hostFailed% failed %connectFailedError%[ {%failReason%}]." } ;
+ErrorId MsgRpc::SslConnectTimeout      = { ErrorOf( ES_RPC, 83, E_FAILED, EV_COMM, 1 ), "SSL connect to %hostTimeout% timed out." } ;
+ErrorId MsgRpc::SslCloseEOF            = { ErrorOf( ES_RPC, 84, E_FAILED, EV_COMM, 1 ), "SSL received EOF from %hostEOF%, closing connection." } ;
 ErrorId MsgRpc::SslListen              = { ErrorOf( ES_RPC, 24, E_FAILED, EV_COMM, 1 ), "SSL listen on %service% failed." } ;
 ErrorId MsgRpc::SslRecv                = { ErrorOf( ES_RPC, 25, E_FAILED, EV_COMM, 0 ), "SSL receive failed." } ;
 ErrorId MsgRpc::SslSend                = { ErrorOf( ES_RPC, 26, E_FAILED, EV_COMM, 0 ), "SSL send failed." } ;
@@ -101,7 +106,7 @@ ErrorId MsgRpc::PxRemoteSvrFail        = { ErrorOf( ES_RPC, 52, E_FAILED, EV_COM
 ErrorId MsgRpc::SslCfgExpire           = { ErrorOf( ES_RPC, 53, E_FAILED, EV_COMM, 1 ), "Certificate config.txt: invalid EX value \"%exValue%\", must be number > 0 and <= 24855 days." } ;
 ErrorId MsgRpc::SslCfgUnits            = { ErrorOf( ES_RPC, 54, E_FAILED, EV_COMM, 0 ), "Certificate config.txt: invalid UNITS value, must be either secs, mins, hours, or days." } ;
 ErrorId MsgRpc::SslKeyNotRSA           = { ErrorOf( ES_RPC, 55, E_FAILED, EV_COMM, 0 ), "Fail load key, not of type RSA." } ;
-ErrorId MsgRpc::SslProtocolError       = { ErrorOf( ES_RPC, 56, E_FAILED, EV_COMM, 1 ), "SSL protocol: %errortext%" } ;
+ErrorId MsgRpc::SslProtocolError       = { ErrorOf( ES_RPC, 56, E_FAILED, EV_COMM, 2 ), "SSL protocol error (fix the TLS settings): %protocolHost%[\n\t    {%protocolError%}]." } ;
 
 ErrorId MsgRpc::WakeupInit             = { ErrorOf( ES_RPC, 62, E_FAILED, EV_COMM, 2 ), "Fail to setup wake-up socket during %function% with error: %error%." } ;
 ErrorId MsgRpc::WakeupAttempt          = { ErrorOf( ES_RPC, 63, E_FAILED, EV_COMM, 2 ), "Fail wake-up attempt in %function% with error: %error%." } ;

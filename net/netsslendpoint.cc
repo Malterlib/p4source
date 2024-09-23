@@ -80,6 +80,7 @@ extern "C"
 # include "netsslmacros.h"
 # include "netselect.h"
 # include "netdebug.h"
+# include "netutils.h"
 # include <msgrpc.h>
 
 #include <memory>
@@ -123,6 +124,18 @@ NetSslEndPoint::ListenCheck( Error *e )
 	return;
 }
 
+// Called from NetTcpEndPoint::SocketSetup() to do additional setup
+void
+NetSslEndPoint::MoreSocketSetup( int fd, AddrType type, Error *e )
+{
+# if defined(TCP_NODELAY)
+	int one = 1;
+	TYPE_SOCKLEN rsz = sizeof( one );
+
+	// disable the Nagle algorithm; it isn't needed with SSL and interacts badly with it
+	do_setsockopt( "NetSslEndPoint", fd, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<SOCKOPT_T *>(&one), rsz );
+# endif
+}
 
 /**
  * NetSslEndPoint::Accept

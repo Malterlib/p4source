@@ -37,8 +37,8 @@ struct MergeSequence {
 
 	FileSys		*f;
 	Sequence	*s;
-	int		revId;
-	int		chgId;
+	P4INT64		revId;
+	P4INT64		chgId;
 
 } ;
 
@@ -131,7 +131,8 @@ MergeLine::AddLines(
 
 MergeLine **
 MergeLine::MarkLines( MergeLine **p, LineNo count, 
-		      int prevRev, int nextRev, int prevChg, int nextChg )
+		      P4INT64 prevRev, P4INT64 nextRev,
+		      P4INT64 prevChg, P4INT64 nextChg )
 {
 	for( ; count; p = &(*p)->next )
 	    if( (*p)->upperChg == prevChg )
@@ -180,7 +181,7 @@ MultiMerge::~MultiMerge()
  */
 
 void
-MultiMerge::Add( FileSys *f, int revId, int chgId, Error *e )
+MultiMerge::Add( FileSys *f, P4INT64 revId, P4INT64 chgId, Error *e )
 {
 	// Make next sequence.  We need a pair for diffing.
 
@@ -285,7 +286,8 @@ MultiMerge::Dump()
  */
 
 MergeLine *
-MultiMerge::Read( int &lower, int &upper, int &change, StrPtr &string, int chg )
+MultiMerge::Read( P4INT64 &lower, P4INT64 &upper, P4INT64 &change,
+	          StrPtr &string, int chg )
 {
 	if( !reader )
 	    return 0;

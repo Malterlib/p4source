@@ -234,6 +234,7 @@ class Options
 	                Value          , // attribute -v, property -v
 	                Propagating    , // attribute -p
 	                Storage        , // attribute -T
+	                TraitFile      , // attribute -I
 	                OpenAdd        , // reconcile -a
 	                OpenEdit       , // reconcile -e
 	                OpenDelete     , // reconcile -d
@@ -332,6 +333,7 @@ class Options
 	                CreationDate   , // topology -c
 	                LastSeenDate   , // topology -l
 	                ListAddresses  , // license -L
+	                Trait          , // print -T
 
 	        // options which have only long-form option names go here:
 
@@ -399,6 +401,7 @@ class Options
 			Script         , // --script
 			ScriptMaxMem   , // --script-MaxMem
 			ScriptMaxTime  , // --script-MaxTime
+			ScriptEnableDbg, // --script-enable-debug
 			Path           , // --path (extension)
 			NoSync         , // --no-sync
 			NoScript       , // --no-script

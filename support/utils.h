@@ -23,3 +23,11 @@
  */
 
 bool IsHex( char c );
+
+/**
+ * FindRevspec
+ * - return a pointer to the beginning of a revspec in a string
+ * - return 0 if no revspec is present
+ */
+
+const char *FindRevspec( const char *p, int n );

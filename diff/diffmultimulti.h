@@ -46,8 +46,8 @@ class MultiMultiMerge
 	MultiMerge*	Get( int i );
 	const StrPtr&	IdOf( MergeLine *line );
 
-	void		Credit( const StrPtr& fromId, int sRev, int eRev,
-				const StrPtr& toId, int tRev, Error *e );
+	void		Credit( const StrPtr& fromId, P4INT64 sRev, P4INT64 eRev,
+				const StrPtr& toId, P4INT64 tRev, Error *e );
 
 	void		Dump();
 

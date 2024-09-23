@@ -299,6 +299,7 @@ RpcService::SetCiphers( StrPtr *cipherList, StrPtr *cipherSuites )
 static void RpcCleanup( Rpc *r )
 {
 	r->FlushTransport();
+	r->ShutdownTransport();
 }
 /*
  * Rpc
@@ -1033,6 +1034,8 @@ Rpc::Dispatch( DispatchFlag flag, RpcDispatcher *dispatcher )
 	        	"Rpc flush %d bytes", duplexFsend );
 
 		SetVar( P4Tag::v_himark, loMark ? hiMark : 0 );
+		if( flag == DfFlush )
+		    SetVar( P4Tag::v_flushHard );
 
 		duplexFrecv += flushMessageSize;
 		duplexFsend += flushMessageSize;
@@ -1313,6 +1316,13 @@ Rpc::FlushTransport()
 {
 	if( transport )
 	    transport->Flush( &se );
+}
+
+void
+Rpc::ShutdownTransport()
+{
+	if( transport )
+	    transport->Shutdown( &se );
 }
 
 int	

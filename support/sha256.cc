@@ -4,18 +4,33 @@
 
 # include <stdhdrs.h>
 # include <strbuf.h>
+# include <error.h>
 # include <strops.h>
 # include <sha256.h>
+
+# include <msgsupp.h>
+
+Sha256Digester::Sha256Digester()
+{
+	Init( 0 );
+}
+
+Sha256Digester::Sha256Digester( Error *e )
+{
+	Init( e );
+}
 
 # ifdef USE_SSL
 # include <openssl/opensslv.h>
 # if OPENSSL_VERSION_NUMBER < 0x30000000L
 # include <openssl/sha.h>
 
-Sha256Digester::Sha256Digester()
+void
+Sha256Digester::Init( Error *e )
 {
 	ctx = malloc( sizeof( SHA256_CTX ) );
-	SHA256_Init( (SHA256_CTX *)ctx );
+	if( !SHA256_Init( (SHA256_CTX *)ctx ) && e )
+	    e->Set( MsgSupp::DigestInitFailed ) << "SHA256";
 }
 
 Sha256Digester::~Sha256Digester()
@@ -52,15 +67,16 @@ Sha256Digester::Final( StrBuf &output )
 
 # else
 # include <openssl/evp.h>
-# include <error.h>
-# include <errorlog.h>
 
-Sha256Digester::Sha256Digester()
+void
+Sha256Digester::Init( Error *e )
 {
 	const EVP_MD *md = EVP_get_digestbyname( "SHA256" );
 	if( !md )
 	{
 	    ctx = 0;
+	    if( e )
+	        e->Set( MsgSupp::DigestInitFailed ) << "SHA256";
 	    return;
 	}
 	ctx = (void*)EVP_MD_CTX_new();
@@ -118,8 +134,11 @@ Sha256Digester::Final( StrBuf &output )
 
 /* Stub implementation for non-SSL builds. Is a no-op if you try to run it. */
 
-Sha256Digester::Sha256Digester()
+void
+Sha256Digester::Init( Error *e )
 {
+	if( e )
+	    e->Set( MsgSupp::DigestInitFailed ) << "SHA256";
 }
 
 Sha256Digester::~Sha256Digester()

@@ -1579,7 +1579,7 @@ StrOps::StreamNameInPath( const char *dFile, int depth, StrBuf &name )
 	    if( !t ) return 0;
 	}
 
-	name.Append( dFile, --t - dFile );
+	name.Set( dFile, --t - dFile );
 
 	return --slash;
 

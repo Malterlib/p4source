@@ -18,6 +18,31 @@
 class StrVarArray : public VVarArray {
 
     public:
+
+	/**
+	 * StrVarArray::StrVarArray -
+	 * Constructor
+	 */
+	StrVarArray( )
+	    : VVarArray(),
+	    caseFolding( 0 )
+	{
+	}
+
+	/**
+	 * StrVarArray::StrVarArray -
+	 * Constructor. Allows caller to preallocate space if populating an 
+	 * array of known size.
+	 *
+	 * @param[in] max - Specific maximum size to allocate for this new 
+	 *                  array.
+	 */
+	StrVarArray( int max ) 
+	    : VVarArray( max ),
+	    caseFolding(0)
+	{
+	}
+
 	void SetCaseFolding( int c ) 
 	{
 	    caseFolding = c;
@@ -36,9 +61,26 @@ class StrVarArray : public VVarArray {
 
 } ;
 
+/**
+ * StrArray::StrArray -
+ * Constructor
+ */
 StrArray::StrArray()
+    : array(new StrVarArray)
 {
-	array = new StrVarArray;
+}
+
+/**
+ * StrArray::StrArray -
+ * Constructor. Allows caller to preallocate space if populating an array of
+ * known size.
+ *
+ * @param[in] max - Specific maximum size to allocate for this new array.
+ */
+StrArray::StrArray( int max )
+    : array(new StrVarArray(max))
+{
+
 }
 
 StrArray::~StrArray()
@@ -140,6 +182,18 @@ StrArray::Search( const StrBuf *key )
 	    else
 		lo = hi;
 	}
+}
+
+int
+StrArray::GetIndex( const StrBuf *key )
+{
+	int index = Search( key );
+	const StrBuf *r = Get( index );
+
+	if( !r || array->Compare( key, r ) )
+	    return -1;
+
+	return index;
 }
 
 const StrBuf *

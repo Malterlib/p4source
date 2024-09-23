@@ -421,7 +421,7 @@ NetBuffer::Fill( Error *re, Error *se )
 void
 NetBuffer::Flush( Error *re, Error *se )
 {
-	DEBUGPRINT( DEBUG_TRANS, "NetBuffer flush"  );
+	DEBUGPRINT( DEBUG_CONNECT, "NetBuffer flush"  );
 
 	while( compressing || SendReady() )
 	{
@@ -455,6 +455,12 @@ NetBuffer::Flush( Error *re, Error *se )
 	    if( !transport->SendOrReceive( ioPtrs, se, re ) )
 		return;
 	}
+}
+
+void
+NetBuffer::Shutdown( Error *re, Error *se )
+{
+	transport->Shutdown( se, re );
 }
 
 int

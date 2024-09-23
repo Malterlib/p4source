@@ -32,3 +32,19 @@ IsHex( char c )
 	    return false;
 } // IsHex
 
+/**
+ * FindRevspec
+ * - return a pointer to the beginning of a revspec in a string
+ * - return 0 if no revspec is present
+ */
+
+const char *
+FindRevspec( const char *p, int n )
+{
+	for( int i = 0; i < n; i++, p++ )
+	{
+	    if( *p == '#' || *p == '@' )
+	        return p;
+	}
+	return 0;
+}

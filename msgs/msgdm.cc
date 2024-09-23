@@ -222,7 +222,7 @@ ErrorId MsgDm::EmptyFileName           = { ErrorOf( ES_DM, 96, E_FAILED, EV_USAG
 ErrorId MsgDm::NoRev                   = { ErrorOf( ES_DM, 97, E_FAILED, EV_USAGE, 0 ), "A revision specification (# or @) cannot be used here." } ;
 ErrorId MsgDm::NoRevRange              = { ErrorOf( ES_DM, 98, E_FAILED, EV_USAGE, 0 ), "A revision range cannot be used here." } ;
 ErrorId MsgDm::NeedClient              = { ErrorOf( ES_DM, 99, E_FAILED, EV_CONFIG, 2 ), "%arg% - must create client '%client%' to access local files." } ;
-ErrorId MsgDm::ReferClient             = { ErrorOf( ES_DM, 100, E_FAILED, EV_UNKNOWN, 2 ), "%path% - must refer to client '%client%'." } ;
+ErrorId MsgDm::ReferClient             = { ErrorOf( ES_DM, 100, E_FAILED, EV_UNKNOWN, 2 ), "%path% - must refer to client '%client%' or a depot." } ;
 ErrorId MsgDm::BadAtRev                = { ErrorOf( ES_DM, 101, E_FAILED, EV_ILLEGAL, 1 ), "Invalid changelist/client/label/date '@%arg%'." } ;
 ErrorId MsgDm::BadRevSpec              = { ErrorOf( ES_DM, 102, E_FAILED, EV_USAGE, 1 ), "Unintelligible revision specification '%arg%'." } ;
 ErrorId MsgDm::BadRevRel               = { ErrorOf( ES_DM, 103, E_FAILED, EV_USAGE, 1 ), "Can't yet do relative operations on '%rev%'." } ;
@@ -459,10 +459,10 @@ ErrorId MsgDm::FixDelete               = { ErrorOf( ES_DM, 238, E_INFO, EV_NONE,
                                
 ErrorId MsgDm::FixesData               = { ErrorOf( ES_DM, 239, E_INFO, EV_NONE, 6 ), "%job% fixed by %change% on %date% by %user%@%client% (%status%)" } ;
 
-ErrorId MsgDm::GrepOutput              = { ErrorOf( ES_DM, 531, E_INFO, EV_NONE, 4 ), "%depotFile%#%depotRev%%separator%%linecontent%" };
-ErrorId MsgDm::GrepFileOutput         = { ErrorOf( ES_DM, 532, E_INFO, EV_NONE, 2 ), "%depotFile%#%depotRev%" };
-ErrorId MsgDm::GrepWithLineNumber      = { ErrorOf( ES_DM, 533, E_INFO, EV_NONE, 6 ), "%depotFile%#%depotRev%%separator1%%linenumber%%separator2%%linecontent%" };
-ErrorId MsgDm::GrepLineTooLong         = { ErrorOf( ES_DM, 534, E_WARN, EV_NONE, 4 ), "%depotFile%#%depotRev% - line %linenumber%: maximum line length of %maxlinelength% exceeded" };
+ErrorId MsgDm::GrepOutput              = { ErrorOf( ES_DM, 531, E_INFO, EV_NONE, 4 ), "%depotFile%%depotRev%%separator%%linecontent%" };
+ErrorId MsgDm::GrepFileOutput         = { ErrorOf( ES_DM, 532, E_INFO, EV_NONE, 2 ), "%depotFile%%depotRev%" };
+ErrorId MsgDm::GrepWithLineNumber      = { ErrorOf( ES_DM, 533, E_INFO, EV_NONE, 6 ), "%depotFile%%depotRev%%separator1%%linenumber%%separator2%%linecontent%" };
+ErrorId MsgDm::GrepLineTooLong         = { ErrorOf( ES_DM, 534, E_WARN, EV_NONE, 4 ), "%depotFile%%depotRev% - line %linenumber%: maximum line length of %maxlinelength% exceeded" };
 ErrorId MsgDm::GrepMaxRevs            = { ErrorOf( ES_DM, 535, E_FAILED, EV_USAGE, 1 ), "Grep revision limit exceeded (over %maxRevs%)." } ;
 ErrorId MsgDm::GrepSeparator          = { ErrorOf( ES_DM, 536, E_INFO, EV_NONE, 0 ), "--" } ;
 

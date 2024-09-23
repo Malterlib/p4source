@@ -321,6 +321,7 @@ class Rpc : public StrDict {
 	int		InvokeOne( const char *opName );
 
 	void		FlushTransport();
+	void		ShutdownTransport();
 	int		GetRecvBuffering() ;
 	Error *		GetDispatchError() { return &le; }
 

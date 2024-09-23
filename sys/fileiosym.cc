@@ -134,11 +134,11 @@ FileIOSymlink::Truncate( Error *e )
 {
 }
 
-int
+P4INT64
 FileIOSymlink::StatAccessTime()
 {
 # ifdef OS_NT
-	int t = FileIO::StatAccessTime();
+	P4INT64 t = FileIO::StatAccessTime();
 	return t >= 0 ? t : 0;
 # else
 	struct stat sb;
@@ -146,15 +146,15 @@ FileIOSymlink::StatAccessTime()
 	if( lstat( Name(), &sb ) < 0 )
 	    return 0;
 
-	return (int)sb.st_atime;
+	return sb.st_atime;
 # endif
 }
 
-int
+P4INT64
 FileIOSymlink::StatModTime()
 {
 # ifdef OS_NT
-	int t = FileIO::StatModTime();
+	P4INT64 t = FileIO::StatModTime();
 	return t >= 0 ? t : 0;
 # else
 	struct stat sb;
@@ -162,7 +162,7 @@ FileIOSymlink::StatModTime()
 	if( lstat( Name(), &sb ) < 0 )
 	    return 0;
 
-	return (int)sb.st_mtime;
+	return sb.st_mtime;
 # endif
 }
 
@@ -172,7 +172,7 @@ FileIOSymlink::Chmod( FilePerm perms, Error *e )
 }
 
 void
-FileIOSymlink::ChmodTime( int modTime, Error *e )
+FileIOSymlink::ChmodTime( P4INT64 modTime, Error *e )
 {
 }
 

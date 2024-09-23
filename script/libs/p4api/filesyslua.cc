@@ -38,7 +38,6 @@ void FileSysLua::doBindings( sol::state* lua, sol::table& ns,
 	                     const char* implName, const int apiVersion )
 {
 	ns.new_enum( "FileOpenMode",
-	    "to_string" , []( FileOpenMode m ){ return std::string("the mode");},
 	    "FOM_READ"  , FileOpenMode::FOM_READ,
 	    "FOM_WRITE" , FileOpenMode::FOM_WRITE,
 	    "FOM_RW"    , FileOpenMode::FOM_RW,
@@ -213,7 +212,7 @@ int FileSysLua::Stat()
 	return 0;
 }
 
-int FileSysLua::StatModTime()
+P4INT64 FileSysLua::StatModTime()
 {
 	if( !fStatModTime )
 	    return 0;
@@ -224,7 +223,7 @@ int FileSysLua::StatModTime()
 	    return 0;
 
 	try {
-	    return r.get< int >();
+	    return r.get< P4INT64 >();
 	} catch( const sol::error& err )
 	{
 	    // Nothing we can do.

@@ -6,6 +6,7 @@
 
 # include <stdhdrs.h>
 
+# define NEED_ERRNO
 # include <debug.h>
 # include <strbuf.h>
 # include <vararray.h>

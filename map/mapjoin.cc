@@ -312,9 +312,12 @@ MapTable::JoinCheck( MapTableT dir, MapTable *c, MapTableT dir2 )
  */
 
 void
-MapTable::Disambiguate()
+MapTable::Disambiguate( int maxLookBack )
 {
 	MapDisambiguate j;
+
+	if( j.m0 )
+	    j.m0->SetMaxLookBack( maxLookBack );
 
 	// From high precendence to low precedence
 

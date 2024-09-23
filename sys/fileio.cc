@@ -320,7 +320,7 @@ FileIO::Rename( FileSys *target, Error *e )
 }
 
 void
-FileIO::ChmodTime( int modTime, Error *e )
+FileIO::ChmodTime( P4INT64 modTime, Error *e )
 {
 # ifdef HAVE_UTIME
 	struct utimbuf t;
@@ -558,7 +558,7 @@ FileIO::HasOnlyPerm( FilePerm perms )
 # endif // not defined OS_NT
 
 # if !defined( OS_NT )
-int
+P4INT64
 FileIO::StatAccessTime()
 {
 	struct statbL sb;
@@ -566,10 +566,10 @@ FileIO::StatAccessTime()
 	if( statL( Name(), &sb ) < 0 )
 	    return 0;
 
-	return (int)( DateTime::Centralize( sb.st_atime ) );
+	return DateTime::Centralize( sb.st_atime );
 }
 
-int
+P4INT64
 FileIO::StatModTime()
 {
 	struct statbL sb;
@@ -577,7 +577,7 @@ FileIO::StatModTime()
 	if( statL( Name(), &sb ) < 0 )
 	    return 0;
 
-	return (int)( DateTime::Centralize( sb.st_mtime ) );
+	return DateTime::Centralize( sb.st_mtime );
 }
 
 void
@@ -591,7 +591,7 @@ FileIO::StatModTimeHP(DateTimeHighPrecision *modTime)
 	    return;
 	}
 
-	time_t	seconds = DateTime::Centralize( sb.st_mtime );
+	P4INT64	seconds = DateTime::Centralize( sb.st_mtime );
 	int	nanosecs = 0;
 
 // nanosecond support for stat is a bit of a portability mess
@@ -693,6 +693,7 @@ FileIO::Chmod( FilePerm perms, Error *e )
 
 /*
  * FileIO::SetExtendedAttribute() - set/remove extended attr (error optional)
+ * FileIO::SetExtendedAttributes() - set/remove extended attr (error optional)
  * FileIO::GetExtendedAttribute() - get extended attr (error optional)
  * FileIO::GetExtendedAttributes() - get all extended attrs (error optional)
  */
@@ -752,6 +753,18 @@ FileIO::SetExtendedAttribute( StrPtr *name, StrPtr *val, Error *e )
 
 	if( e )
 	    e->Sys( "setxattr", Name() );
+}
+
+void
+FileIO::SetExtendedAttributes( StrDict *vals, Error *e )
+{
+	StrDictIterator *iter = vals->GetIterator();
+	StrRef name, val;
+	while( iter->Get( name, val ) && ( !e || !e->Test() ) )
+	{
+	    SetExtendedAttribute( &name, &val, e );
+	    iter->Next();
+	}
 }
 
 void

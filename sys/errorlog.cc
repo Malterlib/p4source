@@ -74,6 +74,7 @@ ErrorLog::~ErrorLog()
 void
 ErrorLog::SysLog( const Error *e, int tagged, const char *et, const char *buf )
 {
+# if defined( HAVE_SYSLOG ) || defined( HAVE_EVENT_LOG )
 	const char *errTag = errorTag;
 
 	if( !errorTag )
@@ -81,6 +82,7 @@ ErrorLog::SysLog( const Error *e, int tagged, const char *et, const char *buf )
 
 	if( et )
 	    errTag = et;
+# endif
 
 # ifdef HAVE_SYSLOG
 	// Default to LOG_DEBUG to maintain behavior from LogWrite.

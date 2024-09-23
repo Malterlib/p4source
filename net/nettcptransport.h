@@ -16,14 +16,14 @@
  *    NetTcpTransport - a TCP subclass of NetTransport
  */
 
+#ifdef OS_NT
+#  define GetLastError()	WSAGetLastError()
+#else
+#  define GetLastError()	errno
+#endif
+
 class KeepAlive;
 class NetTcpSelector;
-
-#define NET_CLOSE_SOCKET(fd) \
-    if ( fd >= 0 ) { \
-	close(fd); \
-	fd = -1; \
-    }
 
 class NetTcpTransport : public NetTransport {
 
@@ -31,6 +31,7 @@ class NetTcpTransport : public NetTransport {
 			NetTcpTransport( int t, bool fromClient );
 			~NetTcpTransport();
 
+	void		SetSockBlocking( int fd, bool blocking );
 	void		SetupKeepAlives( int t );
 
 	void		Send( const char *buffer, int length, Error *e );
@@ -67,11 +68,15 @@ class NetTcpTransport : public NetTransport {
 	static void	GetPeerAddress( int t, int raf_flags, StrBuf &addr );
 	static int	GetPortNum( int t );
 	static bool	IsSockIPv6( int t );
+	static bool	IsRetryError( int err );
 
 
 	int		IsAlive();
 
 	void		SetBreak( KeepAlive *b ) { breakCallback = b; }
+	void		CloseSocket();
+	virtual void	Shutdown( Error *re, Error *se );
+	void		Shutdown();
 
 	int		GetSendBuffering();
 	int		GetRecvBuffering();
@@ -82,7 +87,7 @@ class NetTcpTransport : public NetTransport {
 	void            SetMaxWait( const int maxWait );
 
 	int		GetFd() { return t; }
-		int		GetInfo( StrBuf * );
+	int		GetInfo( StrBuf * );
 
     protected:
 #ifdef OS_NT
@@ -92,7 +97,6 @@ class NetTcpTransport : public NetTransport {
 			    		ka_idlesecs,
 			    const int	ka_intvlsecs);
 #endif // OS_NT
-	void            CloseSocket();
 	int 		Peek( int fd, char *buffer, int length );
 
 	int		t;
@@ -100,6 +104,7 @@ class NetTcpTransport : public NetTransport {
 	int		lastRead;    // to avoid server TIME_WAIT
 	NetTcpSelector	*selector;
 	bool             isAccepted;
+	bool		shutdownCalled;
 
     private:
 	StrBuf		myAddr;

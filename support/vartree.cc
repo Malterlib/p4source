@@ -19,7 +19,7 @@
 
 VVarTree::VVarTree()
 {
-	root = 0;
+	root = iterNode = 0;
 	count = 0;
 }
 
@@ -36,7 +36,7 @@ void
 VVarTree::Clear()
 {
 	delete root;
-	root = 0;
+	root = iterNode = 0;
 }
 
 void * 
@@ -47,13 +47,31 @@ VVarTree::Get( const void* key ) const
 	return get ? get->k : 0;
 }
 
+void
+VVarTree::Position( const void *key )
+{
+	iterNode = key ? Find( key ) : FirstNode();
+	if( !iterNode || !key )
+	    return;
+	// Position ourselves at first node >= key.
+	if( Compare( key, iterNode->k ) > 0 )
+	    iterNode = iterNode->Next();
+}
+
+void *
+VVarTree::Fetch()
+{
+	void *rec = iterNode ? iterNode->Value() : 0;
+	iterNode = iterNode ? iterNode->Next() : 0;
+	return rec;
+}
+
 void *
 VVarTree::Shift()
 {
-	if ( !root )
+	VarTreeNode* n = FirstNode();
+	if( !n )
 	    return 0;
-	
-	VarTreeNode* n = root;
 
 	while ( n->l )
 	    n = n->l;
@@ -185,22 +203,28 @@ VVarTree::GetNode( const void* key ) const
 }
 
 void *
-VVarTree::Put( void* key, Error* e )
+VVarTree::Put( void* key, Error* e, PutMode mode )
 {
+	if( !CanPut( e ) )
+	    return 0;
+
 	VarTreeNode* p = Find( key );
 	if( p && !Compare( p->k, key ) )
 	{
-	    // existing record -- just overwrite
+	    // Existing record
+	    if( mode == Insert )
+	        return 0;
+
+	    // Do update
 	    if( p->k != key)
-	    {
-	        Delete( p->k );
-	        p->k = Copy( key );
-	    }
+	        p->k = CopyOver( p->k, key );
 	    return p->k;
 	}
 
-	// New record.
+	if( mode == Update )
+	    return 0;
 
+	// Do insert
 	VarTreeNode* n = NULL;
 
 	try
@@ -255,6 +279,23 @@ VVarTree::LastNode() const
 	    n = n->r;
 
 	return n;
+}
+
+void *
+VVarTree::CopyOver( void *tgt, const void *src )
+{
+	// Subclasses dealing with fixed-size objects may be able
+	// to implement this more efficiently by reusing tgt's memory.
+	Delete( tgt );
+	return Copy( src );
+}
+
+void
+VVarTree::Dump( void *val )
+{
+	StrBuf buf;
+	Dump( val, buf );
+	p4debug.printf( "%s\n", buf.Text() );
 }
 
 // AVL trees stay height-balanced by tracking the height
@@ -378,6 +419,10 @@ VVarTree::Balance( VarTreeNode* p )
 VarTreeNode *
 VVarTree::Find( const void* key ) const
 {
+	// Find the node with a matching key if it exists.
+	// If not, return the closest match we found while traversing
+	// the tree, which will be either immediately before OR after
+	// the spot where the key would go.
 	VarTreeNode* look = root;
 	VarTreeNode* last = root;
 	while( look )
@@ -470,9 +515,7 @@ VarTreeNode::Dump( int level ) const
 	for( int i = 0; i < level; i++ )
 	    p4debug.printf( "  " );
 
-	StrBuf buf;
-	t->Dump( k, buf );
-	p4debug.printf( "%s\n", buf.Text() );
+	t->Dump( k );
 
 	if( l && l->p != this )
 	    p4debug.printf( "ORPHANED NODE!\n" );
@@ -488,10 +531,11 @@ VVarTree::DumpTree()
 	    root->Dump( 0 );
 }
 
-void
+int
 VVarTree::VerifyTree()
 {
 	int c = 0;
+	int errCount = 0;
 	VarTreeNode* a = FirstNode();
 	VarTreeNode* b = 0;
 	while( a )
@@ -499,8 +543,12 @@ VVarTree::VerifyTree()
 	    c++;
 	    b = a ? a->Next() : 0;
 	    if( b && Compare( a->Value(), b->Value() ) >= 0 )
+	    {
 	        p4debug.printf( "Nodes are out of order!\n" );
-
+	        Dump( a );
+	        Dump( b );
+	        errCount++;
+	    }
 	    a = b;
 	}
 
@@ -509,5 +557,7 @@ VVarTree::VerifyTree()
 	    p4debug.printf( "Expected %d nodes, but only saw %d!\n",
 	                    count, c );
 	    DumpTree();
+	    errCount++;
 	}
+	return errCount;
 }

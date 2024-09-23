@@ -445,6 +445,8 @@ NetSslCredentials::ReadCredentials(  Error *e )
 	fclose( fp );
 
 	// read in certificate
+	if( SSLDEBUG_CERT )
+	    p4debug.printf( "NetSslCredentials::ReadCredentials cert='%s'\n", certFile->Text() );
 	fp  = fopen( certFile->Text(), "r" );
 	if( fp == NULL ) {
 	    e->Net( "fopen", strerror(errno) );
@@ -463,10 +465,6 @@ NetSslCredentials::ReadCredentials(  Error *e )
 
 	    chain->Put( chainCert );
 	}
-
-	// handle junk after valid certs
-	SSLNULLHANDLER( chainCert, e, "NetSslCredentials::ReadCredentials PEM_read_X509 (chain)", failChainRead );
-failChainRead:
 	e->Clear();
 
 	ownCert = true;
@@ -1329,8 +1327,11 @@ NetSslCredentials::ValidateSubject( StrPtr *name, StrPtr *ip, Error *e )
 	            ip->Text() );
 	    return;
 	}
+	
+	char *dot;
 	if( cn.StartsWith( "*.", 2 ) &&
-	    !strcmp( cn.Text() + 1, strchr( name->Text(), '.' ) ) )
+	    ( dot = strchr( name->Text(), '.' ) ) &&
+	    !strcmp( cn.Text() + 1, dot ) )
 	{
 	    if( SSLDEBUG_CERT )
 	        p4debug.printf(

@@ -68,10 +68,12 @@ Error::operator =( const Error &s )
 
 /*
  * Error::Merge() - Merge one Error struct into another
+ * If igndups is set, then we discard any incoming merges
+ * that match an existing error code and format.
  */
 
 Error &
-Error::Merge( const Error &source )
+Error::Merge( const Error &source, int igndups )
 {
 	if( !ep )
 	{
@@ -88,7 +90,7 @@ Error::Merge( const Error &source )
 		ep->Clear();
 
 	    // need to merge the error privates
-	    ep->Merge( source.ep );
+	    ep->Merge( source.ep, igndups );
 	}
 
 	/* If source error more severe than mine, save severity & generic */
@@ -468,7 +470,7 @@ ErrorPrivate::operator =( const ErrorPrivate &s )
 }
 
 void
-ErrorPrivate::Merge( const ErrorPrivate *ep )
+ErrorPrivate::Merge( const ErrorPrivate *ep, int igndups )
 {
 	if( !ep || ep == this || ep->errorCount == 0 )
 	    return;
@@ -479,18 +481,37 @@ ErrorPrivate::Merge( const ErrorPrivate *ep )
 	if( errorCount + mergeCount > ErrorMax )
 	    mergeCount = ErrorMax - errorCount;
 
+	int myind = 0;
 	for( i = 0; i < mergeCount; ++i )
-	    ids[ errorCount + i ] = ep->ids[ i ];
+	{
+	    int dup = 0;
+	    if( igndups )
+	    {
+	        for( int j = 0; j < errorCount; j++ )
+	        {
+	            if( ids[j].code == ep->ids[i].code &&
+	                ids[j].fmt == ep->ids[i].fmt )
+	            {
+	                dup = 1;
+	                break;
+	            }
+	        }
+	    }
+	    if( !dup )
+	    {
+	        ids[ errorCount + myind++ ] = ep->ids[ i ];
+	        StrRef var, val;
+	        for( int k = 0; ep->whichDict->GetVar( k, var, val ); k++ )
+	            errorDict.SetVar( var, val );
+	    }
+	}
 
 	// errorDict.CopyVars( *ep->whichDict );
 	// we can't use copy because we want to merge
-	StrRef var, val;
-	for( i = 0; ep->whichDict->GetVar( i, var, val ); i++ )
-	    errorDict.SetVar( var, val );
 
 	whichDict = &errorDict;
 
-	errorCount += mergeCount;
+	errorCount += myind;
 
 	if( ep->fmtSource != isConst )
 	{

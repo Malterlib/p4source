@@ -57,7 +57,7 @@ class ErrorPrivate {
 
 	void		Dump();
 
-	void		Merge( const ErrorPrivate * );
+	void		Merge( const ErrorPrivate *, int igndups = 0 );
 
     public:
 

@@ -11,6 +11,7 @@
 class MsgDb {
 
     public:
+	static ErrorId DevErr;
 
 	static ErrorId JnlEnd;
 	static ErrorId JnlWord2Big;
@@ -111,6 +112,12 @@ class MsgDb {
 	static ErrorId TreeNewerVersion;
 	static ErrorId TreeOlderVersion;
 	static ErrorId DoNotBlameTheDb;
+	static ErrorId NoPartitionedDb;
+	static ErrorId NotPartitionedTable;
+	static ErrorId PartitionedDbUsage;
+	static ErrorId FailedValidation;
+	static ErrorId PartitionedVerify;
+	static ErrorId CannotUseSpecificPTable;
 
 	static ErrorId MapCheckFail;
 

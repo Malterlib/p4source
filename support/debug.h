@@ -64,6 +64,7 @@ enum P4DebugType {
 	DT_TOPOLOGY,	// Topology
 	DT_RESOURCE,	// OS resources
 	DT_S3,		// S3 cURL client
+	DT_SUPTOOLS,    // Support Tools 
 	DT_LAST
 }  ;
 
@@ -100,8 +101,19 @@ enum P4TunableSupport {
 } ;
 
 enum P4TunableCategory {
-	CONFIG_CAT_NONE,
-	CONFIG_CAT_ADMIN
+	CONFIG_CAT_NONE		= 0x0000,
+	CONFIG_CAT_MISC		= 0x0001,
+	CONFIG_CAT_SECURITY	= 0x0002,
+	CONFIG_CAT_STREAMS	= 0x0004,
+	CONFIG_CAT_REPLICATION	= 0x0008,
+	CONFIG_CAT_NETWORK	= 0x0010,
+	CONFIG_CAT_PERFORMANCE	= 0x0020,
+	CONFIG_CAT_MONITORING	= 0x0040,
+	CONFIG_CAT_TRIGGERS	= 0x0080,
+	CONFIG_CAT_EXTENSIONS	= 0x0100,
+	CONFIG_CAT_LICENSING	= 0x0200,
+	CONFIG_CAT_ARCHIVE_MANAGEMENT = 0x0400,
+	CONFIG_CAT_DVCS		= 0x0800
 	// When you add new types, update the string array in userconfig.cc
 } ;
 
@@ -142,6 +154,7 @@ class P4Tunable {
 	    int restart;	// Restart requirement
 	    int support;	// Support level
 	    int cat;		// Category
+	    const char *accepted; // Comma separated accepted values
 	};
 
 	void		Set( const char *set );
@@ -223,6 +236,8 @@ class P4Debug : private P4Tunable {
 	void		SetLevel( P4DebugType t, int l ) { list[t].value = l ;}
 
 	int		GetLevel( P4DebugType t ) const { return Get(t); }
+
+	int		IsSet( P4DebugType t ) const { return P4Tunable::IsSet( t ); }
 
 	void		ShowLevels( int showAll, StrBuf &buf );
 

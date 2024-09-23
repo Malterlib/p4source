@@ -30,8 +30,8 @@ class FileSysLua : public FileSys {
 	    int  ReadLine( StrBuf *buf, Error *e );
 	    void Close( Error *e );
 	    int  Stat();
-	    int  StatModTime();
-	    int  StatAccessTime(){ return 0; }
+	    P4INT64  StatModTime();
+	    P4INT64  StatAccessTime(){ return 0; }
 	    void Truncate( Error *e );
 	    void Truncate( offL_t offset, Error *e ) ;
 	    void Unlink( Error *e = 0 );

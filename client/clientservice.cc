@@ -14,6 +14,8 @@
 # include <vector>
 # endif
 
+#include <stddef.h>
+
 # include <strbuf.h>
 # include <strdict.h>
 # include <strops.h>
@@ -36,6 +38,12 @@
 # include <ignore.h>
 # include <timer.h>
 # include <progress.h>
+
+# ifdef USE_CDC
+# include <blake3digester.h>
+# include <chunkmap.h>
+# include <vararray.h>
+# endif
 
 # include <p4tags.h>
 
@@ -95,6 +103,70 @@ class ProgressHandle : public LastChance {
 
 	ClientProgress *progress;
 };
+
+/*
+ * ClientVarHandle - arbitrary large variable handle
+ */
+
+class ClientVarHandle : public LastChance
+{
+    public:
+	ClientVarHandle( offL_t size, int parts, Error *e ) :
+	    parts( parts ),
+	    partsRecved( 0 ),
+	    bytes( size ),
+	    bytesRecved( 0 )
+	{
+	    deleteOnRelease = 1;
+
+	    // Allocate the space for the variable
+	    // If this is over a certain size, we should probably use a tmpfile
+	    // Might need to catch and handle too out-of-memory errors?
+
+	    if( size > 0xFFFFFFFF )
+	    {
+		// Bigger than 32bit range!
+		e->Set( MsgClient::DataOutOfBounds );
+		SetError( e );
+		return;
+	    }
+
+	    memStore.Alloc( size );
+	}
+
+	~ClientVarHandle()
+	{
+	}
+
+	void Append( int part, offL_t offset, const StrPtr *data, Error *e )
+	{
+	    // Silent on prior error
+	    if( IsError() )
+		return;
+
+	    if( partsRecved > parts ||
+		part > parts ||
+		data->Length() + offset > bytes )
+	    {
+		e->Set( MsgClient::DataOutOfBounds );
+		SetError( e );
+		return;
+	    }
+
+	    memcpy( memStore.Text() + offset, data->Text(), data->Length() );
+	    bytesRecved += data->Length();
+	    partsRecved += 1;
+	}
+
+	StrBuf	    memStore;
+
+    private:
+	int	    parts;
+	int	    partsRecved;
+	offL_t	    bytes;
+	offL_t	    bytesRecved;
+
+} ;
 
 FileSysType 
 LookupType( const StrPtr *type, Error *e )
@@ -255,13 +327,21 @@ ClientSvc::FileFromPath( Client *client, const char *vName, const char *vType,
 	if( e->Test() )
 	    return 0;
 
-
 	FileSysType type = LookupType( clientType, e );
 	if( e->Test() && client->CheckFileType() )
 	    return 0;
 	else
 	    e->Clear();
 
+	return ClientSvc::FileFromPathNoVar( client, clientPath, type,
+	                                     utf8bom, e );
+}
+
+FileSys *
+ClientSvc::FileFromPathNoVar( Client *client, const StrPtr *clientPath,
+	                      const FileSysType type,
+	                      const StrPtr *utf8bom, Error *e )
+{
 	FileSys *f = client->GetUi()->File( type );
 
 	f->SetContentCharSetPriv( client->ContentCharset() );
@@ -390,6 +470,7 @@ int clientDirectoryEntryCount( StrPtr *dir, Error *e )
 	}
 
 	delete d;
+	delete path;
 
 	return uaCount;
 }
@@ -406,7 +487,7 @@ MT_STATIC int client_nullsync;
 FileDigestType
 clientFileDigestType( StrPtr *digestType )
 {
-	FileDigestType digType;
+	FileDigestType digType = FS_DIGEST_UNKNOWN;
 
 	if( !digestType->Compare(
 			StrRef( P4Tag::v_digestTypeMD5 ) ) )
@@ -2287,6 +2368,357 @@ clientCloseMerge( Client *client, Error *e )
 	delete merge;
 }
 
+# ifdef HAS_EXTENSIONS
+
+// Helper to perform actions or influence flow control in chunking
+// callbacks during testing.
+
+static ClientScriptAction chunkSendDebugHook( Client* client,
+	                                      const char* cbName,
+	                                      const char* fnName, Error* e )
+{
+	if( !( client->ExtensionsEnabled() &&
+	    client->ExtensionsDebugHooksEnabled() ) )
+	    return ClientScriptAction::PASS;
+
+	ClientScript* exts = client->GetExtensions();
+
+	const auto [ r, nRun ] =
+	    exts->Run( cbName, fnName, client->GetUi(), true, e );
+
+	if( e->Test() || r == ClientScriptAction::FAIL )
+	{
+	    if( !e->IsFatal() )
+	        client->OutputError( e );
+	    return ClientScriptAction::FAIL;
+	}
+
+	return r;
+}
+
+# endif // HAS_EXTENSIONS
+
+# ifdef USE_CDC
+
+static void
+clientSendFileChunkMap( Client *client, ProgressReport **progress, FileSys *f,
+	                MD5* md5, offL_t& filesize, ChunkMap& cm,
+	                const StrPtr* writeMap, Error *e )
+{
+# ifdef HAS_EXTENSIONS
+	if( chunkSendDebugHook( client, "ClientSendFileChunkMapBegin",
+	                        "clientSendFileChunkMap", e ) ==
+	    ClientScriptAction::EARLY_RETURN )
+	    return;
+# endif
+
+	StrPtr* depotFile   = client->GetVar( P4Tag::v_depotFile  , e );
+	StrPtr* depotRev    = client->GetVar( P4Tag::v_depotRev   , e );
+	StrPtr* depotChange = client->GetVar( P4Tag::v_depotChange, e );
+	StrPtr* lbrChange   = client->GetVar( P4Tag::v_lbrChange  , e );
+	StrPtr* token       = client->GetVar( P4Tag::v_chunkToken , e );
+	StrPtr* index       = client->GetVar( P4Tag::v_index      , e );
+
+	if( e->Test() )
+	    return;
+
+	// Force binary-mode for no translation.  Note that this is the
+	// second time the file is opened, since clientSendFile() has one
+	// too.
+
+	const StrRef fn( f->Name() );
+	FileSys* fs = ClientSvc::FileFromPathNoVar( client, &fn, FST_BINARY,
+	                                            nullptr, e );
+	if( e->Test() )
+	    return;
+
+	fs->Open( FOM_READ, e );
+
+	if( e->Test() )
+	{
+	    delete fs;
+	    return;
+	}
+
+	// This reads the whole file, and will often times be I/O-bound.
+
+	// If the caller needs an MD5 of the content, slowly generate it here
+	// since the file is already being read.  A progress report probably
+	// isn't necessary here since there already is one in the network
+	// transfer.
+
+	cm.Create( fs, e, md5 );
+
+	fs->Close( e );
+	delete fs;
+
+	if( e->Test() )
+	    return;
+
+	// Send the client chunk map back to server to store with new archive.
+	// A chunkmap, while generally small, has no strict upper bound on
+	// size, so in order to avoid bumping into the maximum RPC message
+	// size, we stream the chunk map content to the server across multiple
+	// messages.
+
+	const StrPtr* cmBuf = cm.GetBuf();
+	const P4INT64 mapLen = cmBuf->Length();
+	const int bSize = fs->BufferSize();
+
+	MD5 digest;
+	digest.Update( *cmBuf );
+
+	for( P4INT64 i = 0; i < mapLen; i += bSize )
+	{
+	    const int len = ( i + bSize <= mapLen ) ? bSize : mapLen - i;
+	    StrBuf *bu = client->MakeVar( P4Tag::v_data );
+	    char *b = bu->BlockAlloc( len );
+	    memcpy( b, cmBuf->Text() + i, len );
+
+	    client->SetVar( P4Tag::v_depotFile  , depotFile );
+	    client->SetVar( P4Tag::v_depotRev   , depotRev );
+	    client->SetVar( P4Tag::v_depotChange, depotChange );
+	    client->SetVar( P4Tag::v_lbrChange  , lbrChange );
+	    client->SetVar( P4Tag::v_chunkToken , token );
+	    client->SetVar( P4Tag::v_index      , index );
+
+	    // Only send the file size at the end, so the server can use it to
+	    // know when the map has been completely transferred and can verify
+
+	    if( (i + len) == mapLen )
+	    {
+	        client->SetVar( P4Tag::v_fileSize, StrNum( filesize ) );
+	        StrBuf dbuf;
+	        digest.Final( dbuf );
+	        client->SetVar( P4Tag::v_digest, dbuf );
+	    }
+
+	    client->Invoke( writeMap->Text() );
+	}
+}
+
+
+static VarArray *
+clientGetChunksToSend( Client *client, ChunkMap& cm, Error *e )
+{
+	// We need either chunkMapHandle or chunkMap
+
+	StrPtr *smHandle = client->GetVar( P4Tag::v_chunkMapHandle );
+	StrPtr *smBuf = client->GetVar( P4Tag::v_chunkMap );
+	if( !smHandle && !smBuf )
+	    client->GetVar( P4Tag::v_chunkMap, e ); // Trigger error on neither
+	if( e->Test() )
+	    return 0;
+
+	ClientVarHandle *smVar = 0;
+	if( smHandle )
+	{
+	    smVar = (ClientVarHandle *) client->handles.Get( smHandle, e );
+
+	    if( e->Test() )
+	        return 0;
+	}
+	
+	// Use either chunkMapHandle or chunkMap
+	// If we got both chunkMapHandle and chunkMap, use chunkMap
+	ChunkMap sm( smBuf ? smBuf : &smVar->memStore, e );
+
+	if( e->Test() )
+	    return 0;
+
+	// Find out which chunks are only on the client.
+
+	VarArray *dm = cm.Diff( sm, e );
+
+	// Free-up this memory now in case it's big, so we don't hold
+	// it for the file transfer.  Note that the 'sm' var is now invalid.
+
+	delete smVar;
+
+	if( e->Test() )
+	{
+	    delete dm;
+	    return 0;
+	}
+	return dm;
+}
+
+static void
+clientSendFileChunked( Client *client, ProgressReport **progress, FileSys *f,
+	               offL_t& filesize, VarArray *dm,
+	               const StrPtr *clientPath, const StrPtr *handle,
+	               const StrPtr *write, Error *e )
+{
+# ifdef HAS_EXTENSIONS
+	chunkSendDebugHook( client, "ClientSendFileChunkedBegin",
+	                            "clientSendFileChunked", e );
+# endif
+
+	if( !dm )
+	    return;
+	
+	StrPtr* depotFile   = client->GetVar( P4Tag::v_depotFile   , e );
+	StrPtr* depotRev    = client->GetVar( P4Tag::v_depotRev    , e );
+	StrPtr* depotChange = client->GetVar( P4Tag::v_depotChange , e );
+	StrPtr* lbrChange   = client->GetVar( P4Tag::v_lbrChange   , e );
+	StrPtr* token       = client->GetVar( P4Tag::v_chunkToken  , e );
+	StrPtr* index       = client->GetVar( P4Tag::v_index       , e );
+
+	if( e->Test() )
+	    return;
+
+	int n = dm->Count();
+
+	ClientProgress *indicator = nullptr;
+	if( ( indicator = client->GetUi()->CreateProgress( CPT_SENDFILE, n ) ) )
+	{
+	    *progress = new ClientProgressReport( indicator );
+	    (*progress)->Description( *clientPath );
+	    (*progress)->Units( CPU_DELTAS );
+	    (*progress)->Total( dm->Count() );
+	}
+
+	// Now do the truffle shuffle and send new chunks back to server.
+
+	// Note that for the case where there is zero overlap between the
+	// prior revision and the client revision, we'll have to read the
+	// whole client file twice - once for chunking and once for
+	// transmission.
+
+	for( int i = 0; i < n; i++ )
+	{
+# ifdef HAS_EXTENSIONS
+	    if( chunkSendDebugHook( client, "ClientSendFileChunkedLoop",
+	                            "clientSendFileChunked", e ) ==
+	        ClientScriptAction::EARLY_RETURN )
+	    {
+	        return;
+	    }
+# endif
+
+	    if( client->Dropped() )
+	    {
+	        return;
+	    }
+
+	    const ChunkMap::Chunk *chunk = (ChunkMap::Chunk *)dm->Get( i );
+
+	    f->Seek( chunk->offset, e );
+
+	    if( e->Test() )
+	    {
+	        return;
+	    }
+
+	    StrBuf *bu = client->MakeVar( P4Tag::v_data );
+	    char *b = bu->BlockAlloc( chunk->size );
+	    const int l = f->Read( b, chunk->size, e );
+
+	    if( e->Test() )
+	    {
+	        return;
+	    }
+
+	    client->SetVar( P4Tag::v_depotFile, depotFile );
+	    client->SetVar( P4Tag::v_depotRev, depotRev );
+	    client->SetVar( P4Tag::v_depotChange, depotChange );
+	    client->SetVar( P4Tag::v_lbrChange, lbrChange );
+	    client->SetVar( P4Tag::v_offset, chunk->offset );
+	    client->SetVar( P4Tag::v_size, (int)chunk->size );
+	    client->SetVar( P4Tag::v_hash, chunk->hash );
+	    client->SetVar( P4Tag::v_hashType, 0 );
+	    client->SetVar( P4Tag::v_compression, 0 );
+	    client->SetVar( P4Tag::v_chunkToken, token );
+	    client->SetVar( P4Tag::v_handle, handle );
+	    client->SetVar( P4Tag::v_index, index );
+	    client->Invoke( write->Text() );
+	    // todo: add RPC::PriorityDispatch( 1 ) here like in lbrWriteFile?
+
+	    client->sendClientBytes += l;
+
+	    if( *progress )
+	        (*progress)->Position( i, e->Test() ? CPP_FAILDONE
+	                                            : CPP_NORMAL );
+	}
+
+	if( *progress )
+	    (*progress)->Position( n, CPP_DONE );
+}
+
+# endif // USE_CDC
+
+void
+clientSendFileWhole( Client *client, ProgressReport **progress, FileSys *f,
+	             MD5* md5, offL_t& len, const offL_t filesize,
+	             const int sendDigest, const StrPtr *handle,
+	             const StrPtr *write, const StrPtr *clientPath, Error *e )
+{
+	ClientProgress *indicator = NULL;
+
+	if( ( indicator = client->GetUi()->CreateProgress( CPT_SENDFILE,
+	                                                   filesize ) ) )
+	{
+	    *progress = new ClientProgressReport( indicator );
+	    (*progress)->Description( *clientPath );
+	    (*progress)->Units( CPU_KBYTES );
+	    (*progress)->Total( filesize / 1024 );
+	}
+
+	const int size = FileSys::BufferSize();
+
+	while( !client->Dropped() )
+	{
+		StrBuf *bu = client->MakeVar( P4Tag::v_data );
+		char *b = bu->Alloc( size );
+		int l = f->Read( b, size, e );
+
+		if( e->Test() )
+		{
+		    if( *progress )
+			(*progress)->Increment( 0, CPP_FAILDONE );
+		    bu->SetEnd( b );
+		    break;
+		}
+
+# ifdef USE_EBCDIC
+		// Pre un-Translate!
+		if( !f->IsTextual() )
+		    __atoe_l( b, l );
+# endif
+
+		bu->SetEnd( b + l );
+
+		len += l;
+
+		if( *progress )
+		{
+		    if( l )
+			(*progress)->Position( len / 1024, CPP_NORMAL );
+		    else
+			(*progress)->Position( filesize / 1024, CPP_DONE );
+		}
+
+		if( !l )
+		    break;
+
+		if( sendDigest )
+		{
+#ifdef USE_EBCDIC
+		    __etoa_l( b, l );
+#endif
+		    if( md5 )
+		        md5->Update( StrRef( b, l ) );
+#ifdef USE_EBCDIC
+		    __atoe_l( b, l );
+#endif
+		}
+
+		client->sendClientBytes += l;
+		client->SetVar( P4Tag::v_handle, handle );
+		client->Invoke( write->Text() );
+	}
+}
+
 void
 clientSendFile( Client *client, Error *e )
 {
@@ -2296,6 +2728,8 @@ clientSendFile( Client *client, Error *e )
 	StrPtr *handle = client->GetVar( P4Tag::v_handle, e );
 	StrPtr *open = client->GetVar( P4Tag::v_open, e );
 	StrPtr *write = client->GetVar( P4Tag::v_write, e );
+	StrPtr *chunkWrite = client->GetVar( P4Tag::v_chunkWrite );
+	StrPtr *chunkMapWrite = client->GetVar( P4Tag::v_chunkMapWrite );
 	StrPtr *confirm = client->GetVar( P4Tag::v_confirm, e );
 	StrPtr *decline = client->GetVar( P4Tag::v_decline, e );
 	StrPtr *serverDigest = client->GetVar( "serverDigest" );
@@ -2305,6 +2739,7 @@ clientSendFile( Client *client, Error *e )
 	StrPtr *depotTime = client->GetVar( P4Tag::v_depotTime );
 	StrPtr *reopen = client->GetVar( P4Tag::v_reopen );
 	StrPtr *skipDigestCheck = client->GetVar( "skipDigestCheck" );
+	StrPtr *index = client->GetVar( P4Tag::v_index );
 
 	if( e->Test() && !e->IsFatal() )
 	{
@@ -2459,78 +2894,96 @@ clientSendFile( Client *client, Error *e )
 	++client->sendClientTotal;
 	client->Confirm( open );
 
-	int size = FileSys::BufferSize();
-
 	ProgressReport *progress = NULL;
+
+# ifdef USE_CDC
+	const int minSize = p4tunable.Get( P4TUNE_NET_DELTA_TRANSFER_MINSIZE );
+	const P4INT64 cdcThreshold = p4tunable.Get( P4TUNE_NET_DELTA_TRANSFER_THRESHOLD );
+
+	// Declare variables before first goto
+	bool doChunkingTransfer = chunkWrite && chunkMapWrite &&
+	    minSize && filesize >= minSize && cdcThreshold;
+
+	ChunkMap cm;
+
+	// If the chunk map was sent as a handle but failed, fallback
+	StrPtr *cmHandle;
+	if( doChunkingTransfer &&
+	    ( cmHandle = client->GetVar( P4Tag::v_chunkMapHandle ) ) )
+	{
+	    ClientVarHandle *smVar =
+	        (ClientVarHandle *)client->handles.Get( cmHandle, e );
+	    if( e->Test() )
+	        goto bail;
+
+	    if( smVar->IsError() )
+	        doChunkingTransfer = false;
+	}
+	else if( doChunkingTransfer && !client->GetVar( P4Tag::v_chunkMap ) )
+	    doChunkingTransfer = false;
+
+	// If the file doesn't qualify for CDC skip the chunkMap generation
+	if( ( chunkMapWrite && filesize < minSize ) || !cdcThreshold )
+	{
+	    chunkMapWrite = 0;
+	    doChunkingTransfer = false;
+	}
+# else
+	const bool doChunkingTransfer = false;
+# endif
 
 	if( e->Test() ) 
 	    goto bail;
 
 	f->Translator( ClientSvc::XCharset( client, FromClient ) );
 
-	ClientProgress *indicator;
-
-	if( ( indicator = client->GetUi()->CreateProgress( CPT_SENDFILE,
-	                                                   filesize ) ) )
-	{
-	    progress = new ClientProgressReport( indicator );
-	    progress->Description( *clientPath );
-	    progress->Units( CPU_KBYTES );
-	    progress->Total( filesize / 1024 );
-	}
-
 	// send data, as long as no rpc error
 
-	while( !client->Dropped() )
+# ifdef USE_CDC
+	if( chunkMapWrite )
 	{
-		StrBuf *bu = client->MakeVar( P4Tag::v_data );
-		char *b = bu->Alloc( size );
-		int l = f->Read( b, size, e );
-
-		if( e->Test() )
-		{
-		    if( progress )
-			progress->Increment( 0, CPP_FAILDONE );
-		    bu->SetEnd( b );
-		    break;
-		}
-
-# ifdef USE_EBCDIC
-		// Pre un-Translate!
-		if( !f->IsTextual() )
-		    __atoe_l( b, l );
-# endif
-
-		bu->SetEnd( b + l );
-
-		len += l;
-
-		if( progress )
-		{
-		    if( l )
-			progress->Position( len / 1024, CPP_NORMAL );
-		    else
-			progress->Position( filesize / 1024, CPP_DONE );
-		}
-
-		if( !l )
-		    break;
-
-		if( sendDigest )
-		{
-#ifdef USE_EBCDIC
-		    __etoa_l( b, l );
-#endif
-		    md5.Update( StrRef( b, l) );
-#ifdef USE_EBCDIC
-		    __atoe_l( b, l );
-#endif
-		}
-
-		client->sendClientBytes += l;
-		client->SetVar( P4Tag::v_handle, handle );
-		client->Invoke( write->Text() );
+	    clientSendFileChunkMap( client, &progress, f, &md5, filesize, cm,
+	                            chunkMapWrite, e );
+	    if( e->Test() )
+	        goto bail;
 	}
+
+	// If the file qualifies for chunked transfer and we have computed a
+	// chunkMap and we have a prior chunkMap, only send the deltas
+
+	if( doChunkingTransfer )
+	{
+	    VarArray *dm = clientGetChunksToSend( client, cm, e );
+	    P4INT64 nTotalChunks = cm.ChunkCount();
+	    P4INT64 nChunksToSend = dm ? dm->Count() : nTotalChunks;
+
+	    // Only perform delta transfer if the ratio of nChunksToSend
+	    // over nTotalChunks is under the threshold to avoid further
+	    // overhead when the saving on transfer is small. Set threshold
+	    // to 100 to always perform delta transfer and 0 to disable it.
+
+	    //printf( "net.delta.transfer.threashold: %I64d Unique chunks: %I64d Total chunks: %I64d\n",
+	    //        cdcThreshold, nChunksToSend, nTotalChunks);
+
+	    if( ( nChunksToSend * 100 ) <= ( cdcThreshold * nTotalChunks ) )
+	    {
+	        //printf( "Sending chunks to server\n" );
+	        clientSendFileChunked( client, &progress, f, filesize, dm,
+	                               clientPath, handle, chunkWrite, e );
+	        // The on-disk size doesn't lie in the binary+F case.
+	        len = filesize;
+	    }
+	    else
+	        doChunkingTransfer = false;
+
+	    delete dm;
+	}
+
+	if( !doChunkingTransfer )
+# endif // USE_CDC
+	    clientSendFileWhole( client, &progress, f,
+	                         chunkMapWrite ? NULL : &md5, len, filesize,
+	                         sendDigest, handle, write, clientPath, e );
 
 	f->Close( e );
 
@@ -2567,6 +3020,13 @@ clientSendFile( Client *client, Error *e )
 
 	    if( modTime )
 	        client->SetVar( P4Tag::v_time, modTime );
+	}
+
+	if( doChunkingTransfer )
+	{
+	    client->SetVar( P4Tag::v_chunking );
+	    if( index )
+	        client->SetVar( P4Tag::v_index, index );
 	}
 
 	client->Confirm( e->Test() ? decline : confirm );
@@ -3859,7 +4319,9 @@ clientProtocol( Client *client, Error *e )
 	    client->protocolClientExts = 1;
 
 	if( ( s = client->GetVar( P4Tag::v_clientStatsFunc ) ) )
-	    client->statCallback << s;
+	    client->statCallback.Set( s );
+	else
+	    client->statCallback.Clear();
 }
 
 //
@@ -3908,6 +4370,32 @@ clientOpenUrl( Client *client, Error *e )
 	}
 
 	client->GetUi()->HandleUrl( url );
+}
+
+void
+clientWriteVarPartial( Client *client, Error *e )
+{
+	const StrPtr* handle = client->GetVar( P4Tag::v_handle, e );
+	const StrPtr* data = client->GetVar( P4Tag::v_data, e );
+	const StrPtr* offset = client->GetVar( P4Tag::v_offset, e );
+	const StrPtr* size = client->GetVar( P4Tag::v_size, e );
+	const StrPtr* part = client->GetVar( P4Tag::v_sequence, e );
+	const StrPtr* parts = client->GetVar( P4Tag::v_count, e );
+
+	if( e->Test() )
+	    return;
+
+	ClientVarHandle *v = (ClientVarHandle *)client->handles.Get( handle );
+	if( !v )
+	{
+	    v = new ClientVarHandle( size->Atoi64(), parts->Atoi(), e );
+	    client->handles.Install( handle, v, e );
+	}
+	
+	if( e->Test() )
+	    return;
+
+	v->Append( part->Atoi(), offset->Atoi64(), data, e );
 }
 
 static const RpcDispatch *
@@ -4106,6 +4594,7 @@ const RpcDispatch clientDispatch[] = {
 	{ P4Tag::c_FstatInfo,	RpcCallback(clientFstatInfo) },
 	{ P4Tag::c_FstatPartial,RpcCallback(clientFstatPartial) },
 	{ P4Tag::c_OpenUrl,	RpcCallback(clientOpenUrl) },
+	{ P4Tag::c_WriteVarPartial, RpcCallback(clientWriteVarPartial) },
 
 	{ P4Tag::c_AltSync,	RpcCallback(clientAltSync) },
 

@@ -47,9 +47,9 @@ class FileSysBufferedLineReader : public FileSys {
 	                { src->Close( e ); }
 	virtual int	Stat()
 	                { return src->Stat(); }
-	virtual int	StatModTime()
+	virtual P4INT64	StatModTime()
 	                { return src->StatModTime(); }
-	virtual int	StatAccessTime()
+	virtual P4INT64	StatAccessTime()
 	                { return src->StatAccessTime(); }
 	virtual void	Truncate( Error *e )
 	                { src->Truncate( e ); }

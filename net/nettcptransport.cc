@@ -64,6 +64,7 @@
 
 NetTcpTransport::NetTcpTransport( int t, bool fromClient )
 : isAccepted(fromClient)
+, shutdownCalled(false)
 {
 	this->t = t;
 	breakCallback = 0;
@@ -71,18 +72,13 @@ NetTcpTransport::NetTcpTransport( int t, bool fromClient )
 	maxWait = -1;
 	selector = new NetTcpSelector( t );
 
-	/* SendOrReceive() likes non-blocking I/O. */
-	/* Without it, it's just synchronous. */
-
-# ifdef OS_NT
-	u_long u_one = 1;
-	ioctlsocket( t, FIONBIO, &u_one );
-# else
-	int f = fcntl( t, F_GETFL, 0 );
-	fcntl( t, F_SETFL, f | O_NONBLOCK );
-# endif
-
 	SetupKeepAlives( t );
+
+	/*
+	 * accept() or connect() have already completed,
+	 * so switch to non-blocking mode for send/receive.
+	 */
+	SetSockBlocking( t, false );
 
 	TRANSPORT_PRINTF( DEBUG_CONNECT,
 		"NetTcpTransport %s connected to %s",
@@ -95,6 +91,71 @@ NetTcpTransport::~NetTcpTransport()
 	Close();
 
 	delete selector;
+}
+
+/*
+ * We want fd to be blocking before connect() or accept()
+ * so that we don't need to loop waiting for the connect to complete,
+ * and then make it non-blocking to do I/O.
+ *
+ * Call SetSockBlocking( fd, true ) to make fd blocking.
+ * Call SetSockBlocking( fd, false ) to make fd non-blocking.
+ */
+void
+NetTcpTransport::SetSockBlocking( int fd, bool blocking )
+{
+	/*
+	 * SendOrReceive() likes non-blocking I/O.
+	 * Without it, it's just synchronous.
+	 */
+
+	int flags = 0;
+	int rslt = 0;
+
+# ifdef OS_NT
+	u_long val = !blocking;
+	rslt = ioctlsocket( fd, FIONBIO, &val );
+	if( rslt < 0 ) // ie, SOCKET_ERROR (-1)
+	{
+	    int errnum = WSAGetLastError();
+	    StrBuf errbuf;
+	    Error::StrError( errbuf, errnum );
+
+	    p4debug.printf(
+	        "NetTcpTransport::SetSockBlocking: FIONBIO failed, error=\"%s\" (%d)\n",
+	        errbuf.Text(), errnum );
+	}
+# else
+	flags = fcntl( fd, F_GETFL, 0 );
+	if( flags == -1 )
+	{
+	    int errnum = errno;
+	    StrBuf errbuf;
+	    Error::StrError( errbuf, errnum );
+
+	    p4debug.printf(
+	        "NetTcpTransport::SetSockBlocking: F_GETFL failed, error=\"%s\" (%d)\n",
+	        errbuf.Text(), errnum );
+
+	    return;
+	}
+
+	if( blocking )
+	    rslt = fcntl( fd, F_SETFL, flags & ~O_NONBLOCK );
+	else
+	    rslt = fcntl( fd, F_SETFL, flags | O_NONBLOCK );
+
+	if( rslt < 0 )
+	{
+	    int errnum = errno;
+	    StrBuf errbuf;
+	    Error::StrError( errbuf );
+
+	    p4debug.printf(
+		"NetTcpTransport::SetSockBlocking: F_SETFL failed, error=\"%s\" (%d)\n",
+		errbuf.Text(), errnum );
+	}
+# endif
 }
 
 # ifdef OS_NT
@@ -709,7 +770,76 @@ NetTcpTransport::Close( void )
 			p4debug.printf( "tcp info: %s", b.Text() );
 	}
 
-	NET_CLOSE_SOCKET(t);
+	CloseSocket();
+}
+
+/*
+ * This call is here just for the cases where you want to signal
+ * the other end of the connection that you're done writing,
+ * but don't necessarily want to close the connection yet.
+ *
+ * It's harmless to call it just before calling `Close()`,
+ * or to call it multiple times, but it's still required
+ * to call `Close()` or to delete the transport object, which
+ * calls `Close()` for you.
+ *
+ * Note that `Close()` will call `shutdown()` for you
+ * so normally you don't need to call `Shutdown()` yourself.
+ */
+void
+NetTcpTransport::Shutdown( Error *re, Error *se )
+{
+	Shutdown();
+}
+
+/*
+ * On linux, calling shutdown() on a socket means subsequent shutdown()
+ * calls on the same socket are ignored, and receiving a FIN after
+ * already having received a FIN does nothing.
+ *
+ * On other platforms (notably Windows), I don't know if that's true,
+ * so we ensure that we don't call shutdown() twice on our own socket.
+ */
+void
+NetTcpTransport::Shutdown()
+{
+    TRANSPORT_PRINTF( DEBUG_CONNECT,
+	"*** NetTcpTransport::Shutdown(): t=%d, shutdownCalled=%d, %s <--> %s",
+	t,
+	shutdownCalled,
+	GetAddress( RAF_PORT )->Text(),
+	GetPeerAddress( RAF_PORT )->Text() );
+
+	if( !shutdownCalled && (t >= 0) )
+	{
+	    // we want the client to initiate shutdown
+	    if( !IsAccepted() )
+	    {
+		TRANSPORT_PRINTF( DEBUG_CONNECT,
+		    "NetTcpTransport shutting down connection: %s <--> %s",
+		    GetAddress( RAF_PORT )->Text(),
+		    GetPeerAddress( RAF_PORT )->Text() );
+
+		shutdownCalled = true;
+
+#if defined(SHUT_WR) // POSIX
+		shutdown( t, SHUT_WR );
+#else // Windows
+		shutdown( t, SD_SEND );
+#endif
+	    }
+	}
+}
+
+void
+NetTcpTransport::CloseSocket()
+{
+	if( t >= 0 )
+	{
+	    Shutdown();
+	    close( t );
+	    t = -1;
+	}
 }
 
 int
@@ -729,35 +859,70 @@ NetTcpTransport::IsAlive()
 void
 NetTcpTransport::ClientMismatch( Error *e )
 {
-    if ( CheckForHandshake(t) == PeekSSL)
+    switch( CheckForHandshake( t ) )
     {
+    case PeekSSL:
         // this is a non-ssl connection
         // this is a ssl connection and we are a cleartext server
         e->Net( "accept", "socket" );
         e->Set( MsgRpc::TcpPeerSsl );
-        NET_CLOSE_SOCKET(t);
+        CloseSocket();
+	break;
+    case PeekTimeout:
+    default:
+	break;
     }
 }
 
+/*
+ * Don't pass in "errno"; pass "GetLastError()" instead
+ * (or call the no-arg version which will do it for you)
+ * so that it works on Windows as well.
+ * [static]
+ */
+bool
+NetTcpTransport::IsRetryError( int err )
+{
+#ifdef OS_NT
+	if( err == WSAEWOULDBLOCK || err == WSATRY_AGAIN || err ==  WSAEINTR )
+	    return true;
+#else
+	if( err == EWOULDBLOCK || err == EAGAIN || err == EINTR )
+	    return true;
+#endif
+
+	return false;
+}
+
+/*
+ * PEEK_TIMEOUT is hard-coded; should we consider making it a tunable?
+ * This would allow customers to tune their Peek timeout settings
+ * (eg, if their clients are typically slow to send their first packet)
+ * and make it easier to test our handling of Peek timeouts.
+ * The main use of Peek() is to give better error messages in case
+ * of SSL client to plain-text server (or vice versa) connection attempts,
+ * rather than the somewhat unclear error messages that would occur
+ * without this check.
+ *
+ * We might also consider using selector->Select() in our wait loop
+ * in order to reduce CPU usage.
+ */
 int
 NetTcpTransport::Peek( int fd, char *buffer, int length )
 {
 		int count = 0;
 		int retval = -1;
 
-
 # ifdef OS_NT
-		u_long u_value = 0;
 		// Set to blocking on windows for peek
-		ioctlsocket( t, FIONBIO, &u_value );
+		SetSockBlocking( t, true );
 		retval = recv( fd, buffer, length, MSG_PEEK );
 		// Set back to non blocking, @#!%$#@ stupid windows....
-		u_value = 1;
-		ioctlsocket( t, FIONBIO, &u_value );
+		SetSockBlocking( t, false );
 # else
 		retval = recv( fd, buffer, length, MSG_PEEK );
 		// lengthened timeout because found out that timed out early with VPN
-		while ((retval == -1 ) && (errno == EAGAIN) && (count < PEEK_TIMEOUT))
+		while( (retval == -1) && IsRetryError(errno) && (count < PEEK_TIMEOUT) )
 		{
 			// parent process closing socket can make
 			// resource temporarily unavailable.
@@ -767,15 +932,10 @@ NetTcpTransport::Peek( int fd, char *buffer, int length )
 		}
 # endif
 
-		if( retval == -1 && count < 10 )
+		if( retval == -1 && count < PEEK_TIMEOUT )
 		{
-# ifdef OS_NT
 		    TRANSPORT_PRINTF( SSLDEBUG_ERROR,
-			    "Peek error is: %d", WSAGetLastError());
-# else
-		    TRANSPORT_PRINTF( SSLDEBUG_ERROR,
-			    "Peek error is: %d", errno);
-# endif
+			    "Peek error is: %d", GetLastError());
 		}
 		return retval;
 }

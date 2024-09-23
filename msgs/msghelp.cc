@@ -69,7 +69,7 @@ R"(
 
 ErrorId MsgHelp::HelpUsage = { ErrorOf( ES_HELP, 12, E_INFO, EV_NONE, 0 ),
 R"(
-    Perforce client usage:
+    Helix Core client usage:
 
     p4 [options] command [--explain] [arg ...]
     p4 -V
@@ -163,7 +163,7 @@ R"(
 
 ErrorId MsgHelp::HelpSimple = { ErrorOf( ES_HELP, 13, E_INFO, EV_NONE, 0 ),
 R"(
-    Most common Perforce client commands:
+    Most common Helix Core client commands:
 
 	client     Create or edit a client workspace specification and view
 
@@ -207,7 +207,7 @@ R"(
 
 ErrorId MsgHelp::HelpCommands = { ErrorOf( ES_HELP, 14, E_INFO, EV_NONE, 0 ),
 R"(
-    Perforce client commands:
+    Helix Core client commands:
 
 	add          Open a new file to add it to the depot
 	aliases      Display the content of the P4ALIASES file
@@ -261,9 +261,9 @@ R"(
 	list         Create an in-memory (label) list of depot files
 	lock         Lock an opened file against changelist submission
 	logger       Report what jobs and changelists have changed
-	login        Login to Perforce by obtaining a session ticket
+	login        Login to Helix Core by obtaining a session ticket
 	login2       Perform a multi factor authentication
-	logout       Logout of Perforce by removing or invalidating a ticket
+	logout       Logout of Helix Core by removing or invalidating a ticket
 	merge        Schedule merge (integration) from one file to another
 	move         Moves files from one location to another
 	opened       Display list of files opened for pending changelist
@@ -290,7 +290,9 @@ R"(
 	status       Preview reconcile of client to offline workspace changes
 	sizes        Display size information for files in the depot
 	stream       Create or edit a stream specification
+	streamlog    List revision history of streams
 	streams      Display list of streams
+	streamspec   Edit the stream template
 	submit       Submit open files to the depot
 	switch       Switch to a different stream, or create a new stream.
 	sync         Synchronize the client with its view of the depot
@@ -312,7 +314,7 @@ R"(
     operating the server.
 
     See 'p4 help dvcs' for more information about additional commands and
-    topics of interest to those who use using Perforce with decentralized
+    topics of interest to those who use using Helix Core with decentralized
     workflows.
 
     See 'p4 help serverextensionintro' and 'p4 help clientextensionintro'
@@ -323,7 +325,7 @@ R"(
 
 ErrorId MsgHelp::HelpUndoc = { ErrorOf( ES_HELP, 15, E_INFO, EV_NONE, 0 ),
 R"(
-    Unsupported or obsolete Perforce commands and options:
+    Unsupported or obsolete Helix Core commands and options:
 
     p4 admin dump
 	Outputs a checkpoint of the server through the client.  Important:
@@ -362,6 +364,12 @@ R"(
 	The -A flag excludes archive content for the new revisions. This flag
 	also prevents the automatic sync normally performed by clone.
 
+    p4 configure help undoc
+	Displays all the undocumented configurables.
+
+    p4 configure help all
+	Displays both the documented and the undocumented configurables.
+
     p4 configure show env
 	Displays the command-line flags and environment variables that were
 	in effect when this server was started.
@@ -374,6 +382,11 @@ R"(
     p4 copy -e
 	Only existing source files are considered for copying to the target.
 	Target files with no corresponding source files are ignored.
+
+    p4 copy -E
+	This has the same effect as setting dm.integ.tweaks to 32 for
+	the current command. It disables a readded/moved file integration
+	algorithm.
 
     p4 cstat
 	Dump change/sync status for current client.
@@ -762,7 +775,7 @@ R"(
 
     Jobspec format
 	The 'p4 jobspec' form can have an additional field 'Formats:' to
-	help Perforce visual clients display forms properly.  Each row
+	help Helix Core visual clients display forms properly.  Each row
 	of the Format field consists of three words: field, order, and format.
 	The order is an integer (starting at 1) indicating the display order
 	(the display order is otherwise undefined).
@@ -825,6 +838,12 @@ R"(
 	'hybrid' order that folds case while preserving uniqueness.
 	Attempting to change modes after a database is created produces an
 	error.
+
+    p4d -In Name
+	Directs the server to identify itself with a unique name (P4NAME).
+	Enclose the name in quotes if spaces are included.
+	Both 'p4d -In name' and P4NAME are deprecated in favour of using
+	the 'p4 serverid' command (see 'p4 help serverid').
 
     p4d -jds dumpfile
 	Dumps the server metadata to the specified file. Unlike p4d -jd,
@@ -906,8 +925,8 @@ R"(
 	configurable.
 
     p4p -k ...
-	Start the Perforce Proxy without cache timestamp checking.
-	The Perforce Proxy normally uses a timestamp on cached revisions
+	Start the Helix Core Proxy without cache timestamp checking.
+	The Helix Core Proxy normally uses a timestamp on cached revisions
 	to check that the right revision is delivered if an obliterate
 	deletes a revision that is subsequently replaced with an identically-
 	numbered revision.  Using this option causes problems if head
@@ -916,7 +935,7 @@ R"(
 	when you start the proxy.
 
     p4p -w ...
-	Start the Perforce Proxy in read-only cache mode.  In this mode
+	Start the Helix Core Proxy in read-only cache mode.  In this mode
 	the proxy never updates its cache, which is useful if the cache
 	is updated through a WAN NFS or other system-level remote
 	filesystem method.
@@ -940,7 +959,7 @@ R"(
 	option logs command completion. Must be set in server's environment.
 	To disable all command logging, set server=0.
 
-    Perforce server configurables (unsupported)
+    Helix Core Server configurables (unsupported)
     P4DEBUG=configurables
 	For information about supported server configuration variables, see
 	'p4 help configurables'.
@@ -976,14 +995,16 @@ R"(
 	                         0 Description for pending restricted changes
 	                           0: Only visible by owner of change
 	                           1: Visible with list access to file(s)
-	dm.change.skipkeyed      0 Disable generation of digest for ktext
-	                           revisions during submitted change updates
 	dm.changes.thresh1     50K 'changes -mx path' uses db.revcx if...
 	dm.changes.thresh2     10K ...if < thresh2 of thresh1 db.rev match
 	dm.changeview.openable   0 Legacy (pre-16.1) readonly behavior
 	dm.copy.movewarn         0 verbose 'p4 copy' warnings for moved files
 	dm.flushforce          10K Flushtry can expand until forced
 	dm.flushtry            100 Update buffer for sync, resolve, edit
+	dm.fstat.outputthreshold
+	                       10K Output threshold for fstat
+	dm.fstat.maxcontent     4M Maximum number of bytes of an file revision
+	                           that 'p4 fstat -g'%' will display
 	dm.grep.maxlinelength 4096 Maximum line length that can be searched
 	dm.grep.maxcontext      1K Maximum size of context allowed for grep
 	dm.integ.engine          3 'p4 integrate' engine version
@@ -1064,7 +1085,7 @@ R"(
 # endif
 R"(
 
-    Perforce client configuration (unsupported)
+    Helix Core client configuration (unsupported)
 	May be set in P4CONFIG or P4ENVIRO files or via 'p4 set'
 
 	filesys.detectunicode	 1 Set to 0 to prevent unicode file detection
@@ -1084,7 +1105,7 @@ R"(
 
 ErrorId MsgHelp::HelpEnvironment = { ErrorOf( ES_HELP, 16, E_INFO, EV_NONE, 0 ),
 R"(
-    Environment variables used by Perforce:
+    Environment variables used by Helix Core:
 
     Variable         Defines                         More information
     --------         -------                         ------------------------
@@ -1113,20 +1134,20 @@ R"(
     P4SSLDIR         SSL server credential directory P4 Command Reference
     P4TICKETS        Location of tickets file        P4 Command Reference
     P4TRUST          Location of SSL trust file      P4 Command Reference
-    P4USER           Perforce user name              p4 help usage
+    P4USER           Helix Core user name            p4 help usage
     PWD              Current working directory       p4 help usage
     TMP, TEMP        Directory for temporary files   P4 Command Reference
 
     For details about configuring Windows settings, issue the 'p4 help set'
     command.  The syntax for setting an environment variable depends on the
     OS/shell.  Many shells permit you to set shell variables separately from
-    environment variables, but Perforce cannot access the shell variable,
+    environment variables, but Helix Core cannot access the shell variable,
     only the environment variable.
 
     Variables of primary interest to typical users are:
     $P4CLIENT, $P4PORT and $P4PASSWD.
 
-    Environment variables used by the Perforce server:
+    Environment variables used by the Helix Core Server:
 
     Variable        Defines                          More information
     --------        -------                          ------------------------
@@ -1157,15 +1178,15 @@ R"(
 
 ErrorId MsgHelp::HelpFiletypes = { ErrorOf( ES_HELP, 17, E_INFO, EV_NONE, 0 ),
 R"(
-    File types supported by Perforce:
+    File types supported by Helix Core:
 
-	Perforce file type determines how the file is handled on both the
+	Helix Core file type determines how the file is handled on both the
 	client and the server.
 
 	A filetype can be specified as 'type', with modifiers as 'type+mods'
 	or as just the modifiers '+mods'.
 
-	The following are the base Perforce filetypes:
+	The following are the base Helix Core filetypes:
 
 	    Type        Client Use              Server Storage
 	    ----        ----------              --------------
@@ -1255,7 +1276,7 @@ R"(
 
 ErrorId MsgHelp::HelpJobView = { ErrorOf( ES_HELP, 18, E_INFO, EV_NONE, 0 ),
 R"(
-   Perforce job views:
+   Helix Core job views:
 
 	A job view is an expression that selects jobs according to word
 	and date matches.  Job views are used by the 'p4 jobs' -e flag
@@ -1364,18 +1385,18 @@ R"(
 
 ErrorId MsgHelp::HelpViews = { ErrorOf( ES_HELP, 20, E_INFO, EV_NONE, 0 ),
 R"(
-    Perforce views:
+    Helix Core views:
 
-	A Perforce view maps file names from the depot to the client
+	A Helix Core view maps file names from the depot to the client
 	workspace (client view) or to another part of the depot
 	(branch view), or selects a subset of the depot (label view).
 
 	A view is one or more mappings, and each mapping is a pair of file
 	names on a line.  The left side always refers to the depot namespace;
 	the right side refers to the client or depot namespace.  Each name
-	is in Perforce syntax: it begins with //, followed by the client or
+	is in Helix Core syntax: it begins with //, followed by the client or
 	depot name, then the file name. If the path contains whitespace, it
-	must be double-quoted.  Perforce syntax uses forward slashes (/) as
+	must be double-quoted.  Helix Core syntax uses forward slashes (/) as
 	directory separators. Example:  "//depot/a dir/file.c"
 
 	Mappings can contain wildcards. Wildcards on the right and left sides
@@ -1410,7 +1431,7 @@ R"(
     Limiting data access:
 
 	To avoid swamping servers with requests that result in large datasets,
-	the Perforce super-user can limit the amount of data that the server
+	the Helix Core super-user can limit the amount of data that the server
 	handles for client operations.
 
 	The following limits can be set: MaxResults, MaxScanRows, MaxLockTime
@@ -1434,6 +1455,8 @@ R"(
 
 	MaxMemory limits the number of megabytes of memory that a command may
 	use. Note that this is not a hard limit, but best-effort.
+	This applies to Helix Core Servers running on Linux or Windows, but is
+	not supported for MacOS.
 
 	To set limits for groups of users, issue the 'p4 group' command.
 
@@ -1552,7 +1575,7 @@ R"(
 
 ErrorId MsgHelp::HelpCharset = { ErrorOf( ES_HELP, 23, E_INFO, EV_NONE, 0 ),
 R"(
-	The Perforce clients and server have an optional mode of operation
+	The Helix Core clients and server have an optional mode of operation
 	in which all metadata and some file content are stored in the server
 	in the UTF8 Unicode character set and are translated into another
 	character set on the client.
@@ -1652,7 +1675,7 @@ R"(
 
 ErrorId MsgHelp::HelpCredits = { ErrorOf( ES_HELP, 24, E_INFO, EV_NONE, 0 ),
 R"(
-	Helix Core, The fast versioning engine from Perforce Software.
+	Helix Core, The fast versioning engine from Helix Core Software.
 	Contributions from Iustin Amihaesei, Jeff Anton, Michael Bishop,
 	Ksenia Burlachenko, Brian Campbell, Phil Champagne, Geri Clucas,
 	Cal Collier, Scott Common, Robert Cowham, Ed Daraki, Jake Dickson,
@@ -1712,7 +1735,7 @@ R"(
 	the -f flag. Filenames that contain the special characters '@', '#',
 	'%%' or '*' are reformatted to encode the characters using ASCII
 	hexadecimal representation.  After the files are added, you must
-	refer to them using the reformatted file name, because Perforce
+	refer to them using the reformatted file name, because Helix Core
 	does not recognize the local filesystem name.
 
 	The -I flag informs the client that it should not perform any ignore
@@ -1932,8 +1955,13 @@ R"(
 	this action, and replica servers will automatically unload the same
 	table to the same file when processing these notes. This allows you to
 	compare the contents of the table in a time-consistent fashion. This
-	command is recommended only for tables that are small. The -z flag
-	causes the file specified with -u to be saved in compressed format.
+	command is recommended only for tables that are small. In the case
+	of partitioned-jnl have tables, the respective table is unloaded to
+	the file where its name is customised accordingly. For example,
+	'p4 journaldbchecksums -u unloadhavept -t db.have.pt' command results
+	in unloading the table 'db.have.pt%pwsjnl1' to the file
+	'unloadhavept_db_pwsjnl1'. The -z flag causes the file specified with
+	-u to be saved in compressed format.
 
 	The third form of the 'p4 journaldbchecksums' command causes the
 	server to scan the specified database table. The table is scanned
@@ -1972,7 +2000,7 @@ R"(
 	over as the master server in the event of a failover.
 
 	Complete configuration of a standby replica involves several steps.
-	Please consult the Perforce documentation set for the full details.
+	Please consult the Helix Core documentation set for the full details.
 
 	The -i flag causes the command to automatically repeat its action
 	every N seconds. If -i is not specified, the command runs once,
@@ -2154,7 +2182,7 @@ R"(
 	must be met. Unless all copies are archived, the original file
 	remains in the depot.
 
-	'p4 archive' requires Perforce 'admin' access.
+	'p4 archive' requires Helix Core 'admin' access.
 
 	To restore archived revisions, use 'p4 restore'; for details, see
 	'p4 help restore'.
@@ -2167,11 +2195,12 @@ R"(
 
     p4 attribute [-e -f -p] -n name [-v value [-T0|-T1]] files...
     p4 attribute [-e -f -p [-T0|-T1]] -i -n name file
+    p4 attribute [-f -p [-T0|-T1]] -I filename -n name file
 
-	Sets a user-managed attribute 'name' to 'value' on opened files.
-	If -v is omitted, the attribute is cleared (if set).
+	Sets a user-managed attribute 'name' to a value on opened files.
+	If -v, -i, or -I are omitted, the attribute is cleared (if set).
 
-	To display attributes use 'p4 fstat -Oa'.
+	To display attributes use 'p4 fstat -Oa' or 'p4 print -T'.
 
 	The -e flag indicates that the 'value' is specified in hex.
 
@@ -2187,6 +2216,17 @@ R"(
 
 	The -i flag causes the attribute value to be read from the standard
 	input. Only one file argument is allowed when using this option.
+
+	The -I flag causes the attribute value to be read from a file as
+	binary data. This is recommended for attribute data that is greater
+	than 250MB in size, which might cause the command to fail with the
+	'Rpc buffer too big' error. The '-e' option to specify the value as
+	hex cannot be used with this option. Only one file argument
+	is allowed when using this option. Also, only one trait value may be
+	set using this option. To display attributes set with this option,
+	the 'p4 print -T' command is recommended instead of the
+	'p4 fstat -Oa' command because 'p4 print -T' can handle larger
+	non-encoded binary data.
 
 	Multiple attributes can be set or cleared by specifying multiple
 	'-n name' flags and an equal number of corresponding '-v value'
@@ -2274,7 +2314,7 @@ R"(
 
     p4 broker
 
-	'p4 broker' is only understood by the Perforce Broker.
+	'p4 broker' is only understood by the Helix Core Broker.
 
 	'p4 broker' lists information about the broker which the client is
 	connected to.  Items displayed include the client's network address,
@@ -2450,7 +2490,7 @@ R"(
     workspace -- Synonym for 'client'
 
     p4 client [-f] [-t template] [-T type] [name]
-    p4 client -d [-f [-Fs]] name
+    p4 client -d [-f [-Fs|-Fd]] name
     p4 client -o [-t template] [-T type] [name]
     p4 client -S stream [[-c change] -o] [name]
     p4 client -s [-f] -S stream [name]
@@ -2625,7 +2665,8 @@ R"(
 	workspace has no opened files or pending changes.  (See 'p4 help
 	opened'.) The -f flag forces the delete. The -Fs option used with -f
 	forces client deletion even when the user has shelved changes. In
-	this case, the shelved changes are left intact.
+	this case, the shelved changes are left intact. The -Fd option with
+	-f forces deletion of the client and all its shelved changes.
 
 	The -o flag writes the named client spec to the standard output.
 	The user's editor is not invoked.
@@ -2638,8 +2679,8 @@ R"(
 	the template.
 
 	The -T type flag lets you set the type of client, this can only be
-	set when first creating the client. For classic Perforce clients the
-	default is 'writeable', set this value to 'readonly' for build
+	set when first creating the client. For classic Helix Core clients
+	the default is 'writeable', set this value to 'readonly' for build
 	automation or clients that do not need to update content.
 
 	The -f flag can force the updating of locked clients; normally
@@ -2730,8 +2771,8 @@ R"(
 
 ErrorId MsgHelp::HelpCluster = { ErrorOf( ES_HELP, 164, E_INFO, EV_NONE, 0 ),
 R"(
-    cluster -- Administer a server with failover (Perforce Cluster servers
-               only)
+    cluster -- Administer a server with failover (Helix Core Cluster
+               servers only)
 
     p4 cluster new-master previous-master-server-id
     p4 cluster master-changed new-master-address
@@ -2739,7 +2780,8 @@ R"(
     p4 cluster end-journal
 
 	The preceding 'p4 cluster' commands are issued automatically by the
-	Perforce cluster management infrastructure when a cluster server fails.
+	Helix Core cluster management infrastructure when a cluster server
+	fails.
 
 
 	The following 'p4 cluster' commands are invoked by the cluster manager
@@ -2773,6 +2815,7 @@ R"(
     p4 stream edit
     p4 stream parentview [-c changelist# -n -o --source-comments]
                          {--inherit|--noinherit}
+    p4 stream convertsparse [-q]
     p4 stream resolve [-a<flag>] [-n] [-o]
     p4 stream revert
 
@@ -2823,15 +2866,29 @@ R"(
 	          identifier, of the form //depotname/streamname.
 	          Can be changed.
 
-	Type:     'mainline', 'virtual', 'development', 'release' or 'task'.
-	          Defines the role of a stream: A 'mainline' may not have a
-	          parent. A 'virtual' stream is not a stream but an alternate
-	          view of its parent stream.  The 'development' and 'release'
-	          streams have controlled flow. Can be changed.  A 'task'
-	          stream is a lightweight short-lived stream that only
-	          promotes edited files to the repository; branched and
-	          integrated files are stored in shadow tables that are
-	          removed when the task stream is deleted or unloaded.
+	Type:     'mainline', 'development', 'release', 'sparsedev',
+	          'sparserel', 'task', or 'virtual'. Defines the role of a
+	          stream.
+
+	          A 'mainline' has no parent.
+
+	          The 'development', 'release', 'sparsedev', and 'sparserel'
+	          streams have controlled flow. This can be changed in the
+	          stream Options.
+
+	          'sparsedev' and 'sparserel' are lightweight streams which do
+	          not need to be populated when they are created and instead
+	          automatically branch files as they are edited. They use the
+	          same flow control as 'development' and 'release' streams,
+	          respectively.
+
+	          A 'task' stream is meant to be a short-lived stream that only
+	          promotes edited files to the repository. It is a best
+	          practice to delete or unload unused 'task' streams to avoid
+	          unnecessary metadata that otherwise would slow performance.
+
+	          A 'virtual' stream is not a separate set of files, but
+	          instead a filtered view of its parent stream
 
 	          Flow control is provided by 'p4 copy -S' and 'p4 merge -S'.
 	          These commands restrict the flow of change as follows:
@@ -2839,10 +2896,14 @@ R"(
 	          Stream Type   Direction of flow     Allowed with
 	          -----------   -----------------     ------------
 	          development   to parent stream      'p4 copy'
+	          sparsedev     to parent stream      'p4 copy'
 	          task          to parent stream      'p4 copy'
 	          release       to parent stream      'p4 merge'
+	          sparserel     to parent stream      'p4 merge'
 	          development   from parent stream    'p4 merge'
+	          sparsedev     from parent stream    'p4 merge'
 	          release       from parent stream    'p4 copy'
+	          sparserel     from parent stream    'p4 copy'
 
 	Description: An optional description of the stream.
 
@@ -2888,9 +2949,9 @@ R"(
 	          The child views are exactly what is specified in the Paths,
 	          Remapped, and Ignored fields.
 
-	          Task streams and virtual streams may only have inherit
-	          ParentViews. All other stream types may have inherit or
-	          noinherit ParentViews.
+	          Task streams, virtual streams, and sparse streams can only
+	          have inherit ParentViews. All other stream types can have
+	          inherit or noinherit ParentViews.
 
 	          When a development, release, or mainline stream is first
 	          created, the ParentView field may be set with the
@@ -3099,9 +3160,9 @@ R"(
 
 	              <view_path_1> <view_path_2>
 
-	          where <view_path_1> and <view_path_2> are Perforce view paths
-	          with no leading slashes, no leading wildcards, or wildcards
-	          embedded between slashes:
+	          where <view_path_1> and <view_path_2> are Helix Core view
+	          paths with no leading slashes, no leading wildcards, or
+	          wildcards embedded between slashes:
 	          For example:
 
 	              ...    x/...
@@ -3165,7 +3226,8 @@ R"(
 	locked stream. It requires 'admin' access granted by 'p4 protect'.
 
 	See 'p4 help streamcmds' for information on the 'p4 stream edit',
-	'p4 stream resolve', 'p4 stream revert', and 'p4 stream parentview'
+	'p4 stream resolve', 'p4 stream revert', 'p4 stream parentview', and
+	'p4 stream convertsparse'
 	commands.
 )"
 };
@@ -3185,6 +3247,7 @@ R"(
     p4 stream edit
     p4 stream parentview [-c changelist# -n -o --source-comments]
                          {--inherit|--noinherit}
+    p4 stream convertsparse [-q]
     p4 stream resolve [-a<flag>] [-n] [-o]
     p4 stream revert
     p4 streamlog stream ...
@@ -3240,6 +3303,12 @@ R"(
 	change is submitted.  Once submitted, the ParentView change will become
 	part of the stream spec's integration history.
 
+	'p4 stream convertsparse' converts a sparsedev or sparserel stream to
+	either a development or release stream. If it is not already open, the
+	stream specification will be opened and any unbranched files from the
+	parent stream will be opened in the workspace for branch to the stream.
+		-q	Suppress normal output messages. Messages regarding
+			errors or exceptional conditions are displayed.
 
 	'p4 stream resolve' resolves changes that have been submitted to the
 	stream spec since you opened it.  You may not submit changes to the
@@ -3316,7 +3385,7 @@ ErrorId MsgHelp::HelpStreamintro = { ErrorOf( ES_HELP, 132, E_INFO, EV_NONE, 0 )
 R"(
     Introduction to streams
 
-	A Perforce 'stream' is (generally) a branch of files.  Each stream
+	A Helix Core 'stream' is (generally) a branch of files.  Each stream
 	has a parent stream and any number of child streams.  The backbone
 	of a stream system is the mainline, a stream with no parent.
 
@@ -3369,7 +3438,7 @@ R"(
 	namespace.
 
 	Streams are rooted in stream depots. A mainline and all of the streams
-	related to it are rooted in the same stream depot. A Perforce Server
+	related to it are rooted in the same stream depot. A Helix Core Server
 	can host multiple stream depots. Although a stream depot can have
 	multiple mainlines, one mainline per stream depot is recommended.
 
@@ -3406,8 +3475,12 @@ R"(
 	    interchanges - Can use a stream view
 	    istat        - Checks/caches a stream's pending integration state
 	    merge        - Can use a stream view and enforce stream flow
+	    prune        - Remove unmodified branched files from a stream
 	    stream       - Creates/edits a stream spec, can expose client view
+	    streamlog    - List revision history of streams
 	    streams      - Lists stream specs
+	    streamspec   - Edit the stream template
+	    switch       - Switch to a different stream or create a new stream
 
 	See 'p4 help <command>' for additional help for these commands.
 
@@ -3455,8 +3528,7 @@ R"MSG(
 
 	The --viewmatch flag returns streams whose views match the specified
 	file(s).  The output includes the matching path entry for each stream.
-	If a wildcarded file path is specified, the displayed stream path
-	corresponds to the first depot file found to match each stream's view.
+	If a wildcard is specified, all overlapping path entries are returned.
 )MSG"
 };
 
@@ -3826,7 +3898,8 @@ ErrorId MsgHelp::HelpBGTask = { ErrorOf( ES_HELP, 231, E_INFO, EV_NONE, 0 ),
 R"(
     bgtask -- run background commands/triggers on the server
 
-    p4 bgtask [ -b -d -i -m -w ] [ -e -t ]
+    p4 bgtask [ -b retries -d -i interval -m runcount -w seconds]
+              { -e command | -t triggername }
 
 	Server-side background tasks.  This command runs a
 	user-specified program at periodic intervals and reports the
@@ -3908,11 +3981,10 @@ R"(
 	maps the stream to its parent.  -P can be used to generate the
 	branch view using a parent stream other than the stream's actual
 	parent.  The -S flag also makes 'p4 copy' respect a stream's flow.
+	By default, copying between streams requires the use of a stream view.
 
-	The -F flag can be used with -S to force copying against a stream's
-	expected flow. It can also force -S to generate a branch view based
-	on a virtual stream; the mapping itself refers to the underlying
-	real stream.
+	The -F flag can be used to force copying against a stream's expected
+	flow, or to use an arbitrarily specified view to copy into a stream.
 
 	Stream specifications may also be copied along with stream files.
 	Any field in the source specification which has an Openable property of
@@ -3979,7 +4051,7 @@ R"(
 	The third form deletes the counter.  This option usually has the
 	same effect as setting the counter to 0.
 
-	The -f flag sets or deletes counters used by Perforce,  which are
+	The -f flag sets or deletes counters used by Helix Core, which are
 	listed by 'p4 help counters'. Important: Never set the 'change'
 	counter to a value that is lower than its current value.
 
@@ -4092,8 +4164,8 @@ R"(
 		     A 'stream' depot is a local depot dedicated to the
 		     storage of files in a stream.
 
-		     A 'remote' depot refers to files in another Perforce
-		     server.
+		     A 'remote' depot refers to files in another Helix Core
+		     Server.
 
 		     A 'spec' depot automatically archives all edited forms
 		     (branch, change, client, depot, group, job, jobspec,
@@ -4206,7 +4278,7 @@ ErrorId MsgHelp::HelpDepots = { ErrorOf( ES_HELP, 36, E_INFO, EV_NONE, 0 ),
 R"(
     depots -- Lists defined depots
 
-    p4 depots [-t type] [[-e|-E] nameFilter]
+    p4 depots [-t type] [[-e|-E] nameFilter] [-a]
 
 	The depots command lists all depots defined in the server.
 
@@ -4218,6 +4290,8 @@ R"(
 	the nameFilter pattern, for example: -e 'depo*'. The -e flag
 	uses the server's normal case-sensitivity rules. The -E flag makes
 	the matching case-insensitive, even on a case-sensitive server.
+
+	With -a flag the command will include hidden depots in its output.
 )"
 };
 
@@ -4471,7 +4545,7 @@ R"(
 	The -t flag forces 'p4 diff' to diff binary files.
 
 	If the environment variable $P4DIFF is set,  the specified diff
-	program is launched in place of the default Perforce client diff.
+	program is launched in place of the default Helix Core client diff.
 	The -d<flags> option can be used to pass arguments to the diff
 	program.  Because the -s flag is only implemented internally, any
 	-d<flags> option used with the -s<flag> is ignored. To configure a
@@ -4560,7 +4634,7 @@ R"(
 	The -t flag forces 'p4 diff2' to diff binary files.
 
 	The -u flag uses the GNU diff -u format and displays only files
-	that differ. The file names and dates are in Perforce syntax, but
+	that differ. The file names and dates are in Helix Core syntax, but
 	the output can be used by the patch program.
 
 	See 'p4 help-graph diff2' for information on using this command with
@@ -4579,7 +4653,7 @@ R"(
 	This command does not support the recursive wildcard (...).
 	Use the * wildcard instead.
 
-	Perforce does not track directories individually. A path is treated
+	Helix Core does not track directories individually. A path is treated
 	as a directory if there are any undeleted files with that path as a
 	prefix.
 
@@ -4654,7 +4728,7 @@ R"(
 	pending changelist.  If changelist number is omitted, the file is
 	opened in the 'default' changelist.
 
-	If -t filetype is specified, the file is assigned that Perforce
+	If -t filetype is specified, the file is assigned that Helix Core
 	filetype. Otherwise, the filetype of the previous revision is reused.
 	If a partial filetype is specified, it is combined with the current
 	filetype.  For details, see 'p4 help filetypes'.
@@ -4668,7 +4742,7 @@ R"(
 	The -k flag updates metadata without transferring files to the
 	workspace. This option can be used to tell the server that files in
 	a client workspace are already editable, even if they are not in the
-	client view. Typically this flag is used to correct the Perforce
+	client view. Typically this flag is used to correct the Helix Core
 	server when it is wrong about the state of files in the client
 	workspace, but incorrect use of this option can result in inaccurate
 	file status information.
@@ -5323,7 +5397,7 @@ R"(
 	[-Ox -Rx -Sx] [-A pattern] [ --streamviews ] file[rev] ...
 
 	fstat lists information about files, one line per field.  Fstat is
-	intended for use in Perforce API applications, where the output can
+	intended for use in Helix Core API applications, where the output can
 	be accessed as variables, but its output is also suitable for parsing
 	from the client command output in scripts.
 
@@ -5331,7 +5405,7 @@ R"(
 
 		attr-<name>          -- attribute value for <name>
 		attrProp-<name>      -- set if attribute <name> is propagating
-		clientFile           -- local path (host or Perforce syntax)
+		clientFile           -- local path (host or Helix Core syntax)
 		depotFile            -- name in depot
 		movedFile            -- name in depot of moved to/from file
 		path                 -- local path (host syntax)
@@ -5452,7 +5526,9 @@ R"(
 	        -Ol     output a fileSize and digest field for each revision
 	                (this may be expensive to compute)
 
-	        -Op     output the local file path in both Perforce syntax
+	        -Om     include other ditto mapped client files in output
+
+	        -Op     output the local file path in both Helix Core syntax
 	                (//client/) as 'clientFile' and host form as 'path'
 
 	        -Or     output pending integration record information for
@@ -5592,7 +5668,7 @@ R"(
 	options: -a -i -n -A <num> -B <num> -C <num> -t -s (-v|-l|-L) (-F|-G)
 
 	Searches files for lines that match the specified regular expression,
-	which can contain wildcards.  The parser used by the Perforce server
+	which can contain wildcards.  The parser used by the Helix Core Server
 	is based on V8 regexp and might not be compatible with later parsers,
 	but the majority of functionality is available.
 
@@ -5708,16 +5784,16 @@ R"(
 	groups where the limit is specified as 'unset'.
 
 	After examining all relevant groups, an individual user's limit is
-	the highest of any group with a limit to which he belongs, unlimited
-	if any of his groups has 'unlimited' for that field, or unlimited
-	if he belongs to no group with a limit.
+	the highest of any group with a limit to which they belong, unlimited
+	if any of their groups has 'unlimited' for that field, or unlimited
+	if they belong to no group with a limit.
 
 	Each group also has a Timeout field, which specifies how long (in
 	seconds) a 'p4 login' ticket remains valid.  A value of 'unset' or
 	'unlimited' is equivalent to no timeout. An individual's timeout is
-	the highest of any group with a limit to which he belongs, unlimited
-	if any of his groups has 'unlimited' for the timeout value, or
-	unlimited if he belongs to no group with a limit. See 'p4 help login'
+	the highest of any group with a limit to which they belong, unlimited
+	if any of their groups has 'unlimited' for the timeout value, or
+	unlimited if they belong to no group with a limit. See 'p4 help login'
 	for more information.
 
 	Each group has a PasswordTimeout field, which determines how long a
@@ -5879,7 +5955,7 @@ R"(
     p4 help [command ...]
 
 	Print usage details about the specified command.  If the command
-	name is omitted, print a general help message about Perforce and
+	name is omitted, print a general help message about Helix Core and
 	list the available client commands.
 )"
 };
@@ -5956,7 +6032,7 @@ R"(
     p4 integrate [options] [-As | -Af] -S stream [-r] [-P parent]
 	                         [file[revRange] ...]
 
-	options: -c changelist# -Di -f -h -K -O<flags> -n -m max
+	options: -c changelist# -Di -f -F -h -K -O<flags> -n -m max
 	         -R<flags> -q -v
 
 	'p4 integrate' integrates one set of files (the 'source') into
@@ -6000,7 +6076,8 @@ R"(
 	branch view using a parent stream other than the stream's actual
 	parent.  Note that to submit integrated stream files, the current
 	client must be switched to the target stream, or to a virtual child
-	stream of the target stream.
+	stream of the target stream.  By default, integration between streams
+	requires the use of a stream view.
 
 	Stream specifications may also be integrated along with stream files.
 	Any field in the source specification which has an Openable property of
@@ -6061,6 +6138,10 @@ R"(
 	files of the same name that preceded them. When the source file has
 	been moved or renamed, the move/add and move/delete revisions are
 	propagated as branch and delete revisions.
+
+	The -F flag permits integration between streams with an arbitrarily
+	specified view.  By default, a stream view must be used to integrate
+	between two streams.
 
 	The -h flag leaves the target files at the revision currently synced
 	to the client (the '#have' revision). By default, target files are
@@ -6201,7 +6282,7 @@ R"(
 	into the date index.
 
 	The fields that compose a job are defined by the 'p4 jobspec' command.
-	Perforce provides a default job specification that you can edit.
+	Helix Core provides a default job specification that you can edit.
 
 	The -d flag deletes the specified job. You cannot delete a job if
 	it has pending or submitted fixes associated with it.
@@ -6650,6 +6731,10 @@ R"(
 	only files selected by the revision range are updated, and the
 	highest revision in the range is used.
 
+	If multiple arguments are given, they are applied to the label
+	sequentially, such that the last revision specified for a given
+	depot file is the one that will be recorded in the label.
+
 	The -a flag adds the specified file to the label.
 
 	The -d deletes the specified file from the label, regardless of
@@ -6673,7 +6758,7 @@ R"(
 
 ErrorId MsgHelp::HelpNetworkAddress = { ErrorOf( ES_HELP, 161, E_INFO, EV_NONE, 0 ),
 R"(
-	When specifying the network address for a Perforce connection, use
+	When specifying the network address for a Helix Core connection, use
 	the following syntax:
 
 	    prefix:host:port
@@ -6691,7 +6776,7 @@ R"(
 	address as NNN.NNN.NNN.NNN. Specify an IPv6 address in the format
 	described by RFC 2373 and RFC 2372: [x:x:x:x:x:x:x:x]; note that the
 	use of the brackets around the address removes the ambiguity about
-	where the prefix and port portions of the Perforce network address
+	where the prefix and port portions of the Helix Core network address
 	begin and end.
 
 	The default host name is 'perforce'.
@@ -6717,7 +6802,7 @@ R"(
     p4 ldap -t username config
 
 	An LDAP configuration defines an Active Directory or other LDAP server
-	to which the Perforce Server can connect in order to authenticate
+	to which the Helix Core Server can connect in order to authenticate
 	users who have AuthMethod set to 'ldap'. In addition to the host and
 	port of the LDAP server, this configuration defines how the
 	authenticationshould happen, by picking one of three bind methods:
@@ -6725,7 +6810,7 @@ R"(
 	Simple:
 	This authentication method takes a template DN and substitutes %%user%%
 	placeholders with the user's userId to produce the user's DN which the
-	Perforce Server will then attempt to bind against, validating the
+	Helix Core Server will then attempt to bind against, validating the
 	user's password. An example of such a template could look like this:
 
 	    uid=%%user%%,ou=users,dc=example,dc=org
@@ -6758,8 +6843,8 @@ R"(
 	configurable. The server will need to be restarted before LDAP
 	authentication will be enabled. Note: LDAP authentication implies at
 	least security level 3; all must use ticket based authentication (see
-	'p4 login') and any users authenticating against the Perforce database
-	must have strong passwords.
+	'p4 login') and any users authenticating against the Helix Core
+	database must have strong passwords.
 
 	If more than one 'auth.ldap.order.N' configurable is set to a valid
 	configuration, each one is considered enabled and a login by a user
@@ -6911,43 +6996,42 @@ R"(
 
 ErrorId MsgHelp::HelpLdapSync = { ErrorOf( ES_HELP, 187, E_INFO, EV_NONE, 0 ),
 R"(
-    ldapsync -- Synchronizes Perforce group memberships with LDAP groups or
-                Perforce users with LDAP users.
+    ldapsync -- Synchronizes Helix Core group memberships with LDAP groups
+                or Helix Core users with LDAP users.
 
     p4 ldapsync -g [ -n ] [ -i <N> ] [ group ... ]
     p4 ldapsync -u [ -c -U -d ] [ -n ] [ -i <N> ] [ ldap ... ]
 
 	When run with the -g flag specified, this command updates the users
-	lists in Perforce groups to match the lists of members in LDAP groups.
-	If one or more group names are provided, only those groups are updated;
-	if no groups are provided, then all groups with LDAP configurations
-	will be updated.
+	lists in Helix Core groups to match the lists of members in LDAP
+	groups. If one or more group names are provided, only those groups
+	are updated; if no groups are provided, then all groups with LDAP
+	configurations will be updated.
 
-	When run with the -u flag specified, this command updates the Perforce
-	users to match those in the LDAP.  This works by querying each LDAP
-	server defined by the LDAP specifications passed in the arguments.
+	When run with the -u flag specified, this command updates the Helix
+	Core users to match those in the LDAP.  This works by querying each
+	LDAP server defined by the LDAP specifications passed in the arguments.
 	The LDAP specification's SearchFilter is used to query the LDAP server
-	with the %%user%% placeholder expanded to * in order to identify all LDAP
-	users.  The three Attribute* fields are used to map LDAP result to the
-	Perforce user's username, full name and email address.  All provided
-	LDAP specifications are queried to build a full, combined list of LDAP
-	users before any changes to the Perforce users are made.
+	with the %%user%% placeholder expanded to * in order to identify all
+	LDAP users.  The three Attribute* fields are used to map LDAP result to
+	the Helix Core user's username, full name and email address.  All
+	provided LDAP specifications are queried to build a full, combined list
+	of LDAP users before any changes to the Helix Core users are made.
 
 	The user synchronization  has three actions that must be enabled
 	separately by specifying the appropriate flags:
 
 	    The -c flag creates any new users found in the LDAP servers that
-	    do not yet exist in Perforce. The AuthMethod will be set to ldap
+	    do not yet exist in Helix Core. The AuthMethod will be set to ldap
 	    and Type set to standard.
 
 	    The -U flag updates the full name and email address of any existing
-	    Perforce users found in the LDAP servers, provided that the user is
-	    of Type standard and AuthMethod ldap and that the values differ.
+	    Helix Core users found in the LDAP servers, provided that the user
+	    is of Type standard and AuthMethod ldap and that the values differ.
 
-	    The -d flag deletes any Perforce users not found in any of the LDAP
-	    servers, provided that the user is of Type standard and AuthMethod
-	    ldap.
-
+	    The -d flag deletes any Helix Core users not found in any of the
+	    LDAP servers, provided that the user is of Type standard and
+	    AuthMethod ldap.
 
 	To keep users or groups with LDAP configurations in sync with their
 	LDAP counterparts, ldapsync can be set as a startup command, and will
@@ -7939,6 +8023,219 @@ R"more(
     3. This notice may not be removed or altered from any source
     distribution.
 )more"
+R"more(
+    BLAKE3
+    --------------------
+
+    Copyright 2019 Jack O'Connor and Samuel Neves
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        https://www.apache.org/licenses/
+
+    TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+    1. Definitions.
+
+       "License" shall mean the terms and conditions for use, reproduction,
+       and distribution as defined by Sections 1 through 9 of this document.
+
+       "Licensor" shall mean the copyright owner or entity authorized by
+       the copyright owner that is granting the License.
+
+       "Legal Entity" shall mean the union of the acting entity and all
+       other entities that control, are controlled by, or are under common
+       control with that entity. For the purposes of this definition,
+       "control" means (i) the power, direct or indirect, to cause the
+       direction or management of such entity, whether by contract or
+       otherwise, or (ii) ownership of fifty percent (50%) or more of the
+       outstanding shares, or (iii) beneficial ownership of such entity.
+
+       "You" (or "Your") shall mean an individual or Legal Entity
+       exercising permissions granted by this License.
+
+       "Source" form shall mean the preferred form for making modifications,
+       including but not limited to software source code, documentation
+       source, and configuration files.
+
+       "Object" form shall mean any form resulting from mechanical
+       transformation or translation of a Source form, including but
+       not limited to compiled object code, generated documentation,
+       and conversions to other media types.
+
+       "Work" shall mean the work of authorship, whether in Source or
+       Object form, made available under the License, as indicated by a
+       copyright notice that is included in or attached to the work
+       (an example is provided in the Appendix below).
+
+       "Derivative Works" shall mean any work, whether in Source or Object
+       form, that is based on (or derived from) the Work and for which the
+       editorial revisions, annotations, elaborations, or other modifications
+       represent, as a whole, an original work of authorship. For the purposes
+       of this License, Derivative Works shall not include works that remain
+       separable from, or merely link (or bind by name) to the interfaces of,
+       the Work and Derivative Works thereof.
+
+       "Contribution" shall mean any work of authorship, including
+       the original version of the Work and any modifications or additions
+       to that Work or Derivative Works thereof, that is intentionally
+       submitted to Licensor for inclusion in the Work by the copyright owner
+       or by an individual or Legal Entity authorized to submit on behalf of
+       the copyright owner. For the purposes of this definition, "submitted"
+       means any form of electronic, verbal, or written communication sent
+       to the Licensor or its representatives, including but not limited to
+       communication on electronic mailing lists, source code control systems,
+       and issue tracking systems that are managed by, or on behalf of, the
+       Licensor for the purpose of discussing and improving the Work, but
+       excluding communication that is conspicuously marked or otherwise
+       designated in writing by the copyright owner as "Not a Contribution."
+
+       "Contributor" shall mean Licensor and any individual or Legal Entity
+       on behalf of whom a Contribution has been received by Licensor and
+       subsequently incorporated within the Work.
+
+    2. Grant of Copyright License. Subject to the terms and conditions of
+       this License, each Contributor hereby grants to You a perpetual,
+       worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+       copyright license to reproduce, prepare Derivative Works of,
+       publicly display, publicly perform, sublicense, and distribute the
+       Work and such Derivative Works in Source or Object form.
+
+    3. Grant of Patent License. Subject to the terms and conditions of
+       this License, each Contributor hereby grants to You a perpetual,
+       worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+       (except as stated in this section) patent license to make, have made,
+       use, offer to sell, sell, import, and otherwise transfer the Work,
+       where such license applies only to those patent claims licensable
+       by such Contributor that are necessarily infringed by their
+       Contribution(s) alone or by combination of their Contribution(s)
+       with the Work to which such Contribution(s) was submitted. If You
+       institute patent litigation against any entity (including a
+       cross-claim or counterclaim in a lawsuit) alleging that the Work
+       or a Contribution incorporated within the Work constitutes direct
+       or contributory patent infringement, then any patent licenses
+       granted to You under this License for that Work shall terminate
+       as of the date such litigation is filed.
+
+    4. Redistribution. You may reproduce and distribute copies of the
+       Work or Derivative Works thereof in any medium, with or without
+       modifications, and in Source or Object form, provided that You
+       meet the following conditions:
+
+       (a) You must give any other recipients of the Work or
+           Derivative Works a copy of this License; and
+
+       (b) You must cause any modified files to carry prominent notices
+           stating that You changed the files; and
+
+       (c) You must retain, in the Source form of any Derivative Works
+           that You distribute, all copyright, patent, trademark, and
+           attribution notices from the Source form of the Work,
+           excluding those notices that do not pertain to any part of
+           the Derivative Works; and
+
+       (d) If the Work includes a "NOTICE" text file as part of its
+           distribution, then any Derivative Works that You distribute must
+           include a readable copy of the attribution notices contained
+           within such NOTICE file, excluding those notices that do not
+           pertain to any part of the Derivative Works, in at least one
+           of the following places: within a NOTICE text file distributed
+           as part of the Derivative Works; within the Source form or
+           documentation, if provided along with the Derivative Works; or,
+           within a display generated by the Derivative Works, if and
+           wherever such third-party notices normally appear. The contents
+           of the NOTICE file are for informational purposes only and
+           do not modify the License. You may add Your own attribution
+           notices within Derivative Works that You distribute, alongside
+           or as an addendum to the NOTICE text from the Work, provided
+           that such additional attribution notices cannot be construed
+           as modifying the License.
+
+       You may add Your own copyright statement to Your modifications and
+       may provide additional or different license terms and conditions
+       for use, reproduction, or distribution of Your modifications, or
+       for any such Derivative Works as a whole, provided Your use,
+       reproduction, and distribution of the Work otherwise complies with
+       the conditions stated in this License.
+
+    5. Submission of Contributions. Unless You explicitly state otherwise,
+       any Contribution intentionally submitted for inclusion in the Work
+       by You to the Licensor shall be under the terms and conditions of
+       this License, without any additional terms or conditions.
+       Notwithstanding the above, nothing herein shall supersede or modify
+       the terms of any separate license agreement you may have executed
+       with Licensor regarding such Contributions.
+
+    6. Trademarks. This License does not grant permission to use the trade
+       names, trademarks, service marks, or product names of the Licensor,
+       except as required for reasonable and customary use in describing the
+       origin of the Work and reproducing the content of the NOTICE file.
+
+    7. Disclaimer of Warranty. Unless required by applicable law or
+       agreed to in writing, Licensor provides the Work (and each
+       Contributor provides its Contributions) on an "AS IS" BASIS,
+       WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+       implied, including, without limitation, any warranties or conditions
+       of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+       PARTICULAR PURPOSE. You are solely responsible for determining the
+       appropriateness of using or redistributing the Work and assume any
+       risks associated with Your exercise of permissions under this License.
+
+    8. Limitation of Liability. In no event and under no legal theory,
+       whether in tort (including negligence), contract, or otherwise,
+       unless required by applicable law (such as deliberate and grossly
+       negligent acts) or agreed to in writing, shall any Contributor be
+       liable to You for damages, including any direct, indirect, special,
+       incidental, or consequential damages of any character arising as a
+       result of this License or out of the use or inability to use the
+       Work (including but not limited to damages for loss of goodwill,
+       work stoppage, computer failure or malfunction, or any and all
+       other commercial damages or losses), even if such Contributor
+       has been advised of the possibility of such damages.
+
+    9. Accepting Warranty or Additional Liability. While redistributing
+       the Work or Derivative Works thereof, You may choose to offer,
+       and charge a fee for, acceptance of support, warranty, indemnity,
+       or other liability obligations and/or rights consistent with this
+       License. However, in accepting such obligations, You may act only
+       on Your own behalf and on Your sole responsibility, not on behalf
+       of any other Contributor, and only if You agree to indemnify,
+       defend, and hold each Contributor harmless for any liability
+       incurred by, or claims asserted against, such Contributor by reason
+       of your accepting any such warranty or additional liability.
+)more"
+R"more(
+
+
+    CDC File Transfer
+    -----------------------
+
+    Copyright 2022 Lutz Justen
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+)more"
 };
 
 ErrorId MsgHelp::HelpLicense = { ErrorOf( ES_HELP, 101, E_INFO, EV_NONE, 0 ),
@@ -7950,13 +8247,13 @@ R"(
     p4 license -u
     p4 license -L
 
-	Update the Perforce license file.  This command requires a valid
-	license file in the Perforce root directory. Typically this command
-	lets an administrator add extra licensed users to the Perforce server
-	without having to shut the server down and copy the license file to
-	the server root.
+	Update the Helix Core license file.  This command requires a valid
+	license file in the Helix Core root directory. Typically this command
+	lets an administrator add extra licensed users to the Helix Core
+	Server without having to shut the server down and copy the license
+	file to	the server root.
 
-	Most new license files obtained from Perforce can be installed with
+	Most new license files obtained from Helix Core can be installed with
 	this command, unless the server's IP address or port has changed.
 	In that case, stop the server, copy the new license file to the root,
 	and restart the server.
@@ -8090,16 +8387,16 @@ R"(
 
 ErrorId MsgHelp::HelpLogin = { ErrorOf( ES_HELP, 89, E_INFO, EV_NONE, 0 ),
 R"(
-    login -- Log in to Perforce by obtaining a session ticket
+    login -- Log in to Helix Core by obtaining a session ticket
 
     p4 login [-s | -p] [-a | -h host] [user]
     p4 login [-s -a] -r <remotespec> [--remote-user=X]
     p4 login [-p -a] -r <remotespec> [--remote-user=X]
 
-	The login command enables a user to access Perforce until the session
+	The login command enables a user to access Helix Core until the session
 	expires or the user logs out.
 
-	When a user logs in to Perforce, they are prompted for a password
+	When a user logs in to Helix Core, they are prompted for a password
 	If they enter the correct password, they are issued a ticket.  The
 	ticket expires when the default timeout value has been reached and
 	is valid only for the host machine where the 'login' command was
@@ -8199,18 +8496,18 @@ R"(
 
 ErrorId MsgHelp::HelpLogout = { ErrorOf( ES_HELP, 90, E_INFO, EV_NONE, 0 ),
 R"(
-    logout -- Log out from Perforce by removing or invalidating a ticket.
+    logout -- Log out from Helix Core by removing or invalidating a ticket.
 
     p4 logout [ -a | -h host ] [ -2 ] [ username ]
 
 	The logout command removes the ticket on the client and invalidates the
-	per-host ticket value on the server.  To resume using Perforce, the
+	per-host ticket value on the server.  To resume using Helix Core, the
 	user must log in again.
 
-	If you are logged in to Perforce from more than one machine, you can
-	log out of Perforce from all machines from which you were logged in
+	If you are logged in to Helix Core from more than one machine, you can
+	log out of Helix Core from all machines from which you were logged in
 	by specifying the -a flag.  The -a flag invalidates the ticket on the
-	server.  All of your Perforce tickets are invalidated and you are
+	server.  All of your Helix Core tickets are invalidated and you are
 	logged out.  To invalidate the ticket for a specific host, you may
 	specify the IP address of that host with the -h flag.
 
@@ -8234,10 +8531,10 @@ R"(
 
     p4 merge [options] [-F] [--from stream] [toFile][revRange]
     p4 merge [options] fromFile[revRange] toFile
-    p4 merge [options] [-As | -Af] -S stream [-P parent] [-F] [-r]
-                       [toFile[rev] ...]
+    p4 merge [options] [-As | -Af] -S stream [-P parent] [-r]
+	               [toFile[rev] ...]
 
-	options: -c changelist# -K -m max -n -Ob -q
+	options: -c changelist# -F -K -m max -n -Ob -q
 
 	'p4 merge' merges changes from one set of files (the 'source') into
 	another (the 'target'). It is a simplified form of the 'p4 integrate'
@@ -8260,10 +8557,12 @@ R"(
 	writable.
 
 	By default, 'p4 merge' merges changes into the current stream from its
-	parent, or from another stream specified by the --from flag.  The
-	source and target can also be specified on the command line as a
-	pair of file paths.  More complex merge mappings can be specified
-	via branchspecs as with 'p4 integrate' (see 'p4 help integrate').
+	parent, or from another stream specified by the --from flag.
+	
+	If the current client is not associated with a stream, the source and
+	target can be specified on the command line as a pair of file paths.
+	More complex merge mappings can be specified via branchspecs as with
+	'p4 integrate' (see 'p4 help integrate').
 
 	Each file in the target is mapped to a file in the source. Mapping
 	adjusts automatically for files that have been moved or renamed, as
@@ -8282,9 +8581,7 @@ R"(
 	by 'p4 help integ'.
 
 	The -F flag can be used to force merging against a stream's expected
-	flow. It can also force the generation of a branch view based on a
-	virtual stream; the mapping itself refers to the underlying real
-	stream.
+	flow, or to use an arbitrarily specified view to merge into a stream.
 
 	Stream specifications may also be merged along with stream files.
 	Any field in the source specification which has an Openable property of
@@ -8320,7 +8617,7 @@ R"(
 	Performs a three-way merge of the specified files and writes the
 	results to standard output.  This command is implemented on the
 	client and requires file names to be specified using client syntax.
-	This command is used to support Perforce's graphical merge tools.
+	This command is used to support Helix Core's graphical merge tools.
 
 	The -db, -dw, -dl, -t, and -v flags are the same as in 'p4 resolve'.
 
@@ -8331,7 +8628,7 @@ R"(
 
 ErrorId MsgHelp::HelpMonitor = { ErrorOf( ES_HELP, 88, E_INFO, EV_NONE, 0 ),
 R"(
-    monitor -- Display Perforce process information
+    monitor -- Display Helix Core process information
 
     p4 monitor show [-a -l -e -L -s R|T|P|B|F|I ]
     p4 monitor terminate id
@@ -8340,7 +8637,7 @@ R"(
     p4 monitor resume id
     p4 monitor realtime [ -F -T ]
 
-	Monitor displays running p4 processes. Monitor tracks the Perforce
+	Monitor displays running p4 processes. Monitor tracks the Helix Core
 	processes using a dedicated table. This table is constantly updated,
 	so there is a potential minor impact on server performance. To enable
 	this command, set the monitor configurable as follows:
@@ -8506,7 +8803,7 @@ R"(
 	Obliterate retrieves the disk space used by the obliterated files
 	in the archive and clears the files from the metadata that is
 	maintained by the server.  Files in client workspaces are not
-	physically affected, but they are no longer under Perforce control.
+	physically affected, but they are no longer under Helix Core control.
 
 	Obliterate is aware of lazy copies made when 'p4 integrate' creates
 	a branch, and does not remove copies that are still in use. Because
@@ -8524,9 +8821,9 @@ R"(
 	Obliterate has three flags that can improve performance (-b, -a, -h):
 
 	The '-b' flag restricts files in the argument range to those that
-	are branched and are both the first revision and the head revision
-	This flag is useful for removing old branches while keeping files
-	of interest (files that were modified).
+	are branched, are both the first revision and the head revision, and
+	are not opened on any client.  This flag is useful for removing old
+	branches while keeping files of interest (files that were modified).
 
 	The '-a' flag skips the archive search and removal phase. File
 	content is not removed. This option is safe to use with the '-b'
@@ -8667,7 +8964,7 @@ R"(
 
 	After a password is set for a user, the same password must be set on
 	the client in the environment variable $P4PASSWD to enable the user
-	to use all Perforce client applications on that machine. (On Windows,
+	to use all Helix Core client applications on that machine. (On Windows,
 	you can use 'p4 passwd' to configure the password in the environment.)
 
 	'p4 passwd' prompts for both the old password and the new password
@@ -8757,10 +9054,12 @@ R"(
     p4 print [-a -A -K -o localFile -q -m max --offset offset --size size
 	      -Q charset -B utf8bom -L line-ending] file[revRange] ...
     p4 print -U unloadfile ...
+    p4 print -T attribute [-a -q -o localFile] file ...
 
-	Retrieve the contents of a depot file to the client's standard output.
+	Retrieve the contents of a depot file or the value of an attribute
+	of the depot file to the client's standard output.
 	The file is not synced.  If file is specified using client syntax,
-	Perforce uses the client view to determine the corresponding depot
+	Helix Core uses the client view to determine the corresponding depot
 	file.
 
 	By default, the head revision is printed.  If the file argument
@@ -8805,6 +9104,13 @@ R"(
 
 	The -U option prints files in the unload depot (see 'p4 help unload'
 	for more information about the unload depot).
+
+	The -T option prints the value of the specified non-encoded attribute
+	of the specified file. This command, rather than 'p4 fstat -Oa',
+	is recommended for very large non-encoded binary attributes whose
+	sizes exceed 250MB which may cause 'p4 fstat -Oa' to fail with
+	the 'Rpc buffer too big to send' error. There is no option to show
+	the value of the attribute in hex (as in 'p4 fstat -Oe').
 
 	See 'p4 help-graph print' for information on using this command with
 	graph depots.
@@ -8976,7 +9282,7 @@ R"(
 
 	    Group/User indicator: specifies the grantee is a group or user.
 
-	    Name:    A Perforce group or user name; can include wildcards.
+	    Name:    A Helix Core group or user name; can include wildcards.
 
 	    Host:    The IP address of a client host. IPv6 and IPv4 addresses
 	             are supported and the * wildcard can be used to refer to
@@ -9116,7 +9422,7 @@ R"(
 
     p4 proxy
 
-	'p4 proxy' is only understood by the Perforce Proxy.
+	'p4 proxy' is only understood by the Helix Core Proxy.
 
 	'p4 proxy' lists information about the proxy which the client is
 	connected to.  Items displayed include the client's network address,
@@ -9135,9 +9441,10 @@ R"(
 	'p4 prune' it.
 
 	After a stream has been pruned, files that have been modified, i.e.
-	files with more than one revision, will remain in the stream so that
-	their edit history will be preserved.  The unmodified files will be
-	gone as if obliterated by an administrator (see 'p4 help obliterate').
+	files with more than one revision or that are currently open on any
+	client, will remain in the stream so that their edit history will be
+	preserved.  The unmodified files will be gone as if obliterated by an
+	administrator (see 'p4 help obliterate').
 
 	Mainline, task, and virtual streams may not be pruned.  To remove
 	unmodified files from a task stream, delete or unload it (see 'p4 help
@@ -9163,15 +9470,15 @@ R"(
 
 ErrorId MsgHelp::HelpPubKey = { ErrorOf( ES_HELP, 201, E_INFO, EV_NONE, 0 ),
 R"(
-    pubkey -- Add or update a SSH public key to the Perforce Server
+    pubkey -- Add or update a SSH public key to the Helix Core Server
 
     p4 pubkey -d [-u user][-s scope]
     p4 pubkey -i [-u user][-s scope][-f]
 
 	Pubkey is used to upload or delete a generated SSH public key to a
-	Perforce user account. This SSH key can be used to authenticate as
-	the user through SSH services. To upload a key to the Perforce Server
-	you must already have a Perforce user account.
+	Helix Core user account. This SSH key can be used to authenticate as
+	the user through SSH services. To upload a key to the Helix Core
+	Server you must already have a Helix Core user account.
 
 	To generate a new ssh key, use the command ssh-keygen:
 
@@ -9191,7 +9498,7 @@ R"(
 	this is the public key and can be safely distributed, the other
 	half is NOT to be copied.
 
-	Now you can upload your SSH public key to the Perforce server:
+	Now you can upload your SSH public key to the Helix Core Server:
 
 	$ p4 pubkey -i < ${HOME}/.ssh/id_rsa.pub
 	Public Key updated.
@@ -9236,7 +9543,7 @@ R"(
 
 ErrorId MsgHelp::HelpRealtime = { ErrorOf( ES_HELP, 268, E_INFO, EV_NONE, 0 ),
 R"(
-	Perforce server realtime performance counters
+	Helix Core Server realtime performance counters
 
 	Various server-wide performance counters are maintained in file-backed
 	shared memory. This is enabled when the 'rt.monitorfile' configurable
@@ -9331,7 +9638,7 @@ R"(
     rename -- How to rename files using pre-2009.1 clients
 
 	In release 2009.1 and higher, you can use 'p4 move' to move or
-	rename files. Perforce clients prior to release 2009.1 do not
+	rename files. Helix Core clients prior to release 2009.1 do not
 	support 'p4 move'.  However, files in older clients can be
 	renamed by branching one file to another and deleting the
 	original file.  For example:
@@ -9382,7 +9689,7 @@ R"(
 ErrorId MsgHelp::HelpReconcile = { ErrorOf( ES_HELP, 146, E_INFO, EV_NONE, 0 ),
 R"(
     reconcile -- Open files for add, delete, and/or edit to reconcile
-                 client with workspace changes made outside of Perforce
+                 client with workspace changes made outside of Helix Core
 
     rec         -- synonym for 'reconcile'
     status      -- 'reconcile -n + opened' (output uses local paths)
@@ -9428,18 +9735,18 @@ R"(
 	pending changelist.
 
 	The -e flag allows the user to reconcile files that have been
-	modified outside of Perforce. The reconcile command will open
+	modified outside of Helix Core. The reconcile command will open
 	these files for edit.
 
 	The -a flag allows the user to reconcile files that are in the
-	user's directory that are not under Perforce source control. These
+	user's directory that are not under Helix Core source control. These
 	files are opened for add.
 
 	The -f flag allows the user to add files with filenames that contain
 	wildcard characters. Filenames that contain the special characters
 	'@', '#', '%%' or '*' are reformatted to encode the characters using
 	ASCII hexadecimal representation.  After the files are added, you
-	must refer to them using the reformatted file name, because Perforce
+	must refer to them using the reformatted file name, because Helix Core
 	does not recognize the local filesystem name.
 
 	The -I flag informs the client that it should not perform any ignore
@@ -9466,7 +9773,7 @@ R"(
 	The -m flag used in conjunction with -e can be used to minimize
 	costly digest computation on the client by checking file modification
 	times before checking digests to determine if files have been
-	modified outside of Perforce.  If the modification times match the
+	modified outside of Helix Core.  If the modification times match the
 	user's have list, the digest computations will be skipped.
 
 	The -w flag forces the workspace files to be updated to match the
@@ -9710,6 +10017,9 @@ R"(
 	not just conflicts.
 
 	The -c flag limits 'p4 resolve' to the files in changelist#.
+
+	See 'p4 help-graph resolve' for information on using this command with
+	graph depots.
 )"
 };
 
@@ -9724,10 +10034,10 @@ R"(
 	use 'p4 resolve -n'.  To see already submitted integrations, use
 	'p4 integrated'.
 
-	If a depot file path is specified, the output lists resolves for
-	'theirs' files that match the specified path.  If a client file
-	path is specified, the output lists resolves for 'yours' files
-	that match the specified path.
+	If a client file path is specified, the output lists resolves for
+	'yours' files that match the specified path.  If a depot file path is
+	specified, the output lists resolves for both 'theirs' and 'yours'
+	files that match the specified path.
 
 	The -o flag reports the revision used as the base during the
 	resolve.
@@ -10076,14 +10386,14 @@ R"(
 
 ErrorId MsgHelp::HelpSet = { ErrorOf( ES_HELP, 76, E_INFO, EV_NONE, 0 ),
 R"(
-    set -- Set or display Perforce variables
+    set -- Set or display Helix Core variables
 
     p4 set [-q] [-s | -S service] [var[=[value]] ...]
 
-	'p4 set' can set Perforce variables in persistent storage.
+	'p4 set' can set Helix Core variables in persistent storage.
 
-	On Windows, 'p4 set' sets Perforce variables in the Windows registry
-	to the specified values.  On other platforms, 'p4 set' sets Perforce
+	On Windows, 'p4 set' sets Helix Core variables in the Windows registry
+	to the specified values.  On other platforms, 'p4 set' sets Helix Core
 	variables in the P4ENVIRO file.
 
 	The 'p4 set' command can be used to set multiple variables in a
@@ -10105,15 +10415,15 @@ R"(
 
 	Registry/P4ENVIRO variable entries can be overridden by environment
 	variables and (in some cases) flags on the command line. See 'p4 help
-	environment' for a list of environment variables used by Perforce.
+	environment' for a list of environment variables used by Helix Core.
 
-	Certain Perforce variables can also be set persistently by using
+	Certain Helix Core variables can also be set persistently by using
 	configuration files named by the P4CONFIG variable. These settings
 	have higher precedence than environment/registry variables, but lower
 	precedence than command line flags. P4CONFIG file variable settings
-	only affect Perforce client programs; servers do not use them.
+	only affect Helix Core client programs; servers do not use them.
 
-	Since Perforce variables can be set in multiple locations, you should
+	Since Helix Core variables can be set in multiple locations, you should
 	examine the output of 'p4 set' carefully; a variable set in one
 	location may be overriding a variable set in a lower-precedence
 	location.
@@ -10395,7 +10705,7 @@ R"(
 	mechanism. This option is only used in a distributed environment and
 	is not supported for RCS storage. The configurable pull.trigger.dir
 	must be set to a location to write temporary files. The configurable
-	rpl.submit.nocopy must be set to 1 to suppress default Perforce
+	rpl.submit.nocopy must be set to 1 to suppress default Helix Core
 	archive file transfer to the Commit Server. The trigger must use
 	'fstat -Ob' to get the list of files to transfer, and it must contain
 	the file transfer commands.
@@ -10568,7 +10878,7 @@ R"(
 	The -s flag adds a safety check before sending content to the client
 	workspace.  This check uses MD5 digests to compare the content on the
 	clients workspace against content that was last synced.  If the file
-	has been modified outside of Perforce's control then an error message
+	has been modified outside of Helix Core's control then an error message
 	is displayed and the file is not overwritten.  This check adds some
 	extra processing which will affect the performance of the operation.
 	Clients with 'allwrite' and 'noclobber' set do this check by default.
@@ -10645,6 +10955,10 @@ R"(
 	If the file argument includes a revision range specification, only
 	the files with revisions in that range are tagged.  Files with more
 	than one revision in the range are tagged at the highest revision.
+
+	If multiple arguments are given, they are applied to the label
+	sequentially, such that the last revision specified for a given
+	depot file is the one that will be tagged with the label.
 
 	The -d deletes the association between the specified files and the
 	label, regardless of revision.
@@ -10912,7 +11226,7 @@ R"(
 		        %%P4PORT%% and %%serverAddress%%.  The distinction is
 		        that serverAddress is the address of the target server
 		        and the P4PORT is what the client is connecting to,
-		        which might be an intermediate like a Perforce Proxy.
+		        which might be an intermediate like a Helix Core Proxy.
 
 		        These variables can be passed to the client script by
 		        appending them to the client command string, as in:
@@ -10930,7 +11244,7 @@ R"(
 		    The user must issue the 'p4 login' command, but no
 		    password prompting is invoked.  If the server
 		    determines that the user is valid, they are issued a
-		    Perforce ticket just as if they had logged in with a
+		    Helix Core ticket just as if they had logged in with a
 		    password.
 
 		    Pre-2007.2 clients cannot run a client-side single
@@ -11174,7 +11488,7 @@ R"(
 		or cluster.id may be used to restrict the trigger to running on
 		either a specific server or a named group of servers.  For
 		pull-archive triggers, 'pull' is required as the path value.
-		For graph triggers, set the path to a file patten that matches
+		For graph triggers, set the path to a file pattern that matches
 		the desired repos.  The path should end with a wildcard even if
 		only matching a single repo.  For 'bgtask' triggers, use a path
 		of 'unset'. For 'failed-over' triggers, use 'failed-over' as
@@ -11439,6 +11753,9 @@ R"(
 
 	If -c changelist# is included, files are opened in the specified
 	pending changelist instead of the default changelist.
+
+	See 'p4 help-graph undo' for information on using this command with
+	graph depots.
 )"
 };
 
@@ -11659,11 +11976,11 @@ R"(
 
 ErrorId MsgHelp::HelpUsers = { ErrorOf( ES_HELP, 84, E_INFO, EV_NONE, 0 ),
 R"(
-    users -- List Perforce users
+    users -- List Helix Core users
 
     p4 users [-l -a -r -c] [-m max] [user ...]
 
-	Lists all Perforce users or users that match the 'user' argument.
+	Lists all Helix Core users or users that match the 'user' argument.
 	The report includes the last time that each user accessed the system.
 
 	The -m max flag limits output to the first 'max' number of users.
@@ -11711,10 +12028,12 @@ R"(
 	This option can be used with the -u flag to compute and save digests
 	for a limited number of revisions in each 'p4 verify' invocation.
 
-	The -t flag, for use only with a replica server, causes 'p4 verify'
-	to schedule transfer of the content of any damaged or missing
-	revision. The '-t' option cannot be used with the '-v', '-Z'  or '-u'
-	options.
+	When the '-t' flag is used on a replica any damaged or missing
+	revisions are scheduled for transfer from the P4TARGET server.
+	On a commit server the damaged or missing revisions will be scheduled
+	for transfer from the first replica that confirms it has a valid
+	archive file for that revision.
+	The '-t' option cannot be used with the '-v', '-Z' or '-u' options.
 
 	The -r flag is only used with the '-t' option. When the '-r'
 	option is specified, then revisions of the text type (contained
@@ -11736,7 +12055,7 @@ R"(
 	Specifying '--compressed 0' will skip the attempt to verify the archive
 	based on the compressed checksum, verifying only the extracted content.
 	Specifying '--compressed 1' will prevent the second verify attempt
-	against the extracted content, rasising a verifiy error immediatly.
+	against the extracted content, raising a verify error immediately.
 
 	The -u flag computes and saves the digest only for revisions that
 	have no saved digest.
@@ -11831,7 +12150,7 @@ R"(
 
 	Where shows how the specified files are mapped by the client view.
 	For each argument, three names are produced: the name in the depot,
-	the name on the client in Perforce syntax, and the name on the client
+	the name on the client in Helix Core syntax, and the name on the client
 	in local syntax.
 
 	If the file parameter is omitted, the mapping for all files in the
@@ -11860,7 +12179,7 @@ R"(
     p4 dbschema [-A] [tablename[:tableversion]]...
 
 	'p4 dbschema' reports database structure information about the
-	Perforce metadata.  Super permission is required to execute this
+	Helix Core metadata.  Super permission is required to execute this
 	command.
 
 	The command reports schema information for the metadata tables.
@@ -11884,8 +12203,8 @@ R"(
     p4 export -j token [-J prefix] -r [-F filter]
 		[-T tableexcludelist] [-P filterpattern]
 
-	'p4 export' extracts journal or checkpoint records from the Perforce
-	metadata.  Super permission is required to execute this command.
+	'p4 export' extracts journal or checkpoint records from the Helix
+	Core metadata.  Super permission is required to execute this command.
 
 	This command extracts records from database journals or checkpoints.
 	By default, the records are returned in tagged output.  Compressed
@@ -11996,7 +12315,7 @@ R"(
 	The -o output flag specifies an output file where journal records
 	are written in addition to the sub-process command.
 
-	See Perforce Knowledge Base article 1099 for detailed usage.
+	See Helix Core Knowledge Base article 1099 for detailed usage.
 
 	Super permission is required to run this command.
 )"
@@ -12079,7 +12398,7 @@ R"(
     p4 dbverify [-t db.table] [-U] [-v]
 
 	This command performs a series of low-level structural integrity
-	checks on the Perforce database tables. It can be run periodically
+	checks on the Helix Core database tables. It can be run periodically
 	to determine if tables have become damaged.
 
 	The -t flag restricts the verification to the specified table.
@@ -12413,7 +12732,7 @@ R"(
 
 	The -d flag specifies that the pending file content transfer should
 	be cancelled. You must also specify the filename and revision using
-	the -f and -r flags. Note that this is not the normal Perforce file
+	the -f and -r flags. Note that this is not the normal Helix Core file
 	and revision data, but rather the archive file and revision. The
 	correct archive filename and revision information to provide can be
 	viewed using 'pull -l'. The 'pull -d' command can be useful when a
@@ -12484,182 +12803,195 @@ R"(
 
 ErrorId MsgHelp::HelpConfigurables = { ErrorOf( ES_HELP, 130, E_INFO, EV_NONE, 0 ),
 R"(
-   Perforce server configurables
+   Helix Core Server configurables
 
-	The Perforce server behavior can be controlled by setting
+	The Helix Core Server behavior can be controlled by setting
 	configuration variables using the 'p4 configure set' command. The
 	configuration variables that can be set include the following, in
 	addition to environment variables (see 'p4 help environment'):
 
-	Name               Default Use
-	----               ------- ---
-	auth.autologinprompt     1 Allow P4 to prompt users to login
-	auth.2fa.persist         1 Allow persistent 2nd factor authentication
+	Name                       Use
+	----                       ---
+	auth.autologinprompt       Allow P4 to prompt users to login
+	auth.2fa.persist           Allow persistent 2nd factor authentication
 	                           0: Disabled
 	                           1: Allowed (default)
 	                           2: Implied
 	auth.default.method perforce Default auth method for new users
 	                           perforce: classic password validation
 	                           ldap: passwords validated by LDAP server
-	auth.id               none Unique identifier for authentication
-	auth.ldap.cafile      none Path to PEM encoded CA validation file
-	auth.ldap.order.N     none Enabled LDAP configuration names
-	auth.ldap.pagesize       0 Limit for LDAP searches with paged results
-	auth.ldap.sslciphers  none SSL ciphers to present to LDAP servers
-	auth.ldap.ssllevel       0 Level of SSL certificate validation
+	auth.id                    Unique identifier for authentication
+	auth.ldap.cafile           Path to PEM encoded CA validation file
+	auth.ldap.order.N          Enabled LDAP configuration names
+	auth.ldap.pagesize         Limit for LDAP searches with paged results
+	auth.ldap.sslciphers       SSL ciphers to present to LDAP servers
+	auth.ldap.ssllevel         Level of SSL certificate validation
 	                           0: no validation (default)
 	                           1: cert must be valid, but CN not checked
 	                           2: cert must be valid and CN must match
-	auth.ldap.timeout       30 Maximum wait time for LDAP connections
-	auth.ldap.userautocreate 0 Enables user autocreation on successful auth
+	auth.ldap.timeout          Maximum wait time for LDAP connections
+	auth.ldap.userautocreate   Enables user autocreation on successful auth
 	                           0: no user autocreation  (default)
 	                           1: user created on successful auth
 	                           2: user must have also already have protects
-	auth.licenseexpiry.warn  1 Enable license expiry warning
+	auth.licenseexpiry.warn    Enable license expiry warning
 	                           0: No license expiry warning
 	                           1: Warn users with permission level admin or
 	                              higher when they log in (default)
 	                           2: Warn all users when they log in
-	auth.licenseexpiry.warnthreshold 7 Days before license expiry to start
-	                              giving warning
-	auth.sso.allow.passwd    0 Allow fallback to database password auth
-	auth.sso.args         none Passed to client P4LOGINSSO triggers
-	auth.sso.nonldap         0 Non-LDAP users can use SSO when LDAP in use
-	auth.tickets.nounlocked  0 Allow 'p4 login -a's
+	auth.licenseexpiry.warnthreshold   Days before license expiry to start
+	                                   giving warning
+	auth.sso.allow.passwd      Allow fallback to database password auth
+	auth.sso.args              Passed to client P4LOGINSSO triggers
+	auth.sso.nonldap           Non-LDAP users can use SSO when LDAP in use
+	auth.tickets.nounlocked    Allow 'p4 login -a's
 	                           0: Allowed (default)
 	                           1: Disabled silently
 	                           2: Disallowed
-	client.readonly.dir   none Storage location for readonly clients
-	client.sendq.dir      none Storage location for partitioned db.sendq
-	db.checkpoint.bufsize 224K Minimum journal buffer size during
+	client.readonly.dir        Storage location for readonly, partitioned
+	                           and partitioned-jnl clients.
+	client.sendq.dir           Storage location for partitioned db.sendq
+	db.checkpoint.bufsize      Minimum journal buffer size during
 	                           checkpoint
-	db.checkpoint.threads    0 Number of threads to use for checkpoint
-	                            0: Use non-threaded checkpointing
-	                            N: Use N threads to produce the
-	                               checkpoint
-	db.checkpoint.reqlevel   4 Only database files at this level or
+	db.checkpoint.threads      Number of threads to use for checkpoint
+	                           0: Use non-threaded checkpointing
+	                           N: Use N threads to produce the
+	                              checkpoint
+	db.checkpoint.reqlevel     Only database files at this level or
 	                           deeper will be considered to be split
 	                           into multiple checkpoint files during
 	                           a checkpoint or dump request.
-	db.checkpoint.worklevel  3 The number of pages at this level of
+	db.checkpoint.worklevel    The number of pages at this level of
 	                           a database file is used along with
 	                           'db.checkpoint.numfiles' to determine the
 	                           records keys for a multifile split.
-	db.checkpoint.numfiles  10 This is used to calculate the divisor of the
+	db.checkpoint.numfiles     This is used to calculate the divisor of the
 	                           number of pages at the worklevel to
 	                           determine the record keys for a multifile
 	                           split. For more details, see the Helix
 	                           Core Server Administrator Guide on "Parallel
 	                           checkpointing, dumping and recovery".
-	db.monitor.addthresh     0 Milliseconds before adding command or
+	db.journalrotate.warnthresh Days without journal rotation before
+	                           warning starts to show up for admin users.
+	db.monitor.addthresh       Milliseconds before adding command or
 	                           connection at monitor level 1 or 2
-	db.monitor.interval     30 Seconds between the terminate process check
-	db.monitor.term.allow    0 Allow users to terminate own process
+	db.monitor.interval        Seconds between the terminate process check
+	db.monitor.term.allow      Allow users to terminate own process
 	                           0: disabled (only admin/operator can)
 	                           1: users can terminate own process
 	                           2: users can also pause/resume own process
-	db.monitor.shared      256 Pages of shared memory for monitoring use
-	db.peeking               2 Lockless operation
+	db.monitor.shared          Pages of shared memory for monitoring use
+	db.partition.dropondelete  Enables deleting the partitioned have table
+	                           upon respective client deletion.
+	db.partition.verify        Enables verifying the partitioned have table
+	db.peeking                 Lockless operation
 	                           0: classic locking
 	                           1: new locking
 	                           2: basic lockless operation (default)
 	                           3: extra lockless operation
-	db.peeking.usemaxlock    0 When peeking, obey maxlocktime setting.
-	db.replication        none Replica metadata access mode
-	db.rt.io                 0 Database IO tracked by rt.monitorfile
-	dbjournal.bufsize      16K Journal/checkpoint read/write size
-	dbopen.nofsync           0 Disable fsync of db files
-	defaultChangeType     none Default for new change: public/restricted
-	dm.annotate.maxsize    10M Maximum revision size for default annotate
-	dm.batch.net           10K Batch size for files sent from an edge to
+	db.peeking.usemaxlock      When peeking, obey maxlocktime setting.
+	db.replication             Replica metadata access mode
+	db.rt.io                   Database IO tracked by rt.monitorfile
+	dbjournal.bufsize          Journal/checkpoint read/write size
+	dbopen.nofsync             Disable fsync of db files
+	defaultChangeType          Default for new change: public/restricted
+	dm.annotate.maxsize        Maximum revision size for default annotate
+	dm.batch.net               Batch size for files sent from an edge to
 	                           a commit server during 'p4 labelsync'
-	dm.domain.accessupdate 300 Time interval to update domain access time
-	dm.domain.accessforce 3600 Time interval to force domain access time
-	dm.fetch.preservechangenumbers 0 Preserve change numbers on 'p4 fetch'
-	                                 or 'p4 push' to this server
-	dm.info.hide             0 Suppress output of sensitive info fields
-	dm.integ.streamspec      1 Default stream spec integration value
+	dm.change.skipkeyed        Disable generation of digest for ktext
+	                           revisions during submitted change updates
+	dm.domain.accessupdate     Time interval to update domain access time
+	dm.domain.accessforce      Time interval to force domain access time
+	dm.fetch.preservechangenumbers Preserve change numbers on 'p4 fetch'
+	                               or 'p4 push' to this server
+	dm.info.hide               Suppress output of sensitive info fields
+	dm.integ.streamspec        Default stream spec integration value
 	                           0: Stream spec integration is not allowed
 	                           1: Allow stream spec integration only for
 	                              target streams with noinherit ParentViews
 	                           2: Allow stream spec integration for all
 	                              streams
-	dm.grep.maxrevs        10K Maximum number of revs that can be searched
-	dm.keys.hide             0 Users require admin for 'keys' command
-	dm.locks.excl.batch.net 10k Batch size for exclusively (un)locked files
-	                            sent from an edge to a commit server
-	dm.locks.global.batch.net 10k Batch size for globally (un)locked files
-	                              sent from an edge to a commit server
-	dm.locks.global.result.batch.net 10k Batch size for globally (un)locked
-	                                     files returned from a commit
-	                                     server to an edge server
-	dm.open.show.globallocks 0 Report global locks on file open from edge
-	dm.password.minlength    8 Minimum password length (when enabled)
-	dm.populate.skipkeyed    0 Disable generation of digest for ktext
+	dm.grep.maxrevs            Maximum number of revs that can be searched
+	dm.keys.hide               Users require admin for 'keys' command
+	dm.locks.excl.batch.net    Batch size for exclusively (un)locked files
+	                           sent from an edge to a commit server
+	dm.locks.global.batch.net  Batch size for globally (un)locked files
+	                           sent from an edge to a commit server
+	dm.locks.global.result.batch.net Batch size for globally (un)locked
+	                                 files returned from a commit
+	                                 server to an edge server
+	dm.open.show.globallocks   Report global locks on file open from edge
+	dm.password.minlength      Minimum password length (when enabled)
+	dm.populate.skipkeyed      Disable generation of digest for ktext
 	                           revisions during populate
-	dm.protects.streamspec   0 Enable streamspec permissions
-	dm.proxy.protects        1 Add 'proxy-' to IP (see 'p4 help protect')
-	dm.resolve.attrib        1 Enable resolve for attributes
-	dm.rotatelogwithjnl      1 Rotate logs when journals are rotated.
-	dm.shelve.accessupdate 300 Time interval to update shelve access time
-	dm.shelve.maxfiles     10M Max number of files that can be shelved
-	dm.shelve.maxsize        0 Limit size of a file that can be shelved
-	dm.shelve.promote        0 Promote shelved changes from edge server
-	dm.repo.noautocreate     0 Repo autocreation level
-	dm.repo.unpack           1 Repo unpacking mode
+	dm.protects.streamspec     Enable streamspec permissions
+	dm.proxy.protects          Add 'proxy-' to IP (see 'p4 help protect')
+	dm.resolve.attrib          Enable resolve for attributes
+	dm.rotatelogwithjnl        Rotate logs when journals are rotated.
+	dm.shelve.accessupdate     Time interval to update shelve access time
+	dm.shelve.maxfiles         Max number of files that can be shelved
+	dm.shelve.maxsize          Limit size of a file that can be shelved
+	dm.shelve.promote          Promote shelved changes from edge server
+	dm.repo.noautocreate       Repo autocreation level
+	dm.repo.unpack             Repo unpacking mode
 	                           0: keep pack files
 	                           1: unpack on update
 	                           2: unpack all
-	dm.stream.parentview     0 Default for stream spec ParentView field
+	dm.stream.parentview       Default for stream spec ParentView field
 	                           0: inherit ParentView for all new streams
 	                           1: noinherit Parentview for new mainline,
-	                              development and release streams;
-	                              inherit ParentView for new task and
-	                              virtual streams
+	                              development, and release streams;
+	                              inherit ParentView for new sparsedev,
+	                              sparserel, task, and virtual streams
 	                           2: noinherit Parentview for new release
 	                              streams; inherit ParentView for all
 	                              other streams
+	dm.stream.sparse.branchmax 100K Maximum number of depot files in the
+	                                branch view of a sparse stream.
+	                                0: No limit
+	                                N: Limit the number of files to N
 )"
-R"(	dm.topology.lastseenupdate 300 Time interval to update topology record.
-	                               It represents the time that a record
-	                               must age before it is re-written merely
-	                               to change its 'lastSeenDate' field.
-	dm.user.accessupdate   300 Time interval to update user access time
-	dm.user.accessforce   3600 Time interval to force user access time
-	dm.user.loginattempts    3 Number of password attempts before delay
-	dm.user.allowselfupdate  1 Users may update their email and fullname
-	dm.user.noautocreate     0 User autocreation level
-	dm.user.resetpassword    0 New user requires password reset
-	dm.user.setinitialpasswd 1 Unset password handling
+R"(	dm.topology.lastseenupdate Time interval to update topology record.
+	                           It represents the time that a record
+	                           must age before it is re-written merely
+	                           to change its 'lastSeenDate' field.
+	dm.user.accessupdate       Time interval to update user access time
+	dm.user.accessforce        Time interval to force user access time
+	dm.user.loginattempts      Number of password attempts before delay
+	dm.user.allowselfupdate    Users may update their email and fullname
+	dm.user.noautocreate       User autocreation level
+	dm.user.resetpassword      New user requires password reset
+	dm.user.setinitialpasswd   Unset password handling
 	                           0: Only super users whose password is set
 	                              can set/unset initial passwords
 	                           1: Users can set their own initial passwords
 	                             (default)
-	filesys.binaryscan     64K 'add' looks this far for binary chars
-	filesys.bufsize        64K Client file I/O buffer size
-	filesys.checklinks       0 Reject symlinked directories on add
-	filesys.depot.min     250M Minimum space for depot filesystem
-	filesys.extendlowmark  32K Minimum filesize before preallocation(NT)
-	filesys.P4ROOT.min    250M Minimum space for P4ROOT filesystem
-	filesys.P4JOURNAL.min 250M Minimum space for P4JOURNAL filesystem
-	filesys.P4LOG.min     250M Minimum space for P4LOG filesystem
-	filesys.TEMP.min      250M Minimum space for TEMP filesystem
-	filetype.maxtextsize   10M Maximum file size for text type detection
-	journalPrefix         none Prefix or directory location for journal
-	info.p4auth.usercheck    1 Validate username against P4AUTH server
-	lbr.autocompress         1 By default, use compressed text storage
+	filesys.binaryscan         'add' looks this far for binary chars
+	filesys.bufsize            Client file I/O buffer size
+	filesys.checklinks         Reject symlinked directories on add
+	filesys.depot.min          Minimum space for depot filesystem
+	filesys.extendlowmark      Minimum filesize before preallocation(NT)
+	filesys.P4ROOT.min         Minimum space for P4ROOT filesystem
+	filesys.P4JOURNAL.min      Minimum space for P4JOURNAL filesystem
+	filesys.P4LOG.min          Minimum space for P4LOG filesystem
+	filesys.TEMP.min           Minimum space for TEMP filesystem
+	filetype.maxtextsize       Maximum file size for text type detection
+	journalPrefix              Prefix or directory location for journals
+	                           and checkpoints
+	info.p4auth.usercheck      Validate username against P4AUTH server
+	lbr.autocompress           By default, use compressed text storage
 	                           instead of RCS
-	lbr.bufsize             4K Archive file I/O buffer size
-	lbr.proxy.case           1 Proxy cache case-handling (see 'p4p -h')
-	lbr.rcs.existcheck       1 Perform RCS validation check during submit
-	lbr.rcs.maxlen         10M Maximum line length in a +k file.
-	lbr.replica.notransfer   0 Suppress on-demand file fetch
-	lbr.replication       none Replica depot access and replication mode
-	lbr.retry.max           50 Times replica should retry failed transfer
-	lbr.stat.interval        0 Proxy file status interval (see 'p4p -h')
-	lbr.storage.delay   86400s Required age for storage record deletes
-	lbr.storage.allowsymlink 0 Allows symlinks in orphan storage scanner
-	lbr.storage.skipkeyed    2 Ignores keyword revisions during upgrade
+	lbr.bufsize                Archive file I/O buffer size
+	lbr.proxy.case             Proxy cache case-handling (see 'p4p -h')
+	lbr.rcs.existcheck         Perform RCS validation check during submit
+	lbr.rcs.maxlen             Maximum line length in a +k file.
+	lbr.replica.notransfer     Suppress on-demand file fetch
+	lbr.replication            Replica depot access and replication mode
+	lbr.retry.max              Times replica should retry failed transfer
+	lbr.stat.interval          Proxy file status interval (see 'p4p -h')
+	lbr.storage.delay          Required age for storage record deletes
+	lbr.storage.allowsymlink   Allows symlinks in orphan storage scanner
+	lbr.storage.skipkeyed      Ignores keyword revisions during upgrade
 	                           If set to 0 then a digest is created for
 	                           all keyword revisions
 	                           If set to 1 then no digest is created for
@@ -12667,105 +12999,106 @@ R"(	dm.topology.lastseenupdate 300 Time interval to update topology record.
 	                           logged
 	                           If set to 2 then no digest is created for
 	                           keyword revisions and no message is logged
-	lbr.storage.threads      0 Number of threads to use for a storage -U
+	lbr.storage.threads        Number of threads to use for a storage -U
 	                           request
-	                            0: Don't use threads
-	                            N: Use N threads to compute the digests
-	lbr.verify.in            1 Verify contents from the client to server
-	lbr.verify.out           1 Verify contents from the server to client
-	lbr.verify.script.out    1 Verify +X contents from server to client
-	log.originhost           1 Origin and peer IPs in the structured logs
-	minClient             none Lowest client version that may connect
-	minClientMessage      none Message to issue for client-too-old
-	monitor                  0 Server monitoring level
-	monitor.lsof          none Set to /usr/bin/lsof to enable on Linux
-	net.autotune		 1 Allow OS TCP autotune/autoscale of buffers
-				   If set, net.tcpsize is ignored
-	net.backlog            128 Maximum pending connections queue length
-	net.heartbeat.interval  2K Milliseconds between sending heartbeats
-	net.heartbeat.wait      2K Milliseconds before response times out
-	net.heartbeat.missing.interval 2K Milliseconds between sending
-	                           heartbeats after a missing response
-	net.heartbeat.missing.wait 4K Milliseconds before request times out
+	                           0: Don't use threads
+	                           N: Use N threads to compute the digests
+	lbr.verify.in              Verify contents from the client to server
+	lbr.verify.out             Verify contents from the server to client
+	lbr.verify.script.out      Verify +X contents from server to client
+	log.originhost             Origin and peer IPs in the structured logs
+	minClient                  Lowest client version that may connect
+	minClientMessage           Message to issue for client-too-old
+	monitor                    Server monitoring level
+	monitor.lsof               Set to /usr/bin/lsof to enable on Linux
+	net.autotune	           Allow OS TCP autotune/autoscale of buffers
+	                           If set, net.tcpsize is ignored
+	net.backlog                Maximum pending connections queue length
+	net.delta.transfer.minsize Minimum file size to perform delta transfer
+	net.heartbeat.interval     Milliseconds between sending heartbeats
+	net.heartbeat.wait         Milliseconds before response times out
+	net.heartbeat.missing.interval Milliseconds between sending
+	                               heartbeats after a missing response
+	net.heartbeat.missing.wait Milliseconds before request times out
 	                           after a missing response
-	net.heartbeat.missing.count 5 Missing consecutive heartbeats before
-	                           detected as dead
-	net.keepalive.disable    0 Disable sending TCP keepalive packets
-	net.keepalive.idle       0 Seconds before starting to send keepalives
-	net.keepalive.interval   0 Seconds between sending keepalives
-	net.keepalive.count      0 Unacknowledged keepalives before failure
-	net.maxfaultpub        100 Max size of faults (MB) to share via proxy
-	net.maxclosewait      1000 Milliseconds to wait for a network close
-	net.maxwait              0 Seconds to wait for a network read or write
-	net.mimcheck             1 Man-in-the-middle network security level
-	net.parallel.max         0 Highest allowed degree of parallel transfer
-	net.parallel.threads  none Auto parallel sync w/#threads
-	net.parallel.batch       8 Files in batch for auto parallel sync
-	net.parallel.batchsize 512K Size of batch for auto parallel sync
-	net.parallel.min         9 Minimum # files for auto parallel sync
-	net.parallel.minsize  576K Minimum size for auto parallel sync
-	net.parallel.shelve.threads none Auto parallel shelve w/#threads
-	net.parallel.shelve.batch 8 Files in batch for auto parallel shelve
-	net.parallel.shelve.min  9 Minimum # files for auto parallel shelve
-	net.parallel.submit.threads none Auto parallel submit w/#threads
-	net.parallel.submit.batch 8 Files in batch for auto parallel submit
-	net.parallel.submit.min  9 Minimum # files for auto parallel submit
-	net.parallel.sync.svrthreads none Server-wide parallel thread limit
-	net.reuseport            0 Set SO_REUSEPORT for listening socket
-	net.rfc3484              0 Allow OS to choose between IPv4 and IPv6
-	net.tcpsize           512K TCP sndbuf/rcvbuf sizes set at connect
+	net.heartbeat.missing.count Missing consecutive heartbeats before
+	                            detected as dead
+	net.keepalive.disable      Disable sending TCP keepalive packets
+	net.keepalive.idle         Seconds before starting to send keepalives
+	net.keepalive.interval     Seconds between sending keepalives
+	net.keepalive.count        Unacknowledged keepalives before failure
+	net.maxfaultpub            Max size of faults (MB) to share via proxy
+	net.maxclosewait           Milliseconds to wait for a network close
+	net.maxwait                Seconds to wait for a network read or write
+	net.mimcheck               Man-in-the-middle network security level
+	net.parallel.max           Highest allowed degree of parallel transfer
+	net.parallel.threads       Auto parallel sync w/#threads
+	net.parallel.batch         Files in batch for auto parallel sync
+	net.parallel.batchsize     Size of batch for auto parallel sync
+	net.parallel.min           Minimum # files for auto parallel sync
+	net.parallel.minsize       Minimum size for auto parallel sync
+	net.parallel.shelve.threads Auto parallel shelve w/#threads
+	net.parallel.shelve.batch  Files in batch for auto parallel shelve
+	net.parallel.shelve.min    Minimum # files for auto parallel shelve
+	net.parallel.submit.threads Auto parallel submit w/#threads
+	net.parallel.submit.batch  Files in batch for auto parallel submit
+	net.parallel.submit.min    Minimum # files for auto parallel submit
+	net.parallel.sync.svrthreads Server-wide parallel thread limit
+	net.reuseport              Set SO_REUSEPORT for listening socket
+	net.rfc3484                Allow OS to choose between IPv4 and IPv6
+	net.tcpsize                TCP sndbuf/rcvbuf sizes set at connect
 				   Ignored if net.autotune is set
-	pull.trigger.dir      none Tmp directory for alternative archive copy
-	push.unlocklocked        0 Unlock locked files if push fails
-	proxy.monitor.level      0 Proxy monitoring level (see 'p4p -h')
-	proxy.monitor.interval  10 Proxy monitoring interval (see 'p4p -h')
-	proxy.clearcachethresh   0 Threshold for clearing proxy cache
-	rcs.nofsync              0 Disable fsync of RCS files
-	rejectList            none List of server blocked applications
-	rpl.checksum.auto        0 Level to checksum when rotating journal
-	rpl.checksum.change      0 Control change-by-change checksum behavior
-	rpl.checksum.table       0 Control table checksum behavior
-	rpl.compress             0 Enable replica-master network compression
+	pull.trigger.dir           Tmp directory for alternative archive copy
+	push.unlocklocked          Unlock locked files if push fails
+	proxy.monitor.level        Proxy monitoring level (see 'p4p -h')
+	proxy.monitor.interval     Proxy monitoring interval (see 'p4p -h')
+	proxy.clearcachethresh     Threshold for clearing proxy cache
+	rcs.nofsync                Disable fsync of RCS files
+	rejectList                 List of server blocked applications
+	rpl.checksum.auto          Level to checksum when rotating journal
+	rpl.checksum.change        Control change-by-change checksum behavior
+	rpl.checksum.table         Control table checksum behavior
+	rpl.compress               Enable replica-master network compression
 	                           0: No compression
 	                           1: Compress only archive transfers
 	                           2: Compress metadata and archive transfers
 	                           3: Compress metadata and archive transfers,
 	                              and data streams for forwarded commands
 	                           4: Compress only metadata transfers
-	rpl.deferred.sends       0 Allow 'pull -u' to fetch missing archives
+	rpl.deferred.sends         Allow 'pull -u' to fetch missing archives
 	                           during sync on edge and build servers
-	rpl.forward.all          0 Enable replica update command forwarding
-	rpl.forward.login        0 Enable replica login command forwarding
-	rpl.jnl.batch.size    100M Max size of a single journal transfer
-	rpl.jnlwait.adjust      25 Per-loop ms to add to rpl.jnlwait.interval
-	rpl.jnlwait.interval    50 Initial value in ms of jnlwait loop timer
-	rpl.jnlwait.max       1000 Highest value in ms that loop will attain
-	rpl.journalcopy.location 0 Current journalcopy'd journal location:
+	rpl.forward.all            Enable replica update command forwarding
+	rpl.forward.login          Enable replica login command forwarding
+	rpl.jnl.batch.size         Max size of a single journal transfer
+	rpl.jnlwait.adjust         Per-loop ms to add to rpl.jnlwait.interval
+	rpl.jnlwait.interval       Initial value in ms of jnlwait loop timer
+	rpl.jnlwait.max            Highest value in ms that loop will attain
+	rpl.journalcopy.location   Current journalcopy'd journal location:
 	                           0: written directly to journalPrefix
 	                           1: rotated to journalPrefix
-	rpl.labels.global        0 Label default for distributed installations
-	rpl.pull.position        0 Interval in ms for pull position reports
-	rpl.replay.userrp        0 Include db.user.rp data from P4TARGET
-	rpl.submit.nocopy        0 Disable default submit archive file copy
-	rpl.track.behind         0 Report journals/total bytes not replicated
+	rpl.labels.global          Label default for distributed installations
+	rpl.pull.position          Interval in ms for pull position reports
+	rpl.replay.userrp          Include db.user.rp data from P4TARGET
+	rpl.submit.nocopy          Disable default submit archive file copy
+	rpl.track.behind           Report journals/total bytes not replicated
 	                           0: No reporting
 	                           1: pull logs at rpl=1 and via rt.monitorfile
 	                           2: pull -l -j logs at rpl=1
-	rpl.track.behind.interval 10000 Max interval in ms for pull lag reports
-	rpl.verify.cache         0 Verify contents in the replica cache
-	rpl.pull.archivedepots   0 Replicate file content for archive depots
-	rt.monitorfile        none Realtime performance counter file
+	rpl.track.behind.interval  Max interval in ms for pull lag reports
+	rpl.verify.cache           Verify contents in the replica cache
+	rpl.pull.archivedepots     Replicate file content for archive depots
+	rt.monitorfile             Realtime performance counter file
 )"
-R"(	run.clientexts.allow     1 Allow client-side Extensions to run
-	run.renameclient.allow   1 Allow the 'renameclient' command
+R"(	run.clientexts.allow       Allow client-side Extensions to run
+	run.renameclient.allow     Allow the 'renameclient' command
 	                           0: disallow for all users
 	                           1: allow for client owners, admins and super
 	                           2: allow for admins and super
 	                           3: allow for super
-	run.unzip.user.allow     0 Should 'p4 unzip' allow '-u'
-	run.users.authorize      0 Should 'p4 users' require authentication
-	security                 0 User/password security level
-	server                   0 Turn off tracking
+	run.unzip.user.allow       Should 'p4 unzip' allow '-u'
+	run.users.authorize        Should 'p4 users' require authentication
+	security                   User/password security level
+	server                     Turn off tracking
 	                           1: Include the start information for each
 	                              command
 	                           2: Include the start and stop information
@@ -12773,99 +13106,99 @@ R"(	run.clientexts.allow     1 Allow client-side Extensions to run
 	                           3: Add a "compute end" message for certain
 	                              commands
 	                           4: Include errors sent to the client
-	server.allowfetch        0 Whether changes can be fetched:
+	server.allowfetch          Whether changes can be fetched:
 	                           1: This server can fetch from other servers
 	                           2: Other servers can fetch from this server
 	                           3: Both (1) and (2) are allowed
-	server.allowpush         0 Whether changes can be pushed:
+	server.allowpush           Whether changes can be pushed:
 	                           1: This server can push to other servers
 	                           2: Other servers can push to this server
 	                           3: Both (1) and (2) are allowed
-	server.allowremoteLocking 0 Allow DVCS servers to lock files here
-	server.allowrewrite      0 Whether submitted changes can be rewritten
+	server.allowremoteLocking  Allow DVCS servers to lock files here
+	server.allowrewrite        Whether submitted changes can be rewritten
 	server.depot.root          Base directory of depots with relative maps
 	server.extensions.dir      Directory for Extension-owned storage
 	server.locks.dir           "server.locks" server lock directory
-	server.locks.archive     1 Should archive/restore lock metadata
-	server.locks.global      0 Lock globally by default from edge server
+	server.locks.archive       Should archive/restore lock metadata
+	server.locks.global        Lock globally by default from edge server
 	                           0: Locks are local to edges by default
 	                           1: Locks are global by default
-	server.locks.sync        0 Should sync command lock client workspace
-	server.commandlimits     0 Policy for per-command resource limits
+	server.locks.sync          Should sync command lock client workspace
+	server.commandlimits       Policy for per-command resource limits
 	server.global.client.views
-	                         0 Set to 1 to make client view maps global
+	                           Set to 1 to make client view maps global
 	                           either globally:
 	                              server.global.client.views=1
 	                           or scoped on replica:
 	                              replica#server.global.client.views=1
-	server.maxcommands       0 Max simultaneous commands (if monitoring)
+	server.maxcommands         Max simultaneous commands (if monitoring)
 	server.maxcommands.allow 1 Allow super and operator user access even
 	                           if server.maxcommands is reached
-	server.rolechecks        0 Should server enforce 'p4 server' settings
-	serverlog.file.N      none Server log file name(s)
-	serverlog.maxmb.N     none Size at which log file should be rotated
-	serverlog.retain.N    none Number of rotated log files to retain
-	serverlog.counter.N   none Counter to use for file rotation number
-	serverlog.bufsz.N     none Size of log write buffer
+	server.rolechecks          Should server enforce 'p4 server' settings
+	serverlog.file.N           Server log file name(s)
+	serverlog.maxmb.N          Size at which log file should be rotated
+	serverlog.retain.N         Number of rotated log files to retain
+	serverlog.counter.N        Counter to use for file rotation number
+	serverlog.bufsz.N          Size of log write buffer
 	serverlog.version.N        Server protocol version to be used when
 	                           writing structured log file. Defaults to
 	                           current server protocol version.
-	serviceUser           none Intermediate service identity
-	spec.hashbuckets        99 Maximum number of subdirectories for hashed
+	serviceUser                Intermediate service identity
+	spec.hashbuckets           Maximum number of subdirectories for hashed
 	                           directory structures
-	ssl.client.ca.path   unset Path of CA PEM file to validate server cert
-	ssl.client.cert.validate 1 Mode of validation of server cert
+	ssl.client.ca.path         Path of CA PEM file to validate server cert
+	ssl.client.cert.validate   Mode of validation of server cert
 	                           0: Only use P4TRUST
 	                           1: Cert chains accepted if valid CA found
 	                           2: Cert chains accepted if subject valid
-	ssl.client.tls.version.min 12 Min TLS version for client connections
+	ssl.client.tls.version.min Min TLS version for client connections
 	                           [10=1.0, 11=1.1, 12=1.2, 13=1.3]
-	ssl.client.tls.version.max 13 Max TLS version for client connections
+	ssl.client.tls.version.max Max TLS version for client connections
 	                           [10=1.0, 11=1.1, 12=1.2, 13=1.3]
-	ssl.client.trust.name    1 P4TRUST uses hostname for cert chains
+	ssl.client.trust.name      P4TRUST uses hostname for cert chains
 	                           0: Only the server IP is recorded
 	                           1: Server IP and hostname is recorded
 	                           2: Only server hostname is recorded
-	ssl.secondary.suite      0 Set SSL cipher suite to the secondary choice
-	ssl.tls.version.min     10 Set min TLS version [10=1.0, 11=1.1, 12=1.2,
+	ssl.secondary.suite        Set SSL cipher suite to the secondary choice
+	ssl.tls.version.min        Set min TLS version [10=1.0, 11=1.1, 12=1.2,
 	                           13=1.3]
-	ssl.tls.version.max     12 Set max TLS version [10=1.0, 11=1.1, 12=1.2,
+	ssl.tls.version.max        Set max TLS version [10=1.0, 11=1.1, 12=1.2,
 	                           13=1.3]
-	startup.N             none Background 'pull' command(s) for replica
-	statefile             none Replica server state tracking file name
-	submit.collision.check   1 Check file/directory collision on submit
-	submit.noretransfer      0 Avoid file re-transfer after failed submit
+	startup.N                  Background 'pull' command(s) for replica
+	statefile                  Replica server state tracking file name
+	submit.collision.check     Check file/directory collision on submit
+	submit.noretransfer        Avoid file re-transfer after failed submit
 	                           0: Retransfer all files
 	                           1: Retransfer files not already transferred
-	submit.allowbgtransfer   0 Allow edge submit background file transfer
-	submit.autobgtransfer    0 Auto edge submit background file transfer
-	submit.unlocklocked      0 Unlock locked files if submit fails
-	submit.identity       none Changelist identity auto-generation:
+	submit.allowbgtransfer     Allow edge submit background file transfer
+	submit.autobgtransfer      Auto edge submit background file transfer
+	submit.unlocklocked        Unlock locked files if submit fails
+	submit.identity            Changelist identity auto-generation:
 	                           uuid: generate as uuid
 	                           checksum: generate as checksum
 	                           serverid: generate as serverid+change
-	sys.pressure.max.pause.time 300 Max seconds to wait while paused.
-	sys.pressure.max.paused 1000 Max number of processes allowed to be
+	sys.pressure.max.pause.time Max seconds to wait while paused.
+	sys.pressure.max.paused    Max number of processes allowed to be
 	                           paused.
-	sys.pressure.mem.high   95 Percentage of memory used for 'high'.
-	sys.pressure.mem.high.duration 1000 Milliseconds of time to average
-	                           input.
-	sys.pressure.mem.medium 80 Percentage of memory used for 'medium'.
-	sys.pressure.mem.medium.duration 1000 Milliseconds of time to average
-	                           input.
-	sys.pressure.os.cpu.high 100 Percentage of processes stalled for CPU.
-	sys.pressure.os.cpu.high.duration 2000 Milliseconds of time to average
-	                           input.
-	sys.pressure.os.mem.high 70 Percentage of processes stalled for memory.
-	sys.pressure.os.mem.high.duration 2000 Milliseconds of time to average
-	                           input.
-	sys.pressure.os.mem.medium 40 Percentage of processes stalled for
+	sys.pressure.mem.high      Percentage of memory used for 'high'.
+	sys.pressure.mem.high.duration Milliseconds of time to average
+	                               input.
+	sys.pressure.mem.medium    Percentage of memory used for 'medium'.
+	sys.pressure.mem.medium.duration Milliseconds of time to average
+	                                 input.
+	sys.pressure.os.cpu.high   Percentage of processes stalled for CPU.
+	sys.pressure.os.cpu.high.duration Milliseconds of time to average
+	                                  input.
+	sys.pressure.os.mem.high   Percentage of processes stalled for memory.
+	sys.pressure.os.mem.high.duration Milliseconds of time to average
+	                                  input.
+	sys.pressure.os.mem.medium Percentage of processes stalled for
 	                           memory.
-	sys.pressure.os.mem.medium.duration 2000 Milliseconds of time to
-	                           average input.
-	sys.rename.max          10 Limit for retrying a failed file rename
-	sys.rename.wait       1000 Timeout in ms between file rename attempts
-	sys.threading.groups     0 Use multiple processor groups on Windows.
+	sys.pressure.os.mem.medium.duration Milliseconds of time to
+	                                    average input.
+	sys.rename.max             Limit for retrying a failed file rename
+	sys.rename.wait            Timeout in ms between file rename attempts
+	sys.threading.groups       Use multiple processor groups on Windows.
 	                           Only available on Windows Server 2008 R2+.
 	template.client            Client to use as template if -t omitted
 	template.label             Label to use as template if -t omitted
@@ -12874,52 +13207,57 @@ R"(	run.clientexts.allow     1 Allow client-side Extensions to run
 	                             1: Track all commands
 	                           2-5: Report tracking metrics exceeding
 	                                incrementally higher thresholds
-	trait.storagedepot.min   0 Allow trait value to be stored in depot
+	trait.storagedepot.min     Allow trait value to be stored in depot
 	                           0 : Trait values stored in db.traits table
 	                           >0: Trait value stored in depot when size
 	                               in bytes meets or exceeds this value
-	triggers.io              0 Method used for server/trigger communication
-	zerosyncPrefix        none Client prefix for zerosync (-k) namespace
-	zlib.compression.level  -1 Compression level: -1 to 9, -1 is the
+	triggers.io                Method used for server/trigger communication
+	zerosyncPrefix             Client prefix for zerosync (-k) namespace
+	zlib.compression.level     Compression level: -1 to 9, -1 is the
 	                           default (6), 0 is lowest, 9 is highest.
 )"
 R"(
-   Perforce client configurables
+   Helix Core client configurables
 
-	The Perforce client behavior can be controlled by setting certain
+	The Helix Core client behavior can be controlled by setting certain
 	environment variables (see 'p4 help environment'). Additionally, a
 	P4CONFIG file may contain settings for the following configurables
 	to affect certain client behaviors:
 
-	Name               Default Use
-	----               ------- ---
-	filesys.binaryscan     64K 'add' looks this far for binary chars
-	filesys.bufsize         4K Client file I/O buffer size
-	lbr.verify.out           1 Verify contents from the server to client
-	net.keepalive.disable    0 Disable sending TCP keepalive packets
-	net.keepalive.idle       0 Seconds before starting to send keepalives
-	net.keepalive.interval   0 Seconds between sending keepalives
-	net.keepalive.count      0 Unacknowledged keepalives before failure
-	net.maxclosewait      1000 Milliseconds to wait for a network close
-	net.maxwait              0 Seconds to wait for a network read or write
-	net.rfc3484              0 Allow OS to choose between IPv4 and IPv6
-	net.tcpsize           512K TCP sndbuf/rcvbuf sizes set at connect
-	ssl.client.ca.path   unset Path of CA PEM file to validate server cert
-	ssl.client.cert.validate 1 Mode of validation of server cert
+	Name                       Use
+	----                       ---
+	filesys.binaryscan         'add' looks this far for binary chars
+	filesys.bufsize            Client file I/O buffer size
+	lbr.verify.out             Verify contents from the server to client
+	net.delta.transfer.minsize Minimum file size to perform delta transfer
+	net.delta.transfer.threshold
+	                           Maximum percentage of file size to perform
+	                           delta transfer before reverting to streaming
+	                           the complete file
+	net.keepalive.disable      Disable sending TCP keepalive packets
+	net.keepalive.idle         Seconds before starting to send keepalives
+	net.keepalive.interval     Seconds between sending keepalives
+	net.keepalive.count        Unacknowledged keepalives before failure
+	net.maxclosewait           Milliseconds to wait for a network close
+	net.maxwait                Seconds to wait for a network read or write
+	net.rfc3484                Allow OS to choose between IPv4 and IPv6
+	net.tcpsize                TCP sndbuf/rcvbuf sizes set at connect
+	ssl.client.ca.path         Path of CA PEM file to validate server cert
+	ssl.client.cert.validate   Mode of validation of server cert
 	                           0: Only use P4TRUST
 	                           1: Cert chains accepted if valid CA found
 	                           2: Cert chains accepted if subject valid
-	ssl.client.tls.version.min 12 Min TLS version for client connections
+	ssl.client.tls.version.min Min TLS version for client connections
 	                           [10=1.0, 11=1.1, 12=1.2, 13=1.3]
-	ssl.client.tls.version.max 13 Max TLS version for client connections
+	ssl.client.tls.version.max Max TLS version for client connections
 	                           [10=1.0, 11=1.1, 12=1.2, 13=1.3]
-	ssl.client.trust.name    1 P4TRUST uses hostname for cert chains
+	ssl.client.trust.name      P4TRUST uses hostname for cert chains
 	                           0: Only the server IP is recorded
 	                           1: Server IP and hostname is recorded
 	                           2: Only server hostname is recorded
-	sys.rename.max          10 Limit for retrying a failed file rename
-	sys.rename.wait       1000 Timeout in ms between file rename attempts
-	zlib.compression.level  -1 Compression level: -1 to 9, -1 is the
+	sys.rename.max             Limit for retrying a failed file rename
+	sys.rename.wait            Timeout in ms between file rename attempts
+	zlib.compression.level     Compression level: -1 to 9, -1 is the
 	                           default (6), 0 is lowest, 9 is highest.
 	                           
 
@@ -13356,7 +13694,7 @@ R"(
 	         The scanner will also not run if the depot is being shared
 	         between servers.
 
-	'p4 storage' requires Perforce 'admin' access.
+	'p4 storage' requires Helix Core 'admin' access.
 )"
 };
 
@@ -13382,11 +13720,20 @@ R"(
 	time. See 'p4 help unload' for more information about which commands
 	cause the access time of a client or label to change.
 
-	In a distributed installation, the -p flag can be used to reload
-	an unloaded client or label from a remote Edge Server, thus migrating
-	that client or label from the remote Edge Server to this one. Each
-	Edge Server's service user must be properly authenticated to the
-	other Edge Server in order to perform this operation.
+	The '-p' flag can be used in multi-server environments to reload an
+	unloaded client workspace or label from the edge or commit server
+	specified by the address.
+	This migrates the workspace or label from that server to this one. To
+	perform this operation, the service user of each server must be
+	properly authenticated with the other server.
+
+	When used with the -c option, the client workspace will automatically
+	be unloaded on the remote server and then reloaded if it had not been
+	unloaded previously.
+
+	The address parameter can be specified either as the P4PORT or as the
+	server id of the server. If you specify a server id, the server spec
+	must contain the correct P4PORT value in its Address field.
 )"
 };
 
@@ -13452,7 +13799,7 @@ R"(
 
 ErrorId MsgHelp::HelpAdministration = { ErrorOf( ES_HELP, 140, E_INFO, EV_NONE, 0 ),
 R"(
-    Perforce commands for administering and operating the server:
+    Helix Core commands for administering and operating the server:
 
 	admin        Perform administrative operations on the server
 	archive      Archive obsolete revisions to archive depots
@@ -13461,23 +13808,26 @@ R"(
 	configure    Set, unset, or show server configuration variables
 	counter      Display, set, or delete a counter
 	counters     Display list of known counters
-	dbschema     Report information about metadata in the Perforce database
+	dbschema     Report information about metadata in the Helix Core
+	             database
 	dbstat       Display size or simple statistics for a database table
 	dbverify     Perform low-level verification of the database tables
 	depot        Create or edit a depot specification
 	depots       Display list of depots
 	diskspace    Display summary of disk space usage on server
+	extension    Manage the Helix Core Server extensibility mechanism
 	failback     Fail back to restore a previous master to its former role
 	failover     Fail over to a standby server
 	group        Change members of a user group
 	groups       List groups (of users)
+	heartbeat    Monitor responsiveness of a target server
 	info         Print out client/server information
 	jobspec      Edit the job template
 	journals     Display the checkpoint and journal history
 	license      Update or display the license file
 	ldap         Create or edit an LDAP configuration
 	ldaps        Display list of LDAP configurations
-	ldapsync     Synchronize members of Perforce groups with LDAP groups
+	ldapsync     Synchronize members of Helix Core groups with LDAP groups
 	lockstat     Report lock status of database tables
 	logappend    Append a line to server log file(s)
 	logparse     Display parsed server log records
@@ -13485,7 +13835,7 @@ R"(
 	logschema    Display schema information for server log
 	logstat      Report size of journal/errorLog/auditLog files
 	logtail      Display the last block(s) of the errorLog
-	monitor      Display current running perforce process information
+	monitor      Display current running Helix Core process information
 	obliterate   Remove files and their history from the depot
 	ping         Test network performance
 	property     Add, delete, or list property values
@@ -13601,6 +13951,9 @@ R"(
 	                   archives, the replica will retrieve it from the
 	                   target server.
 
+    Edge servers have the additional ability to write shelved files to their
+    own depot archive, except when lbr.replication=none.
+
     Automatic retrieval of new file content can be further controlled by the
     ArchiveDataFilter setting in the 'p4 server' spec.
 
@@ -13664,7 +14017,7 @@ R"(
 ErrorId MsgHelp::HelpForwardingreplica = { ErrorOf( ES_HELP, 166, E_INFO, EV_NONE, 0 ),
 R"(
 	A server of type 'forwarding-replica' (see 'p4 help server') is a
-	replica which supports the full Perforce command set.
+	replica which supports the full Helix Core command set.
 
 	A read-only command which is received by a forwarding-replica is
 	processed locally by the forwarding replica, without consuming any
@@ -13695,7 +14048,7 @@ R"(
     which they are created, and all work in progress for those workspaces
     resides only on their owning Edge Server.
 
-    An Edge Server supports the full Perforce command set; however, there
+    An Edge Server supports the full Helix Core command set; however, there
     are a few differences in behavior which may affect applications.
 
     A pending change can be viewed on an Edge Server other than the one
@@ -14698,7 +15051,7 @@ R"(
 
 ErrorId MsgHelp::HelpDvcs  = { ErrorOf( ES_HELP, 182, E_INFO, EV_NONE, 0 ),
 R"(
-    Using Perforce as a decentralized version control system:
+    Using Helix Core as a decentralized version control system:
 
 	init       Create a new personal server
 	clone      Clone a new personal server from a shared server
@@ -14712,15 +15065,15 @@ R"(
 	zip        Package a set of files for use by p4 unzip
 	unzip      Import files from a p4 zip package file
 
-    Perforce can be used as either a centralized version control system,
+    Helix Core can be used as either a centralized version control system,
     or as a decentralized version control system, or as a blend of both
     approaches, to accomplish the following:
 
     - You can create a personal server that you can use to manage
       versioned content all by yourself, without interacting with
-      any other Perforce server unless you want to.
+      any other Helix Core Server unless you want to.
 
-    - You can copy work between Perforce servers to implement
+    - You can copy work between Helix Core Servers to implement
       various collaboration workflows.
 
     - You can rewrite and revise history to discard unwanted
@@ -14815,7 +15168,7 @@ R"(
 	The -R option changes the way 'reconcile' is run when switching
 	between streams:
 
-	        -Ra     reconcile files not currently under Perforce control,
+	        -Ra     reconcile files not currently under Helix Core control,
 	                (these files are opened for add).
 	        -Re     reconcile files that have been modified,
 	                (these files are opened for edit).
@@ -14852,7 +15205,7 @@ R"(
 
 ErrorId MsgHelp::HelpInit  = { ErrorOf( ES_HELP, 184, E_INFO, EV_NONE, 0 ),
 R"(
-    init -- Initialize a new Perforce repository.
+    init -- Initialize a new Helix Core repository.
 
 	p4 init is a client side command.  For detailed help run
 	p4 init -h
@@ -14861,7 +15214,7 @@ R"(
 
 ErrorId MsgHelp::HelpClone = { ErrorOf( ES_HELP, 188, E_INFO, EV_NONE, 0 ),
 R"(
-    clone -- Clone a new Perforce repository from an existing one.
+    clone -- Clone a new Helix Core repository from an existing one.
 
 	p4 clone is a client side command.  For detailed help run
 	p4 clone -h
@@ -15008,6 +15361,8 @@ ErrorId MsgHelp::HelpAliases = { ErrorOf( ES_HELP, 192, E_INFO, EV_NONE, 0 ),
 R"(
     aliases -- Display the list of aliases from the P4ALIASES file.
 
+    p4 aliases
+
 	The aliases file can be used to define command line aliases.
 
 	When using the p4 command line tool, each command you enter is
@@ -15087,7 +15442,7 @@ R"(
 
     Versioned files may be managed using either of two data models:
 
-    - The Perforce data model tracks individual file history with a rich
+    - The Helix Core data model tracks individual file history with a rich
       set of information about each file's evolution, recording each
       changelist and the files that it modified.
 
@@ -15097,7 +15452,7 @@ R"(
 
     The data model in use for a particular set of files is specified on
     a depot by depot basis. To use the git data model, use a depot of
-    type graph; all other depot types use the Perforce data model.
+    type graph; all other depot types use the Helix Core data model.
 
     Information about Graph Depot commands is available by using:
 
@@ -15117,7 +15472,7 @@ R"(
 
 ErrorId MsgHelp::HelpGraphCommands = { ErrorOf( ES_HELP, 204, E_INFO, EV_NONE, 0 ),
 R"(
-    Perforce Graph Depot user commands:
+    Helix Core Graph Depot user commands:
 
 	add            Open a new file to add it to the repo
 	client         Create or edit a client specification and its view
@@ -15148,12 +15503,13 @@ R"(
 	opened         Display list of files opened for pending changelist
 	print          Write a repo file to standard output
 	reconcile      Open files for add, delete, and/or edit to reconcile
-	               client with workspace changes made outside of Perforce
+	               client with workspace changes made outside of Helix Core
 	resolve        Resolve updates to open workspace files
 	revert         Discard changes from an opened file
 	submit         Commit open files to the repo
 	switch         Switch to a different branch
 	sync           Synchronize the client with its view of the repo
+	undo           Revert the changes of one or more commits
 	unlock         Release a locked file, leaving it open
 
     See also 'p4 help-graph administration'
@@ -15162,7 +15518,7 @@ R"(
 
 ErrorId MsgHelp::HelpGraphAdministration = { ErrorOf( ES_HELP, 205, E_INFO, EV_NONE, 0 ),
 R"(
-    Perforce Graph Depot administrative commands:
+    Helix Core Graph Depot administrative commands:
 
       repo              Create, modify, or delete a repo specification
       repos             Display list of repo specifications
@@ -15171,7 +15527,8 @@ R"(
       show-permission   Show access permission granted to a repo/graph depot
       show-permissions  Show access permissions granted to a user
       check-permission  Check access permission granted to a repo
-      pubkey            Add or update a SSH public key to the Perforce Server
+      pubkey            Add or update a SSH public key to the Helix Core
+                        Server
       pubkeys           Display a list of users SSH public keys
 
     For help on these topics, issue 'p4 help <topic>'.
@@ -15312,14 +15669,14 @@ R"(
     p4 fstat [-F filter -T fields -m max] file ...
 
 	Fstat lists information about files, one line per field.  Fstat is
-	intended for use in Perforce API applications, where the output can
+	intended for use in Helix Core API applications, where the output can
 	be accessed as variables, but its output is also suitable for parsing
 	from the client command output in scripts.
 
 	The fields that fstat displays are:
 
 		depotFile            -- name in depot
-		clientFile           -- local path (host or Perforce syntax)
+		clientFile           -- local path (host or Helix Core syntax)
 		isMapped             -- set if file is mapped in the client
 		headCommit           -- the commit for the file at head rev
 		headBlob             -- the sha for the file at head rev
@@ -15478,8 +15835,8 @@ R"(
 	suppresses the actual diff for all files.
 
 	The -u flag uses the GNU diff -u format and displays only files
-	that differ. The file names and dates are in Perforce syntax, but
-	the output can be used by the patch program.
+	that differ. The file names and dates are in Helix Core syntax,
+	but the output can be used by the patch program.
 
 )"
 };
@@ -15853,7 +16210,7 @@ R"(
 ErrorId MsgHelp::HelpGraphReconcile = { ErrorOf( ES_HELP, 226, E_INFO, EV_NONE, 0 ),
 R"(
     reconcile -- Open files for add, delete, and/or edit to reconcile
-                 client with workspace changes made outside of Perforce
+                 client with workspace changes made outside of Helix Core
 
 
     p4 reconcile [-e -a -d -n] [file ...]
@@ -15875,11 +16232,11 @@ R"(
 	the preview commands only require read access.
 
 	The -e flag allows the user to reconcile files that have been
-	modified outside of Perforce. The reconcile command will open
+	modified outside of Helix Core. The reconcile command will open
 	these files for edit.
 
 	The -a flag allows the user to reconcile files that are in the
-	user's directory that are not under Perforce source control. These
+	user's directory that are not under Helix Core source control. These
 	files are opened for add.
 
 	The -d flag allows the user to reconcile files that have been
@@ -16502,7 +16859,7 @@ R"(
 
 	Retrieve the contents of a repo file to the client's standard output.
 	The file is not synced. If file is specified using client syntax,
-	Perforce uses the client view to determine the corresponding repo
+	Helix Core uses the client view to determine the corresponding repo
 	file.
 
 	The -o localFile flag redirects the output to the specified file on
@@ -16827,8 +17184,8 @@ R"(
 	    # Percentage-based memory thresholds, ranged 0-100, and is the
 	    # ratio of total system memory vs memory available to use without
 	    # swapping.
-	    sys.pressure.memory.high
-	    sys.pressure.memory.medium
+	    sys.pressure.mem.high
+	    sys.pressure.mem.medium
 
 	    # OS-supplied resource pressure thresholds, ranged 0-100, defined
 	    # as the percentage of processes on the system stalled for the
@@ -16840,8 +17197,8 @@ R"(
 	    # Window size for averaging samples of resource pressure.  The
 	    # larger the window, the less sensitive/responsive the server
 	    # will be to changes in pressure.  These values are milliseconds.
-	    sys.pressure.memory.high.duration
-	    sys.pressure.memory.medium.duration
+	    sys.pressure.mem.high.duration
+	    sys.pressure.mem.medium.duration
 	    sys.pressure.os.cpu.high.duration
 	    sys.pressure.os.mem.high.duration
 	    sys.pressure.os.mem.medium.duration
@@ -16867,20 +17224,19 @@ R"(
 	capacity of the OS/hardware, leading to system/application instability
 	and is suitable for any size of Helix Core Server installation.
 
-	The configurables 'sys.pressure.*.memory.medium' and
-	'sys.pressure.*.memory.high' mark the relevant thresholds for memory
-	monitoring.  The 'medium' level specifies where the server will try to
-	keep memory usage below.  The 'high' level is intended to be set below
-	where the operating system is about to thrash into swap or become
-	unstable (such as having processes subject to the OOM killer).  New
-	incoming commands received by the server while at the 'high' threshold
-	will be rejected outright.  Existing commands that request more memory
-	while the server is above the 'high' threshold may be canceled and
-	return an error to the client.  Note that the server does not
-	distinguish between memory used by other processes on the operating
-	system and its own when limiting its work - e.g. if a large external
-	process comes and consumes a lot of memory, the Helix Core Server can
-	throttle itself in response.
+	The 'sys.pressure.*.mem.medium' and 'sys.pressure.*.mem.high'
+	configurables mark the relevant thresholds for memory monitoring.
+	The 'medium' level specifies where the server will try to keep memory
+	usage below.  The 'high' level is intended to be set below where the
+	operating system is about to thrash into swap or become unstable (such
+	as having processes subject to the OOM killer). New incoming commands
+	received by the server while at the 'high' threshold will be rejected
+	outright.  Existing commands that request more memory while the server
+	is above the 'high' threshold may be canceled and return an error to
+	the client.  Note that the server does not distinguish between memory
+	used by other processes on the operating system and its own when
+	limiting its work - e.g. if a large external process comes and consumes
+	a lot of memory, the Helix Core Server can throttle itself in response.
 
 	The OS-supplied memory pressure option is available on all Windows
 	versions, and on Linux with cgroup v2.  For Linux, the
@@ -16987,11 +17343,11 @@ R"(
 
 ErrorId MsgHelp::HelpBrowse = { ErrorOf( ES_HELP, 107, E_INFO, EV_NONE, 0 ),
 R"(
-    browse -- Browse for a list of Zeroconf-registered Perforce servers.
+    browse -- Browse for a list of Zeroconf-registered Helix Core Servers.
 
     p4 browse
 
-	'p4 browse' lists all the Perforce servers that have registered
+	'p4 browse' lists all the Helix Core Servers that have registered
 	with Zeroconf.  Requires a 2008.2 or above client and local dynamic
 	libraries and Zeroconf (Avahi or Bonjour) services.
 )"
@@ -17005,7 +17361,7 @@ R"(
    server and proxy processes
 
     p4d -0
-	When the Perforce server is registered as a Zeroconf service, the
+	When the Helix Core Server is registered as a Zeroconf service, the
 	service-type is 'p4', which is visible in DNS Service browse mode
 	Discovery as '_p4._tcp'.  If mDNS is not available on the host,
 	service registration fails and logs an error in the server log,

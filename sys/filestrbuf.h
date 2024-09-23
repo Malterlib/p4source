@@ -31,8 +31,8 @@ class FileStrPtr : public FileSys
 	void	Close( Error *e ) {};
 	void	Write( const char *buf, int len, Error *e ) {};
 	int	Stat() { return FSF_EXISTS; }
-	int	StatModTime() { return 0; }
-	int	StatAccessTime() { return 0; }
+	P4INT64	StatModTime() { return 0; }
+	P4INT64	StatAccessTime() { return 0; }
 	void	Truncate( Error *e ) {};
 	void	Truncate( offL_t offset, Error *e ) {};
 	void	Unlink( Error *e = 0 ) {};

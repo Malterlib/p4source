@@ -71,8 +71,9 @@
 // client protocol 93: 2022.2
 // client protocol 94: 2023.1
 // client protocol 95: 2023.2
+// client protocol 96: 2024.1
 
-const char P4Tag::l_client[] = "95"; // Also update knownReleases in dmtypes.cc
+const char P4Tag::l_client[] = "96"; // Also update knownReleases in dmtypes.cc
 
 // see server/rhmain.cc
 
@@ -133,10 +134,11 @@ const char P4Tag::l_client[] = "95"; // Also update knownReleases in dmtypes.cc
 // server level 55: 2022.2
 // server level 56: 2023.1
 // server level 57: 2023.2
+// server level 58: 2024.1
 
 const char P4Tag::l_xfiles[] = "7"; // see clientservice.cc
 const char P4Tag::l_server[] = "3"; // 97.3 GUI is stuck here!
-const char P4Tag::l_server2[] = "57"; // generic server level
+const char P4Tag::l_server2[] = "58"; // generic server level
 
 // proxy level 4: 2006.1	p4 print w/o -o via proxy
 // proxy level 5: 2007.3	submit cacheing
@@ -148,9 +150,10 @@ const char P4Tag::l_server2[] = "57"; // generic server level
 // proxy level 11: 2022.1	p4 print with --offset and --size
 // proxy level 12: 2022.2	Hiding sensitive data in info output
 // proxy level 13: 2023.1	Pass noclobber values
+// proxy level 14: 2023.2	Proxy supports clientStats
 
 // see proxy/pxservice.cc, proxy/pxclient.cc
-const char P4Tag::l_proxy[] = "13"; // proxy level
+const char P4Tag::l_proxy[] = "14"; // proxy level
 
 // altSync level 1: 2023.1	Initial support for P4ALTSYNC
 

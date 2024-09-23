@@ -67,6 +67,7 @@
  *	FileSys::Chmod() - change permissions
  *	FileSys::Compare() - compare file against target
  *	FileSys::Copy - copy one file to another
+ *	FileSys::CopyRange - copy a range of a file (possibly optimized)
  *	FileSys::Digest() - return a fingerprint of the file contents
  *	FileSys::Chmod2() - copy a file to get ownership and set perms
  *	FileSys::Fsync() - sync file state to disk
@@ -210,6 +211,7 @@ class DiskSpaceInfo {
 	P4INT64		freeBytes;
 	int		pctUsed;
 	StrBuf		*fsType;
+	StrBuf		*mountpoint;
 } ;
 
 # ifdef HAS_CPP11
@@ -301,8 +303,8 @@ class FileSys {
 
 	void		Perms( FilePerm p ) { perms = p; }
 	void		ModTime( StrPtr *u ) { modTime = u->Atoi(); }
-	void		ModTime( time_t t ) { modTime = (int)t; }
-	time_t		GetModTime() { return modTime; }
+	void		ModTime( P4INT64 t) { modTime = t; }
+	P4INT64		GetModTime() { return modTime; }
 
 	// Set filesize hint for NT fragmentation avoidance
 
@@ -368,8 +370,8 @@ class FileSys {
 
 	virtual int	Stat() = 0;
 	virtual int     LinkCount();
-	virtual int	StatModTime() = 0;
-	virtual int	StatAccessTime() = 0;
+	virtual P4INT64	StatModTime() = 0;
+	virtual P4INT64	StatAccessTime() = 0;
 	virtual void	StatModTimeHP(DateTimeHighPrecision *modTime);
 	virtual void	Truncate( Error *e ) = 0;
 	virtual void	Truncate( offL_t offset, Error *e ) = 0;
@@ -380,6 +382,7 @@ class FileSys {
 	virtual void	ChmodTimeHP( const DateTimeHighPrecision & /* modTime */, Error * /* e */ ) {};
 	virtual void	SetAttribute( FileSysAttr, Error * ) { };
 	virtual void	SetExtendedAttribute( StrPtr * /* name */, StrPtr * /* val */, Error * ) {};
+	virtual void	SetExtendedAttributes( StrDict * /* vals */, Error * ) {};
 	virtual void	GetExtendedAttribute( StrPtr * /* name */, StrBuf * /* val */, Error * ) {};
 	virtual void	GetExtendedAttributes( StrBufDict * /* attrs */, Error * ) {};
 
@@ -454,6 +457,12 @@ class FileSys {
 	void		WriteFile( const StrPtr *buf, Error *e );
 	int		Compare( FileSys *other, Error *e );
 	void 		Copy( FileSys *targetFile, FilePerm perms, Error *e );
+	// Copy a range of content from one FileSys to another.
+	// This is intended to be used with uncompressed binary files
+	// (FST_BINARY) so it can use fast low-level OS operations on disk files.
+	void 		CopyRange( offL_t offIn, size_t len,
+			           FileSys *targetFile, offL_t offOut,
+			           Error *e );
 	virtual void	Digest( StrBuf *digest, Error *e );
 	void		Chmod2( FilePerm perms, Error *e );
 	void		Chmod2( const char *p, Error *e )
@@ -483,7 +492,7 @@ class FileSys {
 
 	FileOpenMode	mode;		// read or write
 	FilePerm	perms;		// leave read-only or read-write
-	int		modTime;	// stamp file mod date on close
+	P4INT64		modTime;	// stamp file mod date on close
 	offL_t		sizeHint;       // how big will the file get ?
 	StrBuf		path;
 	FileSysType 	type;

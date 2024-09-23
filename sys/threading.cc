@@ -103,6 +103,15 @@ Threader::Reap()
 	// no special termination for single threading
 }
 
+# ifndef OS_NT
+void
+Threader::Cleanup( pid_t pid )
+{
+	if( process )
+	    process->Cleanup( pid );
+}
+# endif
+
 int
 Threader::GetThreadCount()
 {
@@ -565,6 +574,10 @@ extern "C" void HandleSigChld( int flag );
 extern "C" void HandleSigTerm( int flag );
 extern "C" void HandleSigHup( int flag );
 
+#ifdef HAS_VALGRIND
+extern "C" void HandleSigValgrind( int flag );
+# endif
+
 static int *threadCountPtr = 0;
 
 void
@@ -596,11 +609,17 @@ HandleSigChld( int flag )
 	    {
 		Error e;
 	        if( WTERMSIG( status ) != SIGTERM )
-		    e.Set( E_FATAL,
+	        {
+	            e.Set( E_FATAL,
 	                   "Process %pid% exited on a signal %signal%!" );
+# ifndef OS_NT
+	            Threading::Cleanup( pid );
+# endif
+	        }
 	        else
 		    e.Set( E_INFO,
 	                   "Process %pid% terminated normally during server shutdown." );
+
 		e << pid << WTERMSIG(status);
 		AssertLog.ReportNoHook( &e );
 	    }
@@ -629,6 +648,43 @@ HandleSigHup( int flag )
 {
 	Threading::Restart();
 }
+
+#ifdef HAS_VALGRIND
+
+void HandleSigValgrind( int signo )
+{
+	/*
+	    When a process running under Valgrind is interrupted by a signal
+	    and there's no signal handler for it installed (via signal()),
+	    there's a chance that Valgrind will report in-flight memory that is
+	    as-of-yet not freed as a leak.  This is technically true since
+	    the delivery of an unhandled signal (like SIGHUP/SIGTERM) causes
+	    the process to immediately leave whatever it was doing and go
+	    exit, not giving destructors or other control flow a chance to
+	    do the right thing.
+
+	    This however is not a very useful report for us since we told the
+	    process to do this and we don't care what it was busy with.  One
+	    might be tempted to fix this with the Valgrind client API, asking it
+	    to stop reporting errors once we've received a signal, ala: 
+
+	        if( RUNNING_ON_VALGRIND )
+	        {
+	            VALGRIND_PRINTF( "This is HandleSigValgrind\n" );
+	            VALGRIND_DISABLE_ERROR_REPORTING;
+	        }
+
+	        signal( signo, SIG_DFL );
+	        kill( Pid().GetProcID(), signo );
+
+	    But it turns out that that's unnecessary, and simply having a
+	    signal handler at all, is enough.  So, in the end all we need
+	    to do is exit:
+	*/
+
+	exit( 0 );
+}
+# endif
 
 class MultiThreader : public Threader {
 
@@ -746,10 +802,21 @@ class MultiThreader : public Threader {
 		 * Revert SIGCHLD here, as on OSF it will spoil RunCmd().
 		 */
 
+#ifdef HAS_VALGRIND
+		// Install handlers to explicitly exit(), which helps Valgrind
+		// avoid printing unwanted reports about in-flight allocations
+		// that it sees as leaking due to the signal-interrupted program.
+		signal( SIGTERM, HandleSigValgrind );
+		signal( SIGHUP, HandleSigValgrind );
+# endif
 		process->Child();
 
+#ifdef HAS_VALGRIND
+		// Leave the Valgrind handlers in for the duration of the child.
+# else
 		signal( SIGTERM, SIG_DFL );
 		signal( SIGHUP, SIG_DFL );
+#endif
 		signal( SIGCHLD, SIG_DFL );
 
 		t->Run();

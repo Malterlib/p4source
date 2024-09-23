@@ -81,6 +81,7 @@ class NetSslTransport : public NetTcpTransport
 	~NetSslTransport();
 
 	void            ValidateCredentials( Error *e );
+	bool            CheckCtxErrors( const char *msg, Error *e );
 	void            ClientMismatch( Error *e );
 	void            DoHandshake( Error *e );
 	void            Close();

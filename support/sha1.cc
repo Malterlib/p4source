@@ -4,18 +4,32 @@
 
 # include <stdhdrs.h>
 # include <strbuf.h>
+# include <error.h>
 # include <strops.h>
 # include <sha1.h>
+# include <msgsupp.h>
+
+Sha1Digester::Sha1Digester()
+{
+	Init( 0 );
+}
+
+Sha1Digester::Sha1Digester( Error *e )
+{
+	Init( e );
+}
 
 # ifdef USE_SSL
 # include <openssl/opensslv.h>
 # if OPENSSL_VERSION_NUMBER < 0x30000000L
 # include <openssl/sha.h>
 
-Sha1Digester::Sha1Digester()
+void
+Sha1Digester::Init( Error *e )
 {
 	ctx = malloc( sizeof( SHA_CTX ) );
-	SHA1_Init( (SHA_CTX *)ctx );
+	if( !SHA1_Init( (SHA_CTX *)ctx ) && e )
+	    e->Set( MsgSupp::DigestInitFailed ) << "SHA1";
 }
 
 Sha1Digester::~Sha1Digester()
@@ -52,15 +66,16 @@ Sha1Digester::Final( StrBuf &output )
 
 # else
 # include <openssl/evp.h>
-# include <error.h>
-# include <errorlog.h>
 
-Sha1Digester::Sha1Digester()
+void
+Sha1Digester::Init( Error *e )
 {
 	const EVP_MD *md = EVP_get_digestbyname( "SHA1" );
 	if( !md )
 	{
 	    ctx = 0;
+	    if( e )
+	        e->Set( MsgSupp::DigestInitFailed ) << "SHA1";
 	    return;
 	}
 	ctx = (void*)EVP_MD_CTX_new();
@@ -118,8 +133,11 @@ Sha1Digester::Final( StrBuf &output )
 
 /* Stub implementation for non-SSL builds. Is a no-op if you try to run it. */
 
-Sha1Digester::Sha1Digester()
+void
+Sha1Digester::Init( Error *e )
 {
+	if( e )
+	    e->Set( MsgSupp::DigestInitFailed ) << "SHA1";
 }
 
 Sha1Digester::~Sha1Digester()

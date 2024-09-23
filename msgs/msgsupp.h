@@ -51,6 +51,7 @@ class MsgSupp {
 	static ErrorId Inflate;
 	static ErrorId InflateInit;
 	static ErrorId MagicHeader;
+	static ErrorId DigestInitFailed;
 
 	static ErrorId RegexError;
 	
@@ -460,6 +461,10 @@ class MsgSupp {
 	static ErrorId OptionTraitStorage;
 	static ErrorId OptionIteration;
 	static ErrorId OptionListAddresses;
+	static ErrorId OptionTrait;
+	static ErrorId OptionTraitFile;
+
+	static ErrorId AmbiguousArgs;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

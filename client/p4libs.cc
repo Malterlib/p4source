@@ -33,6 +33,10 @@ extern "C"
 }
 # endif
 
+# ifdef USE_CDC
+# include <blake3digester.h>
+# endif
+
 extern bool P4FileSysCreateOnIntr;
 
 # if (defined(USE_SSL) && OPENSSL_VERSION_NUMBER >= 0x10100000L ) || \
@@ -108,7 +112,16 @@ void P4Libraries::Initialize( const int libraries, Error* e )
 	    DateTime::Centralize( 0 );
 	    signaler.Init();
 	    NetUtils::InitNetwork();
+
 	    // Nothing for ErrorLog's global AssertLog instance.
+
+# ifdef USE_CDC
+	    // Initialize BLAKE3's internal CPU support.
+	    BLAKE3 b3;
+	    StrBuf b3data = "abc";
+	    b3.Update( b3data );
+	    b3.Final( b3data );
+# endif
 	}
 
 # ifdef USE_SSL

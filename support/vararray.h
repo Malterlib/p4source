@@ -101,6 +101,8 @@ class VVarArray : public VarArray {
 	void		Uniq();
 
     private:
+	friend class DbArray;
+
 	void		Sort( int l, int u );
 	int		Med3( int i, int j, int k ) const;
 

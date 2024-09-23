@@ -236,7 +236,7 @@ StrDict::Load( FILE * in )
 	// Ignore lines beginning with #
 	//
 
-	char val[4096], *e;
+	char val[4097], *e;
 	
 	while( fscanf( in, "%4096[^\n]\n", val ) == 1 )
 	    if( *val != '#' && ( e = strchr( val, '=' ) ) )

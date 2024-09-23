@@ -354,6 +354,10 @@ extern "C" int __stdcall gethostname( char * name, int namelen );
 
 # include <sys/stat.h>
 
+# ifdef OS_LINUX
+# include <sys/sysmacros.h>
+# endif
+
 # ifndef S_ISLNK /* NCR */
 # define S_ISLNK(m) (((m)&S_IFMT)==S_IFLNK)
 # endif
@@ -814,6 +818,11 @@ typedef unsigned int p4size_t;
 #  define HAS_BROKEN_CPP11
 # endif
 
+# if defined(_MSC_VER) && _MSC_VER < 1915
+// C2970
+#  define HAS_BROKEN_CPP11_TEMPLATE_INTERNAL_LINKAGE
+# endif
+
 # ifdef HAS_CPP11
 #   define HAS_PARALLEL_SYNC_THREADS
 # endif
@@ -942,14 +951,17 @@ typedef int FD_PTR;
 # undef P4_BIG_ENDIAN
 
 # if defined( OS_LINUX ) || defined(OS_MACOSX) || defined(OS_DARWIN)
-
+#  if defined( __BYTE_ORDER) && defined(__LITTLE_ENDIAN)
 #   if __BYTE_ORDER == __LITTLE_ENDIAN
 #     define P4_LITTLE_ENDIAN 1
 #   endif
 #   if __BYTE_ORDER == __BIG_ENDIAN
 #     define P4_BIG_ENDIAN 1
 #   endif
-
+#  else
+// If there are no defines to tell us, then guess.
+#     define P4_LITTLE_ENDIAN 1
+#  endif
 # endif
 
 # if defined( OS_NT )

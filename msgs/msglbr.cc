@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgLbr error code is: 147
+ * Current high value for a MsgLbr error code from main is: 150
  */
 # include <stdhdrs.h>
 # include <error.h>
@@ -63,6 +63,7 @@ ErrorId MsgLbr::TooBig                 = { ErrorOf( ES_LBR, 127, E_FATAL, EV_FAU
 ErrorId MsgLbr::RcsTooBig              = { ErrorOf( ES_LBR, 128, E_FAILED, EV_TOOBIG, 1 ), "Result RCS file '%file%' is too big; change type to compressed text." } ;
 ErrorId MsgLbr::LbrOpenFail            = { ErrorOf( ES_LBR, 131, E_FAILED, EV_FAULT, 2 ), "Error opening librarian file %lbrFile% revision %lbrRev%." } ;
 ErrorId MsgLbr::AlreadyOpen            = { ErrorOf( ES_LBR, 132, E_FATAL, EV_FAULT, 1 ), "Librarian for %path% is already open!" } ;
+ErrorId MsgLbr::NotOpen                = { ErrorOf( ES_LBR, 149, E_FATAL, EV_FAULT, 2 ), "Librarian %op% attempted on %path% which is not open!" } ;
 ErrorId MsgLbr::FmtLbrStat3            = { ErrorOf( ES_LBR, 133, E_INFO, EV_NONE, 15 ), "%file% %rev% %type% %state% %action% %digest% %size% %change% %revDate% %modTime% %process% %timestamp% %origin% %retries% %lastError%" } ;
 ErrorId MsgLbr::FmtLbrStat4            = { ErrorOf( ES_LBR, 137, E_INFO, EV_NONE, 16 ), "%file% %rev% %type% %state% %action% %digest% %size% %change% %revDate% %modTime% %process% %timestamp% %target% %origin% %retries% %lastError%" } ;
 ErrorId MsgLbr::FmtLbrStat5            = { ErrorOf( ES_LBR, 138, E_INFO, EV_NONE, 17 ), "%file% %rev% %type% %state% %action% %digest% %size% %change% %revDate% %modTime% %process% %timestamp% %target% %origin% %retries% %retryMissing% %lastError%" } ;
@@ -73,12 +74,15 @@ ErrorId MsgLbr::SameFile               = { ErrorOf( ES_LBR, 139, E_FATAL, EV_FAU
 ErrorId MsgLbr::LbrTypeInsane          = { ErrorOf( ES_LBR, 140, E_WARN, EV_FAULT, 2 ), "Librarian for %path% has unexpected lbrType of %lbrType%!" } ;
 ErrorId MsgLbr::LbrTrackInsane         = { ErrorOf( ES_LBR, 141, E_WARN, EV_FAULT, 2 ), "Librarian for %path% has unexpected lbrTrack of %lbrTrack%!" } ;
 
-ErrorId MsgLbr::S3UploadFailed         = { ErrorOf( ES_LBR, 142, E_FAILED, EV_FAULT, 0 ), "Upload to s3 failed!" } ;
-ErrorId MsgLbr::S3DownloadFailed       = { ErrorOf( ES_LBR, 143, E_FAILED, EV_FAULT, 0 ), "Download from s3 failed!" } ;
-ErrorId MsgLbr::S3CopyFailed           = { ErrorOf( ES_LBR, 144, E_FAILED, EV_FAULT, 0 ), "Copy to s3 failed!" } ;
-ErrorId MsgLbr::S3StatFailed           = { ErrorOf( ES_LBR, 145, E_FAILED, EV_FAULT, 0 ), "Stat from s3 failed!" } ;
-ErrorId MsgLbr::S3DeleteFailed         = { ErrorOf( ES_LBR, 146, E_FAILED, EV_FAULT, 0 ), "Delete from s3 failed!" } ;
+ErrorId MsgLbr::S3UploadFailed         = { ErrorOf( ES_LBR, 142, E_FAILED, EV_FAULT, 1 ), "Upload [of '%s3path%' ]to s3 failed!" } ;
+ErrorId MsgLbr::S3DownloadFailed       = { ErrorOf( ES_LBR, 143, E_FAILED, EV_FAULT, 1 ), "Download [of '%s3path%' ]from s3 failed!" } ;
+ErrorId MsgLbr::S3CopyFailed           = { ErrorOf( ES_LBR, 144, E_FAILED, EV_FAULT, 1 ), "Copy [of '%s3path%' ]to s3 failed!" } ;
+ErrorId MsgLbr::S3StatFailed           = { ErrorOf( ES_LBR, 145, E_FAILED, EV_FAULT, 1 ), "Stat [of '%s3path%' ]from s3 failed!" } ;
+ErrorId MsgLbr::S3DeleteFailed         = { ErrorOf( ES_LBR, 146, E_FAILED, EV_FAULT, 1 ), "Delete [of '%s3path%' ]from s3 failed!" } ;
 ErrorId MsgLbr::S3UnsupportedOpen      = { ErrorOf( ES_LBR, 147, E_FAILED, EV_FAULT, 0 ), "Open mode not supported for S3!" } ;
+ErrorId MsgLbr::S3LbrLockLoop          = { ErrorOf( ES_LBR, 150, E_FAILED, EV_FAULT, 0 ), "LbrS3 Lock loop detected in MaybeDownload()" } ;
+
+ErrorId MsgLbr::ChunkingCreateNewLbr   = { ErrorOf( ES_LBR, 148, E_FAILED, EV_FAULT, 1 ), "Error recreating new archive: %error%" } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 

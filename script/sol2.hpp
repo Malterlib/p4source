@@ -19900,7 +19900,8 @@ namespace sol {
 namespace sol {
 
 	template <typename reference_type>
-	class basic_table_iterator : public std::iterator<std::input_iterator_tag, std::pair<object, object>> {
+
+	class basic_table_iterator {
 	public:
 		typedef object key_type;
 		typedef object mapped_type;

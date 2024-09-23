@@ -123,20 +123,19 @@ P4Api p4api :
 
 # Just to make sure the API builds
 
-P4Main p4api : p4api.cc ;
-
-LinkLibraries p4api :
-	$(CLIENTLIB)
-	$(RPCLIB)
-	$(P4SCRIPT_CSTUB)
-	$(SUPPORTLIB)
+Depends p4api :
+	p4api-classic
+	p4api-noscript
+	p4api-modern
 	;
 
-LinkMallocLib p4api ;
+LINK_WITH_STDC++ += p4api-classic p4api-noscript p4api-modern ;
 
-P4Main p4dvcsapi : p4dvcsapi.cc ;
+P4Main p4api-classic : p4api.cc ;
+P4Main p4api-noscript : p4api.cc ;
+P4Main p4api-modern : p4api.cc ;
 
-LinkLibraries p4dvcsapi : 
+LinkLibraries p4api-classic :
 	$(CLIENTLIB)
 	$(RPCLIB)
 	$(P4SCRIPT_C)
@@ -146,4 +145,63 @@ LinkLibraries p4dvcsapi :
 	$(SUPPORTLIB)
 	;
 
-LinkMallocLib p4dvcsapi ;
+LinkLibraries p4api-noscript :
+	$(CLIENTLIB)
+	$(RPCLIB)
+	$(P4SCRIPT_CSTUB)
+	$(SUPPORTLIB)
+	;
+
+LinkLibraries p4api-modern :
+	$(P4APILIB)
+	;
+
+LinkMallocLib p4api-classic ;
+LinkMallocLib p4api-noscript ;
+LinkMallocLib p4api-modern ;
+
+LinkPthread p4api-classic ;
+LinkPthread p4api-noscript ;
+LinkPthread p4api-modern ;
+
+Depends p4dvcsapi :
+	p4dvcsapi-classic
+	p4dvcsapi-noscript
+	p4dvcsapi-modern
+	;
+
+LINK_WITH_STDC++ += p4dvcsapi-classic p4dvcsapi-noscript p4dvcsapi-modern ;
+
+P4Main p4dvcsapi-classic : p4dvcsapi.cc ;
+P4Main p4dvcsapi-noscript : p4dvcsapi.cc ;
+P4Main p4dvcsapi-modern : p4dvcsapi.cc ;
+
+
+LinkLibraries p4dvcsapi-classic :
+	$(CLIENTLIB)
+	$(RPCLIB)
+	$(P4SCRIPT_C)
+	$(P4SCRIPT)
+	$(P4SCRIPT_CURL)
+	$(P4SCRIPT_SQLITE)
+	$(SUPPORTLIB)
+	;
+
+LinkLibraries p4dvcsapi-noscript :
+	$(CLIENTLIB)
+	$(RPCLIB)
+	$(P4SCRIPT_CSTUB)
+	$(SUPPORTLIB)
+	;
+
+LinkLibraries p4dvcsapi-modern :
+	$(P4APILIB)
+	;
+
+LinkMallocLib p4dvcsapi-classic ;
+LinkMallocLib p4dvcsapi-noscript ;
+LinkMallocLib p4dvcsapi-modern ;
+
+LinkPthread p4dvcsapi-classic ;
+LinkPthread p4dvcsapi-noscript ;
+LinkPthread p4dvcsapi-modern ;

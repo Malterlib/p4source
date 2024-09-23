@@ -122,6 +122,7 @@ Client::Client( Enviro *e ) : Rpc( &service )
 
 	exts = new ClientScript( this );
 	extsEnabled = false;
+	extsDebugHooksEnabled = false;
 	ownExts = true;
 
 	gCharSetCvtCache = new CharSetCvtCache;
@@ -164,6 +165,11 @@ Client::Init( Error *e )
 	if( GetEVar( P4Tag::v_ipaddr ) && GetEVar( P4Tag::v_svrname ) )
 	    SetProtocolDynamic( P4Tag::v_ipaddr, 
 	                        GetEVar( P4Tag::v_ipaddr )->Text() );
+
+# ifdef USE_CDC
+	if( p4tunable.Get( P4TUNE_NET_DELTA_TRANSFER_MINSIZE ) )
+	    service.SetProtocol( P4Tag::v_chunking );
+# endif
 
 	if( !e->Test() )
 	    service.SetEndpoint( GetPort().Text(), e );
@@ -664,6 +670,18 @@ Client::SetExtension( ClientScript* cs, Error* e, const bool callerOwns )
 }
 
 void
+Client::EnableDebugHooks()
+{
+	extsDebugHooksEnabled = true;
+}
+
+bool
+Client::ExtensionsDebugHooksEnabled() const
+{
+	return extsDebugHooksEnabled;
+}
+
+void
 Client::VSetVar( const StrPtr &var, const StrPtr &val )
 {
 	if (translated != this)
@@ -840,4 +858,10 @@ Client::SetEVar( const StrPtr *k, const StrPtr *v )
 	    extraVars = new StrBufDict;
 
 	extraVars->ReplaceVar( *k, *v );
+}
+
+Error *
+Client::GetTransError()
+{
+	return &transErr;
 }

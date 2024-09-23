@@ -353,6 +353,4 @@ void ZLIB_INTERNAL crc_fold_copy(deflate_state* const s,
                                  long len);
 unsigned ZLIB_INTERNAL crc_fold_512to32(deflate_state* const s);
 
-void ZLIB_INTERNAL fill_window_sse(deflate_state* s);
-
 #endif /* DEFLATE_H */

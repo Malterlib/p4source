@@ -184,6 +184,18 @@ TransDict::SetTransErr( CharSetCvt *cvt, const StrPtr &var )
 	    VSetError( var, lastError );
 }
 
+void
+TransDict::SetArgv( int argc, char *const *argv )
+{
+	for( int i = 0; i < argc; i++ )
+	{
+	    VSetVar( StrRef::Null(), StrRef( argv[i] ) );
+	    if( lastError && lastError->Test() )
+	        break;
+	}
+}
+
+
 StrPtr *
 TransDictQues::VGetVar( const StrPtr &var )
 {

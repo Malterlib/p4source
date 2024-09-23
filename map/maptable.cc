@@ -41,6 +41,7 @@ MapTable::MapTable()
 	joinError = 0;
 	caseMode = -1;
 	join2StreamViews = 0;
+	maxLookBack = 8;
 
 	trees = new MapTree[2];
 }
@@ -193,7 +194,7 @@ MapTable::InsertNoDups(
 	// We only look back so far, because big maps cost a 
 	// lot to generate, as well.
 
-	int max = 8;
+	int max = maxLookBack;
 
 	for( MapItem *map = entry; map && max--; map = map->Next() )
 	{

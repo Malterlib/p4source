@@ -1,5 +1,6 @@
 SubDir P4 support ;
 
+SubDirHdrs $(P4) blake3 ;
 SubDirHdrs $(P4) i18n ;
 SubDirHdrs $(P4) jsmn ;
 SubDirHdrs $(P4) map ;
@@ -20,6 +21,11 @@ if $(OSPLAT) = X86_64 || $(OSPLAT) = X86 ||
    $(OSPLAT) = X64 || ( $(OSPLAT) = IA64 && $(OS) != HPUX ) {
 	ObjectDefines [ FGristSourceFiles md5.o ] : MD5NOBUF ;
 	OPTIM on [ FGristSourceFiles md5.o ] += $(OPTIM) -O3 ;
+}
+
+if $(OS) != NT
+{
+	OPTIM on [ FGristSourceFiles blake3digester.o ] += $(OPTIM) -O3 ;
 }
 
 P4APILibrary $(SUPPORTLIB) :
@@ -81,6 +87,14 @@ if $(USE_EXTENSIONS) = 1
 	P4APILibrary $(SUPPORTLIB) : tinyxml2.cpp ;
 }
 
+if $(USE_CDC) = 1
+{
+	P4APILibrary $(SUPPORTLIB) :
+		blake3digester.cc
+		chunkmap.cc
+		;
+}
+
 Ident ident.cc ;
 
 DefineVar ident.cc : OPENSSL_VERSION_TEXT ;
@@ -89,3 +103,4 @@ if $(OS) = AS400
 {
 	P4APILibrary $(SUPPORTLIB) : ebcdic.cc ;
 }
+

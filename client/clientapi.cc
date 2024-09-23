@@ -107,6 +107,7 @@ const StrPtr & ClientApi::GetConfig() { return client->GetConfig(); }
 const StrArray* ClientApi::GetConfigs() { return client->GetConfigs(); }
 const StrPtr & ClientApi::GetBuild() { return client->GetBuild(); }
 const StrPtr & ClientApi::GetVersion() { return client->GetVersion(); }
+Error * ClientApi::GetTransError() { return client->GetTransError(); }
 
 Enviro* ClientApi::GetEnviro() { return client->GetEnviro(); }
 Ignore *ClientApi::GetIgnore() { return client->GetIgnore(); }
@@ -122,3 +123,4 @@ void 	ClientApi::EnableExtensions( Error* e ) { client->EnableExtensions( e ); }
 void 	ClientApi::DisableExtensions() { client->DisableExtensions(); }
 bool 	ClientApi::ExtensionsEnabled() { return client->ExtensionsEnabled(); }
 void	ClientApi::SetExtension( ClientScript* cs, Error* e, const bool callerOwns ) { client->SetExtension( cs, e, callerOwns ); }
+void	ClientApi::EnableDebugHooks() { client->EnableDebugHooks(); }

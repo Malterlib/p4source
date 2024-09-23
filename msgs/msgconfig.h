@@ -54,6 +54,7 @@ class MsgConfig {
 	static ErrorId Topology;
 	static ErrorId Resource;
 	static ErrorId S3;
+	static ErrorId Suptool;
 
 	// Numeric tunables
 	static ErrorId ClusterJournalShared;
@@ -66,12 +67,15 @@ class MsgConfig {
 	static ErrorId DbInternalRepair;
 	static ErrorId DbIsalive;
 	static ErrorId DbJnlackShared;
+	static ErrorId DbJournalrotateWarnthresh;
 	static ErrorId DbMonitorAddthresh;
 	static ErrorId DbMonitorInterval;
 	static ErrorId DbMonitorMinruntime;
 	static ErrorId DbMonitorTermallow;
 	static ErrorId DbMonitorShared;
 	static ErrorId DbPageMigrate;
+	static ErrorId DbPartitionDrop;
+	static ErrorId DbPartitionVerify;
 	static ErrorId DbPeeking;
 	static ErrorId DbPeekingUsemaxlock;
 	static ErrorId DbReorgDisable;
@@ -105,12 +109,14 @@ class MsgConfig {
 	static ErrorId DmChangeviewOpenable;
 	static ErrorId DmClientInitroot;
 	static ErrorId DmClientLimitprotects;
+	static ErrorId DmConfigureCommentMandatory;
 	static ErrorId DmCopyMovewarn;
 	static ErrorId DmDomainAccessupdate;
 	static ErrorId DmDomainAccessforce;
 	static ErrorId DmFetchPreservechangenumbers;
 	static ErrorId DmFlushforce;
 	static ErrorId DmFlushtry;
+	static ErrorId DmFstatOutputthreshold;
 	static ErrorId DmFstatMaxcontent;
 	static ErrorId DmGraphEnabled;
 	static ErrorId DmGrepMaxlinelength;
@@ -120,6 +126,7 @@ class MsgConfig {
 	static ErrorId DmIntegEngine;
 	static ErrorId DmIntegMaxact;
 	static ErrorId DmIntegMaxbranch;
+	static ErrorId DmIntegStreamAllowDepotFilespec;
 	static ErrorId DmIntegStreamspec;
 	static ErrorId DmIntegTweaks;
 	static ErrorId DmIntegUndo;
@@ -147,6 +154,7 @@ class MsgConfig {
 	static ErrorId DmQuickResolve;
 	static ErrorId DmQuickRev;
 	static ErrorId DmQuickWorking;
+	static ErrorId DmRenameuserScanthresh;
 	static ErrorId DmRepoNoautocreate;
 	static ErrorId DmRepoUnpack;
 	static ErrorId DmResolveAttrib;
@@ -171,6 +179,7 @@ class MsgConfig {
 	static ErrorId DmUserAccessupdate;
 	static ErrorId DmUserAccessforce;
 	static ErrorId DmUserAllowselfupdate;
+	static ErrorId DmUserHideinvalid;
 	static ErrorId DmUserInsecurelogin;
 	static ErrorId DmUserLoginattempts;
 	static ErrorId DmUserNoautocreate;
@@ -218,11 +227,14 @@ class MsgConfig {
 	static ErrorId LogOriginhost;
 	static ErrorId MapJoinmax1;
 	static ErrorId MapJoinmax2;
+	static ErrorId MapLimitMaxlookback;
 	static ErrorId MapMaxwild;
 	static ErrorId MapOverlayLegacy;
 	static ErrorId MergeDlEndeol;
 	static ErrorId NetAutotune;
 	static ErrorId NetBufsize;
+	static ErrorId NetDeltaTransferMinsize;
+	static ErrorId NetDeltaTransferThreshold;
 	static ErrorId NetKeepaliveDisable;
 	static ErrorId NetKeepaliveIdle;
 	static ErrorId NetKeepaliveInterval;
@@ -261,6 +273,7 @@ class MsgConfig {
 	static ErrorId ProxyMonitorInterval;
 	static ErrorId ProxyMonitorLevel;
 	static ErrorId ProxyClearcachethresh;
+	static ErrorId ProxySuppresswarnings;
 	static ErrorId RcsMaxinsert;
 	static ErrorId RcsNofsync;
 	static ErrorId RpcDelay;
@@ -349,27 +362,34 @@ class MsgConfig {
 	static ErrorId SysMemoryMiShowstats;
 	static ErrorId SysMemoryMiVerbose;
 	static ErrorId SysMemoryMiEagercommit;
-	static ErrorId SysMemoryMiEagerregioncommit;
-	static ErrorId SysMemoryMiResetdecommits;
-	static ErrorId SysMemoryMiLargeospages;
+	// Reuse this entry because the message content has not changed.
+	static ErrorId SysMemoryMiArenaeagercommit;
+	// Reuse this entry because the message content has not changed.
+	static ErrorId SysMemoryMiPurgedecommits;
+	static ErrorId SysMemoryMiAllowlargeospages;
 	static ErrorId SysMemoryMiReservehugeospages;
 	static ErrorId SysMemoryMiReservehugeospagesat;
 	static ErrorId SysMemoryMiReserveosmemory;
 	static ErrorId SysMemoryMiSegmentcache;
-	static ErrorId SysMemoryMiPagereset;
-	static ErrorId SysMemoryMiAbandonedpagereset;
-	static ErrorId SysMemoryMiSegmentreset;
+	static ErrorId SysMemoryMiDeprecatedpagereset;
+	static ErrorId SysMemoryMiAbandonedpagepurge;
+	static ErrorId SysMemoryMiDeprecatedsegmentreset;
 	static ErrorId SysMemoryMiEagercommitdelay;
-	static ErrorId SysMemoryMiDecommitDelay;
+	static ErrorId SysMemoryMiPurgeDelay;
 	static ErrorId SysMemoryMiUsenumanodes;
 	static ErrorId SysMemoryMiLimitosalloc;
 	static ErrorId SysMemoryMiOstag;
 	static ErrorId SysMemoryMiMaxerrors;
 	static ErrorId SysMemoryMiMaxwarnings;
 	static ErrorId SysMemoryMiMaxsegmentreclaim;
+	static ErrorId SysMemoryMiDestroyonexit;
+	static ErrorId SysMemoryMiArenareserve;
+	static ErrorId SysMemoryMiArenapurgemult;
+	// Deprecated
 	static ErrorId SysMemoryMiAllowdecommit;
+	// Deprecated
 	static ErrorId SysMemoryMiSegmentdecommitdelay;
-	static ErrorId SysMemoryMiDecommitextenddelay;
+	static ErrorId SysMemoryMiPurgeextenddelay;
 	static ErrorId SysMemoryStacksize;
 	static ErrorId SysPressureMaxPauseTime;
 	static ErrorId SysPressureMaxPaused;
@@ -417,6 +437,7 @@ class MsgConfig {
 
 	// String tunables
 	static ErrorId SSLClientCAPath;
+	static ErrorId SSLKeylogFile;
 
 	// Configurables
 	static ErrorId P4ROOT;

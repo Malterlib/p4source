@@ -186,6 +186,7 @@ void SystemInfo::Collect( StrBufDict& output, Error* e )
 #include <winuser.h>
 
 static int AtomicRenameSupported = -1;
+static int DevSymlinkSupported = -1;
 
 // Using the Powershell is very slow.  Call the Windows APIs
 // directly to qualify the Windows Version.
@@ -309,6 +310,30 @@ SystemInfo::CheckForAtomicRename( )
 	}
 
 	return AtomicRenameSupported;
+}
+
+
+// Return values,
+//  0 - dev symlink not supported
+//  1 - dev symlink supported
+//
+int
+SystemInfo::CheckForDevSymlink()
+{
+	DWORD major=0;
+	DWORD minor=0;
+	DWORD build=0;
+	WORD ptype=0;
+
+	if( DevSymlinkSupported >= 0)
+	    return DevSymlinkSupported;
+
+	// Enable for Win10+
+	DevSymlinkSupported = 
+	    WindowsVersionInfo( major, minor, build, ptype ) &&
+	    major >= 10;
+
+	return DevSymlinkSupported;
 }
 
 # endif // OS_NT

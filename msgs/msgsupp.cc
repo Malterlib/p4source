@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSupp error code is: 441
+ * Current high value for a MsgSupp error code is: 449
  */
 # include <stdhdrs.h>
 # include <error.h>
@@ -69,6 +69,7 @@ ErrorId MsgSupp::DeflateInit           = { ErrorOf( ES_SUPP, 18, E_FATAL, EV_FAU
 ErrorId MsgSupp::Inflate               = { ErrorOf( ES_SUPP, 19, E_FATAL, EV_FAULT, 0 ), "Inflate failed!" } ; //NOTRANS
 ErrorId MsgSupp::InflateInit           = { ErrorOf( ES_SUPP, 20, E_FATAL, EV_FAULT, 0 ), "InflateInit failed!" } ; //NOTRANS
 ErrorId MsgSupp::MagicHeader           = { ErrorOf( ES_SUPP, 21, E_FATAL, EV_FAULT, 0 ), "Gzip magic header wrong!" } ; //NOTRANS
+ErrorId MsgSupp::DigestInitFailed      = { ErrorOf( ES_SUPP, 442, E_FATAL, EV_FAULT, 1 ), "Failed to initialise %algo% digester!" } ;
 
 ErrorId MsgSupp::RegexError            = { ErrorOf( ES_SUPP, 30, E_FAILED, EV_USAGE, 1 ), "Regular expression error: %text%" } ;
 
@@ -478,6 +479,10 @@ ErrorId MsgSupp::OptionLastSeenDate       = { ErrorOf( ES_SUPP, 435, E_INFO, EV_
 ErrorId MsgSupp::OptionTraitStorage       = { ErrorOf( ES_SUPP, 436, E_INFO, EV_NONE, 0 ), "%'--storage (-T)'%: store attribute value in metadata (0) or in depot (1)." } ;
 ErrorId MsgSupp::OptionIteration          = { ErrorOf( ES_SUPP, 440, E_INFO, EV_NONE, 0 ), "%'--iteration'%: Config history iteration." } ;
 ErrorId MsgSupp::OptionListAddresses      = { ErrorOf( ES_SUPP, 441, E_INFO, EV_NONE, 0 ), "%'--list-addresses (-L)'%: list valid server IP and MAC addresses" } ;
+ErrorId MsgSupp::OptionTrait              = { ErrorOf( ES_SUPP, 443, E_INFO, EV_NONE, 0 ), "%'--attribute (-T)'%: prints the value of the attribute" } ;
+ErrorId MsgSupp::OptionTraitFile          = { ErrorOf( ES_SUPP, 444, E_INFO, EV_NONE, 0 ), "%'--file (-I)'%: specifies that the data should be read from the file" } ;
+
+ErrorId MsgSupp::AmbiguousArgs            = { ErrorOf( ES_SUPP, 449, E_FATAL, EV_USAGE, 0 ), "Argument parsing ambiguity." } ;
 
 // ErrorId graveyard'%: retired/deprecated ErrorIds.
 

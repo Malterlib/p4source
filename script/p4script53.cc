@@ -4,6 +4,7 @@
  * This file is part of Perforce - the FAST SCM System.
  */
 
+# define NEED_FILE
 # include <stdhdrs.h>
 
 # ifdef HAS_EXTENSIONS
@@ -112,6 +113,12 @@ int p4script::impl53::os_execute( void* Lv )
 
 	    std::this_thread::sleep_for( std::chrono::milliseconds( 50 ) );
 	}
+
+	if( fds[ 0 ] > 0 )
+	    close( fds[ 0 ] );
+
+	if( fds[ 1 ] > 0 )
+	    close( fds[ 1 ] );
 
 	if( e.Test() )
 	{

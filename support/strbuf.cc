@@ -548,6 +548,8 @@ void
 StrBuf::Append( const StrPtr *t )
 {
 	char *s = Alloc( t->Length() + 1 );
+	if( s == StrBuf::nullStrBuf )
+	    return;
 	memmove( s, t->Text(), t->Length() );
 	s[ t->Length() ] = '\0'; 
 	--length;
@@ -581,6 +583,8 @@ void
 StrBuf::UAppend( const StrPtr *t )
 {
 	char *s = Alloc( t->Length() + 1 );
+	if( s == StrBuf::nullStrBuf )
+	    return;
 	memcpy( s, t->Text(), t->Length() );
 	s[ t->Length() ] = '\0'; 
 	--length;

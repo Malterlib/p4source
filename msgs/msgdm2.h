@@ -12,12 +12,18 @@ class MsgDm2 {
 	static ErrorId ConfigHistData;
 	static ErrorId LbrScanBadState;
 	static ErrorId LbrScanCtlNotFound;
+
 	static ErrorId IntegIntoReadOnlyOverlay;
+	static ErrorId IntegRequiresStream;
+	static ErrorId IntegStreamSyntaxHint;
+
 	static ErrorId OpenReadOnlyOverlay;
 	static ErrorId OpenWarnOverlay;
 	static ErrorId OpenUndoConflict;
+
 	static ErrorId UnshelveBadOverlay;
 	static ErrorId UnshelveStreamResolve;
+
 	static ErrorId RequiresAutoIdCode;
 	static ErrorId SpecMissingBuiltin;
 	static ErrorId StreamSpecIntegOkay;
@@ -100,6 +106,7 @@ class MsgDm2 {
 	static ErrorId ProtectsMismatch;
 	static ErrorId DirsDataStreamViews;
 	static ErrorId FilesDataStreamViews;
+	static ErrorId FilesDataTrait;
 	static ErrorId MaxMem;
 	static ErrorId GroupsDataVerbose222;
 	static ErrorId TopologyDelRecMarker;
@@ -114,33 +121,51 @@ class MsgDm2 {
 	static ErrorId TopologyMoveSame;
 	static ErrorId TopologyFailedToMark;
 	static ErrorId TopologyMarkedMoveTo;
-	static ErrorId SpecStreamSparsePinChangeComment;
-	static ErrorId NoStreamTypeChangeToSparse;
-	static ErrorId NoStreamTypeChangeToNonSparse;
-	static ErrorId NoReparentSparse;
-	static ErrorId NoSparseChildren;
-	static ErrorId ComponentStreamInvalidSparse;
 	static ErrorId NoAltSyncChangeWithHave;
 	static ErrorId MaxMemOS;
 	static ErrorId BadLazyPipeCount;
-	static ErrorId SparseStreamNotSupported;
-	static ErrorId StreamViewGenAtChangeSkip; 
-	static ErrorId SparseStreamShareChangeNoUpdate;
-	static ErrorId SparseStreamNoPin;
 	static ErrorId StreamFieldValueError;
+	static ErrorId StreamViewGenAtChangeSkip; 
 	static ErrorId DepotTraitDup;
 	static ErrorId NoTraitDepot;
-	static ErrorId SparseStreamOpNotAllowed;
+
+	static ErrorId ComponentStreamInvalidSparse;
+	static ErrorId NoReparentSparse;
+	static ErrorId NoSparseChildren;
+	static ErrorId NoStreamTypeChangeToNonSparse;
+	static ErrorId NoStreamTypeChangeToSparse;
+	static ErrorId NoVirtualParentSparseChild;
+	static ErrorId SparseStreamCmdChangeSpecifierOnly;
 	static ErrorId SparseStreamCmdMustIncludeAll;
 	static ErrorId SparseStreamCmdMustIncludeAll2;
-	static ErrorId SparseStreamCmdChangeSpecifierOnly;
+	static ErrorId SparseStreamCmdWrongStream;
+	static ErrorId SparseStreamCmdNoRevRange;
 	static ErrorId SparseStreamCopyOutOfDate;
 	static ErrorId SparseStreamCopyLatestOnly;
-	static ErrorId SparseStreamCmdNoRevRange;
+	static ErrorId SparseStreamNoPin;
+	static ErrorId SparseStreamNotSupported;
+	static ErrorId SparseStreamOpNotAllowed;
+	static ErrorId SparseStreamPinChangeDown;
+	static ErrorId SparseStreamPinChangeUp;
+	static ErrorId SparseStreamPinUpdate;
+	static ErrorId VirtChildSparseParentOpNotAllowed;
+	static ErrorId UnsubmitNoStreamSpec;
+	static ErrorId NoTopologyActiveRec;
+
 	static ErrorId OnlyOneClientReload;
 	static ErrorId UnknownParam;
 	static ErrorId BadS3Mode;
 	static ErrorId DepotBadAddress;
 	static ErrorId DepotBadRemoteAddress;
 	static ErrorId NoConfigHistory;
+	static ErrorId SyncToRemove;
+	static ErrorId DomainNoViewCmtClientBadSave;
+	static ErrorId ConfigNotFound;
+
+	static ErrorId ChunkMapFormat;
+	static ErrorId SparseStreamNoCreateMaxCommit0;
+	static ErrorId SparseStreamNoUnshelvePinLower;
+	static ErrorId UpgradeToCreatePJnlClient;
+	static ErrorId DbBodTextCxEntryMissing;
+	static ErrorId StreamSpecIntegrationNoFrmChange;
 } ;

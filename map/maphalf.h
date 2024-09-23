@@ -127,9 +127,9 @@ class MapHalf : public StrBuf {
 	int		GetFixedLen() { return fixedLen; }
 	void		Expand( const StrPtr &from, StrBuf &to, MapParams &p );
 	int		HasSubDirs( int matchLen );
-	int		HasEmbWild( StrPtr &h, int ignore );
+	static int	HasEmbWild( const StrPtr &h, int ignore );
 	int		HasEndSlashEllipses();
-	int		HasPosWild( StrPtr &h );
+	static int	HasPosWild( const StrPtr &h );
 	int		IsWild() { return isWild; }
 	int		TooWild( Error *e );
 	int		WildcardCount() { return nWilds; }

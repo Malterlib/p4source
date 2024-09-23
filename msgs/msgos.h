@@ -43,6 +43,7 @@ class MsgOs {
 	static ErrorId ZlibInflateInitSeek;
 
 	static ErrorId NoAtomicRename;
+	static ErrorId AtomicRenameFailed;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

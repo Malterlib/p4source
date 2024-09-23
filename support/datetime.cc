@@ -25,13 +25,18 @@
  * DateTime - date as stored in license file (string of time(0))
  */
 
-static time_t
-DateTimeParse( const char *&c, const char delim, Error *e )
+static P4INT64
+DateTimeParse( const char *&c, const char delim, const char delim2,
+	Error *e )
 {
-	time_t r = 0;
+	P4INT64 r = 0;
+	bool first = true;
 
-	for( ; *c && isAdigit( c ) && *c != delim; ++c )
+	for( ; *c && isAdigit( c ) &&
+	       ( first || *c != delim || *c != delim2 ); ++c )
 	{
+	    first = false;
+
 	    if( r > ( LLONG_MAX - *c + '0' ) / 10 )
 	    {
 	        e->Set( MsgSupp::InvalidDate ) << c;
@@ -43,7 +48,8 @@ DateTimeParse( const char *&c, const char delim, Error *e )
 
 	// skip delim
 
-	if( delim && *c == delim )
+	if( !first &&
+	    ( ( delim && *c == delim ) || ( delim2 && *c == delim2 ) ) )
 	    ++c;
 
 	return r;
@@ -72,7 +78,7 @@ DateTime::Set( const char *date, Error *e )
 
 	// Just a time in seconds?
 
-	tval = DateTimeParse( date, '/', e );
+	tval = DateTimeParse( date, '/', '-', e );
 
 	if( !*date || e->Test() )
 	    return;
@@ -86,11 +92,11 @@ DateTime::Set( const char *date, Error *e )
 	// This expects yy/mm/dd.
 
 	tm.tm_year = tval;
-	tm.tm_mon = DateTimeParse( date, '/', e );
+	tm.tm_mon = DateTimeParse( date, '/', '-', e );
 	if( e->Test() )
 	    return;
 
-	tm.tm_mday = DateTimeParse( date, ' ', e );
+	tm.tm_mday = DateTimeParse( date, ' ', 0, e );
 	if( e->Test() )
 	    return;
 
@@ -122,15 +128,15 @@ DateTime::Set( const char *date, Error *e )
 
 	if( !( wholeDay = !*date ) )
 	{
-	    tm.tm_hour = DateTimeParse( date, ':', e );
+	    tm.tm_hour = DateTimeParse( date, ':', 0, e );
 	    if( e->Test() )
 	        return;
 
-	    tm.tm_min = DateTimeParse( date, ':', e );
+	    tm.tm_min = DateTimeParse( date, ':', 0, e );
 	    if( e->Test() )
 	        return;
 
-	    tm.tm_sec = DateTimeParse( date, 0, e );
+	    tm.tm_sec = DateTimeParse( date, 0, 0, e );
 	    if( e->Test() )
 	        return;
 
@@ -143,7 +149,7 @@ DateTime::Set( const char *date, Error *e )
 	// And turn it into an int.
 	// Return 0 if date no good (if any left, that is).
 
-	time_t offset = ParseOffset( date, odate, e );
+	P4INT64 offset = ParseOffset( date, odate, e );
 	if( e->Test() )
 	    return;
 
@@ -152,6 +158,8 @@ DateTime::Set( const char *date, Error *e )
 
 	if( offset )
 	    tval -= ( offset - TzOffset( 0 ) );
+	if( tval < 0 )
+	    e->Set( MsgSupp::InvalidDate ) << odate;
 }
 
 
@@ -160,11 +168,11 @@ DateTime::Set( const char *date, Error *e )
 // number of seconds, and returns that. If 's' points to a NUL terminator,
 // this routine returns 0. If 's' points to anything else, this routine
 // sets an error into 'e' and returns 0.
-time_t	
+P4INT64	
 DateTime::ParseOffset( const char *s, const char *odate, Error *e )
 {
 	int sign = 1;
-	time_t seconds = 0, hours = 0, minutes = 0;
+	P4INT64 seconds = 0, hours = 0, minutes = 0;
 
 	if( !*s )
 	    return 0;
@@ -194,7 +202,7 @@ DateTime::ParseOffset( const char *s, const char *odate, Error *e )
 	return 0;
 }
 
-time_t
+P4INT64
 DateTime::Now()
 {
 	return time(0);
@@ -203,18 +211,19 @@ DateTime::Now()
 void
 DateTime::FmtElapsed( char *buf,  const DateTime &t2 ) 
 {
-	int elapsed = t2.tval - tval;
-	int hours = elapsed / 3600;
-	int minutes = ( elapsed - (hours*3600) ) / 60;
-	int seconds = elapsed - (hours*3600) - (minutes*60);
+	P4INT64 elapsed = t2.tval - tval;
+	P4INT64 hours = elapsed / 3600;
+	P4INT64 minutes = ( elapsed - (hours*3600) ) / 60;
+	P4INT64 seconds = elapsed - (hours*3600) - (minutes*60);
 
-	sprintf( buf, "%02d:%02d:%02d", hours, minutes, seconds );
+	sprintf( buf, "%02lld:%02lld:%02lld", hours, minutes, seconds );
 }
 
 void
 DateTime::Fmt( char *buf ) const
 {
-	struct tm *tm = localtime( &tval );
+	time_t tempt = tval;
+	struct tm *tm = localtime( &tempt );
 
 	// Don't die for a bogus date.
 
@@ -237,7 +246,8 @@ DateTime::Fmt( char *buf ) const
 void
 DateTime::FmtUTC( char *buf ) const
 {
-	struct tm *tm = gmtime( &tval );
+	time_t tempt = tval;
+	struct tm *tm = gmtime( &tempt );
 
 	// Don't die for a bogus date.
 
@@ -260,7 +270,8 @@ DateTime::FmtUTC( char *buf ) const
 void
 DateTime::FmtDay( char *buf ) const
 {
-	struct tm *tm = localtime( &tval );
+	time_t tempt = tval;
+	struct tm *tm = localtime( &tempt );
 
 	// Don't die for a bogus date.
 
@@ -280,7 +291,8 @@ DateTime::FmtDay( char *buf ) const
 void
 DateTime::FmtDayUTC( char *buf ) const
 {
-	struct tm *tm = gmtime( &tval );
+	time_t tempt = tval;
+	struct tm *tm = gmtime( &tempt );
 
 	// Don't die for a bogus date.
 
@@ -310,15 +322,16 @@ char *tzname[2] = { "PDT", "PST" };
 # define tzname _tzname
 # endif
 
-time_t
+P4INT64
 DateTime::TzOffset( int *retdst ) const
 {
-	int offset = 0;
+	P4INT64 offset = 0;
 
 	// localtime for dst active or not
 	// global time for computing offset in minutes
 
-	struct tm *tm = localtime( &tval );
+	time_t tempt = tval;
+	struct tm *tm = localtime( &tempt );
 
 	// Don't die for a bogus date.
 
@@ -327,7 +340,7 @@ DateTime::TzOffset( int *retdst ) const
 
 	int isdst = tm->tm_isdst;
 
-	tm = gmtime( &tval );
+	tm = gmtime( &tempt );
 
 	// Don't die for a bogus date.
 
@@ -341,7 +354,7 @@ DateTime::TzOffset( int *retdst ) const
 
 	// take gmt time, pretend it's local, and compute the offset
 
-	offset = ( tval - mktime( tm ) );
+	offset = ( tval - ( P4INT64 )mktime( tm ) );
 
 	return offset;
 }
@@ -399,7 +412,8 @@ DateTime::FmtTz( char *buf ) const
 void
 DateTime::FmtUnifiedDiff( char *buf ) const
 {
-	struct tm *tm = gmtime( &tval );
+	time_t tempt = tval;
+	struct tm *tm = gmtime( &tempt );
 
 	// Don't die for a bogus date.
 
@@ -434,7 +448,8 @@ DateTime::FmtUnifiedDiff( char *buf ) const
 void
 DateTime::FmtISO8601( char *buf ) const
 {
-	struct tm *tm = gmtime( &tval );
+	time_t tempt = tval;
+	struct tm *tm = gmtime( &tempt );
 
 	// Don't die for a bogus date.
 
@@ -458,7 +473,8 @@ DateTime::FmtISO8601( char *buf ) const
 void
 DateTime::FmtISO8601Min( char *buf ) const
 {
-	struct tm *tm = gmtime( &tval );
+	time_t tempt = tval;
+	struct tm *tm = gmtime( &tempt );
 
 	// Don't die for a bogus date.
 
@@ -483,6 +499,127 @@ DateTime::FmtISO8601Min( char *buf ) const
 static const char* dow[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 static const char* moy[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
                              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
+/*
+ * parse date from RFC5322
+ * E.g. Mon, 03 Jul 2023 14:40:10 GMT
+ *      01234567890123456789012345678
+ */
+void
+DateTime::SetRFC5322( const char *buf, Error *e )
+{
+	struct tm tm;
+
+	if( strlen( buf ) < 24 )
+	{
+	    e->Set( MsgSupp::InvalidDate ) << buf;
+	    return;
+	}
+	
+	// Parse off day of week
+	tm.tm_wday = 0;
+	for( ; tm.tm_wday < 7; tm.tm_wday++ )
+	    if( !StrRef::CCompareN( dow[tm.tm_wday], buf, 3 ) )
+	        break;
+	if( tm.tm_wday >= 7 || buf[3] != ',' || buf[4] != ' ' )
+	{
+	    e->Set( MsgSupp::InvalidDate ) << buf;
+	    return;
+	}
+
+	// Parse off day
+	const char *p = buf + 5;
+	tm.tm_mday = 0;
+	while( isAdigit( p ) )
+	{
+	    tm.tm_mday = ( tm.tm_mday * 10 ) + ( *p - '0' );
+	    p++;
+	}
+	if( p != buf + 7 || *p != ' ' )
+	{
+	    e->Set( MsgSupp::InvalidDate ) << buf;
+	    return;
+	}
+
+	// Parse off month
+	tm.tm_mon = 0;
+	for( ; tm.tm_mon < 12; tm.tm_mon++ )
+	    if( !StrRef::CCompareN( moy[tm.tm_mon], buf + 8, 3 ) )
+	        break;
+	if( tm.tm_mon >= 12 || buf[11] != ' ' )
+	{
+	    e->Set( MsgSupp::InvalidDate ) << buf;
+	    return;
+	}
+
+	// Parse off year
+	p = buf + 12;
+	tm.tm_year = 0;
+	while( isAdigit( p ) )
+	{
+	    tm.tm_year = ( tm.tm_year * 10 ) + ( *p - '0' );
+	    p++;
+	}
+	if( p != buf + 16 || *p != ' ' )
+	{
+	    e->Set( MsgSupp::InvalidDate ) << buf;
+	    return;
+	}
+	if( tm.tm_year > 1900 )
+	    tm.tm_year -= 1900;
+	p++;
+
+	// Parse off hours
+	tm.tm_hour = 0;
+	while( isAdigit( p ) )
+	{
+	    tm.tm_hour = ( tm.tm_hour * 10 ) + ( *p - '0' );
+	    p++;
+	}
+	if( p != buf + 19 || *p != ':' )
+	{
+	    e->Set( MsgSupp::InvalidDate ) << buf;
+	    return;
+	}
+	p++;
+
+	// Parse off minutes
+	tm.tm_min = 0;
+	while( isAdigit( p ) )
+	{
+	    tm.tm_min = ( tm.tm_min * 10 ) + ( *p - '0' );
+	    p++;
+	}
+	if( p != buf + 21 || *p != ':' )
+	{
+	    e->Set( MsgSupp::InvalidDate ) << buf;
+	    return;
+	}
+	p++;
+	
+	// Parse off seconds
+	tm.tm_sec = 0;
+	while( isAdigit( p ) )
+	{
+	    tm.tm_sec = ( tm.tm_sec * 10 ) + ( *p - '0' );
+	    p++;
+	}
+	if( p != buf + 24 )
+	{
+	    e->Set( MsgSupp::InvalidDate ) << buf;
+	    return;
+	}
+
+	// TODO: Timezone support?
+	// For S3 we're only expecting UTC or aliases
+
+	if( ( tval = ( P4INT64 ) mktime( &tm ) ) == ( P4INT64 ) -1 )
+	    e->Set( MsgSupp::InvalidDate ) << buf;
+
+	if( tval < 0 )
+	    e->Set( MsgSupp::InvalidDate ) << buf;
+}
+
 /*
  * format date to RFC5322
  * E.g. Mon, 03 Jul 2023 14:40:10 GMT
@@ -490,7 +627,8 @@ static const char* moy[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
 void
 DateTime::FmtRFC5322( char *buf ) const
 {
-	struct tm *tm = gmtime( &tval );
+	time_t tempt = tval;
+	struct tm *tm = gmtime( &tempt );
 
 	// Don't die for a bogus date.
 
@@ -509,7 +647,6 @@ DateTime::FmtRFC5322( char *buf ) const
 	{
 	    strcpy( buf, "Thu, 01 Jan 1970 00:00:01 GMT" );
 	}
-
 }
 
 /*
@@ -566,7 +703,7 @@ DateTime::FmtGit( StrBuf &buf ) const
 	minutesOff += 40 * ( minutesOff / 60 );
 
 	sprintf( buf.Alloc( DateTimeZoneBufSize ),
-	        "%ld %+05d", (long)tval, minutesOff );
+	        "%lld %+05d", tval, minutesOff );
 
 	buf.SetLength( strlen( buf.Text() ) );
 }
@@ -625,14 +762,14 @@ CentralOffset()
 	centralInit = 1;
 }
 
-time_t
+P4INT64
 DateTime::Localize( time_t centralTime )
 {
 	if( !centralInit ) CentralOffset();
 	return centralTime - centralOffset;
 }
 
-time_t
+P4INT64
 DateTime::Centralize( time_t localTime )
 {
 	if( !centralInit ) CentralOffset();
@@ -789,13 +926,13 @@ DateTimeHighPrecision::Now()
 # endif
 }
 
-time_t
+P4INT64
 DateTimeHighPrecision::Seconds() const
 {
 	return seconds;
 }
 
-int
+P4INT64
 DateTimeHighPrecision::Nanos() const
 {
 	return nanos;
@@ -808,19 +945,19 @@ DateTimeHighPrecision::FmtElapsed(
 	const DateTimeHighPrecision t2 ) const
 {
 	P4INT64	delta = t2.ToNanos() - ToNanos();
-	int elapsedSeconds = delta / BILLION;
-	int elapsedNanos = delta % BILLION;
+	P4INT64 elapsedSeconds = delta / BILLION;
+	P4INT64 elapsedNanos = delta % BILLION;
 
 	buf.Alloc( DTHighPrecisionBufSize );
 #if 0
 	// isn't this what we want?
-	sprintf( buf.Text(), "%d.%dms", elapsedSeconds, elapsedNanos/MILLION );
+	sprintf( buf.Text(), "%ld.%ldms", elapsedSeconds, elapsedNanos/MILLION );
 #else
 	// but this is what the previous code does
 	if( elapsedSeconds )
-	    sprintf( buf.Text(), "%ds", elapsedSeconds );
+	    sprintf( buf.Text(), "%llds", elapsedSeconds );
 	else
-	    sprintf( buf.Text(), "%dms", elapsedNanos / MILLION );
+	    sprintf( buf.Text(), "%lldms", elapsedNanos / MILLION );
 #endif
 	buf.SetLength();
 }
@@ -847,7 +984,8 @@ DateTimeHighPrecision::Compare( const DateTimeHighPrecision &rhs ) const
 void
 DateTimeHighPrecision::Fmt( char *buf ) const
 {
-	struct tm *tm = localtime( &seconds );
+	time_t tempt = seconds;
+	struct tm *tm = localtime( &tempt );
 
 	// Don't die for a bogus date.
 
@@ -865,6 +1003,31 @@ DateTimeHighPrecision::Fmt( char *buf ) const
 	else
 	{
 	    strcpy( buf, "1970/01/01" );
+	}
+}
+
+void
+DateTimeHighPrecision::FmtISO8601( char *buf ) const
+{
+	time_t tempt = seconds;
+	struct tm *tm = localtime( &tempt );
+
+	// Don't die for a bogus date.
+
+	if( tm )
+	{
+	    sprintf( buf, "%04d-%02d-%02dT%02d:%02d:%02d.%09dZ",
+	             tm->tm_year < 1900 ? tm->tm_year + 1900 : tm->tm_year,
+	             tm->tm_mon + 1,
+	             tm->tm_mday,
+	             tm->tm_hour,
+	             tm->tm_min,
+	             tm->tm_sec,
+	             nanos);
+	}
+	else
+	{
+	    strcpy( buf, "1970-01-01T00:00:01.000000000Z" );
 	}
 }
 

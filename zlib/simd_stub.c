@@ -25,11 +25,6 @@ unsigned ZLIB_INTERNAL crc_fold_512to32(deflate_state *const s) {
     return 0;
 }
 
-void ZLIB_INTERNAL fill_window_sse(deflate_state *s)
-{
-    assert(0);
-}
-
 void x86_check_features(void)
 {
 }

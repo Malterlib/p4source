@@ -65,7 +65,10 @@ void ExtensionClient::extImpl53client::doBindings( Error* e )
 	ns.new_enum( "Action",
 	    "FAIL"   , ClientScriptAction::FAIL,
 	    "PASS"   , ClientScriptAction::PASS,
-	    "REPLACE", ClientScriptAction::REPLACE
+	    "REPLACE", ClientScriptAction::REPLACE,
+	    "PRE_DEBUG", ClientScriptAction::PRE_DEBUG,
+	    "ABORT", ClientScriptAction::ABORT,
+	    "EARLY_RETURN", ClientScriptAction::EARLY_RETURN
 	);
 
 	ns[ "ClientMsg" ] = [ this ]( const char* msg )

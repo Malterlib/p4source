@@ -17,6 +17,7 @@
 
 # include <error.h>
 # include <errornum.h>
+# include <errorlog.h>
 # include <strbuf.h>
 # include <strdict.h>
 # include <strtable.h>
@@ -30,6 +31,7 @@
 # include <charcvt.h>
 # include <fdutil.h>
 # include <largefile.h>
+# include <msgos.h>
 
 # include <share.h>
 # include <mbstring.h>
@@ -38,6 +40,9 @@
 # include "filesys.h"
 # include "pathsys.h"
 # include "fileio.h"
+
+# include "pressuremonitor.h"
+# include "sysinfo.h"
 
 extern int global_umask;
 
@@ -122,6 +127,10 @@ typedef BOOLEAN (WINAPI *CreateSymbolicLinkWProc)(LPCWSTR,LPCWSTR,DWORD);
 static CreateSymbolicLinkAProc CreateSymbolicLinkA_func = 0;
 static CreateSymbolicLinkWProc CreateSymbolicLinkW_func = 0;
 static int functionHandlesLoaded = 0;
+
+#ifndef SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE
+#define SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE    (0x2)
+#endif
 
 // Handle the Unicode and LFN file name translation.
 // Caller to nt_wname() must free the memory through nt_free_wname().
@@ -1073,6 +1082,11 @@ ntw_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 	if( osfh == INVALID_HANDLE_VALUE )
 	    return INVALID_HANDLE_VALUE;
 
+	// Binary files don't need any legacy EOF handling.
+
+	if( flags & _O_BINARY )
+	    return osfh;
+
 	if( flags & (_O_RDWR | _O_TEXT) )
 	{
 	    // MS: We have a text mode file.  If it ends in CTRL-Z, we wish to
@@ -1926,6 +1940,9 @@ typedef bool (NTAPI *RtlDosPathNameToNtPathName_UPtr)(
 typedef void (NTAPI *RtlFreeUnicodeStringPtr)(
 	PUNICODE_STRING UnicodeString );
 
+typedef ULONG (NTAPI *RtlNtStatusToDosErrorPtr)(
+	long Status );
+
 #define NT_SUCCESS(Status) (((long)(Status)) >= 0)
 
 #define InitializeObjectAttributes(p,n,a,r,s) { \
@@ -1980,8 +1997,9 @@ static NtClosePtr NtClose = 0;
 static RtlDosPathNameToNtPathName_UPtr RtlDosPathNameToNtPathName_U = 0;
 static RtlFreeUnicodeStringPtr RtlFreeUnicodeString = 0;
 static NtQueryEaFilePtr NtQueryEaFile = 0;
+static RtlNtStatusToDosErrorPtr RtlNtStatusToDosError = 0;
 
-int
+long
 ntw_getea( StrPtr *fname,  StrBufDict *eaList, int lfn )
 {
 	// Globally runtime load the DDK function pointers
@@ -2019,6 +2037,12 @@ ntw_getea( StrPtr *fname,  StrBufDict *eaList, int lfn )
 	if( !RtlFreeUnicodeString )
 	    return -1;
 
+	if( !RtlNtStatusToDosError )
+	    RtlNtStatusToDosError = (RtlNtStatusToDosErrorPtr)
+	                      GetProcAddress( ntdll, "RtlNtStatusToDosError" );
+	if( !RtlNtStatusToDosError )
+	    return -1;
+
 
 	// First off, we need the UNC file path
 	const wchar_t *wname = nt_wname( fname, lfn, NULL );
@@ -2047,25 +2071,24 @@ ntw_getea( StrPtr *fname,  StrBufDict *eaList, int lfn )
 	RtlFreeUnicodeString( &upath );
 
 	if( !NT_SUCCESS( status ) )
-	    return HRESULT_FROM_NT( status );
+	    return RtlNtStatusToDosError( status );
 
 	bool restartScan = true;
-	int ret = -1;
 	char buf[4096];
 	do {
 	    status = NtQueryEaFile( h, &io, buf, 4096, false, 0, 0, 0,
 	                            restartScan );
 	    if( !NT_SUCCESS( status ) )
 	    {
-	        ret = status;
 	        switch (status)
 	        {
 	        case STATUS_NONEXISTENT_EA_ENTRY:
 	        case STATUS_NO_EAS_ON_FILE:
-	            ret = 0;
+	            NtClose( h );
+	            return 0;
 	        default:
 	            NtClose( h );
-	            return ret;
+	            return RtlNtStatusToDosError( status );
 	        }
 	    }
 	    
@@ -2083,13 +2106,11 @@ ntw_getea( StrPtr *fname,  StrBufDict *eaList, int lfn )
 	    restartScan = false;
 	} while( status == STATUS_BUFFER_OVERFLOW );
 
-	ret = 0;
-
 	NtClose( h );
-	return ret;
+	return 0;
 }
 
-int
+long
 nt_getea( StrPtr *fname, StrBufDict *eaList, int dounicode, int lfn )
 {
 	// We have to use wchar names, so force LFN if we're not unicode
@@ -2097,9 +2118,12 @@ nt_getea( StrPtr *fname, StrBufDict *eaList, int dounicode, int lfn )
 	                  lfn ? lfn : !dounicode ? LFN_ENABLED : 0 );
 }
 
-int
-ntw_setea( StrPtr *fname, StrPtr *name, StrPtr *val, int lfn ) 
+long
+ntw_setea( StrPtr *fname, StrDict *vals, int lfn ) 
 {
+	if( !vals->GetCount() )
+	    return 0;
+
 	// Globally runtime load the DDK function pointers
 
 	if( !ntdll )
@@ -2134,7 +2158,12 @@ ntw_setea( StrPtr *fname, StrPtr *name, StrPtr *val, int lfn )
 	                       GetProcAddress( ntdll, "RtlFreeUnicodeString" );
 	if( !RtlFreeUnicodeString )
 	    return -1;
-
+	
+	if( !RtlNtStatusToDosError )
+	    RtlNtStatusToDosError = (RtlNtStatusToDosErrorPtr)
+	                      GetProcAddress( ntdll, "RtlNtStatusToDosError" );
+	if( !RtlNtStatusToDosError )
+	    return -1;
 
 	// First off, we need the UNC file path
 	const wchar_t *wname = nt_wname( fname, lfn, NULL );
@@ -2164,39 +2193,84 @@ ntw_setea( StrPtr *fname, StrPtr *name, StrPtr *val, int lfn )
 	RtlFreeUnicodeString( &upath );
 
 	if( !NT_SUCCESS( status ) )
-	    return HRESULT_FROM_NT( status );
+	    return RtlNtStatusToDosError( status );
 
-	size_t size = sizeof(FILE_FULL_EA_INFORMATION) + 2
-	              + name->Length() + ( val ? val->Length() : 0 );
+	size_t size = 0;
+	StrDictIterator *iter = vals->GetIterator();
+	StrRef name, val;
+	int align = sizeof( ULONG );
+	while( iter->Get( name, val ) )
+	{
+	    size += sizeof( FILE_FULL_EA_INFORMATION )
+	         + name.Length() + val.Length();
+	    size += size % align ? align - (size % align) : 0;
+	    iter->Next();
+	}
 	char* buf = new char[size];
+	memset( buf, 0, size );
+
+	iter->Reset();
 
 	PFILE_FULL_EA_INFORMATION ea = (PFILE_FULL_EA_INFORMATION)buf;
-	ea->NextEntryOffset = 0;
-	ea->Flags = 0;
-	ea->EaNameLength = name->Length();
-	memcpy( ea->EaName, name->Text(), name->Length() + 1 );
-
-
-	if( val == NULL )
-	    ea->EaValueLength = 0;
-	else
+	size_t end = 0;
+	while( iter->Get( name, val ) )
 	{
-	    ea->EaValueLength = val->Length();
-	    memcpy( ea->EaName + ea->EaNameLength + 1, val->Text(),
-	            val->Length() +1);
+	    ea->NextEntryOffset = end;
+	    if( end )
+	    {
+	        ea = (PFILE_FULL_EA_INFORMATION)((char *)ea + end);
+	        ea->NextEntryOffset = 0;
+	        end = 0;
+	    }
+	    ea->Flags = 0;
+	    ea->EaNameLength = name.Length();
+	    memcpy( ea->EaName, name.Text(), name.Length() + 1 );
+	    end = ea->EaName - (char *)ea + ea->EaNameLength + 1;
+
+	    if( !val.Length() )
+	        ea->EaValueLength = 0;
+	    else
+	    {
+	        ea->EaValueLength = val.Length();
+	        memcpy( ea->EaName + ea->EaNameLength + 1, val.Text(),
+	                val.Length() );
+	        end += val.Length();
+	    }
+	    end += end % align ? align - (end % align) : 0;
+	    iter->Next();
 	}
-	
+
 	int ret = NtSetEaFile( h, &io, buf, size );
 	delete[] buf;
 	NtClose( h );
+
+	if( !NT_SUCCESS( ret ) )
+	    return RtlNtStatusToDosError( ret );
 	return ret;
 }
 
-int
+long
+ntw_setea( StrPtr *fname, StrPtr *name, StrPtr *val, int lfn )
+{
+	// We have to use wchar names, so force LFN if we're not unicode
+	StrPtrDict vals;
+	vals.SetVar( name->Text(), val ? val->Text() : "" );
+	return ntw_setea( fname, &vals, lfn );
+}
+
+long
 nt_setea( StrPtr *fname, StrPtr *name, StrPtr *val, int dounicode, int lfn )
 {
 	// We have to use wchar names, so force LFN if we're not unicode
 	return ntw_setea( fname, name, val,
+	                  lfn ? lfn : !dounicode ? LFN_ENABLED : 0 );
+}
+
+long
+nt_setea( StrPtr *fname, StrDict *vals, int dounicode, int lfn )
+{
+	// We have to use wchar names, so force LFN if we're not unicode
+	return ntw_setea( fname, vals,
 	                  lfn ? lfn : !dounicode ? LFN_ENABLED : 0 );
 }
 
@@ -2323,12 +2397,15 @@ nt_makelink( StrBuf &target, StrPtr *name, int dounicode, int lfn )
 
 	struct statbL sb;
 	DWORD dwFlags = 0;
+	if( SystemInfo::CheckForDevSymlink() )
+	    dwFlags |= SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE;
+
 	// Try to stat the target of the symlink, directory or file.
 	// If the stat fails, we assume a file symlink.
 	if( nt_stat( &abs_tgt, &sb, dounicode, lfn ) >= 0 )
 	{
 	    if( S_ISDIR( sb.st_mode ) )
-	        dwFlags = SYMBOLIC_LINK_FLAG_DIRECTORY;
+	        dwFlags |= SYMBOLIC_LINK_FLAG_DIRECTORY;
 	}
 
 	// Allow unicode to fall through.
@@ -2463,7 +2540,9 @@ FileIO::Rename( FileSys *target, Error *e )
 	               LFN|target->GetLFN() );
 	    }
 
-	    if( ret )
+	    // If atomic rename fails, trying again will not make a difference.
+	    //
+	    if( ret && !(LFN & LFN_ATOMIC_RENAME) )
 	    {
 	        // nasty hack coming up.
 	        // one customer is suffering from a rename() problem
@@ -2559,7 +2638,7 @@ FileIO::UnicodeName( StrBuf *fname, int lfn )
 }
 
 void
-FileIO::ChmodTime( int modTime, Error *e )
+FileIO::ChmodTime( P4INT64 modTime, Error *e )
 {
 	struct utimbufL t;
 
@@ -2814,7 +2893,7 @@ enum StatType{
 };	
 
 # ifdef OS_MINGW
-static int
+static P4INT64
 nt_getLastStatTime( HANDLE hFile, StatType statType, int &msec )
 {
 	// Convert file timestamp to local time, then to time_t.
@@ -2862,7 +2941,7 @@ nt_getLastStatTime( HANDLE hFile, StatType statType, int &msec )
 	u_tm.tm_yday  = 0;
 	u_tm.tm_isdst = 0;
 
-	return (int)( DateTime::Centralize( ::mktime( &u_tm ) ) );
+	return ( DateTime::Centralize( ::mktime( &u_tm ) ) );
 }
 
 # else
@@ -2873,7 +2952,7 @@ nt_getLastStatTime( HANDLE hFile, StatType statType, int &msec )
 //
 // msec is in milliseconds.
 //
-static int
+static P4INT64
 nt_getLastStatTime( HANDLE hFile, StatType statType, int &msec )
 {
 	SYSTEMTIME st;
@@ -2917,12 +2996,12 @@ nt_getLastStatTime( HANDLE hFile, StatType statType, int &msec )
 	u_tm.tm_yday  = 0;
 	u_tm.tm_isdst = 0;
 
-	return (int)( DateTime::Centralize( ::_mkgmtime( &u_tm ) ) );
+	return ( DateTime::Centralize( ::_mkgmtime( &u_tm ) ) );
 }
 
 # endif
 
-int
+P4INT64
 FileIO::StatAccessTime()
 {
 	HANDLE fH;
@@ -2952,7 +3031,7 @@ FileIO::StatAccessTime()
 	return nt_getLastStatTime( fH, ACCESS_TIME, msecs );
 }
 
-int
+P4INT64
 FileIO::StatModTime()
 {
 	HANDLE fH;
@@ -3075,13 +3154,29 @@ FileIO::SetAttribute( FileSysAttr attrs, Error *e )
 void
 FileIO::SetExtendedAttribute( StrPtr *name, StrPtr *val, Error *e )
 {
-	if( nt_setea( Path(), name, val, DOUNICODE, LFN ) >= 0 )
+	long res = nt_setea( Path(), name, val, DOUNICODE, LFN );
+	if( !res )
 	    return;
 
-	// Can be called with e==0 to ignore error.
+	SetLastError( res );
 
+	// Can be called with e==0 to ignore error.
 	if( e )
 	    e->Sys( "SetExtendedAttribute", Name() );
+}
+
+void
+FileIO::SetExtendedAttributes( StrDict *vals, Error *e )
+{
+	long res = nt_setea( Path(), vals, DOUNICODE, LFN );
+	if( !res )
+	    return;
+
+	SetLastError( res );
+
+	// Can be called with e==0 to ignore error.
+	if( e )
+	    e->Sys( "SetExtendedAttributes", Name() );
 }
 
 void
@@ -3100,8 +3195,11 @@ FileIO::GetExtendedAttribute( StrPtr *name, StrBuf *val, Error *e )
 void
 FileIO::GetExtendedAttributes( StrBufDict *attrs, Error *e )
 {
-	if( nt_getea( Path(), attrs, DOUNICODE, LFN ) >= 0 )
+	long res = nt_getea( Path(), attrs, DOUNICODE, LFN );
+	if( !res )
 	    return;
+
+	SetLastError( res );
 
 	// Can be called with e==0 to ignore error.
 
@@ -3458,6 +3556,8 @@ FileIOAppend::Write( const char *buf, int len, Error *e )
 void
 FileIOAppend::Rename( FileSys *target, Error *e )
 {
+	int fallback=0;
+
 	// File may be open, so to rename we copy 
 	// and truncate FileIOAppend files on NT.
 	//
@@ -3478,8 +3578,24 @@ FileIOAppend::Rename( FileSys *target, Error *e )
 	if( volchk && (LFN & LFN_ATOMIC_RENAME) )
 	{
 	    FileIO::Rename( target, e );
+
+	    // Report the non-fatal error.
+	    if( e->Test() )
+	    {
+	       // Clear out previous rename errors, they should be moot.
+	        e->Clear();
+
+	        e->Set( MsgOs::AtomicRenameFailed ) << target->Name();
+	        AssertLog.Report( e );
+	        e->Clear();
+
+	        fallback++;
+	    }
 	}
 	else
+	    fallback++;
+
+	if( fallback )
 	{
 	    Copy( target, FPM_RO, e );
 

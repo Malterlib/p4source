@@ -22,12 +22,15 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgDb error code is: 107
+ * Current high value for a MsgDb error code is: 114
  */
 # include <stdhdrs.h>
 # include <error.h>
 # include <errornum.h>
 # include "msgdb.h"
+
+ // This is fine in released code, but only for internal error conditions that we do not expect users to ever encounter.
+ErrorId MsgDb::DevErr                  = { ErrorOf( ES_DB, 114, E_FATAL, EV_FAULT, 1 ), "Internal error: %text%" }; // NOTRANS
 
 ErrorId MsgDb::JnlEnd                  = { ErrorOf( ES_DB, 1, E_FATAL, EV_ADMIN, 0 ), "End of input in middle of word!" } ;//NOTRANS
 ErrorId MsgDb::JnlWord2Big             = { ErrorOf( ES_DB, 2, E_FATAL, EV_ADMIN, 0 ), "Word too big for buffer!" } ;//NOTRANS
@@ -139,6 +142,12 @@ ErrorId MsgDb::BadRecoverTbl           = { ErrorOf( ES_DB, 100, E_INFO, EV_FAULT
 ErrorId MsgDb::DbTreeDuplicate	       = { ErrorOf( ES_DB, 101, E_FAILED, EV_FAULT, 0 ), "Record already exists in DbTree." } ;
 ErrorId MsgDb::DbTreeNotFound	       = { ErrorOf( ES_DB, 102, E_FAILED, EV_FAULT, 0 ), "Record not found in DbTree." } ;
 ErrorId MsgDb::DbIntVBit	       = { ErrorOf( ES_DB, 105, E_FAILED, EV_FAULT, 0 ), "High order bit set in IntV database field." } ;
+ErrorId MsgDb::NoPartitionedDb         = { ErrorOf( ES_DB, 108, E_FAILED, EV_NONE, 1 ), "Unable to resolve the partitioned table %ptable%" };
+ErrorId MsgDb::NotPartitionedTable     = { ErrorOf( ES_DB, 109, E_FAILED, EV_NONE, 1 ), "The table %ptable% is not a partitioned table." };
+ErrorId MsgDb::PartitionedDbUsage      = { ErrorOf( ES_DB, 110, E_FAILED, EV_NONE, 0 ), "Please address the partitioned table with its client name 'db.have.pt%%clientName'." };
+ErrorId MsgDb::FailedValidation        = { ErrorOf( ES_DB, 111, E_FAILED, EV_NONE, 1 ), "The table %ptable% validation failed." };
+ErrorId MsgDb::PartitionedVerify       = { ErrorOf( ES_DB, 112, E_WARN, EV_NONE, 1 ), "Please set db.partition.verify configurable to validate/verify the partitioned table %ptable%." };
+ErrorId MsgDb::CannotUseSpecificPTable = { ErrorOf( ES_DB, 113, E_FAILED, EV_USAGE, 0 ), "Cannot use specific partitioned tables in the list." } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 

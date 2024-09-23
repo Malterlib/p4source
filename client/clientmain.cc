@@ -171,8 +171,23 @@ extern "C" char** __p4_argv;
 int
 main( int argc, char **argv )
 {
+	int w_argc = 0, n_argc = 0;
+
 # if defined(OS_NT) && (_MSC_VER >= 1900)
+
+	// Do argument processing twice in order to catch issues where
+	// the win32 *A(NSI) functions do best-fit mapping of characters,
+	// potentially causing problems like a single argument appearing as
+	// two.  The *W(ide) API does not do best-fit mapping, so it is
+	// run first to get the actual number of arguments, then followed
+	// by the narrow call that we actually use.  We don't just use the
+	// wide version and call it a day in order to preserve backwards
+	// compatibility. 
+
+	_p4_configure_wide_argv(_crt_argv_expanded_arguments);
+	w_argc = __p4_argc;
 	_p4_configure_narrow_argv(_crt_argv_expanded_arguments);
+	n_argc = __p4_argc;
 
 # define argc __p4_argc
 # define argv __p4_argv
@@ -186,6 +201,12 @@ main( int argc, char **argv )
 
 	P4Libraries::Initialize( P4LIBRARIES_INIT_ALL, &e );
 	AssertLog.Abort( &e );
+
+	if( n_argc != w_argc )
+	{
+	    e.Set( MsgSupp::AmbiguousArgs );
+	    AssertLog.Abort( &e );
+	}
 
 	strncpy( argv0, argv[0], sizeof( argv0 ) - 1 );
 
@@ -263,6 +284,7 @@ static int clientLongOpts[] = { Options::Client,
 	                   Options::ScriptMaxMem, Options::ScriptMaxTime,
 	                   Options::NoScript, Options::ScriptLang,
 	                   Options::ScriptLangVersion, Options::ScriptAPIVersion,
+	                   Options::ScriptEnableDbg,
 #ifdef _DEBUG
 	                   Options::DebugBreak,
 #endif
@@ -604,6 +626,9 @@ clientRunCommand(
 	    client.EnableExtensions( &eIgnore );
 	}
 
+	if( opts[ Options::ScriptEnableDbg ] )
+	    client.EnableDebugHooks();
+
 	if( ( s = opts[ Options::Script ] ) )
 	{
 	    const StrPtr* script = s;
@@ -768,7 +793,16 @@ clientRunCommand(
 	    // Normal invocation.
 
 	    setVarsAndArgs( client, argc, argv, opts );
-
+	    Error *terr = client.GetTransError();
+	    if( terr->Test() )
+	    {
+	        e->Merge( *terr );
+	        // No point running command, lost a command argument.
+	        if( !callerUI )
+	            delete ui;
+	        return 1;
+	    }
+	    
 	    if( ui->CanAutoLoginPrompt() )
 		client.SetVarV( P4Tag::v_autoLogin );
 
@@ -787,6 +821,8 @@ clientRunCommand(
 	    if( e->Test() )
 	    {
 		delete xf;
+	        if( !callerUI )
+	            delete ui;
 		return 1;
 	    }
 
@@ -811,7 +847,14 @@ clientRunCommand(
 	                continue; //blank line in file
 
 	            setVarsAndArgs( client, nwords, words, opts );
-
+	            Error *terr = client.GetTransError();
+	            if( terr->Test() )
+	            {
+	                e->Merge( *terr );
+	                if( !callerUI )
+	                    delete ui;
+	                return 1;
+	            }
 		    client.Run( words[0], ui );
 		    fflush( stdout );
 		    fflush( stderr );
@@ -842,6 +885,8 @@ clientRunCommand(
 	    if( e->Test() )
 	    {
 		delete xf;
+		if( !callerUI )
+		    delete ui;
 		return 1;
 	    }
 
@@ -856,11 +901,28 @@ clientRunCommand(
 		    // Set user's (constant) args at beginning of block
 
 		    if( !count )
-			setVarsAndArgs( client, argc, argv, opts );
-
+	            {
+	                setVarsAndArgs( client, argc, argv, opts );
+	                Error *terr = client.GetTransError();
+	                if( terr->Test() )
+	                {
+	                    e->Merge( *terr );
+	                    if( !callerUI )
+	                        delete ui;
+	                    return 1;
+	                }
+	            }
 		    // Set this arg.
 
 		    client.SetVar( "", &s );
+	            Error *terr = client.GetTransError();
+	            if( terr->Test() )
+	            {
+	                e->Merge( *terr );
+	                if( !callerUI )
+	                    delete ui;
+	                return 1;
+	            }
 		}
 
 		// Dispatch
@@ -892,8 +954,26 @@ clientRunCommand(
 		if( !( eof = !splr.GetLine( &s ) ) )
 		{
 		    if( !count )
-			setVarsAndArgs( client, argc, argv, opts );
+	            {
+	                setVarsAndArgs( client, argc, argv, opts );
+	                Error *terr = client.GetTransError();
+	                if( terr->Test() )
+	                {
+	                    e->Merge( *terr );
+	                    if( !callerUI )
+	                        delete ui;
+	                    return 1;
+	                }
+	            }
 		    client.SetVar( "", &s );
+	            Error *terr = client.GetTransError();
+	            if( terr->Test() )
+	            {
+	                e->Merge( *terr );
+	                if( !callerUI )
+	                    delete ui;
+	                return 1;
+	            }
 		}
 
 		if( eof ? count : ++count == batchSize )

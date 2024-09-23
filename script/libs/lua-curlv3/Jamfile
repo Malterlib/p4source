@@ -1,10 +1,18 @@
 SubDir P4 script libs lua-curlv3 ;
 
-local C++FLAGS = [ FRemoveAny $(C++FLAGS) : -Wparentheses ] ;
+local C++FLAGS = [ FRemoveAny $(C++FLAGS) : -Wparentheses -Wunused ] ;
+
+if $(CLANGVER) && [ FVersionCmp $(CLANGVER) : 15 ] >= 0
+{
+	C++FLAGS += -Wno-unused-value ;
+}
 
 SubDirC++Flags [ FDefines Z_PREFIX ] ;
 
-local C++FLAGS = [ FRemoveAny $(C++FLAGS) : -Wunused ] ;
+if $(GCCVER)
+{
+	C++FLAGS += -Wno-deprecated-declarations ;
+}
 
 SubDirHdrs $(P4)/script/libs/cURL/ ;
 SubDirHdrs $(P4)/script/libs/cURL/curl ;

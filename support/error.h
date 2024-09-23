@@ -144,7 +144,8 @@ class Error {
 	virtual		~Error();
 
 	void 		operator =( const Error &source );
-	Error &		Merge( const Error &source );
+	Error &		Merge( const Error &source, int igndups = 0 );
+
 
 	virtual void	Clear() { severity = E_EMPTY; }
 	const ErrorId  *MapError( const struct ErrorIdMap map[] );

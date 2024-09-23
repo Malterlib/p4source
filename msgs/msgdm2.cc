@@ -22,7 +22,8 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgDm2 error code is: 135
+ * Current high value for a MsgDm2 error code is:
+ *                                154 (StreamSpecIntegrationNoFrmChange)
  *                                               Max code is 1023!!!
  */
 # include <stdhdrs.h>
@@ -40,12 +41,18 @@ ErrorId MsgDm2::RequiresAutoIdOrPosCode = { ErrorOf( ES_DM2, 7, E_FAILED, EV_FAU
 ErrorId MsgDm2::CannotRecreateDeleteField = { ErrorOf( ES_DM2, 8, E_FAILED, EV_FAULT, 0 ), "New field code '%code% %tag%' was previously deleted and may not be recreated." } ;
 ErrorId MsgDm2::SpecRepairDisallowNNN = { ErrorOf( ES_DM2, 18, E_FAILED, EV_FAULT, 1 ), "'NNN' fields are disallowd during 'p4 spec --repair' :  field '%tag%'." } ;
 ErrorId MsgDm2::SpecRepairNoCustomSpec = { ErrorOf( ES_DM2, 19, E_FAILED, EV_FAULT, 0 ), "--repair disallowed on default spec." } ;
+
 ErrorId MsgDm2::IntegIntoReadOnlyOverlay = { ErrorOf( ES_DM2, 108, E_INFO, EV_NONE, 2 ), "%depotFile% - can't %action% into file that is overlaid in client's View" } ;
+ErrorId MsgDm2::IntegRequiresStream      = { ErrorOf( ES_DM2, 140, E_FAILED, EV_CONTEXT, 2 ), "Must use a stream view to %action% into %stream%."} ;
+ErrorId MsgDm2::IntegStreamSyntaxHint    = { ErrorOf( ES_DM2, 141, E_INFO, EV_USAGE, 3 ), "Try running: 'p4 %cmd%[ --from %fromStream%][ %toFile%]'"} ;
+
 ErrorId MsgDm2::OpenReadOnlyOverlay      = { ErrorOf( ES_DM2, 109, E_INFO, EV_NONE, 2 ), "%depotFile% - can't %action% file that is overlaid in client's View" } ;
 ErrorId MsgDm2::OpenWarnOverlay          = { ErrorOf( ES_DM2, 110, E_INFO, EV_USAGE, 2 ), "%depotFile% - warning: cannot submit file that is overlaid in client's View" } ;
 ErrorId MsgDm2::OpenUndoConflict        = { ErrorOf( ES_DM2, 114, E_FAILED, EV_NOTYET, 6), "%depotFile% - can't %action% (undo @%startChange%,@%endChange%) and %action2% at the same time[ (try undoing changes after @%moveChange% first?)]" } ;
+
 ErrorId MsgDm2::UnshelveBadOverlay       = { ErrorOf( ES_DM2, 111, E_FAILED, EV_NOTYET, 2 ), "%depotFile% - can't unshelve from revision at change %change% (overlaid in client's View)" } ;
 ErrorId MsgDm2::UnshelveStreamResolve    = { ErrorOf( ES_DM2, 9, E_INFO, EV_USAGE, 3 ), "%streamSpec% - must resolve shelved stream spec %streamSpec%@%change% before submitting" } ;
+
 ErrorId MsgDm2::StreamSpecIntegOkay     = { ErrorOf( ES_DM2, 10, E_INFO, EV_NONE, 8 ), "Stream spec %targetStreamSpec%@%targetChange% - %action% field %field% from %sourceStreamSpec%@%fromChange%[ using base %baseStreamSpec%][@%baseChange%]" } ;
 ErrorId MsgDm2::CheckFailedNoDB         = { ErrorOf( ES_DM2, 11, E_FAILED, EV_NONE, 1 ), "%table% not found in default/specified server root" } ;
 ErrorId MsgDm2::NoStreamSpecPermsWarn   = { ErrorOf( ES_DM2, 12, E_INFO, EV_PROTECT, 0 ), "You don't have streamspec permission for this operation." } ;
@@ -89,7 +96,7 @@ ErrorId MsgDm2::TopologyData            = { ErrorOf( ES_DM2, 50, E_INFO, EV_NONE
 ErrorId MsgDm2::StreamViewMatchData     = { ErrorOf( ES_DM2, 51, E_INFO, EV_NONE, 6 ), "Stream %stream% %pathtype% %viewPath% %depotPath%[@%depotRev%][ (%status%)]" } ;
 ErrorId MsgDm2::NoTopologyRecord        = { ErrorOf( ES_DM2, 52, E_WARN, EV_ADMIN, 3 ), "No entries made in db.topology for server address: '%address%', dest address: '%destaddress%' and serverID: '%svrId%'." } ;
 ErrorId MsgDm2::NoServerIDSet           = { ErrorOf( ES_DM2, 53, E_WARN, EV_ADMIN, 0 ), "ServerID for the server should be set and a server restart is required." } ;
-ErrorId MsgDm2::NoPartitionedToReadonly    = { ErrorOf( ES_DM2, 54, E_FAILED, EV_USAGE, 0 ), "Cannot change client type from 'partitioned' to 'readonly'." } ;
+ErrorId MsgDm2::NoPartitionedToReadonly    = { ErrorOf( ES_DM2, 54, E_FAILED, EV_USAGE, 1 ), "Cannot change client type from '[%from%|partitioned]' to 'readonly'." } ;
 ErrorId MsgDm2::TopologyRecDeleted      = { ErrorOf( ES_DM2, 55, E_INFO, EV_NONE, 4 ), "Deleted Topology Record: Addr-'%address%' DestAddr-'%destaddress%' SvrID-'%serverID%' Date-'%date%'" } ;
 ErrorId MsgDm2::TopologyRecNotFound     = { ErrorOf( ES_DM2, 56, E_FAILED, EV_FAULT, 3 ), "Specified topology record[ with address '%addr%'][ target address '%taddr%'][ and server id '%svrID%'] not found" } ;
 ErrorId MsgDm2::LockNameNull            = { ErrorOf( ES_DM2, 57, E_FAILED, EV_ADMIN, 1 ), "ServerLock name is null. Lock type is %locktype%." } ;
@@ -122,6 +129,7 @@ ErrorId MsgDm2::TopologyThresholdOutOfRange       = { ErrorOf( ES_DM2, 83, E_FAI
 ErrorId MsgDm2::ProtectsMismatch                  = { ErrorOf( ES_DM2, 84, E_FAILED, EV_ILLEGAL, 2 ), "Path '%spath%' doesn't match command argument '%apath%'." };
 ErrorId MsgDm2::DirsDataStreamViews               = { ErrorOf( ES_DM2, 85, E_INFO, EV_NONE, 2 ), "%streamDirNam% (mapped to %dirName%)" } ;
 ErrorId MsgDm2::FilesDataStreamViews              = { ErrorOf( ES_DM2, 86, E_INFO, EV_NONE, 6 ), "%streamFile%%depotRev% (mapped to %depotFile%) - %action% %change% (%type%)" } ;
+ErrorId MsgDm2::FilesDataTrait                    = { ErrorOf( ES_DM2, 148, E_INFO, EV_NONE, 6 ), "%depotFile%%depotRev% - %action% %change% (%type%) %trait%" } ;
 ErrorId MsgDm2::MaxMem                            = { ErrorOf( ES_DM2, 87, E_FAILED, EV_ADMIN, 1 ), "Too much memory used (over %maxMem%); see '%'p4 help maxmemory'%'." } ;
 ErrorId MsgDm2::GroupsDataVerbose222              = { ErrorOf( ES_DM2, 88, E_INFO, EV_NONE, 8 ), "%group% %maxresults% %maxscanrows% %maxtimeout% %maxopenfiles% %maxmem% %timeout% %passtimeout%" };
 ErrorId MsgDm2::TopologyDelRecMarker              = { ErrorOf( ES_DM2, 89, E_INFO, EV_NONE, 0 ), "The server(s) marked as deleted" } ;
@@ -136,32 +144,49 @@ ErrorId MsgDm2::TopologyRecMoved                  = { ErrorOf( ES_DM2, 98, E_INF
 ErrorId MsgDm2::TopologyMoveSame                 = { ErrorOf( ES_DM2, 99, E_FAILED, EV_USAGE, 0 ), "Server cannot be set as moved to itself." } ;
 ErrorId MsgDm2::TopologyFailedToMark             = { ErrorOf( ES_DM2, 100, E_FAILED, EV_NONE, 3 ), "Failed to mark the record : address '%addr%', destaddress '%daddr%', serverid '%svrID%' as 'movedFrom'." } ;
 ErrorId MsgDm2::TopologyMarkedMoveTo             = { ErrorOf( ES_DM2, 101, E_INFO, EV_NONE, 3 ), "Marked the record : address '%addr%', destaddress '%daddr%', serverid '%svrID%' as 'movedTo'." } ;
-ErrorId MsgDm2::SpecStreamSparsePinChangeComment = { ErrorOf( ES_DM2, 102, E_INFO, EV_NONE, 0 ), " @change will be automatically set to the latest parent change" } ;
-ErrorId MsgDm2::NoStreamTypeChangeToSparse       = { ErrorOf( ES_DM2, 103, E_FAILED, EV_NOTYET, 2 ), "Failed to change non-sparse stream '%stream%' to sparse type '%streamType%'." } ;
-ErrorId MsgDm2::NoStreamTypeChangeToNonSparse    = { ErrorOf( ES_DM2, 104, E_FAILED, EV_NOTYET, 2 ), "Failed to change sparse stream '%stream%' to non-sparse type '%streamType%'." } ;
-ErrorId MsgDm2::NoReparentSparse                 = { ErrorOf( ES_DM2, 105, E_FAILED, EV_USAGE, 1 ), "Cannot change parent of stream '%stream%' because it is a sparse stream." } ;
-ErrorId MsgDm2::NoSparseChildren                 = { ErrorOf( ES_DM2, 106, E_FAILED, EV_USAGE, 2 ), "Stream '%parent%' cannot parent '%stream%' because it is a sparse stream." } ;
-ErrorId MsgDm2::ComponentStreamInvalidSparse     = { ErrorOf( ES_DM2, 107, E_FAILED, EV_NONE, 2 ), "The stream '%stream%' is a sparse stream of type '%type%' and cannot be defined as a component." } ;
 ErrorId MsgDm2::NoAltSyncChangeWithHave          = { ErrorOf( ES_DM2, 112, E_FAILED, EV_USAGE, 0 ), "Cannot change client '%'altSync'%' option when have list is not empty." } ;
 ErrorId MsgDm2::MaxMemOS                         = { ErrorOf( ES_DM2, 113, E_FAILED, EV_ADMIN, 0 ), "Not enough OS memory available (past 'sys.pressure.memory.high' threshold)." } ;
 ErrorId MsgDm2::BadLazyPipeCount                 = { ErrorOf( ES_DM2, 115, E_FAILED, EV_USAGE, 2 ), "The search for lazy copies has not found the expected number of revisions. Expect: '%exp%'. Seen: '%seen%'." } ;
-ErrorId MsgDm2::SparseStreamNotSupported         = { ErrorOf( ES_DM2, 116, E_FAILED, EV_USAGE, 0 ), "This operation is not supported for sparse streams." };
 ErrorId MsgDm2::StreamViewGenAtChangeSkip        = { ErrorOf( ES_DM2, 117, E_WARN, EV_NONE, 2 ), "Skipping stream view generation for %stream% at change %change%." } ;
-ErrorId MsgDm2::SparseStreamShareChangeNoUpdate  = { ErrorOf( ES_DM2, 118, E_FAILED, EV_USAGE, 0 ), "The change number in a sparse stream share path cannot be updated by editing the stream spec.  Use an integration command to update the change of a sparse stream share path." } ;
-ErrorId MsgDm2::SparseStreamNoPin                = { ErrorOf( ES_DM2, 119, E_FAILED, EV_FAULT, 1 ), "No change number found for any share path in sparse stream %stream%." };
 ErrorId MsgDm2::StreamFieldValueError            = { ErrorOf( ES_DM2, 120, E_FAILED, EV_FAULT, 3 ), "A stream of type '%streamType%' cannot have a %fieldName% of '%fieldValue%'." };
 ErrorId MsgDm2::DepotTraitDup                    = { ErrorOf( ES_DM2, 121, E_FAILED, EV_CONTEXT, 1 ), "There is already a %'trait'% depot called '%depot%'." };
 ErrorId MsgDm2::NoTraitDepot                     = { ErrorOf( ES_DM2, 129, E_FAILED, EV_CONTEXT, 0 ), "No trait depot was found on this server." };
-ErrorId MsgDm2::SparseStreamOpNotAllowed         = { ErrorOf( ES_DM2, 122, E_FAILED, EV_USAGE, 2 ), "This operation not is allowed between sparse stream %sparseStream% and non-parent %otherStream%." };
+
+ErrorId MsgDm2::ComponentStreamInvalidSparse     = { ErrorOf( ES_DM2, 107, E_FAILED, EV_NONE, 2 ), "The stream '%stream%' is a sparse stream of type '%type%' and cannot be defined as a component." } ;
+ErrorId MsgDm2::NoReparentSparse                 = { ErrorOf( ES_DM2, 105, E_FAILED, EV_USAGE, 1 ), "Cannot change parent of stream '%stream%' because it is a sparse stream." } ;
+ErrorId MsgDm2::NoSparseChildren                 = { ErrorOf( ES_DM2, 106, E_FAILED, EV_USAGE, 2 ), "Stream '%parent%' cannot parent '%stream%' because it is a sparse stream." } ;
+ErrorId MsgDm2::NoStreamTypeChangeToNonSparse    = { ErrorOf( ES_DM2, 104, E_FAILED, EV_NOTYET, 2 ), "Failed to change sparse stream '%stream%' to non-sparse type '%streamType%'." } ;
+ErrorId MsgDm2::NoStreamTypeChangeToSparse       = { ErrorOf( ES_DM2, 103, E_FAILED, EV_NOTYET, 2 ), "Failed to change non-sparse stream '%stream%' to sparse type '%streamType%'." } ;
+ErrorId MsgDm2::NoVirtualParentSparseChild       = { ErrorOf( ES_DM2, 136, E_FAILED, EV_USAGE, 2 ), "Stream '%parent%' is virtual and stream '%stream%' sparse. Virtual streams may not parent sparse streams." } ;
+ErrorId MsgDm2::SparseStreamCmdChangeSpecifierOnly = { ErrorOf( ES_DM2, 124, E_FAILED, EV_USAGE, 2 ), "Source revision for %cmd% into sparse stream %stream% must be a changelist." };
 ErrorId MsgDm2::SparseStreamCmdMustIncludeAll    = { ErrorOf( ES_DM2, 123, E_FAILED, EV_USAGE, 2 ), "Must include all files for %cmd% into sparse stream %stream%." };
 ErrorId MsgDm2::SparseStreamCmdMustIncludeAll2   = { ErrorOf( ES_DM2, 128, E_FAILED, EV_USAGE, 2 ), "Must include files along with stream spec for %cmd% into sparse stream %stream%." };
-ErrorId MsgDm2::SparseStreamCmdChangeSpecifierOnly = { ErrorOf( ES_DM2, 124, E_FAILED, EV_USAGE, 2 ), "Source revision for %cmd% into sparse stream %stream% must be a changelist." };
-ErrorId MsgDm2::SparseStreamCopyOutOfDate        = { ErrorOf( ES_DM2, 125, E_FAILED, EV_USAGE, 1 ), "Sparse stream %sparseStream% must be fully up-to-date with parent before copy." };
-ErrorId MsgDm2::SparseStreamCopyLatestOnly       = { ErrorOf( ES_DM2, 126, E_FAILED, EV_USAGE, 1 ), "May only copy from latest revision of sparse stream %sparseStream%." };
 ErrorId MsgDm2::SparseStreamCmdNoRevRange        = { ErrorOf( ES_DM2, 127, E_FAILED, EV_USAGE, 1 ), "Revision range not allowed for %cmd% into sparse stream." } ;
+ErrorId MsgDm2::SparseStreamCmdWrongStream       = { ErrorOf( ES_DM2, 145, E_FAILED, EV_USAGE, 3 ), "Not able to use view of %otherStream% to %cmd% into sparse stream %yourStream%." };
+ErrorId MsgDm2::SparseStreamCopyLatestOnly       = { ErrorOf( ES_DM2, 126, E_FAILED, EV_USAGE, 1 ), "May only copy from latest revision of sparse stream %sparseStream%." };
+ErrorId MsgDm2::SparseStreamCopyOutOfDate        = { ErrorOf( ES_DM2, 125, E_FAILED, EV_USAGE, 1 ), "Sparse stream %sparseStream% must be fully up-to-date with parent before copy." };
+ErrorId MsgDm2::SparseStreamNoPin                = { ErrorOf( ES_DM2, 119, E_FAILED, EV_ILLEGAL, 1 ), "Stream of type '%streamType%' must have one or more 'share' paths with the same @change." };
+ErrorId MsgDm2::SparseStreamNotSupported         = { ErrorOf( ES_DM2, 116, E_FAILED, EV_USAGE, 0 ), "This operation is not supported for sparse streams." };
+ErrorId MsgDm2::SparseStreamOpNotAllowed         = { ErrorOf( ES_DM2, 122, E_FAILED, EV_USAGE, 2 ), "This operation is not allowed between sparse stream %sparseStream% and non-parent %otherStream%." };
+ErrorId MsgDm2::SparseStreamPinChangeDown        = { ErrorOf( ES_DM2, 102, E_FAILED, EV_USAGE, 3 ), "The files in %depotPath% are associated with 'share' path %oldChange%.  Use 'p4 copy -F %newChange%' to overwrite." } ;
+ErrorId MsgDm2::SparseStreamPinChangeUp          = { ErrorOf( ES_DM2, 118, E_FAILED, EV_USAGE, 3 ), "The files in %depotPath% are associated with 'share' path %oldChange%.  Use 'p4 merge %newChange%' to update." } ;
+ErrorId MsgDm2::SparseStreamPinUpdate            = { ErrorOf( ES_DM2, 139, E_INFO, EV_NONE, 3 ), "%stream% - update from %parentStream%%fromChange%" } ;
+ErrorId MsgDm2::VirtChildSparseParentOpNotAllowed= { ErrorOf( ES_DM2, 137, E_FAILED, EV_USAGE, 2 ), "This operation is not allowed for virtual child '%virtChild%' of sparse stream '%sparseStream%'." };
+ErrorId MsgDm2::UnsubmitNoStreamSpec             = { ErrorOf( ES_DM2, 143, E_FAILED, EV_USAGE, 2 ), "Cannot unsubmit change %change% because it affected the stream specification %streamName%." };
+
 ErrorId MsgDm2::OnlyOneClientReload              = { ErrorOf( ES_DM2, 130, E_FAILED, EV_ADMIN, 0 ), "Cannot reload multiple clients from the remote server." } ;
 ErrorId MsgDm2::UnknownParam                     = { ErrorOf( ES_DM2, 131, E_FAILED, EV_USAGE, 1 ), "Unknown parameter '%param%'!" } ;
 ErrorId MsgDm2::BadS3Mode                        = { ErrorOf( ES_DM2, 132, E_FAILED, EV_USAGE, 1 ), "Invalid S3 mode[ '%mode%']!" } ;
 ErrorId MsgDm2::DepotBadAddress                  = { ErrorOf( ES_DM2, 133, E_FAILED, EV_USAGE, 2 ), "Depots of type '%depotType%' require 'Address' to [either be unset or set to a valid external storage scheme (currently %schemes%)|be unset]." } ;
 ErrorId MsgDm2::DepotBadRemoteAddress            = { ErrorOf( ES_DM2, 134, E_FAILED, EV_USAGE, 0 ), "Remote depots require 'Address' to be a valid P4PORT" } ;
 ErrorId MsgDm2::NoConfigHistory                  = { ErrorOf( ES_DM2, 135, E_FAILED, EV_USAGE, 2 ), "Config history [iteration %iteration% ]for '%name%' not found" } ;
+ErrorId MsgDm2::SyncToRemove                     = { ErrorOf( ES_DM2, 138, E_INFO, EV_USAGE, 1 ), "Sync %clientFile% to remove it from your workspace." } ;
+ErrorId MsgDm2::DomainNoViewCmtClientBadSave= { ErrorOf( ES_DM2, 142, E_FAILED, EV_UPGRADE, 2 ), "The %domainType% specification for %domainName% contains comments.\nThis client program is too old to update this spec.\nThe client program must be fully compatible with the 2024.1 server release in order to update this specification with comments." } ;
+ErrorId MsgDm2::ConfigNotFound                   = { ErrorOf( ES_DM2, 144, E_FAILED, EV_FAULT, 2 ), "Failed to read the configurable variable '%cfgCName%' with server name '%cfgSName%' from the db.config table." } ;
+ErrorId MsgDm2::ChunkMapFormat                   = { ErrorOf( ES_DM2, 146, E_FATAL, EV_ADMIN, 3 ), "Chunk map format error: '%source%', '%file%', '%error%'" }; // NOTRANS
+ErrorId MsgDm2::SparseStreamNoCreateMaxCommit0   = { ErrorOf( ES_DM2, 147, E_FAILED, EV_USAGE, 0 ), "Can't create sparse stream if maxCommitChange is 0." }; 
+ErrorId MsgDm2::SparseStreamNoUnshelvePinLower = { ErrorOf( ES_DM2, 149, E_FAILED, EV_USAGE, 3 ), "The stream spec in shelf %shelf% is associated with 'share' path %oldChange%. The current stream spec is associated with 'share' path %newChange%. Unshelving to a lower sparse stream parent changeview is not allowed." } ;
+ErrorId MsgDm2::UpgradeToCreatePJnlClient        = { ErrorOf( ES_DM2, 150, E_FAILED, EV_USAGE, 0 ), "Cannot set client type to '%'partitioned-jnl'%' until all upstream servers have been upgraded to at least 2024.1 server version." };
+ErrorId MsgDm2::NoTopologyActiveRec              = { ErrorOf( ES_DM2, 152, E_WARN, EV_USAGE, 2 ), "No active topology record found with the source address '%saddr%' and the target address '%taddr%'." };
+ErrorId MsgDm2::DbBodTextCxEntryMissing          = { ErrorOf( ES_DM2, 153, E_FAILED, EV_FAULT, 2 ), "No entry for stream '%stream%' at change '%change%' found in db.bodtexcx. Stream spec integration analysis cannot continue." };
+ErrorId MsgDm2::StreamSpecIntegrationNoFrmChange = { ErrorOf( ES_DM2, 154, E_FAILED, EV_FAULT, 2 ), "Can't find stream spec rev for stream '%fromstream%' at change '%change%'." };

@@ -172,6 +172,11 @@ ClientScript::Run( const char* cmd, const char* func, ClientUser* u,
 	                   ( ClientScriptAction::FAIL, nRun );
 	    }
 
+	    if( !client->ExtensionsDebugHooksEnabled() &&
+	        ra >= ClientScriptAction::PRE_DEBUG )
+	        return std::tuple< ClientScriptAction, int >
+	                   ( ClientScriptAction::UNKNOWN, nRun );
+
 	    return std::tuple< ClientScriptAction, int >( ra, nRun );
 	    }
 	    catch( const std::exception& err )

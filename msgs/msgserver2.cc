@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgServer2 error code is: 282
+ * Current high value for a MsgServer2 error code is: 298
  *                                                   Max code is 1023!!!
  *
  * The MsgServer2 class contains overflow messages from MsgServer.
@@ -194,7 +194,7 @@ ErrorId MsgServer2::SSIntegNotCurStream    = { ErrorOf( ES_SERVER2, 142, E_FAILE
 ErrorId MsgServer2::ExtCfgMissing          = { ErrorOf( ES_SERVER2, 143, E_FAILED, EV_UNKNOWN, 2 ), "Missing Extension config for %name%, %uuid%." } ;
 ErrorId MsgServer2::NoUnshelveVirtIntoNoInh= { ErrorOf( ES_SERVER2, 144, E_FAILED, EV_ILLEGAL, 0 ), "Can't unshelve a virtual stream spec into a stream spec with a noinherit ParentView." } ;
 ErrorId MsgServer2::NoUnshelveNoInhIntoVirt= { ErrorOf( ES_SERVER2, 145, E_FAILED, EV_ILLEGAL, 0 ), "Can't unshelve a stream spec with a noinherit ParentView into a virtual stream spec." } ;
-ErrorId MsgServer2::ReplicaSharedConfig    = { ErrorOf( ES_SERVER2, 146, E_FATAL, EV_ADMIN, 0 ), "Replica cannot run! This replica server does not appear to share archive storage with its master server. However, the replica was configured with lbr.replication=shared. Setting lbr.replication=shared without sharing archive storage can result in transfer errors between servers. Please reconfigure this replica or contact Perforce Technical Support for assistance." } ;
+ErrorId MsgServer2::ReplicaSharedConfig    = { ErrorOf( ES_SERVER2, 146, E_FATAL, EV_ADMIN, 1 ), "Replica cannot run! This replica server does not appear to share archive storage with its master server for depotname=%depot%. However, the replica was configured with lbr.replication=shared. Setting lbr.replication=shared without sharing archive storage can result in transfer errors between servers. Map paths for all depots can be verified with '%'p4 depots -a'%'. Please reconfigure this replica or contact Perforce Technical Support for assistance." } ;
 ErrorId MsgServer2::RtMonitorDisabled      = { ErrorOf( ES_SERVER2, 147, E_FAILED, EV_ADMIN, 0 ), "Realtime monitoring not currently enabled." } ;
 ErrorId MsgServer2::SwitchStreamUnrelated  = { ErrorOf( ES_SERVER2, 148, E_FAILED, EV_ILLEGAL, 0 ), "Use the '--allow-unrelated' option to switch to a different stream hierarchy." } ;
 ErrorId MsgServer2::PurgeReportArchive     = { ErrorOf( ES_SERVER2, 149, E_WARN, EV_NONE, 0 ), "This was report mode.  Use %'-y'% to remove files. Add %'-A'% to include archived revisions." } ;
@@ -303,7 +303,7 @@ ErrorId MsgServer2::BadPressureThresholds  = { ErrorOf( ES_SERVER2, 267, E_WARN,
 ErrorId MsgServer2::PopulateSparseStreamDesc = { ErrorOf( ES_SERVER2, 268, E_INFO, EV_NONE, 2 ), "Populate stream %targetStream% from %sourceStream%." };
 ErrorId MsgServer2::NonResidentOpenMustSync = { ErrorOf( ES_SERVER2, 269, E_FAILED, EV_USAGE, 2 ), "%clientFile% - must sync before opening for %action% in sparse stream." };
 ErrorId MsgServer2::BadJField              = { ErrorOf( ES_SERVER2, 270, E_FAILED, EV_USAGE, 2 ), "Bad jfield option specified '%opt%'. Must be one of %optlist%" } ;
-ErrorId MsgServer2::TooManySparseFileOverlays = { ErrorOf( ES_SERVER2, 271, E_FAILED, EV_USAGE, 1 ), "Branching too many files in this sparse stream (over %branchMax%)" };
+ErrorId MsgServer2::TooManySparseStreamFiles = { ErrorOf( ES_SERVER2, 271, E_FAILED, EV_USAGE, 4 ), "Can't %action% files in sparse stream %stream% (%branchMax% or more depot files already in %depotPath%)" };
 ErrorId MsgServer2::TraitDepotNotConfigured= { ErrorOf( ES_SERVER2, 272, E_FAILED, EV_CONTEXT, 0 ), "Trait depot storage has not been configured by '%'trait.storagedepot.min'%'. This value must be greater than 0 to enable trait depot storage." } ;
 ErrorId MsgServer2::TraitDepotNotForCommit = { ErrorOf( ES_SERVER2, 273, E_FAILED, EV_CONTEXT, 0 ), "Trait depot storage is not supported on this version of the commit server. Commit server must be upgraded to use this feature." } ;
 ErrorId MsgServer2::NoValidIPOrMACAddresses = { ErrorOf( ES_SERVER2, 274, E_FAILED, EV_ADMIN, 0), "No valid IP or MAC Addresses available for License use."} ;
@@ -311,7 +311,23 @@ ErrorId MsgServer2::ValidIPv4Address       = { ErrorOf( ES_SERVER2, 275, E_INFO,
 ErrorId MsgServer2::ValidIPv6Address       = { ErrorOf( ES_SERVER2, 276, E_INFO, EV_NONE, 2 ), "IPv6 Address (Interface %int%): %address%" };
 ErrorId MsgServer2::ValidMACAddress        = { ErrorOf( ES_SERVER2, 277, E_INFO, EV_NONE, 2 ), "MAC Address (Interface %int%): %address%" };
 ErrorId MsgServer2::NoTraitValueInDepot    = { ErrorOf( ES_SERVER2, 278, E_FAILED, EV_ADMIN, 2 ), "The value for trait '%name%' was not found in the trait depot at %path%." };
+ErrorId MsgServer2::AttributeNoWild        = { ErrorOf( ES_SERVER2, 294, E_FAILED, EV_USAGE, 0 ), "Attribute name must not include wildcards." };
+ErrorId MsgServer2::AttributeNotFound      = { ErrorOf( ES_SERVER2, 295, E_FAILED, EV_USAGE, 3 ), "%depotFile%#%depotRev% - no such attribute[ '%attr%'|s] found." };
+ErrorId MsgServer2::AttributeFileEmpty     = { ErrorOf( ES_SERVER2, 296, E_FAILED, EV_USAGE, 1 ), "File '%traitFile%' is empty: cannot set attribute value." };
+ErrorId MsgServer2::UseTraitI              = { ErrorOf( ES_SERVER2, 297, E_FAILED, EV_USAGE, 0 ), "Usage: %'attribute -I filename [-f -p [-T0|-T1]] -n name file'%" } ;
 ErrorId MsgServer2::Types64Warn            = { ErrorOf( ES_SERVER2, 279, E_WARN, EV_ADMIN, 2 ), "Server requires a client that supports 64bit changelist numbers. Client version: %cv%. Required version %rv%." } ;
 ErrorId MsgServer2::Types64Err             = { ErrorOf( ES_SERVER2, 280, E_FAILED, EV_ADMIN, 2 ), "Server requires a client that supports 64bit changelist numbers. Client version: %cv%. Required version %rv%." } ;
-ErrorId MsgServer2::ConfigureSetComment    = { ErrorOf( ES_SERVER2, 281, E_INFO, EV_NONE, 3 ), "For server '%serverName%', configuration variable '%variableName%' comment set to '%comment%'" } ;
+ErrorId MsgServer2::ConfigureSetComment    = { ErrorOf( ES_SERVER2, 281, E_INFO, EV_NONE, 5 ), "For server '%serverName%', configuration variable '%variableName%' comment set to '%comment%'[ overwriting previous comment '%oldComment%'] at iteration %iteration%." } ;
 ErrorId MsgServer2::ProxyClearCacheNotSet  = { ErrorOf( ES_SERVER2, 282, E_INFO, EV_NOTYET, 0 ), "Proxy cache-purge needs configurable 'proxy.clearcachethresh'. Please set it and try again."} ;
+ErrorId MsgServer2::StreamMustBeSparse     = { ErrorOf( ES_SERVER2, 283, E_FAILED, EV_USAGE, 0 ), "This operation is only allowed on sparse streams." } ;
+ErrorId MsgServer2::InvalidDestStreamType  = { ErrorOf( ES_SERVER2, 284, E_FAILED, EV_USAGE, 0 ), "Invalid stream type. Stream type must be release or development." };
+ErrorId MsgServer2::UseStreamConvertSparse = { ErrorOf( ES_SERVER2, 285, E_FAILED, EV_USAGE, 0 ), "Usage: %'stream convertsparse [ -q ]'%" };
+ErrorId MsgServer2::ConfigureMandatoryComment = { ErrorOf( ES_SERVER2, 286, E_FAILED, EV_USAGE, 0), "Cannot set/unset configurable without comment.\nSee '%'p4 help configure'%'." } ;
+ErrorId MsgServer2::NoJournalRotateWarning = { ErrorOf( ES_SERVER2, 287, E_INFO, EV_ADMIN, 1), "No journal rotation in the past %days% days." } ;
+ErrorId MsgServer2::CommitVerifyNoExternalAddress = { ErrorOf( ES_SERVER2, 288, E_FAILED, EV_ADMIN, 1 ), "Commit verify requires 'ExternalAddress' field in %serverID% server spec to be set" };
+ErrorId MsgServer2::SwitchStreamFailedReconcile = { ErrorOf( ES_SERVER2, 289, E_FAILED, EV_NOTYET, 0 ), "Failed to switch streams. Could not reconcile all files and not all local changes could be shelved. Please resolve issues shown by 'p4 reconcile' and try again." };
+ErrorId MsgServer2::MissingConfigDbFile = { ErrorOf( ES_SERVER2, 290, E_FAILED, EV_ADMIN, 1 ), "Recovery directory %dir% contains partitioned clients but no db.config replay file." } ;
+ErrorId MsgServer2::MissingPcdir = { ErrorOf( ES_SERVER2, 291, E_FAILED, EV_ADMIN, 1 ), "The Recovery directory %dir% contains partitioned clients but the db.config replay file does not contain a clientReadonlyDir setting." } ;
+ErrorId MsgServer2::NoStreamSpecEditStreamAtChangeClient = { ErrorOf( ES_SERVER2, 292, E_FAILED, EV_USAGE, 0 ), "Stream spec cannot be opened for edit in StreamAtChange client." } ;
+ErrorId MsgServer2::NoStreamSpecUnshelveStreamAtChangeClient = { ErrorOf( ES_SERVER2, 293, E_FAILED, EV_USAGE, 0 ), "Stream spec cannot be unshelved in StreamAtChange client." } ;
+ErrorId MsgServer2::SparseStreamOperationNotAllowed = { ErrorOf( ES_SERVER2, 298, E_FAILED, EV_USAGE, 0 ), "This operation is not allowed on sparse streams." } ;

@@ -4,7 +4,7 @@ local CCFLAGS = [ FRemoveAny $(CCFLAGS) : -Wunused ] ;
 local C++FLAGS = [ C++FLAGS+STD $(C++_VERSION_MAX) ] ;
 C++FLAGS = [ FRemoveAny $(C++FLAGS) : -Wmissing-braces -Wunused ] ;
 
-if $(CLANGVER)
+if $(CLANGVER) || $(OSCOMP:U) = "XC"
 {
 	# lundump.c:237
 	C++FLAGS += -Wno-string-plus-int ;
@@ -37,6 +37,13 @@ LinkPthread luac ;
 
 LINKLIBS on lua += $(LINKLIBS) ;
 LINKLIBS on luac += $(LINKLIBS) ;
+
+if $(CLANGVER)
+{
+	# E.g. for a TYPE=clang-asan build.
+	OnTargetVarDelete lua$(SUFEXE) : LINKLIBS : -lsupc++ ;
+	OnTargetVarDelete luac$(SUFEXE) : LINKLIBS : -lsupc++ ;
+}
 
 MainFromObjects lua : $(one_lua_obj) ;
 MainFromObjects luac : $(one_luac_obj) ;

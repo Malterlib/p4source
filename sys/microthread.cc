@@ -171,10 +171,11 @@ MicroThread::WorkLaunch( void * w )
 	DEBUGPRINT( DEBUG_THREAD, "Fresh Start" );
 # ifdef THREAD_CPP_DEBUG
 	std::cout << "starting thread id " << t->mythread.get_id() << std::endl;
-# endif
 
 	int i = 0;
-
+# endif
+	int haveerr = 0;
+	int skiponerror = t->pool->IsSkipOnError();
 
 	do {
 # ifdef HAVE_THREAD
@@ -185,9 +186,18 @@ MicroThread::WorkLaunch( void * w )
 # ifdef HAVE_THREAD
 	    t->mymutex.unlock();
 # endif
-	    t->Work();
+	    // If we have an error and we are skipping on errors
+	    // don't call the Work() function.
+	    if( ! ( haveerr && skiponerror ) )
+	    {
+	        t->Work();
+	        if( t->err.Test() )
+	            haveerr = 1;
+	    }
 
+# ifdef THREAD_CPP_DEBUG
 	    ++i;
+# endif
 
 # ifdef HAVE_THREAD
 	    t->mymutex.lock();
@@ -345,7 +355,7 @@ MicroThreadPool::WaitAll( Error *e )
 	    poolMutex.ReleaseMutex();
 	    t->Wait();
 	    if( e && t->ErrorObj().Test() )
-	        e->Merge( t->ErrorObj() );
+	        e->Merge( t->ErrorObj(), 1 ); // Skip any dups
 	    delete t;
 	    StartWaiting();
 	    poolMutex.GetMutex();

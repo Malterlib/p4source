@@ -27,6 +27,8 @@ public:
 	CharSetCvt *FromCvt() { return fromOther; }
 	CharSetCvt *ToCvt() { return toOther; }
 
+	void	SetArgv( int argc, char *const *argv );
+
 private:
 	StrPtr *VGetVar( const StrPtr &var );
 	void	VSetVar( const StrPtr &var, const StrPtr &val );

@@ -46,12 +46,12 @@ class MultiMerge
 		MultiMerge( StrPtr *diffFlags = 0 );
 		~MultiMerge();
 
-	void	Add( FileSys *f, int revId, int chgId, Error *e );
+	void	Add( FileSys *f, P4INT64 revId, P4INT64 chgId, Error *e );
 
 	void	Dump();
 
-	MergeLine *Read( int &lower, int &upper, int &change, 
-	                 StrPtr &string, int chg );
+	MergeLine *Read( P4INT64 &lower, P4INT64 &upper, P4INT64 &change, 
+	                 StrPtr &string, int showchg );
 
 	MergeLine *FirstLine() { return chain; } // for FileMultiMerge
 
@@ -95,11 +95,11 @@ struct MergeLine
 {
 	MergeLine	*next;
 
-	int		lowerRev;
-	int		upperRev;
+	P4INT64		lowerRev;
+	P4INT64		upperRev;
 
-	int		lowerChg;
-	int		upperChg;
+	P4INT64		lowerChg;
+	P4INT64		upperChg;
 
 	MergeLine	*from; // integ source
 
@@ -117,8 +117,8 @@ struct MergeLine
 	static MergeLine **MarkLines( 
 		MergeLine **p,
 		LineNo count,
-		int prevRev,
-		int nextRev,
-		int prevChg,
-		int nextChg );
+		P4INT64 prevRev,
+		P4INT64 nextRev,
+		P4INT64 prevChg,
+		P4INT64 nextChg );
 } ;

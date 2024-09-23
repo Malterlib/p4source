@@ -63,6 +63,7 @@ class MsgClient {
 
 	static ErrorId UnknownCharset;
 	static ErrorId FileKept;
+	static ErrorId DataOutOfBounds;
 
 	static ErrorId ChdirFail;
 	static ErrorId LockCheckFail;

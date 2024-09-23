@@ -52,6 +52,12 @@
 
 static int one = 1;
 
+#define DO_NET_CLOSE_SOCKET(fd) \
+    if ( fd >= 0 ) { \
+	close(fd); \
+	fd = -1; \
+     }
+
 /*
  * For 2012.1, default hints flags to nothing.
  * For 2012.2, perhaps default them to AI_ADDRCONFIG.
@@ -304,7 +310,7 @@ NetTcpEndPoint::CreateSocket(
 			e->Net2( op6, addrBuf.Text() );
 		    else
 			e->Net( op4, addrBuf.Text() );
-		    NET_CLOSE_SOCKET( fd );
+		    DO_NET_CLOSE_SOCKET( fd );
 		    return -1;
 		}
 	    }
@@ -578,7 +584,7 @@ NetTcpEndPoint::Listen( Error *e )
 	    e->Net( "listen", GetPortParser().String().Text() );
 	    StrBuf listenAddress;
 	    GetListenAddress( s, RAF_PORT, listenAddress );
-	    NET_CLOSE_SOCKET( s );
+	    DO_NET_CLOSE_SOCKET( s );
 	    e->Set( MsgRpc::TcpListen ) << listenAddress;
 	}
 
@@ -949,7 +955,7 @@ NetTcpEndPoint::GetPrintableHost()
 void
 NetTcpEndPoint::Unlisten()
 {
-	NET_CLOSE_SOCKET( s );
+	DO_NET_CLOSE_SOCKET( s );
 }
 
 NetTransport *

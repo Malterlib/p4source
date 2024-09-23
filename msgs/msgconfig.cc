@@ -22,7 +22,7 @@
  * When adding a new error make sure it's greater than the current high
  * value and update the following number:
  *
- * Current high value is: 476
+ * Current high value is: 491
  */
 
 //
@@ -250,6 +250,12 @@ R"(Enables debug logging of the S3 object storage subsystem.
 )"
 };
 
+ErrorId MsgConfig::Suptool = { ErrorOf( ES_CONFIG, 483, E_INFO, EV_NONE, 0 ),
+R"(Enables debug logging of the Support Tool (perfmerge, perfsplit, p4migrate)
+subsystem.
+)"
+};
+
 //
 // Numeric Tunables
 //
@@ -313,6 +319,12 @@ A value of 0 disables it.
 )"
 };
 
+ErrorId MsgConfig::DbJournalrotateWarnthresh = { ErrorOf( ES_CONFIG, 486, E_INFO, EV_NONE, 0 ),
+R"(Number of days prior to another journal rotation being needed and
+providing the warning if '%'db.journalrotate.warnthresh'%' is more than zero.
+)"
+};
+
 ErrorId MsgConfig::DbMonitorAddthresh = { ErrorOf( ES_CONFIG, 11, E_INFO, EV_NONE, 0 ),
 R"(Milliseconds before adding a command or connection at monitor level 1 or 2.
 )"
@@ -348,6 +360,17 @@ ErrorId MsgConfig::DbPageMigrate = { ErrorOf( ES_CONFIG, 16, E_INFO, EV_NONE, 0 
 R"(If a new page is the to be allocated at a position beyond this threshold, in
 percent, into the database file, it will be allocated as close to the start of
 file as possible instead.
+)"
+};
+
+ErrorId MsgConfig::DbPartitionVerify = { ErrorOf( ES_CONFIG, 484, E_INFO, EV_NONE, 0 ),
+R"(Enables the verification of partitioned tables.
+)"
+};
+
+ErrorId MsgConfig::DbPartitionDrop = { ErrorOf( ES_CONFIG, 485, E_INFO, EV_NONE, 0 ),
+R"(Enabling the deletion of the partitioned have table instead of deleting the
+records in the table.
 )"
 };
 
@@ -547,6 +570,12 @@ when running commands that would be limited the the scope of the client view.
 )"
 };
 
+ErrorId MsgConfig::DmConfigureCommentMandatory = { ErrorOf(ES_CONFIG, 481, E_INFO, EV_NONE, 0),
+R"(If set to 1, changing configurable values with '%'p4 configure'%' requires
+a comment.
+)"
+};
+
 ErrorId MsgConfig::DmCopyMovewarn = { ErrorOf( ES_CONFIG, 50, E_INFO, EV_NONE, 0 ),
 R"(If set to 1, '%'p4 copy'%' displays a warning when both halves of a moved file
 are not represented in the copy result, and suggests an earlier changelist that
@@ -585,6 +614,12 @@ ErrorId MsgConfig::DmFlushtry = { ErrorOf( ES_CONFIG, 55, E_INFO, EV_NONE, 0 ),
 R"(Batch size interval of files being opened/reverted before trying to take a lock
 to persist; if the lock could be taken, the batch will grow to the next multiple
 of this interval before trying again, unless the size reaches '%'dm.flush.force'%'.
+)"
+};
+
+ErrorId MsgConfig::DmFstatOutputthreshold = { ErrorOf( ES_CONFIG, 480, E_INFO, EV_NONE, 0 ),
+R"(Threshold on number of files that fstat will process before sending output
+to the client.
 )"
 };
 
@@ -637,6 +672,11 @@ selection (per file being integrated).
 )"
 };
 
+ErrorId MsgConfig::DmIntegStreamAllowDepotFilespec = { ErrorOf( ES_CONFIG, 491, E_INFO, EV_NONE, 0 ),
+R"(If set to 1, removes requirement for force flag (-F) when integrating
+between streams using filespecs with depot syntax. The default is 0.
+)"
+};
 ErrorId MsgConfig::DmIntegStreamspec = { ErrorOf( ES_CONFIG, 65, E_INFO, EV_NONE, 0 ),
 R"(Controls the behavior of stream spec integration:
 	0: Stream spec integration is not allowed
@@ -701,7 +741,10 @@ R"(Loop count interval for checking keepalives.
 };
 
 ErrorId MsgConfig::DmKeysHide = { ErrorOf( ES_CONFIG, 70, E_INFO, EV_NONE, 0 ),
-R"(If set to 1, '%'p4 keys'%' requires '%'admin'%' permissions rather than '%'list'%'.
+R"(Controls the '%'p4 key'%' and '%'p4 keys'%' access permissions:
+	0: Default.
+	1: '%'p4 keys'%' requires '%'admin'%' permissions rather than '%'list'%'.
+	2: '%'p4 keys'%' and '%'p4 key'%' requires '%'admin'%' permissions.
 )"
 };
 
@@ -827,6 +870,13 @@ R"(This configurable has been deprecated and is no longer used.
 )"
 };
 
+ErrorId MsgConfig::DmRenameuserScanthresh = { ErrorOf( ES_CONFIG, 482, E_INFO, EV_NONE, 0 ),
+R"('%'p4 renameuser'%' will perform a direct scan of db.rev if the user being
+renamed submitted more than this percentage of submitted changes on the server.
+Otherwise, an optimized lookup via db.revcx will be used.
+)"
+};
+
 ErrorId MsgConfig::DmRepoNoautocreate = { ErrorOf( ES_CONFIG, 92, E_INFO, EV_NONE, 0 ),
 R"(If set to 1, pushing a non-existent repo into graph depot will be blocked.
 )"
@@ -931,7 +981,9 @@ R"(Enables stream components functionality.
 };
 
 ErrorId MsgConfig::DmStreamSparseBranchMax = { ErrorOf( ES_CONFIG, 434, E_INFO, EV_NONE, 0 ),
-R"(Currently unused.
+R"(Maximum number of depot files in the branch view of a sparse stream.
+	0: No limit
+	N: Limit the number of files to N
 )"
 };
 
@@ -942,8 +994,8 @@ to a specific changelist will also apply the stream's view at that change.
 };
 
 ErrorId MsgConfig::DmSubprotectsGrantAdmin = { ErrorOf( ES_CONFIG, 110, E_INFO, EV_NONE, 0 ),
-R"(When enables, users granted '%'owner'%' permission permission in the protections
-table are implicitly granted '%'admin'%' permission on the same path.
+R"(When enabled, users granted '%'owner'%' permission in the protections table
+are implicitly granted '%'admin'%' permission on the same path.
 )"
 };
 
@@ -964,6 +1016,11 @@ R"(Time interval to force the user access time update.
 
 ErrorId MsgConfig::DmUserAllowselfupdate = { ErrorOf( ES_CONFIG, 114, E_INFO, EV_NONE, 0 ),
 R"(Allowing the Users to update their email and fullname.
+)"
+};
+
+ErrorId MsgConfig::DmUserHideinvalid = { ErrorOf(ES_CONFIG, 478, E_INFO, EV_NONE, 0),
+R"(Hide invalid user error on authentication failure.
 )"
 };
 
@@ -1249,6 +1306,11 @@ beyond its default may result in server instability.
 )"
 };
 
+ErrorId MsgConfig::MapLimitMaxlookback = { ErrorOf( ES_CONFIG, 477, E_INFO, EV_NONE, 0 ),
+R"(The maximum number of limit-map entries to check when searching for a duplicate.
+)"
+};
+
 ErrorId MsgConfig::MapMaxwild = { ErrorOf( ES_CONFIG, 162, E_INFO, EV_NONE, 0 ),
 R"(The maximum number of wildcards within a single mapping expression. Increasing
 this threshold beyond its default may result in server instability.
@@ -1279,6 +1341,19 @@ setting them explicitly with value of '%'net.tcpsize'%'.
 
 ErrorId MsgConfig::NetBufsize = { ErrorOf( ES_CONFIG, 166, E_INFO, EV_NONE, 0 ),
 R"(Network buffer size for sends.
+)"
+};
+
+ErrorId MsgConfig::NetDeltaTransferMinsize = { ErrorOf( ES_CONFIG, 487, E_INFO, EV_NONE, 0 ),
+R"(Minimum file size to perform a delta content transfer. A value of 0 disables
+delta content transfers.
+)"
+};
+
+ErrorId MsgConfig::NetDeltaTransferThreshold = { ErrorOf( ES_CONFIG, 488, E_INFO, EV_NONE, 0 ),
+R"(Maximum percentage of file size to perform a delta content transfer before
+reverting to streaming the complete file. A value of 0 disables delta content
+transfers.
 )"
 };
 
@@ -1489,6 +1564,12 @@ R"(Proxy monitoring level. See '%'p4p -h'%'.
 ErrorId MsgConfig::ProxyClearcachethresh = { ErrorOf( ES_CONFIG, 204, E_INFO, EV_NONE, 0 ),
 R"(The threshold in number of days for Proxy cache clearing, used by the command
 '%'p4p --cache-purge'%'. A value of 0 means cache clearing is turned off.
+)"
+};
+
+ErrorId MsgConfig::ProxySuppresswarnings = { ErrorOf( ES_CONFIG, 490, E_INFO, EV_NONE, 0 ),
+R"(Used to suppress Proxy warning level errors to the client. A value of 0 means
+errors are passed to the client. This does not impact error logging.
 )"
 };
 
@@ -1792,17 +1873,19 @@ global locks on the commit server by default.
 
 ErrorId MsgConfig::ServerAllowfetch = { ErrorOf( ES_CONFIG, 251, E_INFO, EV_NONE, 0 ),
 R"(Determines whether changes can be fetched.
-	1: this server can fetch from other servers.
-	2: other servers can fetch from this server.
-	3: both 1 and 2 are allowed.
+	0: Fetching to or from this server is disabled.
+	1: This server can fetch from other servers.
+	2: Other servers can fetch from this server.
+	3: Both 1 and 2 are allowed.
 )"
 };
 
 ErrorId MsgConfig::ServerAllowpush = { ErrorOf( ES_CONFIG, 252, E_INFO, EV_NONE, 0 ),
 R"(Determines whether changes can be pushed.
-	1: this server can push to other servers.
-	2: other servers can push to this server.
-	3: both 1 and 2 are allowed.
+	0: Pushing to or from this server is disabled.
+	1: This server can push to other servers.
+	2: Other servers can push to this server.
+	3: Both 1 and 2 are allowed.
 )"
 };
 
@@ -2082,21 +2165,24 @@ commit per segment directly (4MiB)  (but see also '%'eager_commit_delay'%')
 )"
 };
 
-ErrorId MsgConfig::SysMemoryMiEagerregioncommit = { ErrorOf( ES_CONFIG, 293, E_INFO, EV_NONE, 0 ),
+// Rename from eager_region_commit to arena_eager_commit
+ErrorId MsgConfig::SysMemoryMiArenaeagercommit = { ErrorOf( ES_CONFIG, 293, E_INFO, EV_NONE, 0 ),
 R"(Exposed mimalloc option - not guaranteed to take effect:
 eager commit arena's? 2 is used to enable this only on an OS that has overcommit
 (i.e. linux)
 )"
 };
 
-ErrorId MsgConfig::SysMemoryMiResetdecommits = { ErrorOf( ES_CONFIG, 294, E_INFO, EV_NONE, 0 ),
+// Rename from reset_decommits to purge_decommits
+ErrorId MsgConfig::SysMemoryMiPurgedecommits = { ErrorOf( ES_CONFIG, 294, E_INFO, EV_NONE, 0 ),
 R"(Exposed mimalloc option - not guaranteed to take effect:
 purge decommits memory (instead of reset) (note: on linux this uses
 MADV_DONTNEED for decommit)
 )"
 };
 
-ErrorId MsgConfig::SysMemoryMiLargeospages = { ErrorOf( ES_CONFIG, 295, E_INFO, EV_NONE, 0 ),
+// Rename from large_os_pages to allow_large_os_pages
+ErrorId MsgConfig::SysMemoryMiAllowlargeospages = { ErrorOf( ES_CONFIG, 295, E_INFO, EV_NONE, 0 ),
 R"(Exposed mimalloc option - not guaranteed to take effect:
 use large OS pages, use only with eager commit to prevent fragmentation of VMA's
 )"
@@ -2126,19 +2212,20 @@ cache N segments per thread
 )"
 };
 
-ErrorId MsgConfig::SysMemoryMiPagereset = { ErrorOf( ES_CONFIG, 300, E_INFO, EV_NONE, 0 ),
+ErrorId MsgConfig::SysMemoryMiDeprecatedpagereset = { ErrorOf( ES_CONFIG, 300, E_INFO, EV_NONE, 0 ),
 R"(Exposed mimalloc option - not guaranteed to take effect:
 reset page memory on free
 )"
 };
 
-ErrorId MsgConfig::SysMemoryMiAbandonedpagereset = { ErrorOf( ES_CONFIG, 301, E_INFO, EV_NONE, 0 ),
+// Rename from abandoned_page_reset to abandoned_page_purge
+ErrorId MsgConfig::SysMemoryMiAbandonedpagepurge = { ErrorOf( ES_CONFIG, 301, E_INFO, EV_NONE, 0 ),
 R"(Exposed mimalloc option - not guaranteed to take effect:
 reset free page memory when a thread terminates
 )"
 };
 
-ErrorId MsgConfig::SysMemoryMiSegmentreset = { ErrorOf( ES_CONFIG, 302, E_INFO, EV_NONE, 0 ),
+ErrorId MsgConfig::SysMemoryMiDeprecatedsegmentreset = { ErrorOf( ES_CONFIG, 302, E_INFO, EV_NONE, 0 ),
 R"(Exposed mimalloc option - not guaranteed to take effect:
 reset segment memory on free (needs eager commit)
 )"
@@ -2151,7 +2238,8 @@ segment on demand)
 )"
 };
 
-ErrorId MsgConfig::SysMemoryMiDecommitDelay = { ErrorOf( ES_CONFIG, 304, E_INFO, EV_NONE, 0 ),
+// Rename from reset_delay to purge_delay
+ErrorId MsgConfig::SysMemoryMiPurgeDelay = { ErrorOf( ES_CONFIG, 304, E_INFO, EV_NONE, 0 ),
 R"(Exposed mimalloc option - not guaranteed to take effect:
 purge delay in milli-seconds
 )"
@@ -2193,20 +2281,41 @@ max. number of segment reclaims from the abandoned segments per try
 )"
 };
 
+// Deprecated
 ErrorId MsgConfig::SysMemoryMiAllowdecommit = { ErrorOf( ES_CONFIG, 311, E_INFO, EV_NONE, 0 ),
 R"(Exposed mimalloc option - not guaranteed to take effect:
 decommit slices when no longer used (after decommit_delay milli-seconds)
 )"
 };
 
+// Deprecated
 ErrorId MsgConfig::SysMemoryMiSegmentdecommitdelay = { ErrorOf( ES_CONFIG, 312, E_INFO, EV_NONE, 0 ),
 R"(Exposed mimalloc option - not guaranteed to take effect:
 decommit delay in milli-seconds for freed segments
 )"
 };
 
-ErrorId MsgConfig::SysMemoryMiDecommitextenddelay = { ErrorOf( ES_CONFIG, 313, E_INFO, EV_NONE, 0 ),
-// fixme!
+ErrorId MsgConfig::SysMemoryMiDestroyonexit = { ErrorOf( ES_CONFIG, 483, E_INFO, EV_NONE, 0 ),
+R"(Exposed mimalloc option - not guaranteed to take effect:
+release all OS memory on process exit; careful with dangling pointer
+or after-exit frees!
+)"
+};
+
+ErrorId MsgConfig::SysMemoryMiArenareserve = { ErrorOf( ES_CONFIG, 484, E_INFO, EV_NONE, 0 ),
+R"(Exposed mimalloc option - not guaranteed to take effect:
+reserve memory N KiB at a time
+)"
+};
+
+ErrorId MsgConfig::SysMemoryMiArenapurgemult = { ErrorOf( ES_CONFIG, 485, E_INFO, EV_NONE, 0 ),
+R"(Exposed mimalloc option - not guaranteed to take effect:
+purge delay multiplier for arena's
+)"
+};
+
+// Rename from decommit_extend_delay to purge_extend_delay
+ErrorId MsgConfig::SysMemoryMiPurgeextenddelay = { ErrorOf( ES_CONFIG, 313, E_INFO, EV_NONE, 0 ),
 R"(Exposed mimalloc option - not guaranteed to take effect:
 wait a tiny bit longer in case there is a series of free's
 )"
@@ -2315,8 +2424,8 @@ R"(Enables utilizing multiple processor groups on Windows Server 2008 R2 or late
 ErrorId MsgConfig::SysTypesAllow64 = { ErrorOf( ES_CONFIG, 330, E_INFO, EV_NONE, 0 ),
 R"(Controls the behavior of 64-bit types:
 	0: Only allow 32-bit changelists and traits
-	1: Allow 64-bit changelists and traits, warn pre-23.2 clients
-	2: Allow 64-bit changelists and traits, allow pre-23.2 clients
+	1: Allow 64-bit changelists and traits, allow pre-23.2 clients
+	2: Allow 64-bit changelists and traits, warn pre-23.2 clients
 	3: Allow 64-bit changelists and traits, forbid pre-23.2 clients
 )"
 };
@@ -2481,9 +2590,10 @@ ErrorId MsgConfig::AuthTicketsNounlocked = { ErrorOf( ES_CONFIG, 351, E_INFO, EV
 R"(If set to 1 or 2, prevents '%'p4 login -a'%' from issuing host
 unlocked tickets. In other words, 1 or 2 enforce host locked
 tickets, which are restricted to the one host with the correct IP address.
-	1: means the -a flag is silently ignored and the users are
+	0: Default.
+	1: Means the -a flag is silently ignored and the users are
 	   always issued host locked tickets.
-	2: means the -a flag is explicitly disabled and users get
+	2: Means the -a flag is explicitly disabled and users get
 	   an error if they try to use it.
 
 If either value is set, the tagged output from p4 info '%'p4 -ztag info'%'
@@ -2563,6 +2673,12 @@ validation against a specific CA is required.
 
 This configurable applies to any client connection, including when a server
 connects to another server.
+)"
+};
+
+ErrorId MsgConfig::SSLKeylogFile = { ErrorOf( ES_CONFIG, 479, E_INFO, EV_NONE, 0 ),
+R"(The file to record the ssl key log to. This is useful for debugging SSL with
+tools like wireshark: search for SSLKEYLOGFILE for examples.
 )"
 };
 
@@ -3118,7 +3234,7 @@ R"(This configurable has been deprecated and is no longer used.
 
 ErrorId MsgConfig::ClientReadonlyDir = { ErrorOf( ES_CONFIG, 425, E_INFO, EV_NONE, 0 ),
 R"(Directory for the server to store the have database files for the workspaces of
-type '%'readonly'%' and '%'partitioned'%'.
+type '%'readonly'%', '%'partitioned'%' and '%'partitioned-jnl'%'.
 )"
 };
 
@@ -3161,3 +3277,4 @@ R"(The list of OpenSSL cipher suites the server will allow when establishing a
 TLS 1.3 connection, overriding the the OpenSSL defaults
 )"
 };
+

@@ -1059,7 +1059,7 @@ MapHalf::Join( MapHalf *map2, Joiner &joiner )
 }
 
 int
-MapHalf::HasPosWild( StrPtr &h )
+MapHalf::HasPosWild( const StrPtr &h )
 {
 
 	if( char *p = strstr( h.Text(), "%%") )
@@ -1080,7 +1080,7 @@ MapHalf::HasPosWild( StrPtr &h )
 //
 
 int
-MapHalf::HasEmbWild( StrPtr &h, int ignore )
+MapHalf::HasEmbWild( const StrPtr &h, int ignore )
 {
 	char *hPtr = h.Text();
 	char *p;

@@ -54,17 +54,8 @@
 #include "deflate.h"
 #include "x86.h"
 
-/*
- * Perforce change. Disable neon speedup (for now)
- * on Apple M1 builds.
-*/
-#if ( defined( OS_DARWIN ) || defined( OS_MACOSX ) ) && defined(__aarch64__)
-#undef __ARM_NEON__
-#undef __ARM_NEON
-#endif
-
 #if (defined(__ARM_NEON__) || defined(__ARM_NEON))
-#include "contrib/optimizations/slide_hash_neon.h"
+#include "slide_hash_neon.h"
 #endif
 /* We need crypto extension crc32 to implement optimized hash in
  * insert_string.
@@ -284,7 +275,11 @@ local void slide_hash(s)
 }
 
 /* ========================================================================= */
+#ifdef NO_SIMD
+int ZEXPORT deflateInit__nosimd(strm, level, version, stream_size)
+#else
 int ZEXPORT deflateInit_(strm, level, version, stream_size)
+#endif
     z_streamp strm;
     int level;
     const char *version;
@@ -296,8 +291,13 @@ int ZEXPORT deflateInit_(strm, level, version, stream_size)
 }
 
 /* ========================================================================= */
+#ifdef NO_SIMD
+int ZEXPORT deflateInit2__nosimd(strm, level, method, windowBits, memLevel, strategy,
+                  version, stream_size)
+#else
 int ZEXPORT deflateInit2_(strm, level, method, windowBits, memLevel, strategy,
                   version, stream_size)
+#endif
     z_streamp strm;
     int  level;
     int  method;
@@ -478,7 +478,11 @@ local int deflateStateCheck (strm)
 }
 
 /* ========================================================================= */
+#ifdef NO_SIMD
+int ZEXPORT deflateSetDictionary_nosimd(strm, dictionary, dictLength)
+#else
 int ZEXPORT deflateSetDictionary (strm, dictionary, dictLength)
+#endif
     z_streamp strm;
     const Bytef *dictionary;
     uInt  dictLength;
@@ -543,7 +547,11 @@ int ZEXPORT deflateSetDictionary (strm, dictionary, dictLength)
 }
 
 /* ========================================================================= */
+#ifdef NO_SIMD
+int ZEXPORT deflateGetDictionary_nosimd (strm, dictionary, dictLength)
+#else
 int ZEXPORT deflateGetDictionary (strm, dictionary, dictLength)
+#endif
     z_streamp strm;
     Bytef *dictionary;
     uInt  *dictLength;
@@ -565,7 +573,11 @@ int ZEXPORT deflateGetDictionary (strm, dictionary, dictLength)
 }
 
 /* ========================================================================= */
+#ifdef NO_SIMD
+int ZEXPORT deflateResetKeep_nosimd (strm)
+#else
 int ZEXPORT deflateResetKeep (strm)
+#endif
     z_streamp strm;
 {
     deflate_state *s;
@@ -603,7 +615,12 @@ int ZEXPORT deflateResetKeep (strm)
 }
 
 /* ========================================================================= */
+
+#ifdef NO_SIMD
+int ZEXPORT deflateReset_nosimd (strm)
+#else
 int ZEXPORT deflateReset (strm)
+#endif
     z_streamp strm;
 {
     int ret;
@@ -615,7 +632,11 @@ int ZEXPORT deflateReset (strm)
 }
 
 /* ========================================================================= */
+#ifdef NO_SIMD
+int ZEXPORT deflateSetHeader_nosimd (strm, head)
+#else
 int ZEXPORT deflateSetHeader (strm, head)
+#endif
     z_streamp strm;
     gz_headerp head;
 {
@@ -626,7 +647,11 @@ int ZEXPORT deflateSetHeader (strm, head)
 }
 
 /* ========================================================================= */
+#ifdef NO_SIMD
+int ZEXPORT deflatePending_nosimd (strm, pending, bits)
+#else
 int ZEXPORT deflatePending (strm, pending, bits)
+#endif
     unsigned *pending;
     int *bits;
     z_streamp strm;
@@ -640,7 +665,11 @@ int ZEXPORT deflatePending (strm, pending, bits)
 }
 
 /* ========================================================================= */
+#ifdef NO_SIMD
+int ZEXPORT deflatePrime_nosimd (strm, bits, value)
+#else
 int ZEXPORT deflatePrime (strm, bits, value)
+#endif
     z_streamp strm;
     int bits;
     int value;
@@ -666,7 +695,11 @@ int ZEXPORT deflatePrime (strm, bits, value)
 }
 
 /* ========================================================================= */
+#ifdef NO_SIMD
+int ZEXPORT deflateParams_nosimd(strm, level, strategy)
+#else
 int ZEXPORT deflateParams(strm, level, strategy)
+#endif
     z_streamp strm;
     int level;
     int strategy;
@@ -715,7 +748,11 @@ int ZEXPORT deflateParams(strm, level, strategy)
 }
 
 /* ========================================================================= */
+#ifdef NO_SIMD
+int ZEXPORT deflateTune_nosimd(strm, good_length, max_lazy, nice_length, max_chain)
+#else
 int ZEXPORT deflateTune(strm, good_length, max_lazy, nice_length, max_chain)
+#endif
     z_streamp strm;
     int good_length;
     int max_lazy;
@@ -750,7 +787,11 @@ int ZEXPORT deflateTune(strm, good_length, max_lazy, nice_length, max_chain)
  * upper bound of about 14% expansion does not seem onerous for output buffer
  * allocation.
  */
+#ifdef NO_SIMD
+uLong ZEXPORT deflateBound_nosimd(strm, sourceLen)
+#else
 uLong ZEXPORT deflateBound(strm, sourceLen)
+#endif
     z_streamp strm;
     uLong sourceLen;
 {
@@ -861,7 +902,11 @@ local void flush_pending(strm)
     } while (0)
 
 /* ========================================================================= */
+#ifdef NO_SIMD
+int ZEXPORT deflate_nosimd (strm, flush)
+#else
 int ZEXPORT deflate (strm, flush)
+#endif
     z_streamp strm;
     int flush;
 {
@@ -1175,7 +1220,11 @@ int ZEXPORT deflate (strm, flush)
 }
 
 /* ========================================================================= */
+#ifdef NO_SIMD
+int ZEXPORT deflateEnd_nosimd (strm)
+#else
 int ZEXPORT deflateEnd (strm)
+#endif
     z_streamp strm;
 {
     int status;
@@ -1201,7 +1250,11 @@ int ZEXPORT deflateEnd (strm)
  * To simplify the source, this is not supported for 16-bit MSDOS (which
  * doesn't have enough memory anyway to duplicate compression states).
  */
+#ifdef NO_SIMD
+int ZEXPORT deflateCopy_nosimd (dest, source)
+#else
 int ZEXPORT deflateCopy (dest, source)
+#endif
     z_streamp dest;
     z_streamp source;
 {
@@ -1579,19 +1632,7 @@ local void check_match(s, start, match, length)
  *    performed for at least two bytes (required for the zip translate_eol
  *    option -- not supported here).
  */
-local void fill_window_c(deflate_state *s);
-
-local void fill_window(deflate_state *s)
-{
-    if (x86_cpu_enable_simd) {
-        fill_window_sse(s);
-        return;
-    }
-
-    fill_window_c(s);
-}
-
-local void fill_window_c(s)
+local void fill_window(s)
     deflate_state *s;
 {
     unsigned n;
@@ -2274,41 +2315,3 @@ local block_state deflate_huff(s, flush)
     return block_done;
 }
 
-/* Safe to inline this as GCC/clang will use inline asm and Visual Studio will
- * use intrinsic without extra params
- */
-
-#if defined(CRC32_SIMD_SSE42)
-# include <sanitizers.h>
-NO_SANITIZE_UNDEFINED
-local INLINE Pos insert_string_sse(deflate_state *const s, const Pos str)
-{
-    Pos ret;
-    unsigned *ip, val, h = 0;
-
-    ip = (unsigned *)&s->window[str];
-    val = *ip;
-
-    if (s->level >= 6)
-        val &= 0xFFFFFF;
-
-/* Windows clang should use inline asm */
-#if defined(_MSC_VER) && !defined(__clang__)
-    h = _mm_crc32_u32(h, val);
-#elif defined(__i386__) || defined(__amd64__)
-    __asm__ __volatile__ (
-        "crc32 %1,%0\n\t"
-    : "+r" (h)
-    : "r" (val)
-    );
-#else
-    /* This should never happen */
-    assert(0);
-#endif
-
-    ret = s->head[h & s->hash_mask];
-    s->head[h & s->hash_mask] = str;
-    s->prev[str & s->w_mask] = ret;
-    return ret;
-}
-#endif

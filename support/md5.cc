@@ -4,9 +4,25 @@
  * This file is part of Perforce - the FAST SCM System.
  */
 
-#include <openssl/md5.h>
 # include <stdhdrs.h>
+
+# include "strbuf.h"
+# include "strops.h"
 # include "error.h"
+# include "md5.h"
+
+# include <msgsupp.h>
+
+MD5::MD5()
+{
+	Init( 0 );
+}
+
+MD5::MD5( Error *e )
+{
+	Init( e );
+}
+
 # ifndef USE_SSL
 /*
  * This code implements the MD5 message-digest algorithm.
@@ -25,10 +41,6 @@
  * will fill a supplied 16-byte array with the digest.
  */
 
-# include <strbuf.h>
-# include <strops.h>
-
-# include "md5.h"
 
 /*
  * Note: this code does not perturb data on little-endian machines.
@@ -72,7 +84,8 @@ save32( unsigned char *buf, const uint32 *source, unsigned longs )
  * initialization constants.
  */
 
-MD5::MD5()
+void
+MD5::Init( Error *e )
 {
     md5[0] = 0x67452301;
     md5[1] = 0xefcdab89;
@@ -139,6 +152,12 @@ MD5::Update( const StrPtr &a )
     /* Handle any remaining bytes of data. */
 
     memcpy(oddbuf, inbuf, len);
+}
+
+void
+MD5::Update( const unsigned char* buf, const size_t len )
+{
+	Update( StrRef( buf, len ) );
 }
 
 /*
@@ -328,11 +347,6 @@ MD5::Final( StrBuf &output )
 
 # else
 
-# include <stdhdrs.h>
-# include "strbuf.h"
-# include "strops.h"
-# include <md5.h>
-
 extern "C"
 {
     // OpenSSL
@@ -341,10 +355,12 @@ extern "C"
 # include <openssl/md5.h>
 }
 
-MD5::MD5()
+void
+MD5::Init( Error *e )
 {
 	ctx = (void*)new MD5_CTX;
-	MD5_Init( (MD5_CTX*)ctx );
+	if( !MD5_Init( (MD5_CTX*)ctx ) && e )
+	    e->Set( MsgSupp::DigestInitFailed ) << "MD5";
 	bits = 0;
 }
 
@@ -353,20 +369,29 @@ MD5::~MD5()
 	delete (MD5_CTX*)ctx;
 }
 
-class MD5& MD5::operator=( const MD5& rhs )
+class MD5&
+MD5::operator=( const MD5& rhs )
 {
 	memcpy( ctx, rhs.ctx, sizeof( MD5_CTX ) );
 	bits = rhs.bits;
 	return *this;
 }
 
-void MD5::Update( const StrPtr &buf )
+void
+MD5::Update( const unsigned char* buf, const size_t len )
 {
-	MD5_Update( (MD5_CTX*)ctx, buf.Text(), buf.Length() );
-	bits += buf.Length();
+	MD5_Update( (MD5_CTX*)ctx, buf, len );
+	bits += len;
 }
 
-void MD5::Final( StrBuf &output )
+void
+MD5::Update( const StrPtr &buf )
+{
+	Update( (const unsigned char*)buf.Text(), buf.Length() );
+}
+
+void
+MD5::Final( StrBuf &output )
 {
 	output.Clear();
 	unsigned char c[ MD5_DIGEST_LENGTH ];
@@ -374,27 +399,30 @@ void MD5::Final( StrBuf &output )
 	StrOps::OtoX( c, MD5_DIGEST_LENGTH, output );
 }
 
-void MD5::Final( unsigned char digest[ 16 ] )
+void
+MD5::Final( unsigned char digest[ 16 ] )
 {
 	MD5_Final( digest, (MD5_CTX*)ctx );
 }
 
 # else
 # include <openssl/evp.h>
-# include <errorlog.h>
 }
 
-MD5::MD5()
+void
+MD5::Init( Error *e )
 {
+	bits = 0;
 	const EVP_MD *md = EVP_get_digestbyname( "MD5" );
 	if( !md )
 	{
 	    ctx = 0;
+	    if( e )
+	        e->Set( MsgSupp::DigestInitFailed ) << "MD5";
 	    return;
 	}
 	ctx = (void*)EVP_MD_CTX_new();
 	EVP_DigestInit_ex( (EVP_MD_CTX *)ctx, md, 0 );
-	bits = 0;
 }
 
 MD5::~MD5()
@@ -403,20 +431,31 @@ MD5::~MD5()
 	    EVP_MD_CTX_free( (EVP_MD_CTX *)ctx );
 }
 
-class MD5& MD5::operator=( const MD5& rhs )
+class MD5&
+MD5::operator=( const MD5& rhs )
 {
 	EVP_MD_CTX_copy( (EVP_MD_CTX *)ctx, (EVP_MD_CTX *)rhs.ctx );
 	bits = rhs.bits;
 	return *this;
 }
 
-void MD5::Update( const StrPtr &buf )
+void
+MD5::Update( const unsigned char* buf, const size_t len )
 {
-	EVP_DigestUpdate( (EVP_MD_CTX*)ctx, buf.Text(), buf.Length() );
-	bits += buf.Length();
+	if( !ctx )
+	    return;
+	EVP_DigestUpdate( (EVP_MD_CTX*)ctx, buf, len );
+	bits += len;
 }
 
-void MD5::Final( StrBuf &output )
+void
+MD5::Update( const StrPtr &buf )
+{
+	Update( (const unsigned char*)buf.Text(), buf.Length() );
+}
+
+void
+MD5::Final( StrBuf &output )
 {
 	output.Clear();
 	if( !ctx )

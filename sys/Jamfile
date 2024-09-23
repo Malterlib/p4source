@@ -8,6 +8,11 @@ SubDirHdrs $(P4) i18n ;
 
 ObjectC++Flags threading.cc : -I$(SSLINCDIR) ;
 
+if $(CLANGVER) && [ FVersionCmp $(CLANGVER) : 15 ] >= 0
+{
+	ObjectCCFlags ioapi.c : -Wno-deprecated-non-prototype ;
+}
+
 P4APILibrary $(SUPPORTLIB) : 
 	applefork.cc
 	echoctl.cc
@@ -23,6 +28,7 @@ P4APILibrary $(SUPPORTLIB) :
 	fileiouni.cc
 	fileiozip.cc
 	filemkdir.cc
+	fileopt.cc
 	filespace.cc
 	filestrbuf.cc
 	filesys.cc

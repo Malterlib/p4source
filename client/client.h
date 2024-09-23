@@ -286,6 +286,8 @@ class Client : public Rpc {
 	void		SetExtension( ClientScript* cs, Error* e,
 				      const bool callerOwns = false );
 	ClientScript	*GetExtensions() { return exts; }
+	void		EnableDebugHooks();
+	bool		ExtensionsDebugHooksEnabled() const;
 
     public:
 	// for use by the client service implementation
@@ -304,6 +306,7 @@ class Client : public Rpc {
 	int		GetErrors() { return errors; }
 	void		SetFatal() { fatals++; }
 	int		GetFatals() { return fatals; }
+	Error *		GetTransError();
 	
 	void		OutputError( Error *e );
 
@@ -430,6 +433,7 @@ class Client : public Rpc {
 	bool		finalized, initialized;
 
 	bool		extsEnabled;
+	bool		extsDebugHooksEnabled;
 	ClientScript	*exts;
 	bool		ownExts;
 } ;

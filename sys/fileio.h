@@ -36,15 +36,15 @@ class FileIO : public FileSys {
 
 	virtual int	Stat();
 	virtual int     GetOwner();
-	virtual int	StatAccessTime();
-	virtual int	StatModTime();
+	virtual P4INT64	StatAccessTime();
+	virtual P4INT64	StatModTime();
 	virtual void	StatModTimeHP(DateTimeHighPrecision *modTime);
 	virtual bool	HasOnlyPerm( FilePerm perms );
 	virtual void	Truncate( Error *e );
 	virtual void	Truncate( offL_t offset, Error *e );
 	virtual void	Chmod( FilePerm perms, Error *e );
 	virtual void	ChmodTime( Error *e );
-	virtual void	ChmodTime( int modTime, Error *e );
+	virtual void	ChmodTime( P4INT64 modTime, Error *e );
 	virtual void	ChmodTimeHP( const DateTimeHighPrecision &modTime, Error *e );
 	virtual void	Unlink( Error *e );
 	virtual void	Rename( FileSys *target, Error *e );
@@ -64,6 +64,7 @@ class FileIO : public FileSys {
 	virtual void    DepotSize( offL_t &len, Error *e );
 
 	virtual void	SetExtendedAttribute( StrPtr *name, StrPtr *val, Error *e );
+	virtual void	SetExtendedAttributes( StrDict *vals, Error *e );
 	virtual void	GetExtendedAttribute( StrPtr *name, StrBuf *val, Error *e );
 	virtual void	GetExtendedAttributes( StrBufDict *xattrs, Error *e );
 
@@ -286,13 +287,13 @@ class FileIOEmpty : public FileSys {
 			~FileIOEmpty() {}
 
 	virtual int	Stat() { return FSF_EMPTY; }
-	virtual int	StatModTime() { return 0; }
-	virtual int	StatAccessTime() { return 0; }
+	virtual P4INT64	StatModTime() { return 0; }
+	virtual P4INT64	StatAccessTime() { return 0; }
 	virtual void	Truncate( Error *e ) {}
 	virtual void	Truncate( offL_t offset, Error *e ) {}
 	virtual void	Chmod( FilePerm perms, Error *e ) {}
 	virtual void	ChmodTime( Error *e ) {}
-	virtual void	ChmodTime( int modTime, Error *e ) {}
+	virtual void	ChmodTime( P4INT64 modTime, Error *e ) {}
 	virtual void	Unlink( Error *e ) {}
 	virtual void	Rename( FileSys *target, Error *e ) {}
 
@@ -318,12 +319,12 @@ class FileIOSymlink : public FileIO {
 	virtual int	Read( char *buf, int len, Error *e );
 	virtual void	Close( Error *e );
 
-	virtual int	StatModTime();
-	virtual int	StatAccessTime();
+	virtual P4INT64	StatModTime();
+	virtual P4INT64	StatAccessTime();
 	virtual void	Truncate( Error *e );
 	virtual void	Truncate( offL_t offset, Error *e );
 	virtual void	Chmod( FilePerm perms, Error *e );
-	virtual void	ChmodTime( int modTime, Error *e );
+	virtual void	ChmodTime( P4INT64 modTime, Error *e );
 
     private:
 	StrBuf		value;
@@ -380,13 +381,13 @@ class FileIOApple : public FileIO {
 	virtual void	Set( const StrPtr &name );
 	virtual void	Set( const StrPtr &name, Error *e );
 
-	virtual int	StatModTime();
-	virtual int	StatAccessTime();
+	virtual P4INT64	StatModTime();
+	virtual P4INT64	StatAccessTime();
 	virtual void	StatModTimeHP(DateTimeHighPrecision *modTime);
 	virtual void	Truncate( Error *e );
 	virtual void	Truncate( offL_t offset, Error *e );
 	virtual void	Chmod( FilePerm perms, Error *e );
-	virtual void	ChmodTime( int modTime, Error *e );
+	virtual void	ChmodTime( P4INT64 modTime, Error *e );
 	virtual void	ChmodTimeHP( const DateTimeHighPrecision &modTime, Error *e );
 	virtual void	Unlink( Error *e );
 	virtual void	Rename( FileSys *target, Error *e );

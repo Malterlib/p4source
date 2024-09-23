@@ -63,6 +63,10 @@ class ClientSvc
 	static FileSys		*FileFromPath( Client *client,
 				               const char *vName,
 				               const char *vType, Error *e );
+	static FileSys		*FileFromPathNoVar( Client *client,
+				               const StrPtr *clientPath,
+				               const FileSysType type,
+				               const StrPtr *utf8bom, Error *e );
 	
 	static int		CheckFilePath( Client *client, FileSys *f,
 				               Error *e );

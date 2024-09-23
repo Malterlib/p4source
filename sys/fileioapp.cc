@@ -122,24 +122,24 @@ FileIOApple::Stat()
 	return  header->Stat() | data->Stat();
 }
 
-int
+P4INT64
 FileIOApple::StatAccessTime()
 {
 	// Return later of the two.
 
-	int h = header->StatAccessTime();
-	int d = data->StatAccessTime();
+	P4INT64 h = header->StatAccessTime();
+	P4INT64 d = data->StatAccessTime();
 
 	return h > d ? h : d;
 }
 
-int
+P4INT64
 FileIOApple::StatModTime()
 {
 	// Return later of the two.
 
-	int h = header->StatModTime();
-	int d = data->StatModTime();
+	P4INT64 h = header->StatModTime();
+	P4INT64 d = data->StatModTime();
 
 	return h > d ? h : d;
 }
@@ -186,7 +186,7 @@ FileIOApple::Chmod( FilePerm perms, Error *e )
 }
 
 void
-FileIOApple::ChmodTime( int modTime, Error *e )
+FileIOApple::ChmodTime( P4INT64 modTime, Error *e )
 {
 	header->ChmodTime( modTime, e );
 	data->ChmodTime( modTime, e );

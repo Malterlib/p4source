@@ -178,7 +178,7 @@ class MapTable {
 	MapItem *	Check( MapTableT direction, const StrPtr &from );
 	void		Clear();
 	int		Count() const { return count; }
-	void		Disambiguate();
+	void		Disambiguate( int maxLookBack = 8 );
 	void		Dump( const char *trace, int fmt=0 );
 	void		DumpTree( MapTableT dir, const char *trace );
 	void		Insert( const StrPtr &l, 
@@ -218,7 +218,7 @@ class MapTable {
 	int		CountByFlag( MapFlag mapFlag );
 	MapItem *	Translate( MapTableT dir, const StrPtr &f, StrBuf &t );
 	MapItemArray *	Explode( MapTableT dir, const StrPtr &f );
-	void		Validate( const StrPtr &l, const StrPtr &r, Error *e );
+	static void	Validate( const StrPtr &l, const StrPtr &r, Error *e );
 	void		ValidHalf( MapTableT dir, Error *e );
 	int		GetHash();
 
@@ -227,6 +227,7 @@ class MapTable {
 	void		SetJoin2StreamViews()   { join2StreamViews = 1; }
 	void		UnsetJoin2StreamViews() { join2StreamViews = 0; }
 	int		GetJoin2StreamViews()   { return join2StreamViews; }
+	void		SetMaxLookBack( int max ) { maxLookBack = max; }
 
     public:
 
@@ -288,5 +289,6 @@ class MapTable {
 
 	int		caseMode;
 	int		join2StreamViews;
+	int		maxLookBack;	// for finding dups in InsertNoDups()
 
 } ;

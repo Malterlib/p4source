@@ -3,12 +3,20 @@
  *
  * This file is part of Perforce - the FAST SCM System.
  */
+ # ifndef VVARTREE
+ # define VVARTREE
 
+class KeepAlive;
 class VarTreeNode;
 
 class VVarTree {
 
     public:
+	enum PutMode {
+			Insert,  // no-op if key exists
+			Update,  // no-op if key doesn't exist
+			Upsert	 // update if key exists, insert if not
+	};
 
 			VVarTree();
 	
@@ -24,11 +32,20 @@ class VVarTree {
 	virtual void	Dump( void *a, StrBuf &buf ) const = 0;
 
 	void		Clear();
+
 	int		Count() const { return count; }
 	void *		Get( const void *keyRecord ) const;
-	void *		Put( void *record, Error *e );
-	void *		Replace( void *record, Error *e );
+	void		Position( const void *key = 0 );
+	void*		Fetch();
+
+	void *		Put( void *record, Error *e, PutMode mode = Upsert );
 	VarTreeNode *	Find( const void *key ) const;
+
+	// n.b. Replace and Add will return 0 if they result in a no-op.
+	void*		Replace( void *record, Error *e )
+				{ return Put( record, e, Update ); }
+	void*		Add( void *record, Error *e )
+				{ return Put( record, e, Insert ); }
 
 	void *		Shift();
 	int		Remove( const void* key );
@@ -39,7 +56,13 @@ class VVarTree {
 	int		RemoveNode( VarTreeNode* node );
 
 	void		DumpTree();
-	void		VerifyTree();
+	int		VerifyTree();
+
+    protected:
+	// Derived classes: if returning 0, set an Error to say why.
+	virtual int	CanPut( Error *e ) { return 1; }
+	virtual void *	CopyOver( void *tgt, const void *src );
+	virtual void	Dump( void *val );  // to log
 
     private:
 
@@ -49,9 +72,8 @@ class VVarTree {
 	void		Balance( VarTreeNode* n );
 
 	VarTreeNode*	root;
-
+	VarTreeNode*	iterNode;
 	int		count;
-
 } ;
 
 class VarTreeNode
@@ -84,3 +106,5 @@ private:
 
 	VVarTree *	t;
 };
+
+# endif

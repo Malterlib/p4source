@@ -32,7 +32,8 @@ class SystemInfo
 	    static int WindowsVersionInfo( DWORD &major, DWORD &minor,
 	        DWORD &build, WORD &ptype );
 
-	    static int CheckForAtomicRename( );
+	    static int CheckForAtomicRename();
+	    static int CheckForDevSymlink();
 # endif
 
 	    ////////////////////////////////////////

@@ -382,6 +382,12 @@
 
 		switch $(1:U)
 		{
+		case XC :
+			# make no return value from non-void func an error, and quiet
+			# some of the noisier clang warnings until we clean up the code
+			C++FLAGS += -Wno-parentheses -Wno-switch -Wreturn-type -Werror=return-type ;
+			LINK = $(OSLINK:E=$($(linker))) ;
+
 		case *CLANG* :
 			CC   = $(wrap) $(prefix)clang$(suffix) ;
 			C++  = $(wrap) $(prefix)clang++$(suffix) ;
@@ -795,10 +801,10 @@
 	# to include LLVM/Clang's libc++.
 	STATIC_LIBSTDC++ = no ;
 	# This really ought to be renamed LINK_WITH_STL since some operating systems use a different name.
- 	LINK_WITH_STDC++ = p4 p4d p4p p4broker p4zk p4sandbox p4sandbox_ja p4vc browsechild mkconf p4dvcsapi p4api perfmerge perfsplit p4migrate license p4dctl ;
+ 	LINK_WITH_STDC++ = p4 p4d p4p p4broker p4zk p4sandbox p4sandbox_ja p4vc browsechild mkconf perfmerge perfsplit p4migrate license p4dctl ;
 
 	# Some parts of libsupp now require symbols from pthread
-	LINK_WITH_PTHREAD = p4 p4d p4p p4broker p4sandbox p4sandbox_ja p4ftpd browsechild p4api p4dvcsapi mkconf p4dctl license ;
+	LINK_WITH_PTHREAD = p4 p4d p4p p4broker p4sandbox p4sandbox_ja p4ftpd browsechild mkconf p4dctl license ;
 
 	# SSL configuration:
 	# Define SSL to include netssl* source code into the libraries and executables
@@ -1035,24 +1041,57 @@
 	    LINKFLAGS += -fsanitize=address,undefined,shift,pointer-overflow -static-libasan -static-libubsan ;
 
 	case clang-asan :
-	    OPTIM = -g -fsanitize=address,undefined,shift,pointer-overflow -D_GLIBCXX_DEBUG
-	            -D_GLIBCXX_DEBUG_PEDANTIC -fno-omit-frame-pointer -O0 -Wno-parentheses
-	            -fno-optimize-sibling-calls -Wno-switch -fPIC ;
-	    LINKFLAGS += -fsanitize=address,undefined,integer,shift,pointer-overflow ;
+	    if [ FVersionCmp $(CLANGVER) : 17.0.0 ] >= 0
+	    {
+	        local fuzz = "" ;
 
-	    LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.asan-x86_64.a ;
-	    LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.builtins-x86_64.a ;
-	    LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.ubsan_standalone_cxx-x86_64.a ;
-	    LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.ubsan_standalone-x86_64.a ;
-	    LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.asan_cxx-x86_64.a ;
+	        if $(DO_LIBFUZZER) = 1
+	        {
+	            fuzz = ",fuzzer" ;
+	            DEFINES += HAS_LIBFUZZER=1 ;
+	        }
+
+	        OPTIM = -g -fsanitize=address,undefined,shift,pointer-overflow$(fuzz) -D_GLIBCXX_DEBUG
+	                -D_GLIBCXX_DEBUG_PEDANTIC -fno-omit-frame-pointer -O0 -Wno-parentheses
+	                -fno-optimize-sibling-calls -Wno-switch -fPIC
+	                -fsanitize-address-use-after-return=always -fsanitize-address-use-after-scope
+	                -fsanitize-address-use-odr-indicator -fsanitize-cfi-cross-dso ;
+	        LINKFLAGS += -fsanitize=address,undefined,integer,shift,pointer-overflow$(fuzz) ;
+
+	        LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/x86_64-unknown-linux-gnu/libclang_rt.asan.a ;
+	        LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/x86_64-unknown-linux-gnu/libclang_rt.asan_cxx.a ;
+	        LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/x86_64-unknown-linux-gnu/libclang_rt.asan_static.a ;
+	    }
+	    else
+	    {
+	        OPTIM = -g -fsanitize=address,undefined,shift,pointer-overflow -D_GLIBCXX_DEBUG
+	                -D_GLIBCXX_DEBUG_PEDANTIC -fno-omit-frame-pointer -O0 -Wno-parentheses
+	                -fno-optimize-sibling-calls -Wno-switch -fPIC ;
+	        LINKFLAGS += -fsanitize=address,undefined,integer,shift,pointer-overflow ;
+
+	        LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.asan-x86_64.a ;
+	        LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.builtins-x86_64.a ;
+	        LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.ubsan_standalone_cxx-x86_64.a ;
+	        LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.ubsan_standalone-x86_64.a ;
+	        LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.asan_cxx-x86_64.a ;
+	    }
 
 	case clang-tsan :
 	    OPTIM = -g -fsanitize=thread -D_GLIBCXX_DEBUG
 	            -D_GLIBCXX_DEBUG_PEDANTIC -fno-omit-frame-pointer -O0 -Wno-parentheses
 	            -fno-optimize-sibling-calls -Wno-switch -fPIC ;
 	    LINKFLAGS += -fsanitize=thread ;
-	    LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.tsan_cxx-x86_64.a ;
-	    LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.tsan-x86_64.a ;
+
+	    if [ FVersionCmp $(CLANGVER) : 17.0.0 ] >= 0
+	    {
+	        LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/x86_64-unknown-linux-gnu/libclang_rt.tsan.a ;
+	        LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/x86_64-unknown-linux-gnu/libclang_rt.tsan_cxx.a ;
+	    }
+	    else
+	    {
+	        LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.tsan_cxx-x86_64.a ;
+	        LINKLIBS += $(LIBC++DIR)/clang/$(CLANGVER)/lib/linux/libclang_rt.tsan-x86_64.a ;
+	    }
 
 	case msvc-asan :
 	    # https://docs.microsoft.com/en-us/cpp/sanitizers/asan?view=msvc-170
@@ -1421,6 +1460,13 @@
 		               USE_JEMALLOC ?= no ;
 		               USE_RPMALLOC ?= no ;
 
+		case AARCH64 : USE_SMARTHEAP ?= no ;
+		               SMARTHEAP_CHECKS ?= 0 ;
+		               MALLOC_OVERRIDE ?= yes ;
+		               USE_MIMALLOC ?= yes ;
+		               USE_JEMALLOC ?= no ;
+		               USE_RPMALLOC ?= no ;
+
 		case PPC    : _mflags = -m32 ;
 		case PPC64  : _mflags = -m64 ;
 
@@ -1578,6 +1624,36 @@
 		AR = [ FRemoveAny $(AR) : cru ] -Scru ;
 
 		LIBRARY_DEPOLYMENT_SDK = sdk12 ;
+		STATIC_LIBSTDC++ = no ;
+
+		LINKLIBS    += -framework ApplicationServices
+		               -framework Foundation
+		               -framework Security ;
+
+	case MACOSX13* :  # any 13.x
+		SetCommonCompiler $(OSCOMP:E=clang) ;
+		SetOSXSdk 13 : -mmacosx-version-min=10.14 -fwrapv ;
+
+		# Silence a bunch of noise about objects with no symbols
+		RANLIB += -no_warning_for_no_symbols ;
+		AR = [ FRemoveAny $(AR) : cru ] -Scru ;
+
+		LIBRARY_DEPOLYMENT_SDK = sdk13 ;
+		STATIC_LIBSTDC++ = no ;
+
+		LINKLIBS    += -framework ApplicationServices
+		               -framework Foundation
+		               -framework Security ;
+
+	case MACOSX14* :  # any 14.x
+		SetCommonCompiler $(OSCOMP:E=clang) ;
+		SetOSXSdk 14 : -mmacosx-version-min=10.14 -fwrapv ;
+
+		# Silence a bunch of noise about objects with no symbols
+		RANLIB += -no_warning_for_no_symbols ;
+		AR = [ FRemoveAny $(AR) : cru ] -Scru ;
+
+		LIBRARY_DEPOLYMENT_SDK = sdk14 ;
 		STATIC_LIBSTDC++ = no ;
 
 		LINKLIBS    += -framework ApplicationServices
@@ -3121,7 +3197,7 @@
 	        CCFLAGS += -Werror ;
 	        if $(GCCVER)
 	        {
-	            LINKLIBS += -Xlinker --fatal-warnings ;
+	            LINKFLAGS += -Werror -Xlinker --fatal-warnings ;
 	        }
 	    }
 	}
@@ -3211,6 +3287,7 @@
 			# no other way to work around this problem at link time
 			# without upgrading to gcc 4.1 for our builds; we're still
 			# using gcc 3.4.5.
+
 			if [ FVersionCmp $(GCCVER) : 4.1 ] < 0
 			{
 				OnTargetVarAppend $(<) : LINKFLAGS : -Wl,-z,muldefs ;

@@ -51,7 +51,8 @@ class MicroThreadMutex {
 
 class MicroThreadPool {
     public:
-	                  MicroThreadPool() : activeLimit( 0 ) {}
+	                  MicroThreadPool() : activeLimit( 0 ),
+	                                      skiponerror( 0 ) {}
 	virtual           ~MicroThreadPool() { WaitAll(); }
 	void              ThreadLimit( int n );
 	int               GetThreadLimit();
@@ -60,7 +61,8 @@ class MicroThreadPool {
 	void              Reap( Error * = 0 );
 	MicroThread       *NextWork();
 	MicroThreadMutex  &PoolMutex() { return poolMutex; }
-
+	int               IsSkipOnError() { return skiponerror; }
+	void              SetSkipOnError() { skiponerror = 1; }
     private:
 	void StartWaiting();
 
@@ -68,6 +70,7 @@ class MicroThreadPool {
 	VarArray active;
 	VarArray waiting;
 	MicroThreadMutex poolMutex;
+	int      skiponerror;
 } ;
 
 // Helper to guess threads when threads == 0

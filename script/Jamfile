@@ -23,7 +23,7 @@ P4APILibrary $(P4SCRIPT) :
 	p4script.cc
 	;
 
-if $(CLANGVER)
+if $(CLANGVER) || $(OSCOMP:U) = "XC"
 {
 	# lundump.c:237
 	ObjectC++Flags lua53.cc : -Wno-string-plus-int ;
