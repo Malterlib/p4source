@@ -18,7 +18,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgHelp error code is: 277
+ * Current high value for a MsgHelp error code is: 280
  */
 
 ErrorId MsgHelp::NoHelp = { ErrorOf( ES_HELP, 1, E_FAILED, EV_USAGE, 1 ),
@@ -1023,6 +1023,7 @@ R"(
 	dm.integ.undo            0 Enable re-integration of undone changes
 	dm.isalive             50K Rows scanned before client connection check
 	dm.maxkey               1K Longest identifier (client, label, etc)
+	dm.protects.allow.admin  0 Allow admin to use -agu flags (protects)
 	dm.protects.hide         0 Hide exclusionary protections (protects)
 	dm.resolve.attribs       1 Schedule resolves for changes to attributes
 	dm.quick.clients       10M Release lock if all needed rows buffered
@@ -1042,6 +1043,7 @@ R"(
 	filesys.maxmap       1000M Use read rather than mmapping big files
 	filesys.maxsymlink      1K Symlink maximum content length
 	filesys.maxtmp          1M Rollover for creating temp file names
+	filesys.windows.lfn      1 Enable Windows filename > 260 characters
 	map.joinmax1           10K Produce at most map1+map2+joinmax1
 	map.joinmax2            1M Produce at most joinmax2
 	map.maxwild             10 Maximum number of wildcards per line
@@ -2290,13 +2292,18 @@ ErrorId MsgHelp::HelpBranches = { ErrorOf( ES_HELP, 28, E_INFO, EV_NONE, 0 ),
 R"(
     branches -- Display list of branch specifications
 
-    p4 branches [-t] [-u user] [[-e|-E] nameFilter] [-m max]
+    p4 branches [-t] [-u user [--user-case-insensitive]] [[-e|-E] nameFilter]
+	     [-m max]
 
 	Lists branch specifications. (See 'p4 help branch'.)
 
 	The -t flag displays the time as well as the date.
 
 	The -u user flag lists branch specs owned by the specified user.
+	This can include wildcards to form a search pattern. If wildcards
+	are used enclose the search pattern in double quotes. You can also
+	add a --user-case-insensitive flag which will indicate that the user
+	value is a case-insensitive search pattern.
 
 	The -e nameFilter flag lists branch specs with a name that matches
 	the nameFilter pattern, for example: -e 'svr-dev-rel*'. The -e flag
@@ -2426,8 +2433,8 @@ R"(
     changes -- Display list of pending and submitted changelists
     changelists -- synonym for 'changes'
 
-    p4 changes [-i -t -l -L -f -r] [-c client] [ -e changelist# ]
-	    [-m max] [-s status] [-u user] [file[revRange] ...]
+    p4 changes [-i -t -l -L -f -r] [-c client [-E]] [ -e changelist# ]
+	    [-m max] [-s status] [-u user [-E]] [file[revRange] ...]
 	    [--stream|--nostream]
 
 	Returns a list of all pending and submitted changelists currently
@@ -2460,7 +2467,12 @@ R"(
 
 	The -f flag enables admin users to view restricted changes.
 
-	The -c client flag limits changes to those on the named client.
+	The -c client flag displays only changes owned by the specified client.
+	You can repeat this option to filter the result for multiple clients.
+	Each client can include wildcards to form a search pattern. This search
+	pattern can start with '-' to exclude changes by those client(s) from
+	the result. Adding a -E (or --client-case-insensitive) flag makes the
+	search pattern case-insensitive even on a case-sensitive server.
 
 	The -e changelist# flag displays only changes that are above and
 	including the specified changelist number.
@@ -2473,6 +2485,11 @@ R"(
 	status. Specify '-s pending', '-s shelved', or '-s submitted'.
 
 	The -u user flag displays only changes owned by the specified user.
+	You can repeat this option to filter the result for multiple users.
+	Each user can include wildcards to form a search pattern. This search
+	pattern can start with '-' to exclude changes by those user(s) from
+	the result. Adding a -E (or --user-case-insensitive) flag makes the
+	search pattern case-insensitive even on a case-sensitive server.
 
 	The --stream flag displays only changes that contain a stream spec.
 
@@ -2735,8 +2752,8 @@ R"(
     clients -- Display list of clients
     workspaces -- synonym for 'clients'
 
-    p4 clients [-t] [-u user] [[-e|-E] nameFilter] [-m max] [-S stream]
-               [-a|-s serverID]
+    p4 clients [-t] [-u user [--user-case-insensitive]] [[-e|-E] nameFilter]
+               [-m max] [-S stream] [-a|-s serverID]
     p4 clients -U
 
 	Lists all client workspaces currently defined in the server.
@@ -2744,7 +2761,10 @@ R"(
 	The -t flag displays the time as well as the date.
 
 	The -u user flag lists client workspaces that are owned by the
-	specified user.
+	specified user. This can include wildcards to form a search pattern.
+	If wildcards are used enclose the search pattern in double quotes.
+	You can also add a --user-case-insensitive flag which will indicate
+	that the user value is a case-insensitive search pattern.
 
 	The -e nameFilter flag lists workspaces with a name that matches
 	the nameFilter pattern, for example: -e 'svr-dev-rel*'. The -e flag
@@ -2754,7 +2774,8 @@ R"(
 	The -m max flag limits output to the specified number of workspaces.
 
 	The -S stream flag limits output to the client workspaces dedicated
-	to the stream.
+	to the stream(s).  A wildcard pattern may be used to match multiple
+	streams, or an empty string to match clients with no stream.
 
 	The -U flag lists unloaded clients (see 'p4 help unload').
 
@@ -3331,9 +3352,9 @@ R"(
 	to the earliest.
 
 	The open stream spec is included by default with any files that are
-	shelved, unshelved, or submitted.  The stream may be omitted from any
-	of these operations by using the '-Af' flag to specify that only files
-	should be acted upon.
+	shelved, unshelved, reshelved, or submitted.  The stream may be omitted
+	from any of these operations by using the '-Af' flag to specify that
+	only files should be acted upon.
 
 	See 'p4 help openablestreamspecs' for more on openable stream specs.
 )"
@@ -5959,6 +5980,55 @@ R"(
 )"
 };
 
+ErrorId MsgHelp::HelpHotFiles = { ErrorOf( ES_HELP, 279, E_INFO, EV_NONE, 0 ),
+R"(
+    hotfiles -- Edit the hotfiles mapping table
+
+    p4 hotfiles
+    p4 hotfiles -o
+    p4 hotfiles -i
+
+	'p4 hotfiles' edits a path-to-rule mapping table for altsync clients.
+
+	Commands that could create placeholders with an altsync agent will
+	check this mapping to decide if a placeholder is created or if the file
+	is considered hot and should be immediately transferred to the client.
+
+	The altsync agent may specify additional mappings that could override
+	these global mappings.
+
+	The hotfiles form has a single field, 'HotFiles', followed by any
+	number of hotfile lines. Each hotfile line contains a depot file path
+	pattern followed by an optional rule, the rule can either be a filetype
+	and/or size:
+
+	Path:       The mapping is a file pattern in depot syntax.
+		    To match all files anywhere in the depot hierarchy,
+		    the pattern must begin with '//...'.  To match files
+		    with a specified suffix, use '//.../*.suffix' or
+		    use '//....suffix' (four dots).
+		    Exclusionary mapping is supported '-//...' and can
+		    also be used to override previous entries.
+
+	Filetype:   See 'p4 help filetypes' for a list of valid filetypes.
+
+	Size:       '<' or '>' followed by numeric value in bytes, followed
+		    by an optional unit specifier K/M/G/T.
+
+	Later entries override earlier entries. If no matching entry is found
+	in the table or if an exclusionary entry is encountered, the file is
+	not considered hot.
+
+	The -o flag writes the hotfiles table to standard output. The user's
+	editor is not invoked.
+
+	The -i flag reads the hotfiles table from standard input. The user's
+	editor is not invoked.
+
+	'p4 hotfiles' requires 'admin' access, which is granted by 'p4 protect'.
+)"
+};
+
 ErrorId MsgHelp::HelpIgnores = { ErrorOf( ES_HELP, 189, E_INFO, EV_NONE, 0 ),
 R"(
     ignores -- List P4IGNORE mappings
@@ -6658,10 +6728,10 @@ ErrorId MsgHelp::HelpLabels = { ErrorOf( ES_HELP, 60, E_INFO, EV_NONE, 0 ),
 R"(
     labels -- Display list of defined labels
 
-    p4 labels [-U|-R] [-t] [-u user] [[-e|-E] nameFilter] [-m max]
-	      [file[revrange]]
-    p4 labels [-U|-R] [-t] [-u user] [[-e|-E] nameFilter] [-m max]
-	      [-a|-s serverID]
+    p4 labels [-U|-R] [-t] [-u user [--user-case-insensitive]]
+	      [[-e|-E] nameFilter] [-m max] [file[revrange]]
+    p4 labels [-U|-R] [-t] [-u user [--user-case-insensitive]]
+	      [[-e|-E] nameFilter] [-m max] [-a|-s serverID]
 
 	Lists labels defined in the server.
 
@@ -6676,6 +6746,10 @@ R"(
 	The -t flag displays the time as well as the date.
 
 	The -u user flag lists labels owned by the specified user.
+	This can include wildcards to form a search pattern. If wildcards are
+	used enclose the search pattern in double quotes. You can also add a
+	--user-case-insensitive flag which will indicate that the user value
+	is a case-insensitive search pattern.
 
 	The -e nameFilter flag lists labels with a name that matches
 	the nameFilter pattern, for example: -e 'svr-dev-rel*'. The -e flag
@@ -8235,6 +8309,891 @@ R"more(
     See the License for the specific language governing permissions and
     limitations under the License.
 )more"
+# ifdef USE_OTEL
+R"more(
+
+
+    OpenTelemetry C++
+    --------------------
+
+    Copyright The OpenTelemetry C++ Authors
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        https://www.apache.org/licenses/
+
+    TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+    1. Definitions.
+
+       "License" shall mean the terms and conditions for use, reproduction,
+       and distribution as defined by Sections 1 through 9 of this document.
+
+       "Licensor" shall mean the copyright owner or entity authorized by
+       the copyright owner that is granting the License.
+
+       "Legal Entity" shall mean the union of the acting entity and all
+       other entities that control, are controlled by, or are under common
+       control with that entity. For the purposes of this definition,
+       "control" means (i) the power, direct or indirect, to cause the
+       direction or management of such entity, whether by contract or
+       otherwise, or (ii) ownership of fifty percent (50%) or more of the
+       outstanding shares, or (iii) beneficial ownership of such entity.
+
+       "You" (or "Your") shall mean an individual or Legal Entity
+       exercising permissions granted by this License.
+
+       "Source" form shall mean the preferred form for making modifications,
+       including but not limited to software source code, documentation
+       source, and configuration files.
+
+       "Object" form shall mean any form resulting from mechanical
+       transformation or translation of a Source form, including but
+       not limited to compiled object code, generated documentation,
+       and conversions to other media types.
+
+       "Work" shall mean the work of authorship, whether in Source or
+       Object form, made available under the License, as indicated by a
+       copyright notice that is included in or attached to the work
+       (an example is provided in the Appendix below).
+
+       "Derivative Works" shall mean any work, whether in Source or Object
+       form, that is based on (or derived from) the Work and for which the
+       editorial revisions, annotations, elaborations, or other modifications
+       represent, as a whole, an original work of authorship. For the purposes
+       of this License, Derivative Works shall not include works that remain
+       separable from, or merely link (or bind by name) to the interfaces of,
+       the Work and Derivative Works thereof.
+
+       "Contribution" shall mean any work of authorship, including
+       the original version of the Work and any modifications or additions
+       to that Work or Derivative Works thereof, that is intentionally
+       submitted to Licensor for inclusion in the Work by the copyright owner
+       or by an individual or Legal Entity authorized to submit on behalf of
+       the copyright owner. For the purposes of this definition, "submitted"
+       means any form of electronic, verbal, or written communication sent
+       to the Licensor or its representatives, including but not limited to
+       communication on electronic mailing lists, source code control systems,
+       and issue tracking systems that are managed by, or on behalf of, the
+       Licensor for the purpose of discussing and improving the Work, but
+       excluding communication that is conspicuously marked or otherwise
+       designated in writing by the copyright owner as "Not a Contribution."
+
+       "Contributor" shall mean Licensor and any individual or Legal Entity
+       on behalf of whom a Contribution has been received by Licensor and
+       subsequently incorporated within the Work.
+
+    2. Grant of Copyright License. Subject to the terms and conditions of
+       this License, each Contributor hereby grants to You a perpetual,
+       worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+       copyright license to reproduce, prepare Derivative Works of,
+       publicly display, publicly perform, sublicense, and distribute the
+       Work and such Derivative Works in Source or Object form.
+
+    3. Grant of Patent License. Subject to the terms and conditions of
+       this License, each Contributor hereby grants to You a perpetual,
+       worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+       (except as stated in this section) patent license to make, have made,
+       use, offer to sell, sell, import, and otherwise transfer the Work,
+       where such license applies only to those patent claims licensable
+       by such Contributor that are necessarily infringed by their
+       Contribution(s) alone or by combination of their Contribution(s)
+       with the Work to which such Contribution(s) was submitted. If You
+       institute patent litigation against any entity (including a
+       cross-claim or counterclaim in a lawsuit) alleging that the Work
+       or a Contribution incorporated within the Work constitutes direct
+       or contributory patent infringement, then any patent licenses
+       granted to You under this License for that Work shall terminate
+       as of the date such litigation is filed.
+
+    4. Redistribution. You may reproduce and distribute copies of the
+       Work or Derivative Works thereof in any medium, with or without
+       modifications, and in Source or Object form, provided that You
+       meet the following conditions:
+
+       (a) You must give any other recipients of the Work or
+           Derivative Works a copy of this License; and
+
+       (b) You must cause any modified files to carry prominent notices
+           stating that You changed the files; and
+
+       (c) You must retain, in the Source form of any Derivative Works
+           that You distribute, all copyright, patent, trademark, and
+           attribution notices from the Source form of the Work,
+           excluding those notices that do not pertain to any part of
+           the Derivative Works; and
+
+       (d) If the Work includes a "NOTICE" text file as part of its
+           distribution, then any Derivative Works that You distribute must
+           include a readable copy of the attribution notices contained
+           within such NOTICE file, excluding those notices that do not
+           pertain to any part of the Derivative Works, in at least one
+           of the following places: within a NOTICE text file distributed
+           as part of the Derivative Works; within the Source form or
+           documentation, if provided along with the Derivative Works; or,
+           within a display generated by the Derivative Works, if and
+           wherever such third-party notices normally appear. The contents
+           of the NOTICE file are for informational purposes only and
+           do not modify the License. You may add Your own attribution
+           notices within Derivative Works that You distribute, alongside
+           or as an addendum to the NOTICE text from the Work, provided
+           that such additional attribution notices cannot be construed
+           as modifying the License.
+
+       You may add Your own copyright statement to Your modifications and
+       may provide additional or different license terms and conditions
+       for use, reproduction, or distribution of Your modifications, or
+       for any such Derivative Works as a whole, provided Your use,
+       reproduction, and distribution of the Work otherwise complies with
+       the conditions stated in this License.
+
+    5. Submission of Contributions. Unless You explicitly state otherwise,
+       any Contribution intentionally submitted for inclusion in the Work
+       by You to the Licensor shall be under the terms and conditions of
+       this License, without any additional terms or conditions.
+       Notwithstanding the above, nothing herein shall supersede or modify
+       the terms of any separate license agreement you may have executed
+       with Licensor regarding such Contributions.
+
+    6. Trademarks. This License does not grant permission to use the trade
+       names, trademarks, service marks, or product names of the Licensor,
+       except as required for reasonable and customary use in describing the
+       origin of the Work and reproducing the content of the NOTICE file.
+
+    7. Disclaimer of Warranty. Unless required by applicable law or
+       agreed to in writing, Licensor provides the Work (and each
+       Contributor provides its Contributions) on an "AS IS" BASIS,
+       WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+       implied, including, without limitation, any warranties or conditions
+       of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+       PARTICULAR PURPOSE. You are solely responsible for determining the
+       appropriateness of using or redistributing the Work and assume any
+       risks associated with Your exercise of permissions under this License.
+
+    8. Limitation of Liability. In no event and under no legal theory,
+       whether in tort (including negligence), contract, or otherwise,
+       unless required by applicable law (such as deliberate and grossly
+       negligent acts) or agreed to in writing, shall any Contributor be
+       liable to You for damages, including any direct, indirect, special,
+       incidental, or consequential damages of any character arising as a
+       result of this License or out of the use or inability to use the
+       Work (including but not limited to damages for loss of goodwill,
+       work stoppage, computer failure or malfunction, or any and all
+       other commercial damages or losses), even if such Contributor
+       has been advised of the possibility of such damages.
+
+    9. Accepting Warranty or Additional Liability. While redistributing
+       the Work or Derivative Works thereof, You may choose to offer,
+       and charge a fee for, acceptance of support, warranty, indemnity,
+       or other liability obligations and/or rights consistent with this
+       License. However, in accepting such obligations, You may act only
+       on Your own behalf and on Your sole responsibility, not on behalf
+       of any other Contributor, and only if You agree to indemnify,
+       defend, and hold each Contributor harmless for any liability
+       incurred by, or claims asserted against, such Contributor by reason
+       of your accepting any such warranty or additional liability.
+)more"
+R"more(
+
+
+    OpenTelemetry Protocol (OTLP) Specification
+    --------------------
+
+    Copyright The OpenTelemetry Protocol (OTLP) Specification Authors
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        https://www.apache.org/licenses/
+
+    TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+    1. Definitions.
+
+       "License" shall mean the terms and conditions for use, reproduction,
+       and distribution as defined by Sections 1 through 9 of this document.
+
+       "Licensor" shall mean the copyright owner or entity authorized by
+       the copyright owner that is granting the License.
+
+       "Legal Entity" shall mean the union of the acting entity and all
+       other entities that control, are controlled by, or are under common
+       control with that entity. For the purposes of this definition,
+       "control" means (i) the power, direct or indirect, to cause the
+       direction or management of such entity, whether by contract or
+       otherwise, or (ii) ownership of fifty percent (50%) or more of the
+       outstanding shares, or (iii) beneficial ownership of such entity.
+
+       "You" (or "Your") shall mean an individual or Legal Entity
+       exercising permissions granted by this License.
+
+       "Source" form shall mean the preferred form for making modifications,
+       including but not limited to software source code, documentation
+       source, and configuration files.
+
+       "Object" form shall mean any form resulting from mechanical
+       transformation or translation of a Source form, including but
+       not limited to compiled object code, generated documentation,
+       and conversions to other media types.
+
+       "Work" shall mean the work of authorship, whether in Source or
+       Object form, made available under the License, as indicated by a
+       copyright notice that is included in or attached to the work
+       (an example is provided in the Appendix below).
+
+       "Derivative Works" shall mean any work, whether in Source or Object
+       form, that is based on (or derived from) the Work and for which the
+       editorial revisions, annotations, elaborations, or other modifications
+       represent, as a whole, an original work of authorship. For the purposes
+       of this License, Derivative Works shall not include works that remain
+       separable from, or merely link (or bind by name) to the interfaces of,
+       the Work and Derivative Works thereof.
+
+       "Contribution" shall mean any work of authorship, including
+       the original version of the Work and any modifications or additions
+       to that Work or Derivative Works thereof, that is intentionally
+       submitted to Licensor for inclusion in the Work by the copyright owner
+       or by an individual or Legal Entity authorized to submit on behalf of
+       the copyright owner. For the purposes of this definition, "submitted"
+       means any form of electronic, verbal, or written communication sent
+       to the Licensor or its representatives, including but not limited to
+       communication on electronic mailing lists, source code control systems,
+       and issue tracking systems that are managed by, or on behalf of, the
+       Licensor for the purpose of discussing and improving the Work, but
+       excluding communication that is conspicuously marked or otherwise
+       designated in writing by the copyright owner as "Not a Contribution."
+
+       "Contributor" shall mean Licensor and any individual or Legal Entity
+       on behalf of whom a Contribution has been received by Licensor and
+       subsequently incorporated within the Work.
+
+    2. Grant of Copyright License. Subject to the terms and conditions of
+       this License, each Contributor hereby grants to You a perpetual,
+       worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+       copyright license to reproduce, prepare Derivative Works of,
+       publicly display, publicly perform, sublicense, and distribute the
+       Work and such Derivative Works in Source or Object form.
+
+    3. Grant of Patent License. Subject to the terms and conditions of
+       this License, each Contributor hereby grants to You a perpetual,
+       worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+       (except as stated in this section) patent license to make, have made,
+       use, offer to sell, sell, import, and otherwise transfer the Work,
+       where such license applies only to those patent claims licensable
+       by such Contributor that are necessarily infringed by their
+       Contribution(s) alone or by combination of their Contribution(s)
+       with the Work to which such Contribution(s) was submitted. If You
+       institute patent litigation against any entity (including a
+       cross-claim or counterclaim in a lawsuit) alleging that the Work
+       or a Contribution incorporated within the Work constitutes direct
+       or contributory patent infringement, then any patent licenses
+       granted to You under this License for that Work shall terminate
+       as of the date such litigation is filed.
+
+    4. Redistribution. You may reproduce and distribute copies of the
+       Work or Derivative Works thereof in any medium, with or without
+       modifications, and in Source or Object form, provided that You
+       meet the following conditions:
+
+       (a) You must give any other recipients of the Work or
+           Derivative Works a copy of this License; and
+
+       (b) You must cause any modified files to carry prominent notices
+           stating that You changed the files; and
+
+       (c) You must retain, in the Source form of any Derivative Works
+           that You distribute, all copyright, patent, trademark, and
+           attribution notices from the Source form of the Work,
+           excluding those notices that do not pertain to any part of
+           the Derivative Works; and
+
+       (d) If the Work includes a "NOTICE" text file as part of its
+           distribution, then any Derivative Works that You distribute must
+           include a readable copy of the attribution notices contained
+           within such NOTICE file, excluding those notices that do not
+           pertain to any part of the Derivative Works, in at least one
+           of the following places: within a NOTICE text file distributed
+           as part of the Derivative Works; within the Source form or
+           documentation, if provided along with the Derivative Works; or,
+           within a display generated by the Derivative Works, if and
+           wherever such third-party notices normally appear. The contents
+           of the NOTICE file are for informational purposes only and
+           do not modify the License. You may add Your own attribution
+           notices within Derivative Works that You distribute, alongside
+           or as an addendum to the NOTICE text from the Work, provided
+           that such additional attribution notices cannot be construed
+           as modifying the License.
+
+       You may add Your own copyright statement to Your modifications and
+       may provide additional or different license terms and conditions
+       for use, reproduction, or distribution of Your modifications, or
+       for any such Derivative Works as a whole, provided Your use,
+       reproduction, and distribution of the Work otherwise complies with
+       the conditions stated in this License.
+
+    5. Submission of Contributions. Unless You explicitly state otherwise,
+       any Contribution intentionally submitted for inclusion in the Work
+       by You to the Licensor shall be under the terms and conditions of
+       this License, without any additional terms or conditions.
+       Notwithstanding the above, nothing herein shall supersede or modify
+       the terms of any separate license agreement you may have executed
+       with Licensor regarding such Contributions.
+
+    6. Trademarks. This License does not grant permission to use the trade
+       names, trademarks, service marks, or product names of the Licensor,
+       except as required for reasonable and customary use in describing the
+       origin of the Work and reproducing the content of the NOTICE file.
+
+    7. Disclaimer of Warranty. Unless required by applicable law or
+       agreed to in writing, Licensor provides the Work (and each
+       Contributor provides its Contributions) on an "AS IS" BASIS,
+       WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+       implied, including, without limitation, any warranties or conditions
+       of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+       PARTICULAR PURPOSE. You are solely responsible for determining the
+       appropriateness of using or redistributing the Work and assume any
+       risks associated with Your exercise of permissions under this License.
+
+    8. Limitation of Liability. In no event and under no legal theory,
+       whether in tort (including negligence), contract, or otherwise,
+       unless required by applicable law (such as deliberate and grossly
+       negligent acts) or agreed to in writing, shall any Contributor be
+       liable to You for damages, including any direct, indirect, special,
+       incidental, or consequential damages of any character arising as a
+       result of this License or out of the use or inability to use the
+       Work (including but not limited to damages for loss of goodwill,
+       work stoppage, computer failure or malfunction, or any and all
+       other commercial damages or losses), even if such Contributor
+       has been advised of the possibility of such damages.
+
+    9. Accepting Warranty or Additional Liability. While redistributing
+       the Work or Derivative Works thereof, You may choose to offer,
+       and charge a fee for, acceptance of support, warranty, indemnity,
+       or other liability obligations and/or rights consistent with this
+       License. However, in accepting such obligations, You may act only
+       on Your own behalf and on Your sole responsibility, not on behalf
+       of any other Contributor, and only if You agree to indemnify,
+       defend, and hold each Contributor harmless for any liability
+       incurred by, or claims asserted against, such Contributor by reason
+       of your accepting any such warranty or additional liability.
+)more"
+R"more(
+
+
+    gRPC - An RPC library and framework
+    --------------------
+
+    Copyright 2014 gRPC authors.
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        https://www.apache.org/licenses/
+
+    TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+    1. Definitions.
+
+       "License" shall mean the terms and conditions for use, reproduction,
+       and distribution as defined by Sections 1 through 9 of this document.
+
+       "Licensor" shall mean the copyright owner or entity authorized by
+       the copyright owner that is granting the License.
+
+       "Legal Entity" shall mean the union of the acting entity and all
+       other entities that control, are controlled by, or are under common
+       control with that entity. For the purposes of this definition,
+       "control" means (i) the power, direct or indirect, to cause the
+       direction or management of such entity, whether by contract or
+       otherwise, or (ii) ownership of fifty percent (50%) or more of the
+       outstanding shares, or (iii) beneficial ownership of such entity.
+
+       "You" (or "Your") shall mean an individual or Legal Entity
+       exercising permissions granted by this License.
+
+       "Source" form shall mean the preferred form for making modifications,
+       including but not limited to software source code, documentation
+       source, and configuration files.
+
+       "Object" form shall mean any form resulting from mechanical
+       transformation or translation of a Source form, including but
+       not limited to compiled object code, generated documentation,
+       and conversions to other media types.
+
+       "Work" shall mean the work of authorship, whether in Source or
+       Object form, made available under the License, as indicated by a
+       copyright notice that is included in or attached to the work
+       (an example is provided in the Appendix below).
+
+       "Derivative Works" shall mean any work, whether in Source or Object
+       form, that is based on (or derived from) the Work and for which the
+       editorial revisions, annotations, elaborations, or other modifications
+       represent, as a whole, an original work of authorship. For the purposes
+       of this License, Derivative Works shall not include works that remain
+       separable from, or merely link (or bind by name) to the interfaces of,
+       the Work and Derivative Works thereof.
+
+       "Contribution" shall mean any work of authorship, including
+       the original version of the Work and any modifications or additions
+       to that Work or Derivative Works thereof, that is intentionally
+       submitted to Licensor for inclusion in the Work by the copyright owner
+       or by an individual or Legal Entity authorized to submit on behalf of
+       the copyright owner. For the purposes of this definition, "submitted"
+       means any form of electronic, verbal, or written communication sent
+       to the Licensor or its representatives, including but not limited to
+       communication on electronic mailing lists, source code control systems,
+       and issue tracking systems that are managed by, or on behalf of, the
+       Licensor for the purpose of discussing and improving the Work, but
+       excluding communication that is conspicuously marked or otherwise
+       designated in writing by the copyright owner as "Not a Contribution."
+
+       "Contributor" shall mean Licensor and any individual or Legal Entity
+       on behalf of whom a Contribution has been received by Licensor and
+       subsequently incorporated within the Work.
+
+    2. Grant of Copyright License. Subject to the terms and conditions of
+       this License, each Contributor hereby grants to You a perpetual,
+       worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+       copyright license to reproduce, prepare Derivative Works of,
+       publicly display, publicly perform, sublicense, and distribute the
+       Work and such Derivative Works in Source or Object form.
+
+    3. Grant of Patent License. Subject to the terms and conditions of
+       this License, each Contributor hereby grants to You a perpetual,
+       worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+       (except as stated in this section) patent license to make, have made,
+       use, offer to sell, sell, import, and otherwise transfer the Work,
+       where such license applies only to those patent claims licensable
+       by such Contributor that are necessarily infringed by their
+       Contribution(s) alone or by combination of their Contribution(s)
+       with the Work to which such Contribution(s) was submitted. If You
+       institute patent litigation against any entity (including a
+       cross-claim or counterclaim in a lawsuit) alleging that the Work
+       or a Contribution incorporated within the Work constitutes direct
+       or contributory patent infringement, then any patent licenses
+       granted to You under this License for that Work shall terminate
+       as of the date such litigation is filed.
+
+    4. Redistribution. You may reproduce and distribute copies of the
+       Work or Derivative Works thereof in any medium, with or without
+       modifications, and in Source or Object form, provided that You
+       meet the following conditions:
+
+       (a) You must give any other recipients of the Work or
+           Derivative Works a copy of this License; and
+
+       (b) You must cause any modified files to carry prominent notices
+           stating that You changed the files; and
+
+       (c) You must retain, in the Source form of any Derivative Works
+           that You distribute, all copyright, patent, trademark, and
+           attribution notices from the Source form of the Work,
+           excluding those notices that do not pertain to any part of
+           the Derivative Works; and
+
+       (d) If the Work includes a "NOTICE" text file as part of its
+           distribution, then any Derivative Works that You distribute must
+           include a readable copy of the attribution notices contained
+           within such NOTICE file, excluding those notices that do not
+           pertain to any part of the Derivative Works, in at least one
+           of the following places: within a NOTICE text file distributed
+           as part of the Derivative Works; within the Source form or
+           documentation, if provided along with the Derivative Works; or,
+           within a display generated by the Derivative Works, if and
+           wherever such third-party notices normally appear. The contents
+           of the NOTICE file are for informational purposes only and
+           do not modify the License. You may add Your own attribution
+           notices within Derivative Works that You distribute, alongside
+           or as an addendum to the NOTICE text from the Work, provided
+           that such additional attribution notices cannot be construed
+           as modifying the License.
+
+       You may add Your own copyright statement to Your modifications and
+       may provide additional or different license terms and conditions
+       for use, reproduction, or distribution of Your modifications, or
+       for any such Derivative Works as a whole, provided Your use,
+       reproduction, and distribution of the Work otherwise complies with
+       the conditions stated in this License.
+
+    5. Submission of Contributions. Unless You explicitly state otherwise,
+       any Contribution intentionally submitted for inclusion in the Work
+       by You to the Licensor shall be under the terms and conditions of
+       this License, without any additional terms or conditions.
+       Notwithstanding the above, nothing herein shall supersede or modify
+       the terms of any separate license agreement you may have executed
+       with Licensor regarding such Contributions.
+
+    6. Trademarks. This License does not grant permission to use the trade
+       names, trademarks, service marks, or product names of the Licensor,
+       except as required for reasonable and customary use in describing the
+       origin of the Work and reproducing the content of the NOTICE file.
+
+    7. Disclaimer of Warranty. Unless required by applicable law or
+       agreed to in writing, Licensor provides the Work (and each
+       Contributor provides its Contributions) on an "AS IS" BASIS,
+       WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+       implied, including, without limitation, any warranties or conditions
+       of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+       PARTICULAR PURPOSE. You are solely responsible for determining the
+       appropriateness of using or redistributing the Work and assume any
+       risks associated with Your exercise of permissions under this License.
+
+    8. Limitation of Liability. In no event and under no legal theory,
+       whether in tort (including negligence), contract, or otherwise,
+       unless required by applicable law (such as deliberate and grossly
+       negligent acts) or agreed to in writing, shall any Contributor be
+       liable to You for damages, including any direct, indirect, special,
+       incidental, or consequential damages of any character arising as a
+       result of this License or out of the use or inability to use the
+       Work (including but not limited to damages for loss of goodwill,
+       work stoppage, computer failure or malfunction, or any and all
+       other commercial damages or losses), even if such Contributor
+       has been advised of the possibility of such damages.
+
+    9. Accepting Warranty or Additional Liability. While redistributing
+       the Work or Derivative Works thereof, You may choose to offer,
+       and charge a fee for, acceptance of support, warranty, indemnity,
+       or other liability obligations and/or rights consistent with this
+       License. However, in accepting such obligations, You may act only
+       on Your own behalf and on Your sole responsibility, not on behalf
+       of any other Contributor, and only if You agree to indemnify,
+       defend, and hold each Contributor harmless for any liability
+       incurred by, or claims asserted against, such Contributor by reason
+       of your accepting any such warranty or additional liability.
+)more"
+R"more(
+
+
+    Protocol Buffers - Google's data interchange format
+    --------------------
+
+    Copyright 2008 Google Inc.  All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are
+    met:
+
+        * Redistributions of source code must retain the above copyright
+          notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright
+          notice, this list of conditions and the following disclaimer in the
+          documentation and/or other materials provided with the distribution.
+        * Neither the name of Google Inc. nor the names of its contributors
+          may be used to endorse or promote products derived from this software
+          without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+    OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+    Code generated by the Protocol Buffer compiler is owned by the owner
+    of the input file used when generating it.  This code is not
+    standalone and requires a support library to be linked with it.  This
+    support library is itself covered by the above license.
+)more"
+R"more(
+
+
+    C-ARES
+    --------------------
+
+    MIT License
+
+    Copyright (c) 1998 Massachusetts Institute of Technology
+    Copyright (c) 2007 - 2023 Daniel Stenberg with many contributors,
+    see AUTHORS file.
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice (including the next
+    paragraph) shall be included in all copies or substantial portions of the
+    Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
+)more"
+R"more(
+
+
+    RE2, a regular expression library
+    --------------------
+
+    Copyright (c) 2009 The RE2 Authors. All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are
+    met:
+
+        * Redistributions of source code must retain the above copyright
+          notice, this list of conditions and the following disclaimer.
+        * Redistributions in binary form must reproduce the above copyright
+          notice, this list of conditions and the following disclaimer
+          in the documentation and/or other materials provided with the
+          distribution.
+        * Neither the name of Google Inc. nor the names of its contributors
+          may be used to endorse or promote products derived from this software
+          without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+    A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+    OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+)more"
+R"more(
+
+
+    Abseil - C++ Common Libraries
+    --------------------
+
+    Copyright The Abseil Authors
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        https://www.apache.org/licenses/
+
+    TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+    1. Definitions.
+
+       "License" shall mean the terms and conditions for use, reproduction,
+       and distribution as defined by Sections 1 through 9 of this document.
+
+       "Licensor" shall mean the copyright owner or entity authorized by
+       the copyright owner that is granting the License.
+
+       "Legal Entity" shall mean the union of the acting entity and all
+       other entities that control, are controlled by, or are under common
+       control with that entity. For the purposes of this definition,
+       "control" means (i) the power, direct or indirect, to cause the
+       direction or management of such entity, whether by contract or
+       otherwise, or (ii) ownership of fifty percent (50%) or more of the
+       outstanding shares, or (iii) beneficial ownership of such entity.
+
+       "You" (or "Your") shall mean an individual or Legal Entity
+       exercising permissions granted by this License.
+
+       "Source" form shall mean the preferred form for making modifications,
+       including but not limited to software source code, documentation
+       source, and configuration files.
+
+       "Object" form shall mean any form resulting from mechanical
+       transformation or translation of a Source form, including but
+       not limited to compiled object code, generated documentation,
+       and conversions to other media types.
+
+       "Work" shall mean the work of authorship, whether in Source or
+       Object form, made available under the License, as indicated by a
+       copyright notice that is included in or attached to the work
+       (an example is provided in the Appendix below).
+
+       "Derivative Works" shall mean any work, whether in Source or Object
+       form, that is based on (or derived from) the Work and for which the
+       editorial revisions, annotations, elaborations, or other modifications
+       represent, as a whole, an original work of authorship. For the purposes
+       of this License, Derivative Works shall not include works that remain
+       separable from, or merely link (or bind by name) to the interfaces of,
+       the Work and Derivative Works thereof.
+
+       "Contribution" shall mean any work of authorship, including
+       the original version of the Work and any modifications or additions
+       to that Work or Derivative Works thereof, that is intentionally
+       submitted to Licensor for inclusion in the Work by the copyright owner
+       or by an individual or Legal Entity authorized to submit on behalf of
+       the copyright owner. For the purposes of this definition, "submitted"
+       means any form of electronic, verbal, or written communication sent
+       to the Licensor or its representatives, including but not limited to
+       communication on electronic mailing lists, source code control systems,
+       and issue tracking systems that are managed by, or on behalf of, the
+       Licensor for the purpose of discussing and improving the Work, but
+       excluding communication that is conspicuously marked or otherwise
+       designated in writing by the copyright owner as "Not a Contribution."
+
+       "Contributor" shall mean Licensor and any individual or Legal Entity
+       on behalf of whom a Contribution has been received by Licensor and
+       subsequently incorporated within the Work.
+
+    2. Grant of Copyright License. Subject to the terms and conditions of
+       this License, each Contributor hereby grants to You a perpetual,
+       worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+       copyright license to reproduce, prepare Derivative Works of,
+       publicly display, publicly perform, sublicense, and distribute the
+       Work and such Derivative Works in Source or Object form.
+
+    3. Grant of Patent License. Subject to the terms and conditions of
+       this License, each Contributor hereby grants to You a perpetual,
+       worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+       (except as stated in this section) patent license to make, have made,
+       use, offer to sell, sell, import, and otherwise transfer the Work,
+       where such license applies only to those patent claims licensable
+       by such Contributor that are necessarily infringed by their
+       Contribution(s) alone or by combination of their Contribution(s)
+       with the Work to which such Contribution(s) was submitted. If You
+       institute patent litigation against any entity (including a
+       cross-claim or counterclaim in a lawsuit) alleging that the Work
+       or a Contribution incorporated within the Work constitutes direct
+       or contributory patent infringement, then any patent licenses
+       granted to You under this License for that Work shall terminate
+       as of the date such litigation is filed.
+
+    4. Redistribution. You may reproduce and distribute copies of the
+       Work or Derivative Works thereof in any medium, with or without
+       modifications, and in Source or Object form, provided that You
+       meet the following conditions:
+
+       (a) You must give any other recipients of the Work or
+           Derivative Works a copy of this License; and
+
+       (b) You must cause any modified files to carry prominent notices
+           stating that You changed the files; and
+
+       (c) You must retain, in the Source form of any Derivative Works
+           that You distribute, all copyright, patent, trademark, and
+           attribution notices from the Source form of the Work,
+           excluding those notices that do not pertain to any part of
+           the Derivative Works; and
+
+       (d) If the Work includes a "NOTICE" text file as part of its
+           distribution, then any Derivative Works that You distribute must
+           include a readable copy of the attribution notices contained
+           within such NOTICE file, excluding those notices that do not
+           pertain to any part of the Derivative Works, in at least one
+           of the following places: within a NOTICE text file distributed
+           as part of the Derivative Works; within the Source form or
+           documentation, if provided along with the Derivative Works; or,
+           within a display generated by the Derivative Works, if and
+           wherever such third-party notices normally appear. The contents
+           of the NOTICE file are for informational purposes only and
+           do not modify the License. You may add Your own attribution
+           notices within Derivative Works that You distribute, alongside
+           or as an addendum to the NOTICE text from the Work, provided
+           that such additional attribution notices cannot be construed
+           as modifying the License.
+
+       You may add Your own copyright statement to Your modifications and
+       may provide additional or different license terms and conditions
+       for use, reproduction, or distribution of Your modifications, or
+       for any such Derivative Works as a whole, provided Your use,
+       reproduction, and distribution of the Work otherwise complies with
+       the conditions stated in this License.
+
+    5. Submission of Contributions. Unless You explicitly state otherwise,
+       any Contribution intentionally submitted for inclusion in the Work
+       by You to the Licensor shall be under the terms and conditions of
+       this License, without any additional terms or conditions.
+       Notwithstanding the above, nothing herein shall supersede or modify
+       the terms of any separate license agreement you may have executed
+       with Licensor regarding such Contributions.
+
+    6. Trademarks. This License does not grant permission to use the trade
+       names, trademarks, service marks, or product names of the Licensor,
+       except as required for reasonable and customary use in describing the
+       origin of the Work and reproducing the content of the NOTICE file.
+
+    7. Disclaimer of Warranty. Unless required by applicable law or
+       agreed to in writing, Licensor provides the Work (and each
+       Contributor provides its Contributions) on an "AS IS" BASIS,
+       WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+       implied, including, without limitation, any warranties or conditions
+       of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+       PARTICULAR PURPOSE. You are solely responsible for determining the
+       appropriateness of using or redistributing the Work and assume any
+       risks associated with Your exercise of permissions under this License.
+
+    8. Limitation of Liability. In no event and under no legal theory,
+       whether in tort (including negligence), contract, or otherwise,
+       unless required by applicable law (such as deliberate and grossly
+       negligent acts) or agreed to in writing, shall any Contributor be
+       liable to You for damages, including any direct, indirect, special,
+       incidental, or consequential damages of any character arising as a
+       result of this License or out of the use or inability to use the
+       Work (including but not limited to damages for loss of goodwill,
+       work stoppage, computer failure or malfunction, or any and all
+       other commercial damages or losses), even if such Contributor
+       has been advised of the possibility of such damages.
+
+    9. Accepting Warranty or Additional Liability. While redistributing
+       the Work or Derivative Works thereof, You may choose to offer,
+       and charge a fee for, acceptance of support, warranty, indemnity,
+       or other liability obligations and/or rights consistent with this
+       License. However, in accepting such obligations, You may act only
+       on Your own behalf and on Your sole responsibility, not on behalf
+       of any other Contributor, and only if You agree to indemnify,
+       defend, and hold each Contributor harmless for any liability
+       incurred by, or claims asserted against, such Contributor by reason
+       of your accepting any such warranty or additional liability.
+)more"
+# endif // USE_OTEL
 };
 
 ErrorId MsgHelp::HelpLicense = { ErrorOf( ES_HELP, 101, E_INFO, EV_NONE, 0 ),
@@ -8794,7 +9753,7 @@ ErrorId MsgHelp::HelpObliterate = { ErrorOf( ES_HELP, 64, E_INFO, EV_NONE, 0 ),
 R"(
     obliterate -- Remove files and their history from the depot
 
-    p4 obliterate [-y -A -b -a -h -T] [-r alg]
+    p4 obliterate [-y -A -b -a -h -l -T] [-r alg]
 	    [-p | --purged-only] [ -q ] file[revRange] ...
 
 	Obliterate permanently removes files and their history from the server.
@@ -8836,6 +9795,10 @@ R"(
 	will not match the newly-added repository files.  Note that use of
 	the -h flag has the side-effect of cleaning the obliterated files
 	from client workspaces when they are synced.
+
+	The '-l' flag works similar to '-h' but for db.label. It instructs
+	obliterate not to search db.label for all possible matching records
+	to delete.
 
 	The '-p' flag instructs obliterate to mark the revision as purged
 	and leave the integration history intact rather than removing
@@ -12325,7 +13288,7 @@ R"(
     reshelve -- Copy shelved files to a new or existing shelf.
 
     p4 reshelve [-p] -s changelist# [file ...]
-    p4 reshelve [-f] [-p] -s changelist# -c changelist# [file ...]
+    p4 reshelve [-f] [-p] [-As | -Af] -s changelist# -c changelist# [file ...]
 
 	'p4 reshelve' copies shelved files from an existing shelf into
 	either a new shelf or one that has already been created. This
@@ -12349,6 +13312,13 @@ R"(
 	configuration.  Once a shelved change has been promoted, all
 	subsequent local modifications to the shelf are also pushed to
 	the commit server and remain until the shelf is deleted.
+
+	The -Af flag specifies that only files should be reshelved with this
+	changelist. The -As  flag specifies that only an opened stream
+	specification should be reshelved with this change list. By default,
+	if the stream spec is shelved and neither -Af nor -As is given, the
+	stream specification will also be included with any reshelved files.
+	(See 'p4 help streamcmds')
 )"
 };
 
@@ -12450,6 +13420,30 @@ R"(
 	At most 25 arguments may be specified to the command.
 
 	This command requires that the user be an operator or have 'list'
+	access, which is granted by 'p4 protect'.
+)"
+};
+
+ErrorId MsgHelp::HelpLogexport = { ErrorOf( ES_HELP, 280, E_INFO, EV_NONE, 0 ),
+R"(
+    logexport -- Export a server log file to an external service
+
+    p4 logexport [ -l | -e endpoint [ -h headers...] [ -I interval ] ] logname
+
+	Logexport parses the named structured logfile and exports the log
+	entries to the OTLP endpoint specified with the -e flag. This will
+	create an export state file for the structured log, so that repeated
+	calls for a given log will continue from the last entry exported.
+
+	It is expected that this command will be configured as a startup
+	command, with the -I interval flag set such that the export will
+	pause for the specified number of milliseconds when the end of the
+	log has been reached before automatically looking for more log entries.
+
+	The current state of a logexport can be viewed by specifying the -l
+	flag.
+
+	This command requires that the user be an operator or have 'super'
 	access, which is granted by 'p4 protect'.
 )"
 };
@@ -12703,7 +13697,7 @@ R"(
     p4 pull [-J prefix] [-i <N>] [-b <N>]
             [-T tableexcludelist] [-P serverid]
     p4 pull -u [-i <N> -b <N> --batch=N --min-size=N --max-size=N --trigger]
-    p4 pull -l [ -s | -j [-J prefix] ]
+    p4 pull -l [ -s | -j [-v ] ] [-J prefix] ]
     p4 pull -d -f file -r revision
     p4 pull -L [-i <N>]
     p4 pull -R [ file ]
@@ -12727,7 +13721,9 @@ R"(
 	The -l flag displays information about pending file content
 	transfers. If -s is also specified, only a summary is displayed.
 	If -j is instead specified, a summary of pending journal transfers
-	is displayed.
+	is displayed. When the -v flag is added the current lag is displayed
+	regardless of the value of the rpl.track.behind configurable. See
+	'p4 help configurables' for more information.
 
 	The -d flag specifies that the pending file content transfer should
 	be cancelled. You must also specify the filename and revision using
@@ -12902,6 +13898,7 @@ R"(
 	                           revisions during submitted change updates
 	dm.configure.comment.mandatory Require comment when changing
 	                               configurable value with 'p4 configure'
+	dm.copy.attributes         Controls if 'p4 copy' considers attributes
 	dm.domain.accessupdate     Time interval to update domain access time
 	dm.domain.accessforce      Time interval to force domain access time
 	dm.fetch.preservechangenumbers Preserve change numbers on 'p4 fetch'
@@ -12926,12 +13923,12 @@ R"(
 	dm.password.minlength      Minimum password length (when enabled)
 	dm.populate.skipkeyed      Disable generation of digest for ktext
 	                           revisions during populate
+	dm.protects.allow.admin    Enable users with admin protections to run
+	                           'p4 protects -a|-u|-g|-s'
 	dm.protects.exclusioncheck Users with protections that have been
 	                           entirely removed by exclusionary protection
 	                           rules will be treated as if they had no
 	                           protections
-	dm.protects.allow.admin    Enable users with admin protections to run
-	                           'p4 protects -a|-u|-g|-s'
 	dm.protects.streamspec     Enable streamspec permissions
 	dm.proxy.protects          Add 'proxy-' to IP (see 'p4 help protect')
 	dm.resolve.attrib          Enable resolve for attributes
@@ -12957,10 +13954,10 @@ R"(
 	                           2: noinherit Parentview for new release
 	                              streams; inherit ParentView for all
 	                              other streams
-	dm.stream.sparse.branchmax 100K Maximum number of depot files in the
-	                                branch view of a sparse stream.
-	                                0: No limit
-	                                N: Limit the number of files to N
+	dm.stream.sparse.branchmax Maximum number of depot files in the branch
+	                           view of a sparse stream.
+	                           0: No limit
+	                           N: Limit the number of files to N
 )"
 R"(	dm.topology.lastseenupdate Time interval to update topology record.
 	                           It represents the time that a record
@@ -12978,7 +13975,7 @@ R"(	dm.topology.lastseenupdate Time interval to update topology record.
 	                           0: Only super users whose password is set
 	                              can set/unset initial passwords
 	                           1: Users can set their own initial passwords
-	                             (default)
+	                              (default)
 	dm.sync.streamchange       Syncing a stream client to a specific
 	                           changelist will also apply the stream's view
 	                           at that change
@@ -13002,6 +13999,8 @@ R"(	dm.topology.lastseenupdate Time interval to update topology record.
 	                           and checkpoints
 	journalPrefixBackup        Secondary location for journalPrefix
 	info.p4auth.usercheck      Validate username against P4AUTH server
+	lbr.s3.uploadretries       Number of times an upload to S3 will be
+	                           retried
 	lbr.autocompress           By default, use compressed text storage
 	                           instead of RCS
 	lbr.bufsize                Archive file I/O buffer size
@@ -13070,7 +14069,7 @@ R"(	dm.topology.lastseenupdate Time interval to update topology record.
 	net.reuseport              Set SO_REUSEPORT for listening socket
 	net.rfc3484                Allow OS to choose between IPv4 and IPv6
 	net.tcpsize                TCP sndbuf/rcvbuf sizes set at connect
-				   Ignored if net.autotune is set
+	                           Ignored if net.autotune is set
 	pull.trigger.dir           Tmp directory for alternative archive copy
 	push.unlocklocked          Unlock locked files if push fails
 	proxy.monitor.level        Proxy monitoring level (see 'p4p -h')
@@ -13123,6 +14122,8 @@ R"(	run.clientexts.allow       Allow client-side Extensions to run
 	run.unzip.user.allow       Should 'p4 unzip' allow '-u'
 	run.users.authorize        Should 'p4 users' require authentication
 	security                   User/password security level
+	security.digest            The digest algorithm used in the round trip
+	                           tamper checking
 	server                     Turn off tracking
 	                           1: Include the start information for each
 	                              command
@@ -17375,6 +18376,59 @@ R"(
 	a server startup log message about capabilities, e.g. via:
 
 	    p4d -p localhost:$tmp_port -r $tmp_p4root -L -
+)"
+
+};
+
+
+ErrorId MsgHelp::HelpDiagnostics = { ErrorOf( ES_HELP, 278, E_INFO, EV_NONE, 0 ),
+R"(
+    diagnostics -- generate server diagnostics
+
+    p4 diagnostics [-L limit]
+    p4 diagnostics [-l] [-s [--strace-runtime secs] [-L limit]] [-a [-L limit] ]
+
+	The first form of the command generates the basic
+	diagnostic data and downloads it to a number of fixed named
+	files in the current directory. These files are:
+	diags - basic configuration details, configuration,
+	        configuration history, server setting,
+	        and checkpoint history;
+	monitor - the monitor records, if monitoring is enabled;
+	topology - a textual description of network that contains
+	           this server. Servers that do not have a serverID
+	           are ignored;
+
+	A copy of the current journal file and log file will also be
+	downloaded, using the configured names of these files.
+
+	The '-L' limit option limits the download size
+	of the journal and log files to the last 'limit' number of bytes
+	of these files subject to buffer rounding. The 'limit' option is
+	in bytes and can be suffixed with a single character to designate
+	a unit multiplier, k or K for kilobytes, m or M for megabytes,
+	g or G for gigabytes and t or T for terabytes.
+
+	The second form of the command attempts to run more costly
+	operations so these are not run by default.
+
+	The '-l' option requests that the '/usr/bin/lsof' be run
+	to provide locking details of all files in use by Perforce
+	servers on this system. The data from this operation is
+	downloaded into a file named 'manuallocks' in the current
+	directory. This option is not supported on all platforms.
+
+	The '-s' option runs an 'strace' command on the server
+	processes for 20 seconds and downloads the trace output to a
+	file named 'strace' in the current directory.
+	The '--strace-runtime secs' overrides the 20 second time that
+	strace executes.
+
+	When the '-l' or '-s' options are specified, then the
+	basic diagnostic files are not produced. These can be requested
+	by adding the '-a' option to the command.
+
+	This command requires the operator role or 'admin' permission.
 )"
 
 };

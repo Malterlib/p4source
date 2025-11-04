@@ -65,6 +65,8 @@ enum P4DebugType {
 	DT_RESOURCE,	// OS resources
 	DT_S3,		// S3 cURL client
 	DT_SUPTOOLS,    // Support Tools 
+	DT_ELOG,	// Exported logs
+	DT_DLTXFER,	// Delta transfer stats
 	DT_LAST
 }  ;
 

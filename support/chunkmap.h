@@ -58,7 +58,7 @@ hash of the whole file.
 
 */
 
-class VarArray;
+class VVarArray;
 class VVarTree;
 
 class ChunkMap
@@ -117,13 +117,17 @@ class ChunkMap
 	    // at the time the client sends us this data.
 	    bool Validate( const size_t expectedSize, Error* e );
 
+	    void GetVerifyHash( StrBuf& digestBuf ) const;
+
+	    P4INT64 GetFileSize();
+
 	    // Return the unique Chunks with hash/size pairs that are not in 'other'.
 	    // Can use ~3x the size of the 'other' map's memory.
 	    // This does not return a ChunkMap, because the offset is
 	    // implicit in the ChunkMap map buffer, and callers need the offset
 	    // to be able to locate the chunk in the file.  Callers needing a
 	    // diff don't need to serialize the data.
-	    VarArray* Diff( ChunkMap& other, Error* e );
+	    VVarArray* Diff( ChunkMap& other, Error* e );
 
 	    // Number of chunks in the map.  If the map was created
 	    // from a file as a source, it's the number of chunks in
@@ -144,6 +148,9 @@ class ChunkMap
 
 	    // Return the unique set of chunks across the whole chunk map.
 	    VVarTree* AsVTree( Error *e );
+
+	    // Run after GetNextChunk() to reset it.
+	    void ResetIterator();
 
 	    void DumpJSON( StrBuf& out );
 
@@ -175,13 +182,11 @@ class ChunkMap
 	    }
 
 	    void SetBuf( StrPtr* map, Error* e );
+	    void CopyBuf( StrPtr* map, Error* e );
 
 	    // Read the serialized chunk map buffer, populating the class
 	    // variables.  Does a variety of error checking.
 	    bool Parse( const char* source, const char* name, Error* e );
-
-	    // Run after GetNextChunk() to reset it.
-	    void ResetIterator();
 
 	    // Return the version of the chunk map represented here.
 	    int GetVersion() const;
@@ -218,10 +223,15 @@ class ChunkMap
 	    // compatibility concern.  Note also that the max size is also used
 	    // in some verification routines, so it if is increased, compatibility
 	    // between product releases may be affected.
-
+# if 0
+	    static const size_t cdc_min_size =  8000u,
+	                        cdc_avg_size = 16000u,
+	                        cdc_max_size = 24000u;
+# else
 	    static const size_t cdc_min_size = 128000u,
 	                        cdc_avg_size = 256000u,
 	                        cdc_max_size = 1024000u;
+# endif
 } ;
 
 # endif // HAS_CPP11

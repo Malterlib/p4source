@@ -67,6 +67,7 @@ class MsgLbr {
 	static ErrorId S3LbrLockLoop;
 
 	static ErrorId ChunkingCreateNewLbr;
+	static ErrorId LbrFileNotSeekable;
 
 
 	// Retired ErrorIds. We need to keep these so that clients 

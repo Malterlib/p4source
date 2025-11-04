@@ -55,6 +55,8 @@ class MsgConfig {
 	static ErrorId Resource;
 	static ErrorId S3;
 	static ErrorId Suptool;
+	static ErrorId Elog;
+	static ErrorId Dltxfer;
 
 	// Numeric tunables
 	static ErrorId ClusterJournalShared;
@@ -110,6 +112,7 @@ class MsgConfig {
 	static ErrorId DmClientInitroot;
 	static ErrorId DmClientLimitprotects;
 	static ErrorId DmConfigureCommentMandatory;
+	static ErrorId DmCopyAttributes;
 	static ErrorId DmCopyMovewarn;
 	static ErrorId DmDomainAccessupdate;
 	static ErrorId DmDomainAccessforce;
@@ -437,6 +440,7 @@ class MsgConfig {
 	static ErrorId ZlibDisableOptim;
 
 	// String tunables
+	static ErrorId SecurityDigest;
 	static ErrorId SSLClientCAPath;
 	static ErrorId SSLKeylogFile;
 

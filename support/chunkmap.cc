@@ -30,42 +30,61 @@
 
 class ChunkVTree : public VVarTree
 {
-public:
+    public:
 	ChunkVTree() {}
 	virtual ~ChunkVTree()
 	{
 	    Clear();
 	}
 
-	virtual int
-	Compare( const void *a, const void *b ) const
+	virtual int Compare( const void *a, const void *b ) const
 	{
 	    const ChunkMap::Chunk *ca = (const ChunkMap::Chunk *)a;
 	    const ChunkMap::Chunk *cb = (const ChunkMap::Chunk *)b;
-	    if( *ca == *cb )
-	        return 0;
-	    else
-	        return *ca < *cb ? -1 : 1;
+	    return ca->hash.XCompare( cb->hash );
 	}
 
-	virtual void *
-	Copy( const void *src ) const
+	virtual void *Copy( const void *src ) const
 	{
 	    return new ChunkMap::Chunk( *(const ChunkMap::Chunk *)src );
 	}
 
-	virtual void
-	Delete( void *a ) const
+	virtual void Delete( void *a ) const
 	{
 	    delete (ChunkMap::Chunk *)a;
 	}
 
-	virtual void
-	Dump( void *a, StrBuf &buf ) const
+	virtual void Dump( void *a, StrBuf &buf ) const
 	{
 	    buf = ((ChunkMap::Chunk *)a)->hash;
 	}
-};
+} ;
+
+class ChunkVArray : public VVarArray
+{
+    public:
+	ChunkVArray() {}
+	virtual ~ChunkVArray()
+	{
+	    int n = Count();
+	    for( int i = 0; i < n; i++ )
+	    {
+	        Destroy( Get( i ) );
+	    }
+	}
+
+	virtual int Compare( const void *a, const void *b ) const
+	{
+	    const ChunkMap::Chunk *ca = (const ChunkMap::Chunk *)a;
+	    const ChunkMap::Chunk *cb = (const ChunkMap::Chunk *)b;
+	    return ca->hash.XCompare( cb->hash );
+	}
+
+	virtual void Destroy( void *a ) const
+	{
+	    delete (ChunkMap::Chunk *)a;
+	}
+} ;
 
 ChunkMap::Chunk::Chunk()
 {
@@ -90,18 +109,13 @@ ChunkMap::Chunk::operator =( ChunkMap::Chunk&& rhs )
 bool
 ChunkMap::Chunk::operator <( const Chunk& rhs ) const
 {
-	std::string l, r;
-	l = hash.Text();
-	l += size;
-	r = rhs.hash.Text();
-	r += rhs.size;
-	return l < r;
+	return hash < rhs.hash;
 }
 
 bool
 ChunkMap::Chunk::operator ==( const Chunk& rhs ) const
 {
-	return hash == rhs.hash && size == rhs.size;
+	return hash == rhs.hash;
 }
 
 ChunkMap::ChunkMap()
@@ -118,9 +132,20 @@ ChunkMap::SetBuf( StrPtr* map, Error* e )
 	Parse( "SetBuf", "", e );
 }
 
+void
+ChunkMap::CopyBuf( StrPtr* map, Error* e )
+{
+	if( ownBuf )
+	    delete (StrBuf*)mapBuf;
+
+	ownBuf = true;
+	mapBuf = new StrBuf( *map );
+	Parse( "CopyBuf", "", e );
+}
+
 ChunkMap::ChunkMap( StrPtr* map, Error* e )
 {
-	SetBuf( map, e );
+	CopyBuf( map, e );
 }
 
 ChunkMap::~ChunkMap()
@@ -177,6 +202,12 @@ ChunkMap::ResetIterator()
 {
 	offset = 0;
 	pos = nullptr;
+}
+
+void
+ChunkMap::GetVerifyHash( StrBuf& digestBuf ) const
+{
+	StrOps::OtoX( GetVerifyHash(), BLAKE3_BUFFLEN, digestBuf );
 }
 
 void
@@ -372,6 +403,7 @@ ChunkMap::Create( FileSys* in, Error* e, MD5* md5 )
 	((StrBuf*)mapBuf)->Append( &final_hash );
 
 	in->Seek( origPos, e );
+	Parse( "Create", "", e );
 }
 
 void
@@ -621,7 +653,22 @@ ChunkMap::AsVTree( Error* e )
 	return tree;
 }
 
-VarArray *
+P4INT64
+ChunkMap::GetFileSize()
+{
+	P4INT64 size = 0;
+	Chunk c;
+	ResetIterator();
+	while( GetNextChunk( c ) )
+	{
+	    size += c.size;
+	}
+	ResetIterator();
+
+	return size;
+}
+
+VVarArray *
 ChunkMap::Diff( ChunkMap& other, Error* e )
 {
 	// Note that there's no check that the version of ChunkMaps being
@@ -631,7 +678,7 @@ ChunkMap::Diff( ChunkMap& other, Error* e )
 	// Unpack the map buffers, populating the offsets, etc.
 
 	VVarTree *b = other.AsVTree( e );
-	VarArray *d = new VarArray();
+	VVarArray *d = new ChunkVArray();
 
 	// The following accomplishes the same as this:
 	//

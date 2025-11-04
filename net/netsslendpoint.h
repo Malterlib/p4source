@@ -64,6 +64,7 @@ class NetSslEndPoint : public NetTcpEndPoint
 		    customCipherSuites.Set(value);
 	    }
 
+	virtual void	NotifyRestarting();
 	virtual void	MoreSocketSetup( int fd, AddrType type, Error *e );
 	void	    	Listen( Error *e );
 	void            ListenCheck( Error *e );

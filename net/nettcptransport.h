@@ -16,12 +16,6 @@
  *    NetTcpTransport - a TCP subclass of NetTransport
  */
 
-#ifdef OS_NT
-#  define GetLastError()	WSAGetLastError()
-#else
-#  define GetLastError()	errno
-#endif
-
 class KeepAlive;
 class NetTcpSelector;
 
@@ -31,6 +25,8 @@ class NetTcpTransport : public NetTransport {
 			NetTcpTransport( int t, bool fromClient );
 			~NetTcpTransport();
 
+	virtual void	SetupSocket();
+	virtual void	MoreSetupSocket();
 	void		SetSockBlocking( int fd, bool blocking );
 	void		SetupKeepAlives( int t );
 
@@ -111,5 +107,9 @@ class NetTcpTransport : public NetTransport {
 	StrBuf		peerAddr;
 	NetPortParser   portParser;
 	int             maxWait;	// in ms
+
+    protected:
+	bool		afterReload;	// configurables have been reloaded
+
 } ;
 

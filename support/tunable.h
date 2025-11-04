@@ -59,6 +59,7 @@ enum P4TunableName {
 	P4TUNE_DM_CLIENT_INITROOT,		// see rhservice.cc
 	P4TUNE_DM_CLIENT_LIMITPROTECTS,		// see dmlimit.cc
 	P4TUNE_DM_CONFIGURE_COMMENT_MANDATORY,	// see userconfig.cc
+	P4TUNE_DM_COPY_ATTRIBUTES,		// see dmicopy.cc
 	P4TUNE_DM_COPY_MOVEWARN,
 	P4TUNE_DM_DOMAIN_ACCESSUPDATE,		// see dmadomain.cc
 	P4TUNE_DM_DOMAIN_ACCESSFORCE,		// see dmadomain.cc
@@ -387,6 +388,7 @@ enum P4TunableName {
 
 	// BEGIN STRINGS
 	
+	P4TUNE_SECURITY_DIGEST,			// see digester.cc, rhservice.cc
 	P4TUNE_SSL_CLIENT_CA_PATH,		// see netssltransport.cc
 	P4TUNE_SSL_KEYLOG_FILE,			// see netssltransport.cc
 	

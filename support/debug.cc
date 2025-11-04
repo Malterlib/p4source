@@ -172,10 +172,12 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "resource",	0, 0, 0, 10, 1, 1, 0, 1, &MsgConfig::Resource,	0, CONFIG_APPLY_SERVER, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_NODOC, CONFIG_CAT_MISC },
 	{ "s3",		0, 0, 0, 10, 1, 1, 0, 1, &MsgConfig::S3,	0, CONFIG_APPLY_SERVER, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_UNDOC, CONFIG_CAT_MISC },
 	{ "suptool",	0, 0, 0, 10, 1, 1, 0, 1, &MsgConfig::Suptool,	0, CONFIG_APPLY_NONE, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_UNDOC, CONFIG_CAT_MISC },
+	{ "elog",	0, 1, 0, 5, 1, 1, 0, 1, &MsgConfig::Elog,	0, CONFIG_APPLY_SERVER, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_UNDOC, CONFIG_CAT_MISC },
+	{ "dltxfer",	0, 0, 0, 10, 1, 1, 0, 1, &MsgConfig::Dltxfer,	0, CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_NODOC, CONFIG_CAT_MISC },
 
 	// P4Tunable's collection
 	//
-	// name				isSet,	value,	min,	max,	mod,	k,	orig,	sensitive, desc					recommend,applicability,	restart,			doc,			category
+	// name				isSet,	value,	min,	max,	mod,	k,	orig,	sensitive,	desc,	recommend,	applicability,	restart,	doc,	category
 
 	{ "cluster.journal.shared",	0,	0,	0,	1,	1,	1,	0,	1,	&MsgConfig::ClusterJournalShared,	0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_BROKER, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_UNDOC, CONFIG_CAT_MISC },
 	{ "db.checkpoint.bufsize",	0,	B224K,	B16K,	BBIG,	1,	B1K,	0,	1,	&MsgConfig::DbCheckpointBufsize,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_PERFORMANCE|CONFIG_CAT_MONITORING },
@@ -230,6 +232,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "dm.client.initroot",		0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::DmClientInitroot,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "dm.client.limitprotects",	0,	0,	0,	RBIG,	1,	1,	0,	0,	&MsgConfig::DmClientLimitprotects,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "dm.configure.comment.mandatory",0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::DmConfigureCommentMandatory, "1",	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_MONITORING},
+	{ "dm.copy.attributes",		0,	1,	0,	1,	1,	1,	0,	0,	&MsgConfig::DmCopyAttributes,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_MISC },
 	{ "dm.copy.movewarn",		0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::DmCopyMovewarn,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "dm.domain.accessupdate",	0,	300,	1,	RBIG,	1,	1,	0,	0,	&MsgConfig::DmDomainAccessupdate,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_PERFORMANCE },
 	{ "dm.domain.accessforce",	0,	3600,	1,	RBIG,	1,	1,	0,	0,	&MsgConfig::DmDomainAccessforce,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_PERFORMANCE },
@@ -593,10 +596,11 @@ P4Tunable::stunable P4Tunable::slist[] = {
 
 	// P4Debug's string collection
 
-	// name				isSet,	default, *value, sensitive
+	// name				isSet,	default, *value, sensitive, description, recommended, applicability, restart, support, cat, accepted
     
-	{ "ssl.client.ca.path",		0,	0,	0,	0,	&MsgConfig::SSLClientCAPath,	0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT,	CONFIG_RESTART_STOP,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY|CONFIG_CAT_NETWORK },
-	{ "ssl.keylog.file",		0,	0,	0,	0,	&MsgConfig::SSLKeylogFile,	0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT,	CONFIG_RESTART_STOP,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
+	{ "security.digest",		0,	"sha256",0,	1,	&MsgConfig::SecurityDigest,	0,	CONFIG_APPLY_SERVER,				CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY, "sha256,sha224,sha384,sha512,sha512_224,sha512_256,sha3_224,sha3_256,sha3_384,sha3_512,blake3,md5,sha1" },
+	{ "ssl.client.ca.path",		0,	0,	0,	1,	&MsgConfig::SSLClientCAPath,	0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT,	CONFIG_RESTART_STOP,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY|CONFIG_CAT_NETWORK, 0 },
+	{ "ssl.keylog.file",		0,	0,	0,	1,	&MsgConfig::SSLKeylogFile,	0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT,	CONFIG_RESTART_STOP,		CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC, 0 },
 	
 	{ 0,				0,	0,	0,	0 }
 
@@ -605,8 +609,8 @@ P4Tunable::stunable P4Tunable::slist[] = {
 
 // List of current values of P4Debug's integer collection
 P4MT int
-list2[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+list2[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 }  ;
 
 int
@@ -1096,7 +1100,7 @@ P4Debug::ShowLevels( int showAll, StrBuf &buf )
 	    {
 	        char *val = slist[i].isSet ? slist[i].value : 0;
 	        buf << slist[i].name << ": "
-	            << (val ? val : slist->def ? slist->def : "") << "\n";
+	            << (val ? val : slist[i].def ? slist[i].def : "") << "\n";
 	    }
 }
 

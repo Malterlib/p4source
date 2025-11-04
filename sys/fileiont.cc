@@ -922,7 +922,11 @@ ntw_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 
 	    case _O_WRONLY:	// write access
 	        if (flags & _O_APPEND)
+	        {
+	            // Read access is added so that a Ctrl-Z EOF might
+	            // be removed later.
 	            fileaccess = GENERIC_READ | GENERIC_WRITE;
+	        }
 	        else
 	            fileaccess = GENERIC_WRITE;
 	        break;
@@ -932,6 +936,7 @@ ntw_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 	        break;
 
 	    default:		// error, bad flags
+	        SetLastError( ERROR_BAD_ARGUMENTS );
 	        return INVALID_HANDLE_VALUE;
 
 	}
@@ -977,7 +982,8 @@ ntw_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 	        filecreate = CREATE_ALWAYS;
 	        break;
 
-	    default:
+	    default:		// error, bad flags
+	        SetLastError( ERROR_BAD_ARGUMENTS );
 	        return INVALID_HANDLE_VALUE;
         }
 
@@ -1087,7 +1093,15 @@ ntw_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 	if( flags & _O_BINARY )
 	    return osfh;
 
-	if( flags & (_O_RDWR | _O_TEXT) )
+	// _O_TEXT only, from here on out.
+	// In code above, if O_APPEND, GENERIC_READ is added.
+	// This will cover the case of text and append needing to
+	// remove the Ctrl-Z EOF.
+	//
+	// When reading a text file, we also read into the buffer the
+	// EOF Ctrl-Z, with the idea we are maintaining the file's content.
+
+	if( (fileaccess & GENERIC_READ) && (fileaccess & GENERIC_WRITE) )
 	{
 	    // MS: We have a text mode file.  If it ends in CTRL-Z, we wish to
 	    // remove the CTRL-Z character, so that appending will work.
@@ -1168,7 +1182,8 @@ nt_open2( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 	{
 	    osfh = ntw_open( fname, flags, mode, dounicode, lfn );
 
-	    if( osfh == INVALID_HANDLE_VALUE )
+	    if( osfh == INVALID_HANDLE_VALUE &&
+	        GetLastError() != ERROR_BAD_ARGUMENTS )
 	    {
 	        // Claer LFN_UTF8 so that the MS Unicode conversion is used
 	        // instead of our CVT class in nt_wname().  This is the only
@@ -3724,6 +3739,11 @@ FileIOAppend::Rename( FileSys *target, Error *e )
 
 	if( fallback )
 	{
+	    if( p4debug.GetLevel( DT_SERVER ) >= 4 )
+	        p4debug.printf(
+	            "Rename failed, doing copy/truncate instead: %s %s %d\n",
+	            Name(), target->Name(), volchk );
+
 	    Copy( target, FPM_RO, e );
 
 	    if( e->Test() )

@@ -469,9 +469,10 @@ StrPtr::Itox64( P4UINT64 v, char *buffer )
 
 
 // A legal number follows the simple grammar: ( )*[+-]\d+
+// (optionally with a single .)
 //
 bool
-StrPtr::IsNumeric() const
+StrPtr::IsNumeric( bool allowDouble ) const
 {
 	const char *p = Text();
 
@@ -482,6 +483,12 @@ StrPtr::IsNumeric() const
 	const char *q = p;
 
 	while( isAdigit( p ) ) ++p;
+
+	if( allowDouble && *p == '.' )
+	{
+	    p++;
+	    while( isAdigit( p ) ) ++p;
+	}
 
 	return *p == '\0' && ( p - q ) > 0;
 }

@@ -224,8 +224,9 @@ class ClientApi : public StrDict {
 	void		SetTicketFile( const StrPtr *c );
 	void		SetTrustFile( const StrPtr *c );
 	void		SetEnviroFile( const StrPtr *c );
-
+	
 	void		SetBreak( KeepAlive *k );
+	KeepAlive *	GetBreak();
 
 	void		DefineCharset( const char *c, Error *e );
 	void		DefineClient( const char *c, Error *e );

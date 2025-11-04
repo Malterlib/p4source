@@ -682,6 +682,17 @@ void HandleSigValgrind( int signo )
 	    to do is exit:
 	*/
 
+	/*
+	 * We should call _exit(0) here rather than exit(0)
+	 * because _exit() is async-signal-safe
+	 * but exit() is not.
+	 *
+	 * However, this code runs only under valgrind,
+	 * so not in production, flushing streams
+	 * might avoid some bogus valgrind reports,
+	 * and it's probably safe to do, so we'll
+	 * continue to call exit() rather than _exit().
+	 */
 	exit( 0 );
 }
 # endif
@@ -848,15 +859,25 @@ class MultiThreader : public Threader {
 
 	void Cancel()
 	{
-	    if( getpgrp() != getpid() )
+	    int pgrp = getpgrp();
+
+	    if( pgrp != getpid() )
 	    {
 		// The child really has no control over what's going
 		// on, so it just sends a SIGTERM to the parent to tell
 		// it to shut down.  We want this child to exit nicely, so
 		// we block the SIGTERM the parent will send _us_.
 
-		signal( SIGTERM, SIG_IGN );
-		kill( getpgrp(), SIGTERM );
+		if( signal( SIGTERM, SIG_IGN ) == SIG_ERR )
+		{
+		    p4debug.Event();
+		    p4debug.printf( "MultiThreader::Cancel(): signal(SIGTERM, SIG_IGN) failed, errno=%d\n", errno );
+		}
+		if( kill(pgrp, SIGTERM) == -1 )
+		{
+		    p4debug.Event();
+		    p4debug.printf( "MultiThreader::Cancel(): kill(SIGTERM) failed, errno=%d\n", errno );
+		}
 	    }
 	    else
 	    {
@@ -868,10 +889,28 @@ class MultiThreader : public Threader {
 
 	void Restart()
 	{
-	    if( getpgrp() != getpid() )
+	    int pgrp = getpgrp();
+
+	    if( pgrp != getpid() )
 	    {
-		signal( SIGTERM, SIG_IGN );
-		kill( getpgrp(), SIGHUP );
+		// Send SIGHUP to parent to tell it to restart.
+		// Just as for Cancel(), we want the child to exit nicely.
+
+		if( signal( SIGHUP, SIG_IGN ) == SIG_ERR )
+		{
+		    p4debug.Event();
+		    p4debug.printf( "MultiThreader::Restart(): signal(SIGHUP, SIG_IGN) failed, errno=%d\n", errno );
+		}
+		if( signal( SIGTERM, SIG_IGN ) == SIG_ERR )
+		{
+		    p4debug.Event();
+		    p4debug.printf( "MultiThreader::Restart(): signal(SIGTERM, SIG_IGN) failed, errno=%d\n", errno );
+		}
+		if( kill( pgrp, SIGHUP ) == -1 )
+		{
+		    p4debug.Event();
+		    p4debug.printf( "MultiThreader::Cancel(): kill(SIGHUP) failed, errno=%d\n", errno );
+		}
 	    }
 	    else
 	    {

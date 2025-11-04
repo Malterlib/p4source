@@ -40,7 +40,7 @@ if $(OSPLAT:U) = "X86_64" || $(OSPLAT:U) = "X64" || $(OSPLAT:U) = "U"
 	local sse2   =  [ FGristFiles $(sse2_src:S=$(SUFOBJ)) ] ;
 	local sse41  =  [ FGristFiles $(sse41_src:S=$(SUFOBJ)) ] ;
 
-	if $(OS) = MACOSX
+	if $(CC) = clang
 	{
 	    # Clang 6 on OSX won't generate AVX-512 without this.
 	    # Newer Clangs don't have this problem.

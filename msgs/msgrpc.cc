@@ -105,7 +105,7 @@ ErrorId MsgRpc::SslLibMismatch         = { ErrorOf( ES_RPC, 51, E_FAILED, EV_COM
 ErrorId MsgRpc::PxRemoteSvrFail        = { ErrorOf( ES_RPC, 52, E_FAILED, EV_COMM, 0 ), "Proxy unable to communicate with remote server:" } ;
 ErrorId MsgRpc::SslCfgExpire           = { ErrorOf( ES_RPC, 53, E_FAILED, EV_COMM, 1 ), "Certificate config.txt: invalid EX value \"%exValue%\", must be number > 0 and <= 24855 days." } ;
 ErrorId MsgRpc::SslCfgUnits            = { ErrorOf( ES_RPC, 54, E_FAILED, EV_COMM, 0 ), "Certificate config.txt: invalid UNITS value, must be either secs, mins, hours, or days." } ;
-ErrorId MsgRpc::SslKeyNotRSA           = { ErrorOf( ES_RPC, 55, E_FAILED, EV_COMM, 0 ), "Fail load key, not of type RSA." } ;
+ErrorId MsgRpc::SslKeyNotRSA           = { ErrorOf( ES_RPC, 55, E_FAILED, EV_COMM, 0 ), "Fail load key, not of type RSA/EC/ED25519/ED448." } ;
 ErrorId MsgRpc::SslProtocolError       = { ErrorOf( ES_RPC, 56, E_FAILED, EV_COMM, 2 ), "SSL protocol error (fix the TLS settings): %protocolHost%[\n\t    {%protocolError%}]." } ;
 
 ErrorId MsgRpc::WakeupInit             = { ErrorOf( ES_RPC, 62, E_FAILED, EV_COMM, 2 ), "Fail to setup wake-up socket during %function% with error: %error%." } ;

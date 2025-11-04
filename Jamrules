@@ -959,6 +959,7 @@
 	SetLibName P4SCRIPT_S       : libp4script_s ;
 	SetLibName P4SCRIPT_CURL    : libp4script_curl ;
 	SetLibName P4SCRIPT_SQLITE  : libp4script_sqlite ;
+	SetLibName P4TRACELIB       : libp4trace    ;
 	SetLibName P4V              : libp4v        ;
 	SetLibName P4VPRIMITIVES    : libp4vprimitives ;
 	SetLibName P4VC             : libp4vc       ;
@@ -2468,28 +2469,15 @@
 		# Some places don't have lex or flex
 		on $(<) if $(LEX)
 		{
-			# In most cases we generate and check in a copy of the
-			# generated file, because most operating systems lack a working
-			# lexer.  Here we check to see if that source is fact present,
-			# and if it is, force the lexer to overwrite it directly.  This
-			# has the advantage that parallel builds will not stomp on each
-			# others' temporary output files (usually "lex.yy.c" the
-			# current working directory).
-
-			local _exist = [ FDirEntries $(SEARCH_SOURCE) : $(<:G=) ] ;
-
-			if $(_exist) = $(<:G=)
-			{
-				SEARCH on  $(>) = $(SEARCH_SOURCE) ;
-				MakeLocate $(<) : $(SEARCH_SOURCE) ;
-
-				local output    = $(SEARCH_SOURCE) $(<:G=) ;
-				# flex does not permit a space between -o and filename
-				OnTargetVarAppend $(<) : LEX : -o$(output:J=/) ;
+                        switch $(LEX)
+                        {
+                                case flex* :
+                        	SEARCH on  $(>) = $(SEARCH_SOURCE) ;
+				MakeLocate $(<) : $(LOCATE_SOURCE) ;
 				Depends $(<) : $(>) ;
-			}
-			else
-			{
+				Clean clean : $(<) ;
+
+                                case * :
 				# Traditional Jambase behavior
 				LexMv   $(<) : $(>) ;
 				Depends $(<) : $(>) ;
@@ -2497,6 +2485,19 @@
 				Clean clean : $(<) ;
 			}
 		}
+	}
+
+	actions Lex
+	{
+		case "$(LEX[0])"
+		in
+		flex*)
+			$(LEX) -o$(<) $(>)
+			;;
+		*)
+			$(LEX) $(>)
+			;;
+		esac
 	}
 
 	rule Yacc
@@ -3382,6 +3383,30 @@
 
 		local e = [ FAppendSuffix $(<) : $(SUFEXE) ] ;
 		OnTargetVarPrepend $(e) : LINKLIBS : $(LDAPLIB) ;
+	}
+
+	rule LinkOpenTelemetry
+	{
+		if $(USE_OTEL) != 1 { return ; } # short circuit all this
+
+		switch $(OS)-$(OSVER:E)-$(OSPLAT:E)-$(OSCOMP:E)
+		{
+		case NT-*-*-* :
+			# We use the Windows SDK on NT.
+			echo "Still need to get NT libs built" ;
+
+		case *-*-*-* :
+			# Everywhere else we use OpenLDAP.
+			if $(SSL) = yes && $(SSLSTUB) != yes
+			{
+				# If we don't have OpenSSL, this will fail!
+				OTLPLIB ?= $(OTLPLIBDIR)/libotlp.a
+						   ;
+			}
+		}
+
+		local e = [ FAppendSuffix $(<) : $(SUFEXE) ] ;
+		OnTargetVarPrepend $(e) : LINKLIBS : $(OTLPLIB) ;
 	}
 
 	#

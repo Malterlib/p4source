@@ -218,6 +218,7 @@ class MapTable {
 	int		CountByFlag( MapFlag mapFlag );
 	MapItem *	Translate( MapTableT dir, const StrPtr &f, StrBuf &t );
 	MapItemArray *	Explode( MapTableT dir, const StrPtr &f );
+	MapItemArray *	MatchAll( MapTableT dir, const StrPtr &f );
 	static void	Validate( const StrPtr &l, const StrPtr &r, Error *e );
 	void		ValidHalf( MapTableT dir, Error *e );
 	int		GetHash();

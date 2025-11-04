@@ -497,3 +497,12 @@ ErrorLog::Name()
 
 	return errorFsys->Name();
 }
+
+const char *
+ErrorLog::GetTag()
+{
+	if( !errorTag || !strcmp( errorTag, "Error" ) )
+	    return 0;
+
+	return errorTag;
+}

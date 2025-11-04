@@ -70,7 +70,7 @@ class MapItem {
 	void		Dump( MapTableT d, const char *name, int l = 0 );
 
 	MapItem *	Match( MapTableT dir, const StrPtr &from,
-			    MapItemArray *ands = 0 );
+			    MapItemArray *ands = 0, MapItemArray *all = 0 );
 
 	static MapItem *Tree( MapItem **s, MapItem **e,
 			    MapTableT dir, MapItem *parent,

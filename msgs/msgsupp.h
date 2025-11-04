@@ -55,7 +55,12 @@ class MsgSupp {
 	static ErrorId DigestInitFailed;
 
 	static ErrorId RegexError;
-	
+
+	static ErrorId TracerNoSupport;
+	static ErrorId TracerNotConfigured;
+	static ErrorId TracerWrongPid;
+	static ErrorId TracerNoFlush;
+
 	static ErrorId UnknownTunable;
 	static ErrorId TunableValueTooLow;
 	static ErrorId TunableValueTooHigh;
@@ -415,6 +420,8 @@ class MsgSupp {
 	static ErrorId CurlPerformFailed;
 	static ErrorId AwsRejected;
 	static ErrorId XmlParseFailed;
+	static ErrorId InvalidUrl;
+	static ErrorId OTLPInitFailed;
 
 	static ErrorId FatalLockError;
 	static ErrorId MissingKeyCert;
@@ -464,7 +471,16 @@ class MsgSupp {
 	static ErrorId OptionListAddresses;
 	static ErrorId OptionTrait;
 	static ErrorId OptionTraitFile;
-
+	static ErrorId DigestAlgNotFound;
+	static ErrorId DigestAlgWeak;
+	static ErrorId OptionFileSizeLimit;
+	static ErrorId OptionLsof;
+	static ErrorId OptionStrace;
+	static ErrorId OptionUserCaseInsensitive;
+	static ErrorId OptionClientCaseInsensitive;
+	static ErrorId OptionNonLbr;
+	static ErrorId OptionReport;
+	static ErrorId OptionStraceRuntime;
 	static ErrorId AmbiguousArgs;
 
 	// Retired ErrorIds. We need to keep these so that clients 

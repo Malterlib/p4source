@@ -330,7 +330,8 @@ MapItem::Tree(
  */
 
 MapItem *
-MapItem::Match( MapTableT dir, const StrPtr &from, MapItemArray *ands )
+MapItem::Match( MapTableT dir, const StrPtr &from,
+	      MapItemArray *ands, MapItemArray *all )
 {
 	int coff = 0;
 	int best = -1;
@@ -360,7 +361,8 @@ MapItem::Match( MapTableT dir, const StrPtr &from, MapItemArray *ands )
 	    if( best > t->maxSlot &&	    // Have we already got the best?
 		!t->hasands &&		    // Are there andmaps down the tree?
 		tree->Flag() != MfAndmap && // This is an andmap?
-		bestnotands > t->maxSlotNoAnds ) // We prefer a real mapping
+		bestnotands > t->maxSlotNoAnds && // We prefer a real mapping
+		!all )
 		break;
 
 	    /*
@@ -391,6 +393,8 @@ MapItem::Match( MapTableT dir, const StrPtr &from, MapItemArray *ands )
 		map = tree, best = map->slot;
 		if( ands )
 		    ands->Put( tree );
+		if( all )
+		    all->Put( tree );
 		if( tree->Flag() != MfAndmap )
 		    bestnotands = tree->slot;
 	    }
@@ -400,12 +404,15 @@ MapItem::Match( MapTableT dir, const StrPtr &from, MapItemArray *ands )
 	     */
 
 	    if( !r &&
-		ands &&
+		(ands || all) &&
 		map != tree &&
 		best >= tree->slot &&
 		t->half.Match2( from, params ) )
 	    {
-		ands->Put( tree );
+		if( ands )
+		    ands->Put( tree );
+		if( all )
+		    all->Put( tree );
 		if( tree->Flag() != MfAndmap )
 		    bestnotands = tree->slot;
 	    }

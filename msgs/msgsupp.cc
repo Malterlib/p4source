@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSupp error code is: 455
+ * Current high value for a MsgSupp error code is: 466
  */
 # include <stdhdrs.h>
 # include <error.h>
@@ -73,6 +73,11 @@ ErrorId MsgSupp::MagicHeader           = { ErrorOf( ES_SUPP, 21, E_FATAL, EV_FAU
 ErrorId MsgSupp::DigestInitFailed      = { ErrorOf( ES_SUPP, 442, E_FATAL, EV_FAULT, 1 ), "Failed to initialise %algo% digester!" } ;
 
 ErrorId MsgSupp::RegexError            = { ErrorOf( ES_SUPP, 30, E_FAILED, EV_USAGE, 1 ), "Regular expression error: %text%" } ;
+
+ErrorId MsgSupp::TracerNoSupport       = { ErrorOf( ES_SUPP, 445, E_FAILED, EV_ILLEGAL, 0 ), "No built-in support for requested tracing library!" } ;
+ErrorId MsgSupp::TracerNotConfigured   = { ErrorOf( ES_SUPP, 446, E_FAILED, EV_NOTYET, 0 ), "No logging provider configured!" } ;
+ErrorId MsgSupp::TracerWrongPid        = { ErrorOf( ES_SUPP, 447, E_FAILED, EV_FAULT, 2 ), "Pid mismatch! %pid1% vs %pid2%" } ;
+ErrorId MsgSupp::TracerNoFlush         = { ErrorOf( ES_SUPP, 448, E_FAILED, EV_FAULT, 0 ), "Failed to flush logging!" } ;
 
 ErrorId MsgSupp::UnknownTunable        = { ErrorOf( ES_SUPP, 319, E_FAILED, EV_USAGE, 1 ), "Unknown configurable: %conf%" } ;
 ErrorId MsgSupp::TunableValueTooLow    = { ErrorOf( ES_SUPP, 320, E_FAILED, EV_USAGE, 2 ), "Configurable '%config%' cannot be set to a value less than '%minVal%'." } ;
@@ -409,6 +414,8 @@ ErrorId MsgSupp::InvalidIntegerRange      = { ErrorOf( ES_SUPP, 351, E_FAILED, E
 ErrorId MsgSupp::CurlPerformFailed        = { ErrorOf( ES_SUPP, 437, E_FAILED, EV_COMM, 1 ), "curl_easy_perform() failed: %curlerr%" } ;
 ErrorId MsgSupp::AwsRejected              = { ErrorOf( ES_SUPP, 438, E_FAILED, EV_COMM, 3 ), "AWS rejected command: %status%[: %errMsg%][\n%response%]" } ;
 ErrorId MsgSupp::XmlParseFailed           = { ErrorOf( ES_SUPP, 439, E_FAILED, EV_COMM, 1 ), "XML parse error: %xmlErr%" } ;
+ErrorId MsgSupp::InvalidUrl               = { ErrorOf( ES_SUPP, 458, E_FAILED, EV_USAGE, 2 ), "Invalid URL: %url%[ (%reason%)]" } ;
+ErrorId MsgSupp::OTLPInitFailed           = { ErrorOf( ES_SUPP, 459, E_FAILED, EV_USAGE, 2 ), "Failed to initailise %proto% OTLP logger: %ex%" } ;
 
 
 ErrorId MsgSupp::OptionNoSync             = { ErrorOf( ES_SUPP, 361, E_INFO, EV_NONE, 0 ), "%'--no-sync'%: do not sync after switch." } ;
@@ -482,8 +489,17 @@ ErrorId MsgSupp::OptionIteration          = { ErrorOf( ES_SUPP, 440, E_INFO, EV_
 ErrorId MsgSupp::OptionListAddresses      = { ErrorOf( ES_SUPP, 441, E_INFO, EV_NONE, 0 ), "%'--list-addresses (-L)'%: list valid server IP and MAC addresses" } ;
 ErrorId MsgSupp::OptionTrait              = { ErrorOf( ES_SUPP, 443, E_INFO, EV_NONE, 0 ), "%'--attribute (-T)'%: prints the value of the attribute" } ;
 ErrorId MsgSupp::OptionTraitFile          = { ErrorOf( ES_SUPP, 444, E_INFO, EV_NONE, 0 ), "%'--file (-I)'%: specifies that the data should be read from the file" } ;
-
 ErrorId MsgSupp::AmbiguousArgs            = { ErrorOf( ES_SUPP, 449, E_FATAL, EV_USAGE, 0 ), "Argument parsing ambiguity." } ;
+ErrorId MsgSupp::DigestAlgNotFound        = { ErrorOf( ES_SUPP, 450, E_INFO, EV_ADMIN, 1 ), "Digest algorithm %alg% not found. Using %default%" } ;
+ErrorId MsgSupp::DigestAlgWeak            = { ErrorOf( ES_SUPP, 451, E_INFO, EV_ADMIN, 1 ), "Digest algorithm %alg% weak" } ;
+ErrorId MsgSupp::OptionFileSizeLimit      = { ErrorOf( ES_SUPP, 452, E_INFO, EV_NONE, 0 ), "%'--file-size-limit (-L)'%: limit the size of the downloaded diagnostic files" } ;
+ErrorId MsgSupp::OptionLsof               = { ErrorOf( ES_SUPP, 453, E_INFO, EV_NONE, 0 ), "%'--lsof (-l)'%: manually request lock information" } ;
+ErrorId MsgSupp::OptionStrace             = { ErrorOf( ES_SUPP, 454, E_INFO, EV_NONE, 0 ), "%'--strace (-s)'%: request a diagnostic trace of the server" } ;
+ErrorId MsgSupp::OptionUserCaseInsensitive = { ErrorOf( ES_SUPP, 456, E_INFO, EV_NONE, 0 ), "%'--user-case-insensitive'%: causes pattern-matching for user to be case-insensitive" } ;
+ErrorId MsgSupp::OptionClientCaseInsensitive = { ErrorOf( ES_SUPP, 457, E_INFO, EV_NONE, 0 ), "%'--client-case-insensitive'%: causes pattern-matching for client to be case-insensitive" } ;
+ErrorId MsgSupp::OptionNonLbr             = { ErrorOf( ES_SUPP, 460, E_INFO, EV_NONE, 0 ), "%'--nonlbr'%: also remove any non archive files during scan" } ;
+ErrorId MsgSupp::OptionReport             = { ErrorOf( ES_SUPP, 461, E_INFO, EV_NONE, 0 ), "%'--report'%: report on nonlbr files deleted" } ;
+ErrorId MsgSupp::OptionStraceRuntime      = { ErrorOf( ES_SUPP, 466, E_INFO, EV_NONE, 0 ), "%'--strace-runtime'%: number of seconds of strace request" } ;
 
 // ErrorId graveyard'%: retired/deprecated ErrorIds.
 

@@ -90,6 +90,25 @@ using namespace std;
 //  NetSslEndPoint                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
+/*
+ * We're processing `p4 admin restart` or `kill -HUP`
+ * - the admin might have changed `certificate.txt`
+ *   so ensure that we'll re-read the credentials.
+ */
+void
+NetSslEndPoint::NotifyRestarting()
+{
+	if( serverCredentials )
+	{
+	    // claim ownership of cert and key so that
+	    // "delete serverCredentials" will also delete the cert and key
+	    serverCredentials->SetOwnCert( true );
+	    serverCredentials->SetOwnKey( true );
+	}
+
+	NetSslTransport::NotifyRestarting();
+}
+
 void
 NetSslEndPoint::Listen( Error *e )
 {
@@ -98,12 +117,23 @@ NetSslEndPoint::Listen( Error *e )
 	{
 	    serverCredentials = new NetSslCredentials();
 	    serverCredentials->ReadCredentials( e );
-	    if( e->Test() ) {
+	    if( e->Test() )
 		return;
+	    X509 *cert = serverCredentials->GetCertificate();
+	    serverCredentials->CheckCertChainOrder( cert, true, e );
+	    if( e->Test() ) {
+		p4debug.printf( "NetSslEndPoint::Listen() - invalid certificate chain\n" );
+		/*
+		 * We should return here (thus making the connection attempt fail)
+		 * but I'm afraid that we'd break some customers
+		 * who are running with not-quite-valid certs.
+		 */
+		//return;
 	    }
 	}
 	NetTcpEndPoint::Listen(e);
 }
+
 /**
  * NetSslEndPoint::ListenCheck
  *
@@ -128,6 +158,7 @@ NetSslEndPoint::ListenCheck( Error *e )
 void
 NetSslEndPoint::MoreSocketSetup( int fd, AddrType type, Error *e )
 {
+	TRANSPORT_PRINTF( DEBUG_CONNECT, "NetSslEndPoint::MoreSocketSetup(%d)", fd );
 # if defined(TCP_NODELAY)
 	int one = 1;
 	TYPE_SOCKLEN rsz = sizeof( one );
@@ -163,20 +194,24 @@ NetSslEndPoint::Accept( KeepAlive *, Error *e )
 
 	while( ( t = accept( s, (struct sockaddr *) &peer, &lpeer )) < 0 )
 	{
-	    if( errno != EINTR )
+#ifdef OS_NT
+	    if( GetLastSockError() != WSAEINTR )
+#else
+	    if( GetLastSockError() != EINTR )
+#endif // OS_NT
 	    {
 		e->Net( "accept", "socket" );
 		goto fail;
 	    }
 	}
 
-# ifdef F_SETFD
-	// close on exec
-	// so p4web's launched processes don't get our socket
-	fcntl( t, F_SETFD, 1 );
-# endif
+	/*
+	 * Set up our accepted socket because we didn't call
+	 * CreateSocket(), so we haven't set it up yet.
+	 */
+	SetupSocket( t, GetSocketFamily(t), AT_LISTEN, e );
 
-	sslTransport = new NetSslTransport( t, true, *serverCredentials,
+	sslTransport = new NetSslTransport( t, true, serverCredentials,
 	               customCipherList.Length()   ? &customCipherList   : 0,
 	               customCipherSuites.Length() ? &customCipherSuites : 0 );
 
@@ -194,8 +229,31 @@ NetSslEndPoint::Accept( KeepAlive *, Error *e )
 	return sslTransport;
 
 fail:
-	DEBUGPRINT( SSLDEBUG_ERROR, "NetSslEndpoint::Accept In fail error code." );
-	e->Set( MsgRpc::SslAccept ) << GetPortParser().String().Text() << "";
+	{
+	    int	errnum = GetLastSockError();
+	    StrBuf errBuf;
+
+	    Error::StrError( errBuf, errnum );
+#ifdef OS_NT
+	    bool isClosedFdErr = (errnum == WSAEBADF);
+#else
+	    bool isClosedFdErr = (errnum == EBADF);
+#endif // OS_NT
+
+	    // isClosedFdErr will be true on restart or shutdown
+	    if( !isClosedFdErr )
+	    {
+		DEBUGPRINTF( SSLDEBUG_ERROR,
+		    "NetSslEndpoint::Accept(): In fail error code: error=%d (\"%s\")",
+		    errnum, errBuf.Text() );
+
+		StrBuf	errMsg = GetPortParser().String();
+		errMsg << " : ";
+		errMsg << errBuf;
+		e->Set( MsgRpc::SslAccept ) << errMsg.Text();
+	    }
+	}
+
 	return 0;
 }
 

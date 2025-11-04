@@ -125,7 +125,7 @@ class StrPtr {
 	int	Atoi() const
 		{ return Atoi( buffer ); }
 
-	bool	IsNumeric() const;
+	bool	IsNumeric( bool allowDouble = false ) const;
 
 	int	StartsWith( const char *s, int l ) const;
 
@@ -201,6 +201,13 @@ class StrPtr {
 
 	int	XCompareN( const StrPtr &s ) const
 		{ return strncmp( buffer, s.buffer, length ); }
+
+	// binary equality
+	bool	BEqual( const StrPtr &s ) const
+		{
+		    return length == s.length
+		        && memcmp( buffer, s.buffer, length ) == 0;
+		}
 
 	// More comparing
 

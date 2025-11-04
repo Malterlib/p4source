@@ -66,7 +66,7 @@ extern "C"
 # define SSL_KEYFILE           (const char*)"privatekey.txt"
 # define SSL_CERTFILE          (const char*)"certificate.txt"
 
-# define SSL_X509_NUMBITS      2048
+# define SSL_X509_NUMBITS      4096
 # define SSL_X509_VERSION      3
 # define SSL_X509_SERIALNUM    01
 # define SSL_X509_NOTBEFORE    0
@@ -132,6 +132,190 @@ PrintPolicies( X509_STORE_CTX *ctx, BIO *bio, const char *sep )
 }
 
 static void
+PrintCertificateSubject( const char *msg, int depth, X509 *cert, const char *sep = "\n" )
+{
+	BIO *bio = BIO_new( BIO_s_mem() );
+	BIO_printf( bio, "+" );
+	if( depth >= 0 )
+	    BIO_printf( bio, " #%d", depth );
+	if( msg )
+	    BIO_printf( bio, " %s", msg );
+	if( msg || (depth >= 0) )
+	    BIO_printf( bio, ": " );
+	if( cert )
+	{
+	    BIO_printf( bio, "Subject: " );
+	    X509_NAME_print_ex( bio, X509_get_subject_name(cert), 0,
+	                        XN_FLAG_ONELINE );
+	}
+	else
+	{
+	    BIO_printf( bio, "<no cert>" );
+	}
+
+	char	*data = NULL;
+	long	datalen = 0;
+
+	datalen = BIO_get_mem_data( bio, &data );
+	StrBuf objS;
+	if( datalen )
+	    objS.Set(data, datalen);
+	objS.Terminate();
+	p4debug.printf( "%s%s", objS.Text(), sep );
+
+	BIO_free_all( bio );
+}
+
+static void
+PrintCertificateAltSubject(
+	const char *msg,
+	int depth,
+	X509 *cert,
+	const char *sep = "\n",
+	BIO *bio = NULL)
+{
+	if( !cert )
+	    return;
+
+	bool show_msg = true;
+	int msglen = strlen(msg) + 1;
+
+	if( msg || (depth >= 0) )
+	    BIO_printf( bio, ": " );
+
+	GENERAL_NAMES *names = NULL;
+	unsigned char *utf8 = NULL;
+	BIO *mybio = NULL;
+
+	if( !bio )
+	    bio = mybio = BIO_new( BIO_s_mem() );
+
+	do
+	{
+	    void *vnames = X509_get_ext_d2i( cert, NID_subject_alt_name, 0, 0 );
+	    if( !vnames )
+		break;
+
+	    names = static_cast<GENERAL_NAMES *>(vnames);
+	    int count = sk_GENERAL_NAME_num( names );
+
+	    for( int i = 0; i < count; ++i )
+	    {
+		GENERAL_NAME* entry = sk_GENERAL_NAME_value( names, i );
+		if( !entry )
+		    continue;
+
+		// should we also handle GEN_IPADD (IP address)?
+		switch( entry->type )
+		{
+		case GEN_DNS: // DNS name
+		    {
+			int len1 = 0;
+			int len2 = -1;
+
+			len1 = ASN1_STRING_to_UTF8( &utf8, entry->d.dNSName );
+			if( utf8 )
+			    len2 = (int)strlen( (const char*)utf8 );
+
+			// Skip this entry if the lengths don't match
+			if( utf8 && len1 && len2 && (len1 == len2))
+			{
+			    BIO_printf( bio, "+ #%d/%c", depth, 'a'+i );
+
+			    if( show_msg )
+			    {
+				BIO_printf( bio, " %s", msg );
+				show_msg = false;
+			    }
+			    else
+			    {
+				BIO_printf( bio, "%*s", msglen, " " );
+			    }
+			    BIO_printf( bio, " : DNS:%s%s", utf8, sep );
+			}
+
+			if( utf8 )
+			{
+			    OPENSSL_free( utf8 );
+			    utf8 = NULL;
+			}
+		    }
+		    break;
+		case GEN_IPADD:
+		    {
+			StrBuf buf;
+			NetUtils::IpBytesToStr( entry->d.ip->data, entry->d.ip->length > 4, buf );
+			BIO_printf( bio, "+ #%d/%c", depth, 'a'+i );
+
+			if( show_msg )
+			{
+			    BIO_printf( bio, " %s", msg );
+			    show_msg = false;
+			}
+			else
+			{
+			    BIO_printf( bio, "%*s", msglen, " " );
+			}
+			BIO_printf( bio, " : IP:%s%s", buf.Text(), sep );
+		    }
+		    break;
+		}
+	    }
+
+	    sk_GENERAL_NAME_pop_free( names, GENERAL_NAME_free );
+	} while (0);
+
+	(void) BIO_flush(bio);
+	char	*data = NULL;
+	long	datalen = 0;
+
+	datalen = BIO_get_mem_data( bio, &data );
+	StrBuf objS;
+	if( datalen )
+	    objS.Set(data, datalen);
+	objS.Terminate();
+	p4debug.printf( "%s%s", objS.Text(), sep );
+
+	if( mybio )
+	    BIO_free_all( mybio );
+}
+
+static void
+PrintCertificateIssuer( const char *msg, int depth, X509 *cert, const char *sep = "\n" )
+{
+	BIO *bio = BIO_new( BIO_s_mem() );
+	BIO_printf( bio, "+" );
+	if( depth >= 0 )
+	    BIO_printf( bio, " #%d", depth );
+	if( msg )
+	    BIO_printf( bio, " %s", msg );
+	if( msg || (depth >= 0) )
+	    BIO_printf( bio, ": " );
+	if( cert )
+	{
+	    BIO_printf( bio, "Issuer:  " );
+	    X509_NAME_print_ex( bio, X509_get_issuer_name(cert), 0,
+	                        XN_FLAG_ONELINE );
+	}
+	else
+	{
+	    BIO_printf( bio, "<no cert>" );
+	}
+
+	char	*data = NULL;
+	long	datalen = 0;
+
+	datalen = BIO_get_mem_data( bio, &data );
+	StrBuf objS;
+	if( datalen )
+	    objS.Set(data, datalen);
+	objS.Terminate();
+	p4debug.printf( "%s%s", objS.Text(), sep );
+
+	BIO_free_all( bio );
+}
+
+static void
 PrintCertificateSubject( int depth, X509 *cert, BIO *bio, const char *sep )
 {
 	BIO_printf( bio , "depth=%d ", depth );
@@ -143,6 +327,18 @@ PrintCertificateSubject( int depth, X509 *cert, BIO *bio, const char *sep )
 	}
 	else
 	    BIO_printf( bio, " <no cert>%s", sep );
+}
+
+static void
+PrintCertificateAltSubject( int depth, X509 *cert, BIO *bio, const char *sep )
+{
+	BIO_printf( bio , "depth=%d ", depth );
+	if( cert == NULL )
+	{
+	    BIO_printf( bio, " <no cert>%s", sep );
+	    return;
+	}
+	PrintCertificateAltSubject( "", depth, cert, sep, NULL );
 }
 
 static void
@@ -253,10 +449,13 @@ verify_callback(int ok, X509_STORE_CTX *ctx)
 	if( ok )
 	    BIO_printf( bio, "verify return:%d\n", ok );
 
-	BUF_MEM *bufMemPtr = 0;
-	BIO_get_mem_ptr( bio, &bufMemPtr );
+	char	*data = NULL;
+	long	datalen = 0;
+
+	datalen = BIO_get_mem_data( bio, &data );
 	StrBuf objS;
-	objS.Set(bufMemPtr->data, bufMemPtr->length);
+	if( datalen )
+	    objS.Set( data, datalen );
 	objS.Terminate();
 	p4debug.printf( objS.Text() );
 
@@ -297,8 +496,8 @@ NetSslCredentials::NetSslCredentials(bool isTest)
     certL( SSL_X509_L ),
     certO( SSL_X509_O )
 {
-	ownCert = false;
-	ownKey = false;
+	ownCert = true;
+	ownKey = true;
 	certEX = SSL_X509_NOTAFTER;
 	certSV = SSL_X509_NOTBEFORE;
 	certUNITS = SSL_X509_DAY;
@@ -354,40 +553,58 @@ NetSslCredentials::NetSslCredentials( NetSslCredentials &rhs)
 
 NetSslCredentials::~NetSslCredentials()
 {
-	if ( privateKey && ownKey )
-	    EVP_PKEY_free( privateKey );
-
-	if ( certificate && ownCert )
-	    X509_free( certificate );
-
-	if ( ownCert )
-	    for( int i = 0; i < chain->Count(); i++ )
-	        X509_free( (X509 *)chain->Get( i ) );
+	ReleaseCredentials( true, true );
 
 	delete chain;
 	delete verify;
 }
 
+void
+NetSslCredentials::ClearChain( bool freeChain )
+{
+	if( ownCert && freeChain )
+	{
+	    for( int i = 0; i < chain->Count(); i++ )
+		X509_free( (X509 *)chain->Get( i ) );
+	}
+
+	if( freeChain )
+	    chain->Clear();
+}
+
+void
+NetSslCredentials::ReleaseCredentials( bool freeCert, bool freeKey )
+{
+	if ( freeCert && ownCert && certificate )
+	{
+	    X509_free( certificate );
+	    certificate = NULL;
+	}
+	ownCert = false;
+
+	if ( freeKey && ownKey && privateKey )
+	{
+	    EVP_PKEY_free( privateKey );
+	    privateKey = NULL;
+	}
+	ownKey = false;
+}
+
 NetSslCredentials &
 NetSslCredentials::operator =( NetSslCredentials &rhs )
 {
-	
-	if ( privateKey && ownKey )
-	    EVP_PKEY_free( privateKey );
+	ReleaseCredentials( true, true );
 
-	if ( certificate && ownCert )
-	    X509_free( certificate );
-
-	if ( ownCert )
-	    for( int i = 0; i < chain->Count(); i++ )
-	        X509_free( (X509 *)chain->Get( i ) );
-	
 	privateKey = rhs.privateKey;
 	certificate = rhs.certificate;
+
+	for( int i = 0; i < chain->Count(); i++ )
+	    X509_free( (X509 *)chain->Get( i ) );
 	chain->Clear();
+
 	for( int i = 0; i < rhs.chain->Count(); i++ )
 	    chain->Put( rhs.chain->Get( i ) );
-	
+
 	fingerprint = rhs.fingerprint;
 	certC = rhs.certC;
 	certCN = rhs.certCN;
@@ -409,7 +626,7 @@ NetSslCredentials::HaveCredentials( Error *e )
 }
 
 void
-NetSslCredentials::ReadCredentials(  Error *e )
+NetSslCredentials::ReadCredentials( Error *e )
 {
 	FILE *fp = NULL;
 	X509 *chainCert = 0;
@@ -430,33 +647,75 @@ NetSslCredentials::ReadCredentials(  Error *e )
 	    e->Net( "fopen", strerror(errno) );
 	    goto failSetError;
 	}
-	privateKey = PEM_read_PrivateKey(fp, NULL, 0, NULL );
+
+	if ( privateKey && ownKey )
+	{
+	    EVP_PKEY_free( privateKey );
+	}
+	privateKey = PEM_read_PrivateKey(fp, NULL, NULL, NULL );
+	ownKey = true;
 	SSLNULLHANDLER( privateKey, e, "NetSslCredentials::ReadCredentials PEM_read_PrivateKey", failSetError );
+
 	// verify that RSA key
 # if OPENSSL_VERSION_NUMBER < 0x10100000L
 	if (privateKey->type != EVP_PKEY_RSA)
 # else // OpenSSL >=1.1
-	if (EVP_PKEY_base_id(privateKey) != EVP_PKEY_RSA)
+	if( !( EVP_PKEY_base_id( privateKey ) == EVP_PKEY_RSA ||
+	       EVP_PKEY_base_id( privateKey ) == EVP_PKEY_EC ||
+	       EVP_PKEY_base_id( privateKey ) == EVP_PKEY_ED25519 ||
+	       EVP_PKEY_base_id( privateKey ) == EVP_PKEY_ED448 ) )
 # endif
 	{
 	    e->Set( MsgRpc::SslKeyNotRSA );
 	    goto fail;
 	}
 	fclose( fp );
+	fp = NULL;
 
 	// read in certificate
-	if( SSLDEBUG_CERT )
+	if( SSLDEBUG_CERT && certificate )
 	    p4debug.printf( "NetSslCredentials::ReadCredentials cert='%s'\n", certFile->Text() );
 	fp  = fopen( certFile->Text(), "r" );
 	if( fp == NULL ) {
 	    e->Net( "fopen", strerror(errno) );
 	    goto failSetError;
 	}
-	certificate = PEM_read_X509(fp, NULL, 0, NULL );
+
+	if ( ownCert && certificate )
+	{
+	    X509_free( certificate );
+	}
+
+	// we assume that the first cert is the subject (ie, server) cert
+	certificate = PEM_read_X509( fp, NULL, 0, NULL );
+	ownCert = true;
 	SSLNULLHANDLER( certificate, e, "NetSslCredentials::ReadCredentials PEM_read_X509", failSetError );
 
 	ValidateCertDateRange( certificate, e );
 	P4CHECKERROR( e, "NetSslCredentials::ReadCredentials ValidateCertDateRange", fail );
+	// Note: the cert chain must not contain the server cert
+
+	/*
+	 * Reset the chain before adding new certs.
+	 *
+	 * If we're restarting, then 'certificates.txt'
+	 * or 'privatekey.txt' might have changed since
+	 * we originally loaded the chain and we don't
+	 * want to leave the old certificates in the chain.
+	 *
+	 * If the certificates haven't changed then we still
+	 * clear the chain because otherwise the chain will
+	 * contain another copy of our chain certificates.
+	 * Duplicate certs in the chain is not a good idea,
+	 * violates the requirement that each cert is signed
+	 * by the next certificate, and can cause OpenSSL
+	 * handshakes to fail (typically with a null parameter
+	 * error).
+	 */
+
+	for( int i = 0; i < chain->Count(); i++ )
+	    X509_free( (X509 *)chain->Get( i ) );
+	chain->Clear();
 
 	while( (chainCert = PEM_read_X509(fp, NULL, 0, NULL ) ) )
 	{
@@ -466,9 +725,6 @@ NetSslCredentials::ReadCredentials(  Error *e )
 	    chain->Put( chainCert );
 	}
 	e->Clear();
-
-	ownCert = true;
-	ownKey = true;
 
 	GetFingerprintFromCert( e );
 	if( e->Test() ) {
@@ -486,6 +742,7 @@ fail:
 	if( fp ) {
 	    fclose( fp );
 	}
+	ReleaseCredentials( true, true );
 	delete keyFile;
 	delete certFile;
 	return;
@@ -523,9 +780,9 @@ NetSslCredentials::GenerateCredentials( Error *e  )
 	ownKey = true;
 
 fail:
+	ReleaseCredentials( true, true );
 	delete keyFile;
 	delete certFile;
-	return;
 }
 
 void
@@ -1048,6 +1305,7 @@ fail:
 	    X509_free( certificate );
 	    certificate = NULL;
 	}
+
 	if (privateKey)
 	{
 	    EVP_PKEY_free( privateKey );
@@ -1144,6 +1402,9 @@ fail:
 void
 NetSslCredentials::SetCertValid( int depth, int err, X509 *cert )
 {
+	if( !cert )
+	    return;
+
 	// Stash the error value
 	(*verify)[depth] = err;
 
@@ -1190,11 +1451,16 @@ NetSslCredentials::SetCertificate( X509 *cert, stack_st_X509 *certChain,
 	}
 
 	verify->Reset();
-	if( !ownCert )
-	    chain->Clear();
+	if( ownCert )
+	{
+	    for( int i = 0; i < chain->Count(); i++ )
+		X509_free( (X509 *)chain->Get( i ) );
+	}
+
 	for( int i = 0; i < chain->Count(); i++ )
 	    X509_free( (X509 *)chain->Get( i ) );
 	chain->Clear();
+	ReleaseCredentials( true, true );
 
 	this->certificate = cert;
 	this->ownCert = false;
@@ -1218,6 +1484,7 @@ NetSslCredentials::SetCertificate( X509 *cert, stack_st_X509 *certChain,
 	X509_STORE_CTX *csc = X509_STORE_CTX_new();
 	if( X509_STORE_CTX_init( csc, store, cert, certChain ) )
 	{
+	    X509_STORE_CTX_set_purpose(csc, X509_PURPOSE_ANY);
 	    X509_STORE_CTX_set_verify_cb( csc, verify_callback );
 	    X509_STORE_CTX_set_flags( csc, 0 );
 	    X509_STORE_CTX_set_ex_data( csc, GetSSLVerifyCbIdx(), this );
@@ -1230,6 +1497,84 @@ int
 NetSslCredentials::IsSelfSigned()
 {
 	return (*verify)[0] != -1 && (*verify)[1] == -1;
+}
+
+/*
+ * Check that the server cert is issued by the first cert in the chain
+ * and that each cert in the chain is issued by the following cert
+ * (if any).
+ * Note that the first cert in 'certificate.txt' is taken as the server
+ * cert and the rest of them comprise the chain.
+ */
+int
+NetSslCredentials::CheckCertChainOrder( X509 *cert, bool alwaysShow, Error *e )
+{
+    int	rslt = 0;
+
+    if( !cert )
+    {
+	p4debug.printf( "NetSslCredentials::CheckCertChainOrder : server cert is NULL\n" );
+	e->Set( MsgRpc::SslCertBadChain );
+
+	return 1;
+    }
+
+    if( SSLDEBUG_CERT )
+    {
+	PrintCertificateSubject( "server cert", 0, cert );
+	PrintCertificateIssuer( "           ", 0, cert );
+	PrintCertificateAltSubject( "server alt subject", 0, cert );
+    }
+
+    X509 *prevCert = cert;
+
+    for( unsigned int idx = 0; idx < chain->Count(); ++idx )
+    {
+	X509 *itemCert = (X509 *) chain->Get( idx );
+
+	if( !itemCert )
+	{
+	    p4debug.printf( "Warning: Skipping NULL X.509 certificate #%d in chain\n", idx );
+	    continue;
+	}
+
+	if( SSLDEBUG_CERT )
+	{
+	    PrintCertificateSubject( "chain  cert", idx+1, itemCert );
+	    PrintCertificateIssuer( "           ", idx+1, itemCert );
+	    PrintCertificateAltSubject( "server alt subject", idx+1, itemCert );
+	}
+
+	X509_NAME *prevIssuerNameX509 = X509_get_issuer_name( prevCert );
+	X509_NAME *curSubjNameX509 = X509_get_subject_name( itemCert );
+
+	bool	mismatch = X509_NAME_cmp(prevIssuerNameX509, curSubjNameX509);
+	if( alwaysShow || mismatch )
+	{
+	    char *prevIssuerName = X509_NAME_oneline( prevIssuerNameX509, NULL, 0 );
+	    char *curSubjName = X509_NAME_oneline( curSubjNameX509, NULL, 0 );
+
+	    if( mismatch )
+	    {
+		X509_NAME *prevSubjNameX509 = X509_get_subject_name( prevCert );
+		char *prevSubjName = X509_NAME_oneline( prevSubjNameX509, NULL, 0 );
+
+		p4debug.printf( "* Incorrect cert chain: cert #%d '%s' was signed by '%s' but the next cert was #%d '%s'.\n"
+		    "* Each certificate in the certificate file must be"
+		    " signed by the following certificate (if any).\n",
+		    idx, prevSubjName, prevIssuerName, idx+1, curSubjName );
+		e->Set( MsgRpc::SslCertBadChain );
+		rslt = 1;
+		OPENSSL_free( prevSubjName );
+	    }
+	    OPENSSL_free( prevIssuerName );
+	    OPENSSL_free( curSubjName );
+	}
+
+	prevCert = itemCert;
+    }
+
+    return rslt;
 }
 
 void 
@@ -1268,7 +1613,15 @@ NetSslCredentials::ValidateChain( bool criticalOnly, Error *e )
 	    BIO *bio = BIO_new( BIO_s_mem() );
 	    X509* cert = depth == 1 ? certificate
 	                            : (X509*)chain->Get( depth - 2 );
+	    if( !cert )
+	    {
+		p4debug.printf( "Warning: Skipping NULL X.509 certificate #%d in chain\n",
+			(depth == 1 ? -1 : depth-2) );
+		continue;
+	    }
+
 	    PrintCertificateSubject( depth - 1, cert, bio, " " );
+	    PrintCertificateAltSubject( depth - 1, cert, bio, " " );
 	    PrintCertificateError( cert, err, 0, bio, " " );
 	    BUF_MEM *bufMemPtr = 0;
 	    BIO_get_mem_ptr( bio, &bufMemPtr );
@@ -1287,7 +1640,7 @@ NetSslCredentials::ValidateChain( bool criticalOnly, Error *e )
 
 	    e->Set( MsgOs::Net2 ) << func << sslError << vErr << objS;
 	    e->Set( critical ? MsgRpc::SslCertBad : MsgRpc::SslCertBadChain );
-	}
+    }
 }
 
 void

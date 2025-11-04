@@ -468,7 +468,7 @@ MillisecondDifference(const DateTimeHighPrecision &lop,
 ////////////////////////////////////////////////////////////////////////////
 SSL_CTX *NetSslTransport::sServerCtx = NULL;
 SSL_CTX *NetSslTransport::sClientCtx = NULL;
-
+bool	NetSslTransport::sIsRestarting = false;
 
 /**
  * NetSslTransport::constructor
@@ -478,34 +478,123 @@ SSL_CTX *NetSslTransport::sClientCtx = NULL;
  *
  * @param int socket
  * @param bool flag indicating if server or client side
+ *
+ * Server:
+ * p4tunables::list[] has values from the defns in debug.cc + loaded by
+ * LoadConfig() at server startup (or admin restart).
+ *
+ * Client:
+ * Socket setup is done in NetSslEndPoint::Connect().
  */
-NetSslTransport::NetSslTransport( int t, bool fromClient, StrPtr *cipherList,
-				StrPtr *cipherSuites )
-    : NetTcpTransport( t, fromClient )
+NetSslTransport::NetSslTransport( int t, bool fromClient, StrBuf *cipherList,
+		StrBuf *cipherSuites )
+    : NetTcpTransport( t, fromClient ), credentials(NULL)
 {
 	this->bio = NULL;
 	this->ssl = NULL;
 	this->clientNotSsl = false;
+	this->ownsCreds = true;
+	this->credentials = new NetSslCredentials;
 	cipherSuite.Set( "encrypted" );
 	customCipherList = cipherList;
 	customCipherSuites = cipherSuites;
 }
 
+// Called for servers from NetSslEndPoint::Accept()
+// NB: NetSslEndPoint owns the passed-in cred
 NetSslTransport::NetSslTransport( int t, bool fromClient,
-				NetSslCredentials &cred, StrPtr *cipherList,
-				StrPtr *cipherSuites )
+		NetSslCredentials *cred, StrBuf *cipherList,
+		StrBuf *cipherSuites )
     : NetTcpTransport( t, fromClient ), credentials(cred)
 {
 	this->bio = NULL;
 	this->ssl = NULL;
 	this->clientNotSsl = false;
+	this->ownsCreds = false;
 	cipherSuite.Set( "encrypted" );
 	customCipherList = cipherList;
 	customCipherSuites = cipherSuites;
+
+	if( !credentials )
+	{
+	    /*
+	     * It's an error to pass in NULL; this will prevent a crash,
+	     * but p4d won't accept connections without valid
+	     * credentials from NetSslEndPoint.
+	     */
+	    credentials = new NetSslCredentials;
+	    this->ownsCreds = true;
+	    p4debug.printf( "NetSslTransport ctor: NULL credentials given\n" );
+	}
+
+	/*
+	 * proxy (and maybe broker) don't call SetupSocket()
+	 * on accepted sockets so we'll always do it,
+	 * even though p4d will also do it later.
+	 */
+	SetupSocket();
 }
+
 NetSslTransport::~NetSslTransport()
 {
+	/*
+	 * NOTE: Never "delete credentials;"
+	 *
+	 * "credentials" points either to the
+	 * NetSslTransport::myCredentials object (which will get
+	 * auto-deleted when this transport object is deleted),
+	 * or to the credentials owned by a NetSslEndPoint object
+	 * (which will get deleted when the NetSslEndPoint object
+	 * is deleted).
+	 */
+
 	Close();
+	ReleaseCreds();
+
+	if( ssl )
+	{
+	    SSL_free( ssl );
+	    ssl = NULL;
+	}
+}
+
+void
+NetSslTransport::ReleaseCreds()
+{
+	credentials->ReleaseCredentials( true, true );
+	if( ownsCreds )
+	{
+	    delete credentials;
+	    credentials = NULL;
+	}
+}
+
+/*
+ * Server:
+ * Called from Rh::Run() in a child request-handler process
+ * after the child proc has reloaded values via LoadConfig()
+ * (so the relevant configurables may have changed since instantiation).
+ * Socket setup is done in Rh::Run() via Rpc::TransportSetupSocket().
+ *
+ * Client:
+ * Socket setup is done in NetSslEndPoint::Connect().
+ *
+ * For both client and server, socket setup is also done in the
+ * transport constructor, but possibly with different config values.
+ */
+void
+NetSslTransport::SetupSocket()
+{
+	TRANSPORT_PRINTF( DEBUG_CONNECT, "NetSslTransport::SetupSocket(fd=%d, reload=%d)", t, afterReload );
+	this->NetTcpTransport::SetupSocket(); // base class setup
+}
+
+// SSL-specific setup, called from NetTcpTransport::SetupSocket()
+void
+NetSslTransport::MoreSetupSocket()
+{
+	TRANSPORT_PRINTF( DEBUG_CONNECT, "NetSslTransport::MoreSetupSocket(fd=%d, reload=%d)", t, afterReload );
+	this->NetTcpTransport::MoreSetupSocket(); // parent might add code later
 }
 
 // MS Visual Studio didn't implement snprintf until VS 2015.  Sigh.
@@ -553,10 +642,12 @@ NetSslTransport::CreateAndInitializeSslContext( const char *conntypename )
       * Start by allowing all protocol versions
       */
 
+    ERR_clear_error();
     SSL_CTX	*ctxp = SSL_CTX_new( SSLv23_method() );
     SNPRINTF1( msgbuf, bufsize, "NetSslTransport::Ssl%sInit SSL_CTX_new", conntypename );
     TRANSPORT_PRINT_VAR( SSLDEBUG_FUNCTION, msgbuf );
 
+    ERR_clear_error();
     SSL_CTX_set_mode(
 	ctxp,
 	SSL_MODE_ENABLE_PARTIAL_WRITE | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER );
@@ -813,6 +904,8 @@ NetSslTransport::SslClientInit( Error *e )
 	     * Allow TLSv1.0 and later but disable SSLv2 and SSLv3
 	     * - Allow customers to further filter TLS protocol versions
 	     */
+	    if( SSLDEBUG_FUNCTION )
+		p4debug.printf( "NetSslTransport::SslClientInit(): Creating client SSL context\n" );
 	    if( (sClientCtx = CreateAndInitializeSslContext( "Client" )) == NULL )
 		goto fail;
 
@@ -828,11 +921,26 @@ fail:
 void
 NetSslTransport::GetPeerFingerprint( StrBuf &value )
 {
-	if( !isAccepted && credentials.GetFingerprint() &&
-		credentials.GetFingerprint()->Length() )
-	    value.Set( credentials.GetFingerprint()->Text() );
+	if( !isAccepted && credentials->GetFingerprint() &&
+		credentials->GetFingerprint()->Length() )
+	    value.Set( credentials->GetFingerprint()->Text() );
 	else
 	    value.Clear();
+}
+
+/*
+ * We're processing `p4 admin restart` or `kill -HUP`
+ * - the admin might have changed 'certificate.txt'
+ *   and/or 'privatekey.txt' so set sIsRestarting
+ *   to ensure that we'll re-read the credentials
+ *   when SslServerInit is next called.
+ *
+ * [static]
+ */
+void
+NetSslTransport::NotifyRestarting()
+{
+	sIsRestarting = true;
 }
 
 
@@ -849,11 +957,13 @@ NetSslTransport::GetPeerFingerprint( StrBuf &value )
 void
 NetSslTransport::SslServerInit( StrPtr *hostname, Error *e )
 {
-	if( sServerCtx )
+	// if we are not restarting and have already initialized
+	// then we're done
+	if( !sIsRestarting && sServerCtx )
 	    return;
 
+	bool wasRestarting = sIsRestarting;
 	X509 *chainCert = 0;
-	int i = 0;
 
 # ifdef OS_NT
 	/*
@@ -868,7 +978,36 @@ NetSslTransport::SslServerInit( StrPtr *hostname, Error *e )
 	 */
 # endif // OS_NT
 
-	if( !sServerCtx )
+	if( sIsRestarting )
+	{
+	    // toss credentials, etc, so that we (re)start clean
+	    if( ssl )
+	    {
+		SSL_free( ssl );
+		ssl = NULL;
+	    }
+
+	    if( sServerCtx )
+	    {
+		SSL_CTX_free( sServerCtx );
+		sServerCtx = NULL;
+	    }
+
+	    credentials->ReleaseCredentials( true, true );
+	    sIsRestarting = false;
+	}
+
+	// already initialized
+	if( sServerCtx )
+	    return;
+
+	/*
+	 * If we're restarting then we've already performed
+	 * our one-time initialization at startup.
+	 * All of this setup is only for OpenSSL before v3.0,
+	 * and so is not currently needed.
+	 */
+	if( !wasRestarting )
 	{
 # ifdef OS_NT
 # if OPENSSL_VERSION_NUMBER < 0x10100000L
@@ -877,7 +1016,6 @@ NetSslTransport::SslServerInit( StrPtr *hostname, Error *e )
 		return;
 # endif // !OpenSSL 1.1
 # endif // OS_NT
-
 
 # if OPENSSL_VERSION_NUMBER < 0x10100000L
 	    /*
@@ -895,9 +1033,9 @@ NetSslTransport::SslServerInit( StrPtr *hostname, Error *e )
 	    ERR_clear_error();
 	    SSL_load_error_strings();
 	    SSLCHECKERROR( e,
-	        "NetSslTransport::SslClientInit SSL_load_error_strings",
-	        MsgRpc::SslInit,
-	        fail );
+		"NetSslTransport::SslClientInit SSL_load_error_strings",
+		MsgRpc::SslInit,
+		fail );
 # endif
 # if OPENSSL_VERSION_NUMBER < 0x30000000L
 	    // As of OpenSSL 3, ERR_load_*_strings() are not needed
@@ -908,95 +1046,113 @@ NetSslTransport::SslServerInit( StrPtr *hostname, Error *e )
 
 	    ERR_load_BIO_strings();
 	    SSLCHECKERROR( e,
-	        "NetSslTransport::SslServerInit ERR_load_BIO_strings",
-	        MsgRpc::SslInit,
-	        fail );
+		"NetSslTransport::SslServerInit ERR_load_BIO_strings",
+		MsgRpc::SslInit,
+		fail );
 # endif
 # if OPENSSL_VERSION_NUMBER < 0x10100000L
 	    // As of OpenSSL 1.1.0, SSL_library_init() is not needed
 	    ERR_clear_error();
 	    if( !SSL_library_init() )
 	    {
-	        // executable not compiled supporting SSL
-	        // need to link with open SSL libraries
-	        e->Set( MsgRpc::SslNoSsl );
-	        return;
+		// executable not compiled supporting SSL
+		// need to link with open SSL libraries
+		e->Set( MsgRpc::SslNoSsl );
+		return;
 	    }
 	    SSLCHECKERROR( e, "NetSslTransport::SslClientInit SSL_library_init",
-	        MsgRpc::SslInit,
-	        fail );
+		MsgRpc::SslInit,
+		fail );
 # endif
+	} // !wasRestarting
 
-	    /* Set up cert and key:
-	     * Note that we have already verified in RpcService::Listen
-	     * that sslKey and sslCert exist in P4SSLDIR and are valid.
-	     * Since we are doing lazy init of the SslCtx the
-	     * files could have been deleted before hitting this code.  We will do
-	     * another verify check here when we finally load the credentials
-	     * for the first read/write.
-	     */
-	    credentials.ReadCredentials(e);
-	    P4CHECKERROR( e, "NetSslTransport::SslServerInit ReadCredentials", fail );
+	/* Set up cert and key:
+	 * Note that we have already verified in RpcService::Listen
+	 * that sslKey and sslCert exist in P4SSLDIR and are valid.
+	 * Since we are doing lazy init of the SslCtx the
+	 * files could have been deleted before hitting this code.  We will do
+	 * another verify check here when we finally load the credentials
+	 * for the first read/write.
+	 */
+	credentials->ReadCredentials( e );
+	P4CHECKERROR( e, "NetSslTransport::SslServerInit ReadCredentials", fail );
 
-	    /*
-	     * Allow TLSv1.0 and later but disable SSLv2 and SSLv3
-	     * - Allow customers to further filter TLS protocol versions
-	     */
-	    if( (sServerCtx = CreateAndInitializeSslContext( "Server" )) == NULL )
-		goto fail;
+	/*
+	 * Allow TLSv1.0 and later but disable SSLv2 and SSLv3
+	 * - Allow customers to further filter TLS protocol versions
+	 */
+	if( SSLDEBUG_FUNCTION )
+	    p4debug.printf( "NetSslTransport::SslServerInit(): Creating server SSL context\n" );
+	if( (sServerCtx = CreateAndInitializeSslContext( "Server" )) == NULL )
+	    goto fail;
 
+	ERR_clear_error();
+	SSL_CTX_use_PrivateKey( sServerCtx, credentials->GetPrivateKey() );
+	SSLLOGFUNCTION(
+	    "NetSslTransport::SslServerInit SSL_CTX_use_PrivateKey" );
+	credentials->SetOwnKey( false );
+	ownsCreds = false;
+
+	/*
+	 * Note: if want key passphrase protected then need to implement
+	 * a callback function to supply the passphrase:
+	 *     int passwd_cb( char *buf, int size, int flag, void *userdata );
+	 *
+	 * Alternatively strip the passphrase protection off the key via
+	 *     cp server.key server.key.org
+	 *     openssl [rsa|dsa] -in server.key.org -out server.key
+	 */
+	ERR_clear_error();
+	SSL_CTX_use_certificate( sServerCtx, credentials->GetCertificate() );
+	SSLLOGFUNCTION(
+	    "NetSslTransport::SslServerInit SSL_CTX_use_certificate" );
+	credentials->SetOwnCert( false );
+
+	/*
+	 * If we have a chain, add those certs to the context
+	 */
+	for( int i = 0; (chainCert = credentials->GetChain( i++ )); )
+	{
 	    ERR_clear_error();
-	    SSL_CTX_use_PrivateKey( sServerCtx, credentials.GetPrivateKey() );
+	    SSL_CTX_add_extra_chain_cert( sServerCtx, chainCert );
 	    SSLLOGFUNCTION(
-		"NetSslTransport::SslServerInit SSL_CTX_use_PrivateKey" );
-	    credentials.SetOwnKey( false );
-	    /*
-	     * Note: if want key passphrase protected then need to implement
-	     * a callback function to supply the passphrase:
-	     *     int passwd_cb( char *buf, int size, int flag, void *userdata );
-	     *
-	     * Alternatively strip the passphrase protection off the key via
-	     *     cp server.key server.key.org
-	     *     openssl [rsa|dsa] -in server.key.org -out server.key
-	     */
-	    ERR_clear_error();
-	    SSL_CTX_use_certificate( sServerCtx, credentials.GetCertificate() );
-	    SSLLOGFUNCTION(
-		"NetSslTransport::SslServerInit SSL_CTX_use_certificate" );
-	    credentials.SetOwnCert( false );
-
-	    /*
-	     * If we have a chain, add those certs to the context
-	     */
-	    while( ( chainCert = credentials.GetChain( i++ ) ) )
-	    {
-		ERR_clear_error();
-	        SSL_CTX_add_extra_chain_cert( sServerCtx, chainCert );
-	        SSLLOGFUNCTION(
-	           "NetSslTransport::SslServerInit SSL_CTX_add_extra_chain_cert" );
-	    }
-
-	    /*
-	     * Set context to not verify certificate authentication with CA.
-	     */
-	    ERR_clear_error();
-	    SSL_CTX_set_verify( sServerCtx, SSL_VERIFY_NONE, NULL /* no callback */);
-	    SSLLOGFUNCTION(
-		"NetSslTransport::SslServerInit SSL_CTX_set_verify server ctx" );
-
-	    /*
-	     * NOTE: The way this code is written there is no CA check on the cert.
-	     * If want to do this then SSL_CTX_load_verify_locations( sServerCtx, NULL, sslCACert );
-	     * The certificate authority certificate directory must be hashed:
-	     *     c_rehash /path/to/certfolder
-	     */
+	       "NetSslTransport::SslServerInit SSL_CTX_add_extra_chain_cert" );
 	}
+
+	/*
+	 * Set context to not verify certificate authentication with CA.
+	 */
+	ERR_clear_error();
+	SSL_CTX_set_verify( sServerCtx, SSL_VERIFY_NONE, NULL /* no callback */);
+	SSLLOGFUNCTION(
+	    "NetSslTransport::SslServerInit SSL_CTX_set_verify server ctx" );
+
+	/*
+	 * NOTE: The way this code is written there is no CA check on the cert.
+	 * If want to do this then SSL_CTX_load_verify_locations( sServerCtx, NULL, sslCACert );
+	 * The certificate authority certificate directory must be hashed:
+	 *     c_rehash /path/to/certfolder
+	 */
 
 	return;
 
 fail:
+	// clean up to get a fresh start for a subsequent call
+	if( ssl )
+	{
+	    SSL_free( ssl );
+	    ssl = NULL;
+	}
+
+	if( sServerCtx )
+	{
+	    SSL_CTX_free( sServerCtx );
+	    sServerCtx = NULL;
+	}
+
+	credentials->ReleaseCredentials( true, true );
+	sIsRestarting = wasRestarting;
 	e->Set( MsgRpc::SslCtx ) << "the accepting server";
-	return;
 }
 
 /**
@@ -1022,6 +1178,13 @@ NetSslTransport::DoHandshake( Error *e )
 	if( this->isAccepted )
 	{
 	    ERR_clear_error();
+	    if( sServerCtx == NULL )
+	    {
+		if( SSLDEBUG_FUNCTION )
+		    p4debug.printf( "NetSslTransport::DoHandshake(): Re-creating server SSL context\n" );
+		sServerCtx = CreateAndInitializeSslContext( "Server" );
+		SSLNULLHANDLER( sServerCtx, e, "NetSslTransport::DoHandshake SSL_new", fail );
+	    }
 	    ssl = SSL_new( sServerCtx );
 	    SSLNULLHANDLER( ssl, e, "NetSslTransport::DoHandshake SSL_new", fail );
 	    if( customCipherList )
@@ -1053,8 +1216,8 @@ NetSslTransport::DoHandshake( Error *e )
 	    if( customCipherSuites )
 	    {
 		ERR_clear_error();
-		SSL_set_ciphersuites( ssl, customCipherSuites->Text() );
-		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_ciphersuites custom" );
+		    SSL_set_ciphersuites( ssl, customCipherSuites->Text() );
+		    SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_ciphersuites custom" );
 	    }
 # endif
 	}
@@ -1146,7 +1309,7 @@ NetSslTransport::DoHandshake( Error *e )
 # endif
 	    stack_st_X509 *serverCertChain = SSL_get_peer_cert_chain( ssl );
 	    X509_STORE *store = SSL_CTX_get_cert_store( SSL_get_SSL_CTX( ssl ) );
-	    credentials.SetCertificate( serverCert, serverCertChain, store, e );
+	    credentials->SetCertificate( serverCert, serverCertChain, store, e );
 
 	    if ( e->Test() )
 	    {
@@ -1156,11 +1319,11 @@ NetSslTransport::DoHandshake( Error *e )
 		goto failNoRead;
 	    }
 
-	    SSLLOGFUNCTION( credentials.GetFingerprint()->Text() );
+	    SSLLOGFUNCTION( credentials->GetFingerprint()->Text() );
 	    if( SSLDEBUG_CONNECT )
 	        p4debug.printf(
 	            "NetSslTransport::DoHandshake %s certificate received\n",
-	            credentials.IsSelfSigned() ? "self-signed" : "chain" );
+	            credentials->IsSelfSigned() ? "self-signed" : "chain" );
 
 	    if( SSLDEBUG_CERT )
 	    {
@@ -1195,6 +1358,7 @@ failNoRead:
 		"NetSslTransport::DoHandshake In fail error code." );
 	if( ssl )
 	{
+	    ERR_clear_error();
 	    SSL_free( ssl );
 	    SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_free" );
 	    bio = NULL;
@@ -1204,7 +1368,7 @@ failNoRead:
 	if( isAccepted )
 	{
 	    TRANSPORT_PRINT( SSLDEBUG_ERROR,
-		    "NetSslTransport::DoHandshake failed on server side.");
+		"NetSslTransport::DoHandshake failed on server side.");
 	    if( !e->Test() )
 		e->Set( MsgRpc::SslAcceptFailed ) << GetPortParser().String() << "";
 	}
@@ -1284,7 +1448,7 @@ NetSslTransport::SslHandshake( Error *e )
 	    errErrorNum = ERR_get_error();
 	    done = SSL_is_init_finished( ssl );
 
-	    int errnum = GetLastError();
+	    int errnum = GetLastSockError();
 
 	    // for handshake debugging, print the SSL state info if not finished
 	    if( !done && SSLDEBUG_CONNECT )
@@ -1952,7 +2116,7 @@ NetSslTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 
 		ERR_clear_error();
 		int l = SSL_read( ssl, io.recvPtr, io.recvEnd - io.recvPtr );
-		int errnum = GetLastError();
+		int errnum = GetLastSockError();
 		errErrorNum = ERR_get_error();
 		SSLLOGFUNC( "NetSslTransport::SendOrReceive SSL_read", errErrorNum );
 
@@ -2116,7 +2280,7 @@ NetSslTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 		ERR_clear_error();
 		/* perform the write from the start of the buffer */
 		int l = SSL_write( ssl, io.sendPtr, io.sendEnd - io.sendPtr );
-		int errnum = GetLastError();
+		int errnum = GetLastSockError();
 		errErrorNum = ERR_get_error();
 		SSLLOGFUNC( "NetSslTransport::SendOrReceive SSL_write", errErrorNum );
 
@@ -2281,28 +2445,6 @@ NetSslTransport::Close( void )
                            GetAddress( RAF_PORT )->Text(),
                            GetPeerAddress( RAF_PORT )->Text() );
 
-	// Avoid TIME_WAIT on the server by reading the EOF after
-	// the last message sent by the client.  Getting the EOF
-	// means we've received the TH_FIN packet, which means we
-	// don't have to send our own on close().  He who sends
-	// a TH_FIN goes into the 2 minute TIME_WAIT imposed by TCP.
-
-	TRANSPORT_PRINTF( SSLDEBUG_TRANS, "NetSslTransport lastRead=%d", lastRead );
-
-	// Only wait in select a second by default, since it's possible
-	// we'll be in a state where the EOF never comes.
-	const int max = p4tunable.Get( P4TUNE_NET_MAXCLOSEWAIT );
-
-	if( lastRead )
-	{
-	    int  r = 1;
-	    int  w = 0;
-	    char buf[1];
-
-	    if( selector->Select( r, w, max ) >= 0 && r )
-		(void)(read( t, buf, 1 )+1);
-	}
-
 	if( ssl )
 	{
 	    if( SSL_get_shutdown( ssl ) & SSL_RECEIVED_SHUTDOWN )
@@ -2332,6 +2474,18 @@ NetSslTransport::Close( void )
 	bio = NULL;
 	ssl = NULL;
 
+	// Avoid TIME_WAIT on the server by reading the EOF after
+	// the last message sent by the client.  Getting the EOF
+	// means we've received the TH_FIN packet, which means we
+	// don't have to send our own on close().  He who sends
+	// a TH_FIN goes into the 2 minute TIME_WAIT imposed by TCP.
+
+	TRANSPORT_PRINTF( SSLDEBUG_TRANS, "NetSslTransport lastRead=%d", lastRead );
+
+	// Only wait in select a second by default, since it's possible
+	// we'll be in a state where the EOF never comes.
+	const int max = p4tunable.Get( P4TUNE_NET_MAXCLOSEWAIT );
+
 	if( lastRead )
 	{
 	    int  r = 1;
@@ -2339,7 +2493,16 @@ NetSslTransport::Close( void )
 	    char buf[1];
 
 	    if( selector->Select( r, w, max ) >= 0 && r )
-		(void)(read( t, buf, 1 )+1);
+	    {
+		int n = read( t, buf, 1 );
+		if( n < 0 )
+		{
+		    StrBuf errbuf;
+
+		    Error::StrNetError( errbuf );
+		    TRANSPORT_PRINTF( SSLDEBUG_ERROR, "NetSslTransport::Close: read of FIN packet failed (ignored): %s", errbuf.Text() );
+		}
+	    }
 	}
 
 	CloseSocket();

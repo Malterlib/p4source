@@ -583,7 +583,12 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionLastSeenDate },
 	{ "list-addresses",     Options::ListAddresses, 'L', 0,
 	                      &MsgSupp::OptionListAddresses },
-
+	{ "file-size-limit",    Options::FileSizeLimit, 'L', ':',
+	                      &MsgSupp::OptionFileSizeLimit },
+	{ "lsof",               Options::Lsof, 'l', 0,
+	                      &MsgSupp::OptionLsof },
+	{ "strace",             Options::Strace, 's', 0,
+	                      &MsgSupp::OptionStrace },
 	// Options below this line have no short-form equivalent:
 
 	{ "no-rejournal",       Options::NoRejournal,  0, 0,
@@ -791,7 +796,11 @@ Options::OptionInfo Options::list[] = {
 	{ "cache-purge",        Options::CachePurge, 0, 0, 0 },
 	{ "iteration",          Options::Iteration,     0, '#',
 	                      &MsgSupp::OptionIteration },
-
+	{ "user-case-insensitive", Options::UserCaseInsensitive, 0, 0,
+	                      &MsgSupp::OptionUserCaseInsensitive },
+	{ "client-case-insensitive", Options::ClientCaseInsensitive, 0, 0,
+	                      &MsgSupp::OptionClientCaseInsensitive },
+	{ "strace-runtime", Options::StraceRuntime, 0, '#', &MsgSupp::OptionStraceRuntime },
 #ifdef _DEBUG
 	{ "debugbreak",         Options::DebugBreak,  0, 0,
 	                      &MsgSupp::OptionSSParentView },

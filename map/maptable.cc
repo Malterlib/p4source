@@ -837,6 +837,25 @@ MapTable::Explode( MapTableT dir, const StrPtr &from)
 
 	return maps;
 }
+
+//
+// MapTable::MatchAll() - return all matching MapItems
+//
+
+MapItemArray *
+MapTable::MatchAll(
+	MapTableT dir,
+	const StrPtr &from )
+{
+	if( !trees[ dir ].tree )
+	    MakeTree( dir );
+
+	MapItemArray *ret = new MapItemArray;
+	if( trees[dir].tree )
+	    trees[dir].tree->Match( dir, from, 0, ret );
+	return ret;
+}
+
 //
 // MapTable::Match() - just match pattern against string
 //

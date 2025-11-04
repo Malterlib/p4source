@@ -16,6 +16,12 @@
  *    NetTcpEndPoint - a TCP subclass of NetEndPoint
  */
 
+#ifdef OS_NT
+#  define GetLastSockError()	WSAGetLastError()
+#else
+#  define GetLastSockError()	errno
+#endif
+
 class Error;
 class StrBuf;
 
@@ -73,6 +79,12 @@ class NetTcpEndPoint : public NetEndPoint {
 	NetTransport *	Accept( KeepAlive *, Error *e );
 
 	int		IsSingle() { return 0; }
+
+	// returns errno
+	static int	GetSocketFamily( int fd, int &family );
+
+	// returns family
+	static int	GetSocketFamily( int fd );
 
 # if defined(OS_LINUX) || defined(OS_MACOSX) || defined(OS_DARWIN)
 	// intended just for cluster support, which is only on linux (and Mac OS X for dev)

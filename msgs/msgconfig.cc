@@ -22,7 +22,7 @@
  * When adding a new error make sure it's greater than the current high
  * value and update the following number:
  *
- * Current high value is: 503
+ * Current high value is: 518
  */
 
 //
@@ -254,6 +254,16 @@ R"(Enables debug logging of the S3 object storage subsystem.
 ErrorId MsgConfig::Suptool = { ErrorOf( ES_CONFIG, 483, E_INFO, EV_NONE, 0 ),
 R"(Enables debug logging of the Support Tool (perfmerge, perfsplit, p4migrate)
 subsystem.
+)"
+};
+
+ErrorId MsgConfig::Elog = { ErrorOf( ES_CONFIG, 490, E_INFO, EV_NONE, 0 ),
+R"(Enables debug logging of the exported logging system.
+)"
+};
+
+ErrorId MsgConfig::Dltxfer = { ErrorOf( ES_CONFIG, 495, E_INFO, EV_NONE, 0 ),
+R"(Enables debug logging of the delta transfer.
 )"
 };
 
@@ -574,6 +584,11 @@ when running commands that would be limited the the scope of the client view.
 ErrorId MsgConfig::DmConfigureCommentMandatory = { ErrorOf(ES_CONFIG, 481, E_INFO, EV_NONE, 0),
 R"(If set to 1, changing configurable values with '%'p4 configure'%' requires
 a comment.
+)"
+};
+
+ErrorId MsgConfig::DmCopyAttributes = { ErrorOf( ES_CONFIG, 518, E_INFO, EV_NONE, 0 ),
+R"(If set to 0, '%'p4 copy'%' will ignore files that differ only by attributes.
 )"
 };
 
@@ -2671,6 +2686,14 @@ may address this:
 //
 // String Tunables
 //
+
+ErrorId MsgConfig::SecurityDigest = { ErrorOf( ES_CONFIG, 493, E_INFO, EV_NONE, 0 ),
+R"(The digest algorithm used in the round trip tamper checking.
+If unset or set to an unknown algorithm, the default sha256 algorithm will be
+used; in the case of invalid algorithms or algorithms now considered insecure,
+reports will be written to the server log.
+)"
+};
 
 ErrorId MsgConfig::SSLClientCAPath = { ErrorOf( ES_CONFIG, 358, E_INFO, EV_NONE, 0 ),
 R"(The path of a PEM-formatted Certificate Authority (CA) file to validate server

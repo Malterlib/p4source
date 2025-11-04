@@ -78,6 +78,10 @@ class ClientSvc
  * ClientFile - handle client interaction with files
  */
 
+# ifdef USE_CDC
+class ChunkOffsetTree;
+# endif
+
 class ProgressReport;
 class ClientFile : public LastChance {
 
@@ -103,6 +107,10 @@ class ClientFile : public LastChance {
 	StrBufDict	*matchDict;
 
 	ProgressReport	*progress;
+
+# ifdef USE_CDC
+	ChunkOffsetTree	*chunkOffsetTree;
+# endif
 } ;
 
 #endif // __CLIENTSERVICE__

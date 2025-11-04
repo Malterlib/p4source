@@ -2,6 +2,10 @@
  * Copyright 2023 Perforce Software.  All rights reserved.
  *
  * This file is part of Perforce - the FAST SCM System.
+ *
+ * Please check that each new entry matches what is in msgconfig.cc:
+ *
+ * Current high value is: 518
  */
 
 # define NEED_SMARTHEAP
@@ -62,6 +66,8 @@ ErrorId MsgConfig::Topology = { ErrorOf( ES_CONFIG, 474, E_INFO, EV_NONE, 0 ), "
 ErrorId MsgConfig::Resource = { ErrorOf( ES_CONFIG, 475, E_INFO, EV_NONE, 0 ), "MsgConfig::Resource placeholder." };
 ErrorId MsgConfig::S3 = { ErrorOf( ES_CONFIG, 476, E_INFO, EV_NONE, 0 ), "MsgConfig::S3 placeholder." };
 ErrorId MsgConfig::Suptool = { ErrorOf( ES_CONFIG, 483, E_INFO, EV_NONE, 0 ), "MsgConfig::Suptool placeholder." };
+ErrorId MsgConfig::Elog = { ErrorOf( ES_CONFIG, 490, E_INFO, EV_NONE, 0 ), "MsgConfig::Elog placeholder." };
+ErrorId MsgConfig::Dltxfer = { ErrorOf( ES_CONFIG, 495, E_INFO, EV_NONE, 0 ), "MsgConfig::Dltxfer placeholder." };
 
 // Numeric tunables
 ErrorId MsgConfig::ClusterJournalShared = { ErrorOf( ES_CONFIG, 1, E_INFO, EV_NONE, 0), "MsgConfig::ClusterJournalShared placeholder." };
@@ -117,6 +123,7 @@ ErrorId MsgConfig::DmChangeviewOpenable = { ErrorOf( ES_CONFIG, 47, E_INFO, EV_N
 ErrorId MsgConfig::DmClientInitroot = { ErrorOf( ES_CONFIG, 48, E_INFO, EV_NONE, 0), "MsgConfig::DmClientInitroot placeholder." };
 ErrorId MsgConfig::DmClientLimitprotects = { ErrorOf( ES_CONFIG, 49, E_INFO, EV_NONE, 0), "MsgConfig::DmClientLimitprotects placeholder." };
 ErrorId MsgConfig::DmConfigureCommentMandatory = { ErrorOf( ES_CONFIG, 481, E_INFO, EV_NONE, 0), "MsgConfig::DmConfigureCommentMandatory placeholder." };
+ErrorId MsgConfig::DmCopyAttributes = { ErrorOf( ES_CONFIG, 518, E_INFO, EV_NONE, 0 ), "MsgConfig::DmCopyAttributes placeholder." };
 ErrorId MsgConfig::DmCopyMovewarn = { ErrorOf( ES_CONFIG, 50, E_INFO, EV_NONE, 0), "MsgConfig::DmCopyMovewarn placeholder." };
 ErrorId MsgConfig::DmDomainAccessupdate = { ErrorOf( ES_CONFIG, 51, E_INFO, EV_NONE, 0), "MsgConfig::DmDomainAccessupdate placeholder." };
 ErrorId MsgConfig::DmDomainAccessforce = { ErrorOf( ES_CONFIG, 52, E_INFO, EV_NONE, 0), "MsgConfig::DmDomainAccessforce placeholder." };
@@ -440,6 +447,7 @@ ErrorId MsgConfig::ZlibCompressionLevel = { ErrorOf( ES_CONFIG, 356, E_INFO, EV_
 ErrorId MsgConfig::ZlibDisableOptim = { ErrorOf( ES_CONFIG, 357, E_INFO, EV_NONE, 0), "MsgConfig::ZlibDisableOptim placeholder." };
 
 // String tunables
+ErrorId MsgConfig::SecurityDigest = { ErrorOf( ES_CONFIG, 493, E_INFO, EV_NONE, 0 ), "MsgConfig::SecurityDigest placeholder." };
 ErrorId MsgConfig::SSLClientCAPath = { ErrorOf( ES_CONFIG, 358, E_INFO, EV_NONE, 0 ), "MsgConfig::SSLClientCAPath placeholder." };
 ErrorId MsgConfig::SSLKeylogFile = { ErrorOf( ES_CONFIG, 479, E_INFO, EV_NONE, 0 ), "MsgConfig::SSLKeylogFile placeholder." };
 
@@ -475,7 +483,6 @@ ErrorId MsgConfig::FilesysP4ROOTMin = { ErrorOf( ES_CONFIG, 386, E_INFO, EV_NONE
 ErrorId MsgConfig::FilesysP4JOURNALMin = { ErrorOf( ES_CONFIG, 387, E_INFO, EV_NONE, 0 ), "MsgConfig::FilesysP4JOURNALMin placeholder." };
 ErrorId MsgConfig::FilesysP4LOGMin = { ErrorOf( ES_CONFIG, 388, E_INFO, EV_NONE, 0 ), "MsgConfig::FilesysP4LOGMin placeholder." };
 ErrorId MsgConfig::FilesysDepotMin = { ErrorOf( ES_CONFIG, 389, E_INFO, EV_NONE, 0 ), "MsgConfig::FilesysDepotMin placeholder." };
-ErrorId MsgConfig::FilesysTEMPMin = { ErrorOf( ES_CONFIG, 433, E_INFO, EV_NONE, 0 ), "MsgConfig::FilesysTEMPMin placeholder." };
 ErrorId MsgConfig::ServerDepotRoot = { ErrorOf( ES_CONFIG, 390, E_INFO, EV_NONE, 0 ), "MsgConfig::ServerDepotRoot placeholder." };
 ErrorId MsgConfig::ServerExtensionsDir = { ErrorOf( ES_CONFIG, 391, E_INFO, EV_NONE, 0 ), "MsgConfig::ServerExtensionsDir placeholder." };
 ErrorId MsgConfig::ServerLocksDir = { ErrorOf( ES_CONFIG, 392, E_INFO, EV_NONE, 0 ), "MsgConfig::ServerLocksDir placeholder." };

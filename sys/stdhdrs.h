@@ -527,7 +527,7 @@ extern "C" int socketpair(int, int, int, int*);
 # endif
 
 # if defined(NEED_TIME_HP)
-#    if defined( OS_LINUX )
+#    if defined( OS_LINUX ) || defined( OS_FREEBSD )
 #       define HAVE_CLOCK_GETTIME
 #if defined(__GLIBC__) && defined(__GLIBC_PREREQ)
 #       if ( __GLIBC_PREREQ( 2, 10 ) && \
@@ -592,6 +592,10 @@ using namespace std;
 # if defined( OS_LINUX ) || defined( OS_DARWIN ) || defined( OS_MACOSX )
 # define HAVE_XATTRS
 # include <sys/xattr.h>
+# endif
+# if defined( OS_FREEBSD )
+# define HAVE_XATTRS
+# include <sys/extattr.h>
 # endif
 # endif
 

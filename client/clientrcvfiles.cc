@@ -107,7 +107,7 @@ ThreadedTransfer::RunTransfer( ClientApi *client,
 
 	child.Init( &e );
 	child.SetVersion( client->GetVersion().Text() );
-	child.SetBreak( &keepAlive );
+	child.SetBreak( client->GetBreak() ? client->GetBreak() : &keepAlive );
 
 	// Unlock here since we're past most of the issues the P4API
 	// has with shared data and so we can execute in parallel.

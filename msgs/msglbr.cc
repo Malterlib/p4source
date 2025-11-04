@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgLbr error code from main is: 150
+ * Current high value for a MsgLbr error code from main is: 151
  */
 # include <stdhdrs.h>
 # include <error.h>
@@ -83,6 +83,7 @@ ErrorId MsgLbr::S3UnsupportedOpen      = { ErrorOf( ES_LBR, 147, E_FAILED, EV_FA
 ErrorId MsgLbr::S3LbrLockLoop          = { ErrorOf( ES_LBR, 150, E_FAILED, EV_FAULT, 0 ), "LbrS3 Lock loop detected in MaybeDownload()" } ;
 
 ErrorId MsgLbr::ChunkingCreateNewLbr   = { ErrorOf( ES_LBR, 148, E_FAILED, EV_FAULT, 1 ), "Error recreating new archive: %error%" } ;
+ErrorId MsgLbr::LbrFileNotSeekable     = { ErrorOf( ES_LBR, 151, E_FAILED, EV_FAULT, 1 ), "Librarian for %path% is not seekable!" } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 

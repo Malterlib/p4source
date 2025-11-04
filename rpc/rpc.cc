@@ -109,6 +109,13 @@ RpcService::~RpcService()
 	delete protoSendBuffer;
 }
 
+void
+RpcService::NotifyRestarting()
+{
+    if( endPoint )
+	endPoint->NotifyRestarting();
+}
+
 /**
  * RpcService::SetEndpoint
  *
@@ -726,6 +733,12 @@ Rpc::SetBreak( KeepAlive *breakCallback )
 
 	if( transport )
 	    transport->SetBreak( breakCallback );
+}
+
+KeepAlive *
+Rpc::GetBreak()
+{
+    return keep;
 }
 
 /*

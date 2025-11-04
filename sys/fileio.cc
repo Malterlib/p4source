@@ -595,7 +595,7 @@ FileIO::StatModTimeHP(DateTimeHighPrecision *modTime)
 	int	nanosecs = 0;
 
 // nanosecond support for stat is a bit of a portability mess
-#if defined(OS_LINUX)
+#if defined(OS_LINUX) || defined(OS_FREEBSD)
   #if defined(__GLIBC__) && defined(__GLIBC_PREREQ)
     #if defined(_BSD_SOURCE) || defined(_SVID_SOURCE) \
 	|| (__GLIBC_PREREQ(2, 12) \
@@ -735,6 +735,38 @@ removexattr( const char *path, const char *name )
 
 # endif // OS_MACOSX || OS_DARWIN
 
+# if defined( OS_FREEBSD )
+
+ssize_t
+getxattr( const char *path, const char *name, void *value, size_t sizes )
+{
+	return extattr_get_file( path, EXTATTR_NAMESPACE_USER,
+	    name, value, sizes );
+}
+
+ssize_t
+listxattr( const char *path, char *namebuf, size_t size )
+{
+	return extattr_list_file( path, EXTATTR_NAMESPACE_USER,
+	    namebuf, size );
+}
+
+int
+setxattr( const char *path, const char *name, void *value, size_t size,
+          int flags )
+{
+	return extattr_set_file( path, EXTATTR_NAMESPACE_USER,
+	    name, value, size );
+}
+
+int
+removexattr( const char *path, const char *name )
+{
+	return extattr_delete_file( path, EXTATTR_NAMESPACE_USER, name );
+}
+
+# endif // OS_FREEBSD
+
 void
 FileIO::SetExtendedAttribute( StrPtr *name, StrPtr *val, Error *e )
 {
@@ -861,6 +893,11 @@ FileIO::GetExtendedAttributes( StrBufDict *attrs, Error *e )
 
 void
 FileIO::SetExtendedAttribute( StrPtr *name, StrPtr *val, Error *e )
+{
+}
+
+void
+FileIO::SetExtendedAttributes( StrDict *vals, Error *e )
 {
 }
 
@@ -1374,6 +1411,11 @@ FileIOAppend::Rename( FileSys *target, Error *e )
 	{
 	    // Uh oh -- we can't rename.  Maybe cross device?
 	    // Do the dumb way: copy/truncate.
+
+	    if( p4debug.GetLevel( DT_SERVER ) >= 4 )
+	        p4debug.printf(
+	            "Rename failed, doing copy/truncate instead: %s %s %s\n",
+	            Name(), target->Name(), strerror( errno ) );
 
 	    mode = FOM_READ;
 

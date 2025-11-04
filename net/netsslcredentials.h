@@ -45,6 +45,8 @@ public:
 		NetSslCredentials( NetSslCredentials &rhs);
 		~NetSslCredentials();
 		void ReadCredentials( Error *e );
+		void ClearChain( bool freeChain );
+		void ReleaseCredentials( bool freeCert = false, bool freeKey = false );
 		void GenerateCredentials( Error *e );
 		void ValidateSslDir( Error * e);
 		void ValidateCredentialFiles( Error *e );
@@ -52,6 +54,8 @@ public:
 		void HaveCredentials( Error *e );
 		NetSslCredentials &operator =( NetSslCredentials &rhs );
 		void ValidateChain( bool criticalOnly, Error *e );
+		int CheckCertChainOrder( X509 *cert, bool alwaysShow, Error *e );
+
 		void ValidateSubject( StrPtr *name, StrPtr *ip, Error *e );
 
 		// Getters and Setters

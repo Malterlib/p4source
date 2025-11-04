@@ -80,6 +80,7 @@ void 	ClientApi::SetTrustFile( const StrPtr *c ) { client->SetTrustFile( c ); }
 void 	ClientApi::SetEnviroFile( const StrPtr *c ) { client->SetEnviroFile( c ); }
 
 void	ClientApi::SetBreak( KeepAlive *k ) { client->SetBreak( k ); }
+KeepAlive *	ClientApi::GetBreak() { return client->GetBreak(); }
 
 void 	ClientApi::DefineCharset( const char *c, Error *e ) { client->DefineCharset( c, e ); }
 void 	ClientApi::DefineClient( const char *c, Error *e ) { client->DefineClient( c, e ); }

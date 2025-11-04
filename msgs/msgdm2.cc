@@ -23,7 +23,7 @@
  * value and update the following number:
  *
  * Current high value for a MsgDm2 error code is:
- *                                154 (StreamSpecIntegrationNoFrmChange)
+ *                                155 (ExVIEWC)
  *                                               Max code is 1023!!!
  */
 # include <stdhdrs.h>
@@ -163,7 +163,7 @@ ErrorId MsgDm2::SparseStreamCmdMustIncludeAll2   = { ErrorOf( ES_DM2, 128, E_FAI
 ErrorId MsgDm2::SparseStreamCmdNoRevRange        = { ErrorOf( ES_DM2, 127, E_FAILED, EV_USAGE, 1 ), "Revision range not allowed for %cmd% into sparse stream." } ;
 ErrorId MsgDm2::SparseStreamCmdWrongStream       = { ErrorOf( ES_DM2, 145, E_FAILED, EV_USAGE, 3 ), "Not able to use view of %otherStream% to %cmd% into sparse stream %yourStream%." };
 ErrorId MsgDm2::SparseStreamCopyLatestOnly       = { ErrorOf( ES_DM2, 126, E_FAILED, EV_USAGE, 1 ), "May only copy from latest revision of sparse stream %sparseStream%." };
-ErrorId MsgDm2::SparseStreamCopyOutOfDate        = { ErrorOf( ES_DM2, 125, E_FAILED, EV_USAGE, 1 ), "Sparse stream %sparseStream% must be fully up-to-date with parent before copy." };
+ErrorId MsgDm2::SparseStreamCmdOutOfDate          = { ErrorOf( ES_DM2, 125, E_FAILED, EV_USAGE, 2 ), "Sparse stream %sparseStream% must be fully up-to-date with parent before %command%." };
 ErrorId MsgDm2::SparseStreamNoPin                = { ErrorOf( ES_DM2, 119, E_FAILED, EV_ILLEGAL, 1 ), "Stream of type '%streamType%' must have one or more 'share' paths with the same @change." };
 ErrorId MsgDm2::SparseStreamNotSupported         = { ErrorOf( ES_DM2, 116, E_FAILED, EV_USAGE, 0 ), "This operation is not supported for sparse streams." };
 ErrorId MsgDm2::SparseStreamOpNotAllowed         = { ErrorOf( ES_DM2, 122, E_FAILED, EV_USAGE, 2 ), "This operation is not allowed between sparse stream %sparseStream% and non-parent %otherStream%." };
@@ -186,9 +186,12 @@ ErrorId MsgDm2::ChunkMapFormat                   = { ErrorOf( ES_DM2, 146, E_FAT
 ErrorId MsgDm2::SparseStreamNoCreateMaxCommit0   = { ErrorOf( ES_DM2, 147, E_FAILED, EV_USAGE, 0 ), "Can't create sparse stream if maxCommitChange is 0." }; 
 ErrorId MsgDm2::SparseStreamNoUnshelvePinLower = { ErrorOf( ES_DM2, 149, E_FAILED, EV_USAGE, 3 ), "The stream spec in shelf %shelf% is associated with 'share' path %oldChange%. The current stream spec is associated with 'share' path %newChange%. Unshelving to a lower sparse stream parent changeview is not allowed." } ;
 ErrorId MsgDm2::UpgradeToCreatePJnlClient        = { ErrorOf( ES_DM2, 150, E_FAILED, EV_USAGE, 0 ), "Cannot set client type to '%'partitioned-jnl'%' until all upstream servers have been upgraded to at least 2024.1 server version." };
+ErrorId MsgDm2::BadHotFilePattern                = { ErrorOf( ES_DM2, 151, E_FAILED, EV_USAGE, 1 ), "Invalid hotfile pattern '%type%'; see '%'p4 help hotfiles'%'." };
 ErrorId MsgDm2::NoTopologyActiveRec              = { ErrorOf( ES_DM2, 152, E_WARN, EV_USAGE, 2 ), "No active topology record found with the source address '%saddr%' and the target address '%taddr%'." };
 ErrorId MsgDm2::DbBodTextCxEntryMissing          = { ErrorOf( ES_DM2, 153, E_FAILED, EV_FAULT, 2 ), "No entry for stream '%stream%' at change '%change%' found in db.bodtexcx. Stream spec integration analysis cannot continue." };
 ErrorId MsgDm2::StreamSpecIntegrationNoFrmChange = { ErrorOf( ES_DM2, 154, E_FAILED, EV_FAULT, 2 ), "Can't find stream spec rev for stream '%fromstream%' at change '%change%'." };
+
+ErrorId MsgDm2::ExVIEWC                          = { ErrorOf( ES_DM2, 155, E_WARN, EV_EMPTY, 1 ), "[%argc% - file(s)|File(s)] not in command limit view." } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 

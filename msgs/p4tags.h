@@ -71,6 +71,8 @@ struct P4Tag {
 	static const char c_SSO[];
 	static const char c_WriteDiff[];
 	static const char c_WriteFile[];
+	static const char c_WriteFileChunks[];
+	static const char c_ChunkMap[];
 	static const char c_WriteMatch[];
 	static const char c_WriteMerge[];
 	static const char c_WriteVarPartial[];
@@ -96,6 +98,7 @@ struct P4Tag {
 	static const char v_added[];
 	static const char v_agentProgram[];
 	static const char v_altSync[];
+	static const char v_altSyncHotFile[];
 	static const char v_altSyncResults[];
 	static const char v_altSyncVars[];
 	static const char v_altSyncVersion[];
@@ -241,6 +244,7 @@ struct P4Tag {
 	static const char v_fseq[];
 	static const char v_func[];
 	static const char v_func2[];
+	static const char v_func2ext[];
 	static const char v_handle[];
 	static const char v_hash[];
 	static const char v_hashType[];
@@ -293,6 +297,7 @@ struct P4Tag {
 	static const char v_ldapAuth[];
 	static const char v_level[];
 	static const char v_lfmt[];
+	static const char v_limitMap[];
 	static const char v_line[];
 	static const char v_lineEnd[];
 	static const char v_locale[];
@@ -683,6 +688,7 @@ struct P4Tag {
 	static const char u_typemap[];
 	static const char u_undo[];
 	static const char u_unlock[];
+	static const char u_unshelve[];
 	static const char u_unsubmit[];
 	static const char u_unzip[];
 	static const char u_user[];

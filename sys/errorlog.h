@@ -71,7 +71,7 @@ class ErrorLog {
 
 	offL_t		Size();
 	int		Exists() { return errorFsys != 0; }
-	const		char *Name();
+	const char 	*Name();
 
 	// Global settings
 
@@ -80,6 +80,7 @@ class ErrorLog {
 	void		UnsetSyslog() { logType = type_stderr; }
 	void		UnsetLogType() { logType = type_none; }
 	void		SetTag( const char *tag ) { errorTag = tag; }
+	const char 	*GetTag();
 	void		EnableCritSec();
 
 	void		Rename( const char *file, Error *e );

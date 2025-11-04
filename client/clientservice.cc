@@ -43,6 +43,8 @@
 # include <blake3digester.h>
 # include <chunkmap.h>
 # include <vararray.h>
+# include <intarray.h>
+# include <vartree.h>
 # endif
 
 # include <p4tags.h>
@@ -73,6 +75,73 @@
 
 # define SSOMAXLENGTH 131072    // max sso message 128k
 
+# ifdef USE_CDC
+
+class ChunkOffsetTree : public VVarTree
+{
+    public:
+	class ChunkOffsets
+	{
+	    public:
+	        ChunkOffsets() : count( 0 ) {}
+	        ChunkOffsets( const char *h ) : count( 0 ), hash( h ) {}
+	        ~ChunkOffsets() {}
+
+	        int count;
+	        P4INT64Array offsets;
+	        StrBuf hash;
+
+	        void
+	        Put( P4INT64 offset )
+	        {
+	            offsets[ count++ ] = offset;
+	        }
+	} ;
+
+	ChunkOffsetTree() {}
+	virtual ~ChunkOffsetTree()
+	{
+	    Clear();
+	}
+
+	virtual int Compare( const void *a, const void *b ) const
+	{
+	    const ChunkOffsets *ca = (const ChunkOffsets *)a;
+	    const ChunkOffsets *cb = (const ChunkOffsets *)b;
+	    return ca->hash.XCompare( cb->hash );
+	    
+	}
+	
+	virtual void *Copy( const void *src ) const
+	{
+	    ChunkOffsets* c = new ChunkOffsets;
+	    c->hash = ( ( ChunkOffsets* )src )->hash;
+	    return c;
+	}
+	
+	virtual void Delete( void *a ) const
+	{
+	    delete ( ChunkOffsets* )a;
+	}
+
+	virtual void Dump( void *a, StrBuf &buf ) const
+	{
+	}
+
+	ChunkOffsets *Get( const char* hash )
+	{
+	    ChunkOffsets o( hash );
+	    return ( ChunkOffsets* )VVarTree::Get( &o );
+	}
+
+	ChunkOffsets *Put( const char* hash, Error *e )
+	{
+	    ChunkOffsets o( hash );
+	    return ( ChunkOffsets* )VVarTree::Put( &o, e );
+	}
+} ;
+# endif
+
 ClientFile::ClientFile( FileSys *fs )
 {
 	file = fs;
@@ -81,6 +150,10 @@ ClientFile::ClientFile( FileSys *fs )
 	checksum = 0;
 	matchDict = 0;
 	progress = 0;
+
+# ifdef USE_CDC
+	chunkOffsetTree = 0;
+# endif
 }
 
 ClientFile::~ClientFile()
@@ -90,6 +163,10 @@ ClientFile::~ClientFile()
 	delete checksum;
 	delete matchDict;
 	delete progress;
+
+# ifdef USE_CDC
+	delete chunkOffsetTree;
+# endif
 }
 
 /*
@@ -835,6 +912,690 @@ clientWriteFile( Client *client, Error *e )
 	f->SetError( e );
 	client->OutputError( e );
 }
+
+# ifdef USE_CDC
+
+class StrIntTree : public VVarTree
+{
+    public:
+	class StrInt
+	{
+	    public:
+	        StrInt( const char *k, int i )
+	        {
+	            key = new StrBuf( k );
+	            index = i;
+	        }
+
+	        StrInt( const StrInt& other )
+	        {
+	            key = new StrBuf( *other.key );
+	            index = other.index;
+	        }
+
+	        ~StrInt()
+	        {
+	            delete key;
+	        }
+
+	        StrBuf *key;
+
+	        // Because of the VVarTree::Copy() method we cannot
+	        // put FileSys* as the payload or the temp file would
+	        // be deleted when it's moved. We use an index into
+	        // an array of FileSys* instead.
+
+	        int index;
+	} ;
+
+	StrIntTree() {}
+	virtual ~StrIntTree()
+	{
+	    Clear();
+	}
+
+	virtual int Compare( const void *a, const void *b ) const
+	{
+	    const StrInt &t1 = *(const StrInt *)a;
+	    const StrInt &t2 = *(const StrInt *)b;
+	    return t1.key->Compare( *t2.key );
+	}
+
+	virtual void * Copy( const void *src ) const
+	{
+	    return new StrInt( *(StrInt*)src );
+	}
+
+	virtual void Delete( void *a ) const
+	{
+	    delete (StrInt *)a;
+	}
+
+	virtual void Dump( void *a, StrBuf &buf ) const
+	{
+	}
+} ;
+
+class ClientTempFiles : public LastChance
+{
+    private:
+	// Creating instances of this class is not allowed.
+	// Use the static method to get a handle of this class.
+
+	ClientTempFiles() {}
+
+    public:
+	static ClientTempFiles *
+	GetHandle( Client *client, Error* e, bool create )
+	{
+	    const StrRef tempFileHandleName = StrRef( "clientTempFiles" );
+	    ClientTempFiles *clientTempFiles = ( ClientTempFiles * )
+	                client->handles.Get( &tempFileHandleName, e );
+	    if( !clientTempFiles && create )
+	    {
+	        Error err;
+
+	        if( e )
+	            e->Clear();
+	        else
+	            e = &err;
+
+	        clientTempFiles = new ClientTempFiles;
+	        client->handles.Install( &tempFileHandleName, clientTempFiles, e );
+	        if( e->Test() )
+	        {
+	            delete clientTempFiles;
+	            clientTempFiles = 0;
+	        }
+	    }
+	    return clientTempFiles;
+	}
+
+	virtual ~ClientTempFiles()
+	{
+	    int n = tempFiles.Count();
+	    for( int i = 0; i < n; i++ )
+	    {
+	        delete ( FileSys* )tempFiles.Get( i );
+	    }
+	}
+
+	FileSys *
+	Put( const char *key, Error *e )
+	{
+	    int n = tempFiles.Count();
+	    StrIntTree::StrInt s( key, n );
+	    FileSys * ftemp = FileSys::CreateGlobalTemp( FST_BINARY );
+	    if( ftemp )
+	    {
+	        indices.Put( &s, e );
+	        if( e->Test() )
+	        {
+	            delete ftemp;
+	            ftemp = 0;
+	        }
+	        else
+	            tempFiles.Put( ftemp );
+	    }
+	    return ftemp;
+	}
+
+	FileSys *
+	GetRemove( const char *key )
+	{
+	    StrIntTree::StrInt s( key, 0 );
+	    StrIntTree::StrInt *r = ( StrIntTree::StrInt* )indices.Get( &s );
+	    if( r )
+	        // Replace the temp file with NULL assuming
+	        // the caller will delete it after use
+	        return ( FileSys* )tempFiles.Replace( r->index, 0 );
+
+	    return 0;
+	}
+
+    private:
+	VarArray tempFiles;
+	StrIntTree indices;
+} ;
+
+class CDCStats : public LastChance
+{
+    private:
+	int elapse_time;
+	
+	int fileCount;
+	P4INT64 fileSize;
+
+	int chunkMapCount;
+	P4INT64 chunkMapSize;
+
+	int chunkCount;
+	P4INT64 chunkSize;
+
+	CDCStats()
+	{
+	    elapse_time = 0;
+	    fileCount = 0;
+	    fileSize = 0;
+	    chunkMapCount = 0;
+	    chunkMapSize = 0;
+	    chunkCount = 0;
+	    chunkSize = 0;
+	}
+
+    public:
+	static CDCStats *
+	GetHandle( Client *client, Error* e )
+	{
+	    const StrRef cdcStatsHandleName = StrRef( "cdcStats" );
+	    CDCStats *cdcStats = ( CDCStats * )
+	                client->handles.Get( &cdcStatsHandleName, e );
+	    if( !cdcStats )
+	    {
+	        e->Clear();
+	        cdcStats = new CDCStats;
+	        client->handles.Install( &cdcStatsHandleName, cdcStats, e );
+	        if( e->Test() )
+	        {
+	            delete cdcStats;
+	            cdcStats = 0;
+	        }
+	    }
+	    return cdcStats;
+	}
+
+	class CDCTimer : public Timer
+	{
+	    private:
+	        CDCStats *cdcStats;
+
+	    public:
+	        CDCTimer( CDCStats* stats ) :
+	            cdcStats ( stats )
+	        {
+	            Start();
+	        }
+
+	        ~CDCTimer()
+	        {
+	            if( cdcStats )
+	                cdcStats->LogTime( Time() );
+	        }
+	} ;
+
+	~CDCStats()
+	{
+	    if( p4debug.GetLevel( DT_DLTXFER ) >= DL_INFO )
+	    {
+	        p4debug.printf( "Delta Transfer stats:\n" );
+	        p4debug.printf( "files/chunkmaps/chunks count+bytes:\n");
+	        p4debug.printf( "%d+%d %d+%d %d+%d\n",
+	                        fileCount, fileSize,
+	                        chunkMapCount, chunkMapSize,
+	                        chunkCount, chunkSize );
+	        P4INT64 delta = fileSize - ( chunkMapSize + chunkSize );
+	        p4debug.printf( "%d %s bytes transferred\n",
+	                        delta > 0 ? delta : -delta,
+	                        delta > 0 ? "fewer" : "more" );
+
+	        StrBuf msg = "Processing time: ";
+	        msg << StrMs( elapse_time ) << "s\n";
+	        p4debug.printf( msg.Text() );
+	    }
+	}
+
+	void LogTime( int time )
+	{
+	    elapse_time += time;
+	}
+
+	void LogFile( P4INT64 size )
+	{
+	    fileCount += 1;
+	    fileSize += size;
+	}
+
+	void LogChunkMap( P4INT64 size )
+	{
+	    chunkMapCount += 1;
+	    chunkMapSize += size;
+	}
+
+	void LogChunk( P4INT64 size )
+	{
+	    chunkCount += 1;
+	    chunkSize += size;
+	}
+} ;
+
+static int
+checkCDCThreshold( P4INT64 chunksToSend, P4INT64 chunksTotal, StrBuf* msg = 0 )
+{
+	const P4INT64 cdcThreshold =
+	    p4tunable.Get( P4TUNE_NET_DELTA_TRANSFER_THRESHOLD );
+
+	if( !cdcThreshold )
+	{
+	    if( msg )
+	        *msg = "net.delta.transfer.threshold=0";
+
+	    return 0;
+	}
+
+	// Only perform delta transfer if the ratio of nChunksToSend
+	// over nTotalChunks is under the threshold to avoid further
+	// overhead when the saving on transfer is small. Set threshold
+	// to 100 to always perform delta transfer and 0 to disable it.
+
+	if( (chunksToSend * 100 ) > (cdcThreshold * chunksTotal ) )
+	{
+	    if( msg )
+	    {
+	        P4INT64 pct = ( chunksToSend * 100 ) / chunksTotal;
+	        *msg << "net.delta.transfer.threshold set/actual " <<
+	                cdcThreshold << "/" << pct;
+	    }
+	    return 0;
+	}
+	return 1;
+}
+
+static bool
+clientChunkMapInternal( Client* client, StrPtr *clientPath,
+	StrPtr *index, StrPtr *confirm, ChunkMap &cm,
+	StrBuf& status, Error *e )
+{
+	// We don't have the file size for sync but still need to
+	// honor the signal to diable CDC locally
+
+	const int minSize = p4tunable.Get( P4TUNE_NET_DELTA_TRANSFER_MINSIZE );
+	const P4INT64 cdcThreshold = p4tunable.Get( P4TUNE_NET_DELTA_TRANSFER_THRESHOLD );
+
+	if( !minSize || !cdcThreshold )
+	{
+	    status = "Delta Transfer disabled";
+	    return false;
+	}
+
+	if( !FileSys::FileExists( clientPath->Text() ) )
+	{
+	    status = "missing";
+	    return false;
+	}
+
+	ClientTempFiles* tempFiles = ClientTempFiles::GetHandle( client, e, true );
+	if( e->Test() || !tempFiles )
+	{
+	    delete tempFiles;
+	    return false;
+	}
+
+	StrBuf verify_hash;
+	cm.GetVerifyHash( verify_hash );
+	if( !verify_hash.Length() )
+	{
+	    status = "Empty chunk map veryfy hash";
+	    return false;
+	}
+	
+	FileSys* ftemp = tempFiles->Put( clientPath->Text(), e );
+	if( e->Test() || !ftemp )
+	    return false;
+
+	cm.Write( ftemp->Path(), e );
+	if( e->Test() )
+	    return false;
+
+	// local chunkmap
+
+	ChunkMap cmHave;
+	cmHave.Create( clientPath, e );
+	if( e->Test() )
+	    return false;
+
+	VVarArray *cmDiff = cm.Diff( cmHave, e );
+	if( e->Test() || !cmDiff )
+	    return false;
+
+	P4INT64 nTotalChunks = cm.ChunkCount();
+	P4INT64 nChunksToSend = cmDiff->Count();
+	if( nChunksToSend )
+	{
+	    if( !checkCDCThreshold( nChunksToSend, nTotalChunks, &status ) )
+	    {
+	        delete cmDiff;
+	        return false;
+	    }
+
+	    const ChunkMap::Chunk *c =
+	            (const ChunkMap::Chunk *)cmDiff->Get( 0 );
+	    const int batch = FileSys::BufferSize() / c->hash.Length();
+
+	    MD5 digest;
+	    for( int i = 0; i < nChunksToSend; )
+	    {
+	        StrBuf *m = client->MakeVar( P4Tag::v_data );
+	        
+	        int b = 0;
+	        for( ; b < batch && i < nChunksToSend; b++, i++ )
+	        {
+	            c = (const ChunkMap::Chunk *)cmDiff->Get( i );
+	            m->Append( c->hash.Text() );
+	            digest.Update( c->hash );
+	        }
+
+	        if( !b )
+	            break; // should not happen
+
+	        if( i == nChunksToSend )
+	        {
+	            // send digest to signal completion of transfer
+
+	            StrBuf dbuf;
+	            digest.Final( dbuf );
+	            client->SetVar( P4Tag::v_digest, dbuf );
+	        }
+
+	        client->SetVar( P4Tag::v_total, nChunksToSend );
+	        client->SetVar( P4Tag::v_count, b );
+	        client->SetVar( P4Tag::v_status, "exists" );
+	        client->SetVar( P4Tag::v_index, index );
+	        client->Confirm( confirm );
+	    }
+	}
+	else
+	{
+	    client->SetVar(P4Tag::v_status, "same" );
+	    client->SetVar( P4Tag::v_index, index );
+	    client->Confirm( confirm );
+	}
+	delete cmDiff;
+
+	return true;
+}
+
+static ChunkMap *
+clientReceiveChunkMap( Client *client, Error *e )
+{
+	// We need either chunkMapHandle or chunkMap
+
+	StrPtr *smHandle = client->GetVar( P4Tag::v_chunkMapHandle );
+	StrPtr *smBuf = client->GetVar( P4Tag::v_chunkMap );
+	if( !smHandle && !smBuf )
+	    client->GetVar( P4Tag::v_chunkMap, e ); // Trigger error on neither
+
+	if( e->Test() )
+	    return 0;
+
+	ClientVarHandle *smVar = 0;
+	if( smHandle )
+	{
+	    smVar = (ClientVarHandle *) client->handles.Get( smHandle, e );
+
+	    if( e->Test() )
+	        return 0;
+	}
+	
+	// Use either chunkMapHandle or chunkMap
+	// If we got both chunkMapHandle and chunkMap, use chunkMap
+
+	ChunkMap *cm = new ChunkMap( smBuf ? smBuf : &smVar->memStore, e );
+
+	if( e->Test() )
+	{
+	    delete cm;
+	    cm = 0;
+	}
+
+	// Free-up this memory now in case it's big, so we don't hold
+	// it for the file transfer.  Note that the 'sm' var is now invalid.
+
+	delete smVar;
+
+	return cm;
+}
+
+static void
+clientChunkMap( Client *client, Error *e )
+{
+	// On a non-Unicode server, client->transfname is the client itself.
+	// Calling client-transfname->GetVar() will retrieve the path name
+	// un-translated and un-cached. However, on a Unicode server,
+	// transfname is TransDict which translates the path and caches the
+	// translated name using the var name (P4Tag::v_xxx) as key. If a
+	// method is called to process multiple files on a Unicode server
+	// without clearing the cache, all subsequent calls will get the first
+	// cached path.
+	// 
+	// Because this is the first client method for processing a file for
+	// delta transfer, we need to call client->NewHandler() to reset the
+	// translation cache.
+
+	client->NewHandler();
+	StrPtr *clientPath = client->transfname->GetVar( P4Tag::v_path, e );
+	StrPtr *index = client->GetVar( P4Tag::v_index, e );
+	StrPtr *confirm = client->GetVar( P4Tag::v_confirm );
+
+	if( e->Test() )
+	    return;
+
+	if( p4debug.GetLevel( DT_DLTXFER ) == DL_DEBUG )
+	    p4debug.printf( "clientChunkMap: %s\n", clientPath->Text() );
+
+	CDCStats *cdcStats = 0;
+	if( p4debug.GetLevel( DT_DLTXFER ) > DL_NONE )
+	{
+	    cdcStats = CDCStats::GetHandle( client, e );
+	    if( e->Test() || !cdcStats )
+	        return;
+	}
+	CDCStats::CDCTimer cdcTimer( cdcStats );
+
+	ChunkMap *cm = clientReceiveChunkMap( client, e );
+	if( e->Test() || !cm )
+	    return;
+
+	if( cdcStats )
+	    cdcStats->LogChunkMap( cm->GetBuf()->Length() );
+
+	StrBuf status;
+	if( !clientChunkMapInternal( client,
+	    clientPath, index, confirm, *cm, status, e ) )
+	{
+	    // Send back status or error so server can
+	    // fall back to sending whole file
+
+	    if( !status.Length() )
+	    {
+	        if( e->Test() )
+	            e->Fmt( &status );
+	        else
+	            status = "Client error";
+	    }
+	    client->SetVar( P4Tag::v_index, index );
+	    client->SetVar(P4Tag::v_status, status );
+	    client->Confirm( confirm );
+	}
+	delete cm;
+}
+
+static void
+clientWriteFileChunks( Client *client, Error *e )
+{
+	ChunkOffsetTree::ChunkOffsets *co = 0;
+
+	StrPtr *clientHandle = client->GetVar( P4Tag::v_handle, e );
+	StrPtr *clientPath = client->transfname->GetVar( P4Tag::v_path, e );
+	ClientFile *f = (ClientFile *)client->handles.Get( clientHandle, e );
+
+	if( e->Test() || !f || f->IsError() )
+	{
+	    f->SetError( e );
+	    client->OutputError( e );
+	    return;
+	}
+
+	CDCStats *cdcStats = 0;
+	if( p4debug.GetLevel( DT_DLTXFER ) > DL_NONE )
+	{
+	    cdcStats = CDCStats::GetHandle( client, e );
+	    if( e->Test() || !cdcStats )
+	    {
+	        f->SetError( e );
+	        client->OutputError( e );
+	        return;
+	    }
+	}
+	CDCStats::CDCTimer cdcTimer( cdcStats );
+
+	StrPtr *hash = client->GetVar( P4Tag::v_hash );
+	StrPtr *data = client->GetVar( P4Tag::v_data );
+	if( !hash || !data )
+	{
+	    // local file copy
+
+	    if( f->indirectFile )
+	    {
+	        FileSysUPtr in = FileSys::CreateUPtr( FST_BINARY );
+	        in->Set( *f->indirectFile->Path() );
+	        in->Open( FOM_READ, e );
+
+	        P4INT64 fileSize = 0;
+
+	        StrFixed buf( FileSys::BufferSize() );
+	        while( !e->Test() )
+	        {
+	            int l = in->Read( buf.Text(), buf.Length(), e );
+	            if( !l || e->Test() )
+	                break;
+
+	            f->file->Write( buf.Text(), l, e );
+	            fileSize += l;
+	        }
+	        in->Close( e );
+
+	        if( cdcStats )
+	            cdcStats->LogFile( fileSize );
+	    }
+	    f->SetError( e );
+	    client->OutputError( e );
+	    return;
+	}
+
+	if( cdcStats )
+	    cdcStats->LogChunk( data->Length() );
+
+	client->recvClientBytes += data->Length();
+
+	if( client_nullsync || !f->indirectFile )
+	    goto end;
+
+	if( !f->chunkOffsetTree )
+	{
+	    // First call: fill with chunks found in local file
+
+	    ClientTempFiles* tempFiles = ClientTempFiles::GetHandle( client, 0, false );
+	    if( !tempFiles )
+	        goto end;
+
+	    ChunkMap cm;
+	    FileSys* ftemp = tempFiles->GetRemove( clientPath->Text() );
+	    if( ftemp )
+	    {
+	        cm.Read( ftemp->Path(), e );
+	        // Remove the temp file after use to avoid
+	        // having too many files during operation
+	        delete ftemp;
+
+	        if( e->Test() )
+	            goto end;
+	    }
+	    else
+	        goto end;
+
+	    if( cdcStats )
+	        cdcStats->LogFile( cm.GetFileSize() );
+
+	    f->chunkOffsetTree = new ChunkOffsetTree;
+
+	    // create the local chunkmap again
+
+	    ChunkMap cmHave;
+	    cmHave.Create( f->indirectFile->Path(), e );
+	    if( e->Test() )
+	        goto end;
+
+	    FileSysUPtr in = FileSys::CreateUPtr( FST_BINARY );
+	    in->Set( *f->indirectFile->Path() );
+	    in->Open( FOM_READ, e );
+
+	    ChunkMap::Chunk c;
+	    VVarTree *haveTree = cmHave.AsVTree( e );
+	    while( haveTree && !e->Test() &&
+	           cm.GetNextChunk( c ) )
+	    {
+	        ChunkMap::Chunk *cc = 0;
+	        cc = (ChunkMap::Chunk*)haveTree->Get( &c );
+	        if( cc )
+	        {
+	            // chunk is found in local chunk map
+
+	            in->CopyRange( cc->offset, cc->size,
+	                           f->file, c.offset, e );
+	        }
+	        else
+	        {
+	            // save and fill later with chunks from server
+
+	            co = f->chunkOffsetTree->Get( c.hash.Text() );
+	            if( !co )
+	            {
+	                co = f->chunkOffsetTree->Put( c.hash.Text(), e );
+	                if( !co || e->Test() )
+	                    // break here even though e is tested in the loop
+	                    break;
+	            }
+	            co->Put( c.offset );
+	        }
+	    }
+	    in->Close( e );
+	    delete haveTree;
+	}
+
+	// assemble the chunks here
+
+	co = f->chunkOffsetTree->Get( hash->Text() );
+	if( co )
+	{
+	    for( int i = 0; i < co->count && !e->Test(); i++ )
+	    {
+	        f->file->Seek( (P4INT64)co->offsets[ i ], e );
+	        f->file->Write( data, e );
+	    }
+	}
+
+	// Mark handle with any error
+	// Report non-fatal error and clear it.
+end:
+	f->SetError( e );
+	client->OutputError( e );
+}
+
+# else
+
+// stubs
+
+static void
+clientChunkMap( Client *, Error * )
+{
+}
+
+static void
+clientWriteFileChunks( Client *, Error * )
+{
+}
+
+# endif
 
 void
 clientCloseFile( Client *client, Error *e )
@@ -2497,43 +3258,19 @@ clientSendFileChunkMap( Client *client, ProgressReport **progress, FileSys *f,
 	}
 }
 
-
-static VarArray *
+static VVarArray *
 clientGetChunksToSend( Client *client, ChunkMap& cm, Error *e )
 {
-	// We need either chunkMapHandle or chunkMap
+	ChunkMap *sm = clientReceiveChunkMap( client, e );
 
-	StrPtr *smHandle = client->GetVar( P4Tag::v_chunkMapHandle );
-	StrPtr *smBuf = client->GetVar( P4Tag::v_chunkMap );
-	if( !smHandle && !smBuf )
-	    client->GetVar( P4Tag::v_chunkMap, e ); // Trigger error on neither
-	if( e->Test() )
-	    return 0;
-
-	ClientVarHandle *smVar = 0;
-	if( smHandle )
-	{
-	    smVar = (ClientVarHandle *) client->handles.Get( smHandle, e );
-
-	    if( e->Test() )
-	        return 0;
-	}
-	
-	// Use either chunkMapHandle or chunkMap
-	// If we got both chunkMapHandle and chunkMap, use chunkMap
-	ChunkMap sm( smBuf ? smBuf : &smVar->memStore, e );
-
-	if( e->Test() )
+	if( e->Test() || !sm )
 	    return 0;
 
 	// Find out which chunks are only on the client.
 
-	VarArray *dm = cm.Diff( sm, e );
+	VVarArray *dm = cm.Diff( *sm, e );
 
-	// Free-up this memory now in case it's big, so we don't hold
-	// it for the file transfer.  Note that the 'sm' var is now invalid.
-
-	delete smVar;
+	delete sm;
 
 	if( e->Test() )
 	{
@@ -2953,21 +3690,12 @@ clientSendFile( Client *client, Error *e )
 
 	if( doChunkingTransfer )
 	{
-	    VarArray *dm = clientGetChunksToSend( client, cm, e );
+	    VVarArray *dm = clientGetChunksToSend( client, cm, e );
 	    P4INT64 nTotalChunks = cm.ChunkCount();
 	    P4INT64 nChunksToSend = dm ? dm->Count() : nTotalChunks;
 
-	    // Only perform delta transfer if the ratio of nChunksToSend
-	    // over nTotalChunks is under the threshold to avoid further
-	    // overhead when the saving on transfer is small. Set threshold
-	    // to 100 to always perform delta transfer and 0 to disable it.
-
-	    //printf( "net.delta.transfer.threashold: %I64d Unique chunks: %I64d Total chunks: %I64d\n",
-	    //        cdcThreshold, nChunksToSend, nTotalChunks);
-
-	    if( ( nChunksToSend * 100 ) <= ( cdcThreshold * nTotalChunks ) )
+	    if( checkCDCThreshold( nChunksToSend, nTotalChunks ) )
 	    {
-	        //printf( "Sending chunks to server\n" );
 	        clientSendFileChunked( client, &progress, f, filesize, dm,
 	                               clientPath, handle, chunkWrite, e );
 	        // The on-disk size doesn't lie in the binary+F case.
@@ -4483,8 +5211,24 @@ clientAltSync( Client *client, Error *e )
 	        int count = StrOps::Words( tmp, asResults->Text(),
 	                                   vars, 128, ',' );
 	        for( int i = 0; i < count; i++ )
+	        {
 	            if( ( val = results.GetVar( vars[i] ) ) )
 	                client->SetVar( vars[i], val );
+	            else
+	            {
+	                // if it ends in a *, that means we need to iterate 0..N
+	                int l = strlen( vars[i] ) - 1;
+	                if( vars[i][l] == '*' )
+	                {
+	                    // ignore the *
+	                    StrBuf nm;
+	                    nm.Set( vars[i], l );
+	                    int n = 0;
+	                    while( ( val = results.GetVar( nm, n ) ) )
+	                        client->SetVar( nm, n++, *val );
+	                }
+	            }
+	        }
 	    }
 
 	    client->SetVar( P4Tag::v_status, "pass" );
@@ -4552,6 +5296,10 @@ const RpcDispatch clientDispatch[] = {
 	{ P4Tag::c_OpenDiff,	RpcCallback(clientOpenFile) },
 	{ P4Tag::c_OpenMatch,	RpcCallback(clientOpenFile) },
 	{ P4Tag::c_WriteFile,	RpcCallback(clientWriteFile) },
+	
+	{ P4Tag::c_ChunkMap,	RpcCallback(clientChunkMap) },
+	{ P4Tag::c_WriteFileChunks,RpcCallback(clientWriteFileChunks) },
+
 	{ P4Tag::c_WriteDiff,	RpcCallback(clientWriteFile) },
 	{ P4Tag::c_WriteMatch,	RpcCallback(clientWriteFile) },
 	{ P4Tag::c_CloseFile,	RpcCallback(clientCloseFile) },

@@ -45,6 +45,7 @@ class Rusage {
 	void	Message( StrBuf &msg );
 	void	GetTrack( int level, RusageTrack *track );
 	P4INT64	Time();
+	P4INT64	MicroTime();
 
     private:
 

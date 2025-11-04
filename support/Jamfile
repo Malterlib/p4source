@@ -17,6 +17,12 @@ if USE_OPENLDAP
                 -I$(CYRUSSASLPINCDIR) ;
 }
 
+# OpenTelelmetry Logging
+if USE_OTLP {
+	local tracer_obj = [ FAppendSuffix tracer : $(SUFOBJ) ] ;
+	C++FLAGS on [ FGristFiles $(tracer_obj) ] = -I \"$(OTLPINCDIR)\" -I \"$(P4)/script/libs/cURL\" ;
+}
+
 if $(OSPLAT) = X86_64 || $(OSPLAT) = X86 ||
    $(OSPLAT) = X64 || ( $(OSPLAT) = IA64 && $(OS) != HPUX ) {
 	ObjectDefines [ FGristSourceFiles md5.o ] : MD5NOBUF ;
@@ -34,6 +40,7 @@ P4APILibrary $(SUPPORTLIB) :
 	contextpat.cc
 	datetime.cc
 	debug.cc
+	digest.cc
 	error.cc
 	errormsh.cc
 	errorsys.cc
@@ -80,7 +87,12 @@ P4APILibrary $(SUPPORTLIB) :
 	varlist.cc
 	varqsort.cc
 	vartree.cc
-	trienode.cc ;
+	trienode.cc
+	;
+
+P4Library $(P4TRACELIB) :
+	tracer.cc
+	;
 
 if $(USE_EXTENSIONS) = 1
 {

@@ -94,6 +94,7 @@ class MsgHelp {
 	static ErrorId HelpHave;
 	static ErrorId HelpHeartbeat;
 	static ErrorId HelpHelp;
+	static ErrorId HelpHotFiles;
 	static ErrorId HelpIgnores;
 	static ErrorId HelpIndex;
 	static ErrorId HelpInfo;
@@ -123,6 +124,7 @@ class MsgHelp {
 	static ErrorId HelpLock;
 	static ErrorId HelpLockstat;
 	static ErrorId HelpLogappend;
+	static ErrorId HelpLogexport;
 	static ErrorId HelpLogger;
 	static ErrorId HelpLogin;
 	static ErrorId HelpLogin2;
@@ -272,7 +274,7 @@ class MsgHelp {
 	static ErrorId HelpGraphRecomputeRefcnts;
 	static ErrorId HelpGraphGc;
 	static ErrorId HelpGraphPurgeRefhist;
-
+	static ErrorId HelpDiagnostics;
 	static ErrorId Help2FA;
 
 	// Retired ErrorIds. We need to keep these so that clients 

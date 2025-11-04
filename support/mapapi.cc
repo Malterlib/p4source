@@ -160,6 +160,12 @@ MapApi* MapApi::Join( MapApi* m1, MapDir d1, MapApi* m2, MapDir d2 )
 	return new MapApi( m1->table->Join2( t1, m2->table, t2 ) );
 }
 
+void MapApi::Validate( const StrPtr& path, Error* e )
+{
+	MapHalf half( path );
+	half.Validate( 0, e );
+}
+
 void MapApi::Init()
 {
 	ambiguous = 0;

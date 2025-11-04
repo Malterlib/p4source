@@ -139,7 +139,7 @@ class MsgDm2 {
 	static ErrorId SparseStreamCmdMustIncludeAll2;
 	static ErrorId SparseStreamCmdWrongStream;
 	static ErrorId SparseStreamCmdNoRevRange;
-	static ErrorId SparseStreamCopyOutOfDate;
+	static ErrorId SparseStreamCmdOutOfDate;
 	static ErrorId SparseStreamCopyLatestOnly;
 	static ErrorId SparseStreamNoPin;
 	static ErrorId SparseStreamNotSupported;
@@ -165,8 +165,11 @@ class MsgDm2 {
 	static ErrorId SparseStreamNoCreateMaxCommit0;
 	static ErrorId SparseStreamNoUnshelvePinLower;
 	static ErrorId UpgradeToCreatePJnlClient;
+	static ErrorId BadHotFilePattern;
 	static ErrorId DbBodTextCxEntryMissing;
 	static ErrorId StreamSpecIntegrationNoFrmChange;
+
+	static ErrorId ExVIEWC;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

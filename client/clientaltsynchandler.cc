@@ -386,4 +386,5 @@ ClientAltSyncHandler::FillDict( StrDict &dict )
 	dict.SetVar( P4Tag::v_port, client->GetPort() );
 	dict.SetVar( P4Tag::v_client, client->GetClient() );
 	dict.SetVar( P4Tag::v_user, client->GetUser() );
+	dict.SetVar( P4Tag::v_server, client->protocolServer );
 }

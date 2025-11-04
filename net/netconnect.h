@@ -99,6 +99,7 @@ class NetEndPoint {
 				    return isAccepted;
 				}
 
+	virtual void		NotifyRestarting() {}
 	virtual void		Listen( Error *e ) = 0;
 	virtual void		ListenCheck( Error *e ) = 0;
 	virtual int		CheaterCheck( const char *port ) = 0;

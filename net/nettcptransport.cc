@@ -40,6 +40,7 @@
 
 # include "netportparser.h"
 # include "netconnect.h"
+# include "nettcpendpoint.h"
 # include "nettcptransport.h"
 # include "netselect.h"
 # include "netport.h"
@@ -65,6 +66,7 @@
 NetTcpTransport::NetTcpTransport( int t, bool fromClient )
 : isAccepted(fromClient)
 , shutdownCalled(false)
+, afterReload(false)
 {
 	this->t = t;
 	breakCallback = 0;
@@ -84,6 +86,44 @@ NetTcpTransport::NetTcpTransport( int t, bool fromClient )
 		"NetTcpTransport %s connected to %s",
 	        GetAddress( RAF_PORT )->Text(),
 	        GetPeerAddress( RAF_PORT )->Text() );
+
+	/*
+	 * proxy (and maybe broker) don't call SetupSocket()
+	 * on accepted sockets so we'll always do it,
+	 * even though p4d will also do it later.
+	 */
+	SetupSocket();
+	afterReload = true;
+}
+
+/*
+ * Server:
+ * Called from Rh::Run() in a child request-handler process
+ * after the child proc has reloaded values via LoadConfig()
+ * (so the relevant configurables may have changed since instantiation).
+ *
+ * Client:
+ * Called from NetTcpEndPoint::Connect() after construction.
+ *
+ * For both client and server, socket setup is also done in the
+ * transport constructor, but possibly with different config values.
+ */
+void
+NetTcpTransport::SetupSocket()
+{
+	TRANSPORT_PRINTF( DEBUG_CONNECT, "NetTcpTransport::SetupSocket(fd=%d, reload=%d)", t, afterReload );
+const int autotune = p4tunable.Get( P4TUNE_NET_AUTOTUNE );
+TRANSPORT_PRINTF( DEBUG_CONNECT, "NetTcpTransport::SetupSocket(fd=%d, reload=%d, autotune=%d)", t, afterReload, autotune );
+
+	SetupKeepAlives( t );
+	MoreSetupSocket();
+}
+
+// Subclasses can do additional setup here
+void
+NetTcpTransport::MoreSetupSocket()
+{
+	TRANSPORT_PRINTF( DEBUG_CONNECT, "NetTcpTransport::MoreSetupSocket(fd=%d, reload=%d)", t, afterReload );
 }
 
 NetTcpTransport::~NetTcpTransport()
@@ -759,7 +799,16 @@ NetTcpTransport::Close( void )
 	    const int max = p4tunable.Get( P4TUNE_NET_MAXCLOSEWAIT );
 
 	    if( selector->Select( r, w, max ) >= 0 && r )
-	        (void)(read( t, buf, 1 )+1);
+	    {
+		int n = read( t, buf, 1 );
+		if( n < 0 )
+		{
+		    StrBuf errbuf;
+
+		    Error::StrNetError( errbuf );
+		    TRANSPORT_PRINTF( SSLDEBUG_ERROR, "NetTcpTransport::Close: read of FIN packet failed (ignored): %s", errbuf.Text() );
+		}
+	    }
 	}
 
 	if( DEBUG_INFO )
@@ -875,7 +924,7 @@ NetTcpTransport::ClientMismatch( Error *e )
 }
 
 /*
- * Don't pass in "errno"; pass "GetLastError()" instead
+ * Don't pass in "errno"; pass "GetLastSockError()" instead
  * (or call the no-arg version which will do it for you)
  * so that it works on Windows as well.
  * [static]
@@ -935,7 +984,7 @@ NetTcpTransport::Peek( int fd, char *buffer, int length )
 		if( retval == -1 && count < PEEK_TIMEOUT )
 		{
 		    TRANSPORT_PRINTF( SSLDEBUG_ERROR,
-			    "Peek error is: %d", GetLastError());
+			    "Peek error is: %d", GetLastSockError());
 		}
 		return retval;
 }

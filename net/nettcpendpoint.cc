@@ -99,9 +99,16 @@ static const int kBaseHintsFlags = 0;
 void
 NetTcpEndPoint::SetupSocket( int fd, int ai_family, AddrType type, Error *e )
 {
-# if defined(F_SETFD) && !defined(OS_NT)
-	// attempt to set close on exec flag, ignore failures
-	fcntl(fd, F_SETFD, 1);
+	TRANSPORT_PRINTF( DEBUG_CONNECT, "NetTcpEndPoint::SetupSocket(%d)", fd );
+# ifdef F_SETFD
+	/*
+	 * Set close-on-exec:
+	 *    On BSD accepted sockets will inherit close-on-exec [we set
+	 *    it on the listen socket near the end of BindOrConnect()].
+	 *    On linux they will not, so we set it here as well.
+	 *    We don't bother reporting failure.
+	 */
+	fcntl( fd, F_SETFD, 1 );
 # endif
 
 	// Set buffer size.
@@ -217,6 +224,7 @@ NetTcpEndPoint::SetupSocket( int fd, int ai_family, AddrType type, Error *e )
 void
 NetTcpEndPoint::MoreSocketSetup( int fd, AddrType type, Error *e )
 {
+	TRANSPORT_PRINTF( DEBUG_CONNECT, "NetTcpEndPoint::MoreSocketSetup(%d)", fd );
 }
 
 int
@@ -531,7 +539,19 @@ NetTcpEndPoint::BindOrConnect( AddrType type, Error *e )
 	}
 
 	// finally, setup the socket options and return it
+
 	e->Clear();    // because the first CreateSocket() might have set an error
+
+# ifdef F_SETFD
+	/*
+	 * Set close-on-exec:
+	 *    On BSD accepted sockets will inherit close-on-exec;
+	 *    on linux they will not, so we set it in SetupSocket()
+	 *    as well.
+	 *    We don't bother reporting failure.
+	 */
+	fcntl( fd, F_SETFD, 1 );
+# endif
 
 	return fd;
 }
@@ -905,6 +925,46 @@ NetTcpEndPoint::ListenCheck( Error *e )
 	}
 }
 
+/*
+ * sets "family" to the socket's family or AF_UNSPEC
+ * if "getsockname()" fails.
+ * returns errno
+ * [static]
+ */
+int
+NetTcpEndPoint::GetSocketFamily( int fd, int &family )
+{
+	struct sockaddr_storage addr;
+	struct sockaddr *saddrp = reinterpret_cast<struct sockaddr *>(&addr);
+	TYPE_SOCKLEN addrlen = sizeof addr;
+
+	family = AF_UNSPEC;
+	if( getsockname( fd, saddrp, &addrlen ) < 0 || addrlen > sizeof addr )
+	    return errno;
+
+	family = addr.ss_family;
+
+	return 0;
+}
+
+/*
+ * Simpler version of GetSocketFamily that returns family
+ * or AF_UNSPEC on failure.
+ * [static]
+ */
+int
+NetTcpEndPoint::GetSocketFamily( int fd )
+{
+	struct sockaddr_storage addr;
+	struct sockaddr *saddrp = reinterpret_cast<struct sockaddr *>(&addr);
+	TYPE_SOCKLEN addrlen = sizeof addr;
+
+	if( getsockname( fd, saddrp, &addrlen ) < 0 || addrlen > sizeof addr )
+	    return AF_UNSPEC;
+
+	return addr.ss_family;
+}
+
 void
 NetTcpEndPoint::GetListenAddress( int s, int raf_flags, StrBuf &listenAddress )
 {
@@ -1010,11 +1070,11 @@ NetTcpEndPoint::Accept( KeepAlive *keep, Error *e )
 		else break;
 	}
 
-# ifdef F_SETFD
-	// close on exec
-	// so p4web's launched processes don't get our socket
-	fcntl( t, F_SETFD, 1 );
-# endif
+	/*
+	 * Set up our accepted socket because we didn't call
+	 * CreateSocket(), so we haven't set it up yet.
+	 */
+	SetupSocket( t, GetSocketFamily(t), AT_LISTEN, e );
 
 	delete selector;
 

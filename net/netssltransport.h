@@ -75,11 +75,13 @@ class NetSslTransport : public NetTcpTransport
 
     public:
 	NetSslTransport( int t, bool fromClient,
-	                 StrPtr *cipherList, StrPtr *cipherSuites );
-	NetSslTransport( int t, bool fromClient, NetSslCredentials &cred,
-	                 StrPtr *cipherList, StrPtr *cipherSuites );
-	~NetSslTransport();
+	                 StrBuf *cipherList, StrBuf *cipherSuites );
+	NetSslTransport( int t, bool fromClient, NetSslCredentials *cred,
+	                 StrBuf *cipherList, StrBuf *cipherSuites );
+	virtual ~NetSslTransport();
 
+	virtual void    SetupSocket();
+	virtual void    MoreSetupSocket();
 	void            ValidateCredentials( Error *e );
 	bool            CheckCtxErrors( const char *msg, Error *e );
 	void            ClientMismatch( Error *e );
@@ -90,7 +92,10 @@ class NetSslTransport : public NetTcpTransport
 	                { value.Set( cipherSuite ); }
 	void            GetPeerFingerprint(StrBuf &value);
 	NetSslCredentials *GetPeerCredentials()
-	                { return &credentials; }
+	                { return credentials; }
+	void		ReleaseCreds();
+
+	static void	NotifyRestarting();
 
 
     private:
@@ -116,9 +121,11 @@ class NetSslTransport : public NetTcpTransport
 	SSL *           ssl;
 	StrBuf          cipherSuite;
 	bool            clientNotSsl;
-	NetSslCredentials credentials;
-	StrPtr *        customCipherList;
-	StrPtr *        customCipherSuites;
+	bool		ownsCreds;
+	NetSslCredentials *credentials;
+	StrPtr          *customCipherList;
+	StrPtr          *customCipherSuites;
+	static bool     sIsRestarting;
 } ;
 
 # endif //USE_SSL

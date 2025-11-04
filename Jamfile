@@ -121,6 +121,12 @@ if [ CompilerIsModern ] = 1 && $(OS) != "MINGW" && $(OSPLAT:U) != "X86"
 	DEFINES += USE_CDC ;
 }
 
+if $(OTLPLIBDIR) && $(OTLPINCDIR)
+{
+	USE_OTEL = 1 ;
+	DEFINES += USE_OTEL ;
+}
+
 if $(MALLOC_OVERRIDE) = yes
 {
 	DEFINES += MALLOC_OVERRIDE ;

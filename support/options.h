@@ -334,6 +334,9 @@ class Options
 	                LastSeenDate   , // topology -l
 	                ListAddresses  , // license -L
 	                Trait          , // print -T
+	                FileSizeLimit  , // diagnostics -L
+	                Lsof           , // diagnostocs -l
+	                Strace         , // diagnostics -s
 
 	        // options which have only long-form option names go here:
 
@@ -421,6 +424,7 @@ class Options
 			SSNoInherit    , // --noinherit
 			SSSourceComments, // --source-comments
 			SSParentView,    // --parentview
+			StraceRuntime,   // --strace-runtime (diagnostics)
 			SwitchStreamUnrelated  , // switch --allow-unrelated
 			Only            , // --only BAD | MISSING
 			ShowRealtime    , // --show-realtime
@@ -445,6 +449,8 @@ class Options
 			ControlTweaks   , // --control-tweaks
 			CachePurge      , // --cache-purge (p4p)
 			Iteration       , // --iteration
+			UserCaseInsensitive, // --user-case-insensitive
+			ClientCaseInsensitive, // --client-case-insensitive
 #ifdef _DEBUG
 			DebugBreak,    // --debugbreak
 #endif

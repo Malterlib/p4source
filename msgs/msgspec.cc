@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSpec error code is: 20
+ * Current high value for a MsgSpec error code is: 21
  */
 # include <stdhdrs.h>
 # include <error.h>
@@ -678,5 +678,22 @@ ErrorId MsgSpec::SpecExtensionIns = { ErrorOf( ES_SPEC, 20, E_INFO, EV_NONE, 0  
 "#  %'ExtConfig'%:        Extension-supplied configuration fields.\n"
 "#\n"
 "# See 'p4 help extension' for detailed information.\n" };
+
+ErrorId MsgSpec::SpecHotFiles = { ErrorOf( ES_SPEC, 21, E_INFO, EV_NONE, 0  ),
+"# %'Perforce File Type'% Mapping Specifications.\n"
+"#\n"
+"#  %'Hotfiles'%:	a list of hotfiles mappings; one per line.\n"
+"#		Each line has a %'Path'% and two optional elements.\n"
+"#		Duplicate %'Path'% elements are supported:\n"
+"#\n"
+"#  		%'Path'%:     File pattern which will be mapped to hotfiles.\n"
+"#\n"
+"#  		%'Filetype'%: See 'p4 help filetypes' for a list of valid\n"
+"#  		          filetypes.\n"
+"#\n"
+"#  		%'Size'%:     '<' or '>' followed by numeric value in bytes,\n"
+"#  		          followed by an optional unit specifier K/M/G/T.\n"
+"#\n"
+"# See '%'p4 help hotfiles'%' for more information.\n" };
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 

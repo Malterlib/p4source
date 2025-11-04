@@ -160,6 +160,7 @@ class RpcService {
 
 	void		SetEndpoint( const char *addr, Error *e );
 	const StrPtr &	GetEndpoint() { return endPointAddr; }
+	void		NotifyRestarting();
 	void		Dispatcher( const RpcDispatch *dispatch );
 	void		AddAltDispatcher();
 	void		SetProtocol( const char *var, const StrRef &val );
@@ -232,6 +233,7 @@ class Rpc : public StrDict {
 	bool		IsSockIPv6();
 	KeepAlive	*GetKeepAlive();
 	void		SetBreak( KeepAlive *breakCallback );
+	KeepAlive *	GetBreak();
 	void		SetProtocolDynamic( const char *var, const StrRef &val );
 	void		ClearProtocolDynamic( const char *var );
 

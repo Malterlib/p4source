@@ -1,3 +1,4 @@
+class Error;
 class MapTable;
 class StrPtr;
 class StrBuf;
@@ -32,6 +33,8 @@ public:
 	static MapApi* Join( MapApi* left, MapApi* right )
 		{ return Join( left, MapLeftRight, right, MapLeftRight ); }
 	static MapApi* Join( MapApi* m1, MapDir d1, MapApi* m2, MapDir d2 );
+
+	static void Validate( const StrPtr& path, Error* e );
 
 private:
 	MapTable* table;
