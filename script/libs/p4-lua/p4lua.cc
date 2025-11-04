@@ -80,7 +80,7 @@ P4Lua::P4Lua()
 
 	henv.GetTrustFile( trustFile );
 
-	if( (t = enviro->Get("P4TICKETS")) )
+	if( (t = enviro->Get("P4TRUST")) )
 	    trustFile = t;
 
 	//

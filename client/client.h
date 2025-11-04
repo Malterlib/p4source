@@ -177,7 +177,13 @@ class Client : public Rpc {
 	void		SetVersion( const StrPtr *c );
 
 	void		SetPassword( const StrPtr *c )
-	    { password.Set( c ); password2.Set( c ); ticketKey.Clear(); authenticated = 0; }
+			{
+			    password.Set( c );
+			    password2.Set( c );
+			    ticketKey.Clear();
+			    ticketUser.Clear();
+			    authenticated = 0;
+			}
 
 	void		SetUser( const StrPtr *c ) 
 			{ user.Set( c ); authenticated = 0; }
@@ -200,11 +206,15 @@ class Client : public Rpc {
 	void		SetProg( const char *c );
 	void		SetVersion( const char *c );
 	void		SetExecutable( const char *c ) { exeName.Set( c ); }
-
-	// NB:  This SetPassword() is intentionally different than the other one.
-	//      Public callers should use the StrPtr variant.
-	void		SetPassword( const char *c ) 
-	    { password.Set( c ); ticketKey.Clear(); authenticated = 0; }
+	
+	void		SetPassword( const char *c )
+			{
+			    password.Set( c );
+			    password2.Set( c );
+			    ticketKey.Clear();
+			    ticketUser.Clear();
+			    authenticated = 0;
+			}
 
 	void		SetUser( const char *c ) 
 			{ user.Set( c ); authenticated = 0; }
@@ -343,7 +353,8 @@ class Client : public Rpc {
 	void		ClearPBuf() { pBuf.Clear(); }
 	StrPtr *	GetPBuf() { return( &pBuf ); }
 
-	void		SetTicketKey( const StrPtr *s ) { ticketKey.Set( *s ); }
+	void		SetTicket( const StrPtr* k,  const StrPtr* u, const StrPtr* p )
+			{ ticketKey.Set( *k ); ticketUser.Set( *u ); password.Set( *p ); }
 
         int             IsUnicode() { return is_unicode; }
 
@@ -397,6 +408,7 @@ class Client : public Rpc {
 	StrBuf		password;	// user's password
 	StrBuf		password2;	// user's password (password is ticket)
 	StrBuf		ticketKey;	// key used to look up ticket
+	StrBuf		ticketUser;	// user assigned to ticket
 	StrBuf		language;	// language for err messages
 	StrBuf		ticketfile;	// alternate location for ticketfile
 	StrBuf		trustfile;	// trusted finger print file

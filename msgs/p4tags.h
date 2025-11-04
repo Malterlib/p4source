@@ -99,6 +99,7 @@ struct P4Tag {
 	static const char v_agentProgram[];
 	static const char v_altSync[];
 	static const char v_altSyncHotFile[];
+	static const char v_altSyncHydratedHot[];
 	static const char v_altSyncResults[];
 	static const char v_altSyncVars[];
 	static const char v_altSyncVersion[];
@@ -311,6 +312,7 @@ struct P4Tag {
 	static const char v_matchedLine[];
 	static const char v_matchBegin[];
 	static const char v_matchEnd[];
+	static const char v_matchlines[];
 	static const char v_maxLockTime[];
 	static const char v_maxOpenFiles[];
 	static const char v_maxPauseTime[];
@@ -433,6 +435,9 @@ struct P4Tag {
 	static const char v_security[];
 	static const char v_sendFileBytes[];
 	static const char v_sendFileCount[];
+	static const char v_sendFileSize[];
+	static const char v_sendDigest[];
+	static const char v_sendType[];
 	static const char v_skipped[];
 	static const char v_snapped[];
 	static const char v_sndbuf[];
@@ -487,6 +492,7 @@ struct P4Tag {
 	static const char v_targetType[];
 	static const char v_theirName[];
 	static const char v_theirTime[];
+	static const char v_threads[];
 	static const char v_time[];
 	static const char v_toFile[];
 	static const char v_toStream[];
@@ -590,6 +596,15 @@ struct P4Tag {
 	static const char v_revtime[];		// proxy invalidation
 	static const char v_revver[];		// proxy rev table version
 	static const char v_revgver[];		// proxy graphrev table version
+	static const char v_rplDeltaTransfer[]; //replica delta transfer
+	static const char v_rplDeltaTransferCopy[]; // replica delta transfer copy func
+	static const char v_rplDeltaTransferMap[]; // replica delta transfer chunk map receive func
+	static const char v_rplDeltaTransferWrite[]; // replica delta transfer chunk receive func
+	static const char v_rplHasRev[];	// replica delta transfer - rev the replica has
+	static const char v_rplHasRevDigest[];	// replica delta transfer - digest for rev rpl has
+	static const char v_rplHasRevLbrFile[];	// replica delta transfer - lbrFile for rev rpl has
+	static const char v_rplHasRevLbrRev[];	// replica delta transfer - lbrRev for rev rpl has
+	static const char v_rplHasRevType[];	// replica delta transfer - file type for rev rpl has
 	static const char v_role[];		// cluster role (svr svcs)
 	static const char v_save[];		// revert
 	static const char v_setViews[];		// set client views even if empty

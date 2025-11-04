@@ -71,6 +71,20 @@ class NetTcpEndPoint : public NetEndPoint {
 	int		BindOrConnect( AddrType type, Error *e );
 	int		CreateSocket( AddrType type, const NetAddrInfo &ai, int af_target, bool useAlternate, Error *e );
 	void		SetupSocket( int fd, int ai_family, AddrType type, Error *e );
+	virtual void	SetNagle( int fd, int mode );
+	virtual void	SetNagle( int fd ); // use net.nagle
+	virtual void	SetNagle()
+			{
+			    SetNagle( s );
+			}
+# if defined(OS_NT)
+	virtual void	SetQuickAck( int fd, bool mode );
+	virtual void	SetQuickAck( int fd ); // use net.quickack
+	virtual void	SetQuickAck()
+			{
+			    SetQuickAck( s );
+			}
+# endif
 
 	// subclasses can override this to do more setup on the socket, if desired
 	virtual void	MoreSocketSetup( int fd, AddrType type, Error *e );

@@ -241,6 +241,7 @@ class Options
 	                OpenType       , // reconcile -t
 	                UseModTime     , // reconcile -m
 	                Local          , // reconcile -l
+	                MatchMoves     , // reconcile -M
 	                OutputBase     , // resolved -o
 	                System         , // set -s
 	                Service        , // set -S
@@ -451,6 +452,9 @@ class Options
 			Iteration       , // --iteration
 			UserCaseInsensitive, // --user-case-insensitive
 			ClientCaseInsensitive, // --client-case-insensitive
+			NonLbr          , // --nonlbr
+			PullFromVerify  , // --pull-from-verify
+			SyncTime        , // --sync-time
 #ifdef _DEBUG
 			DebugBreak,    // --debugbreak
 #endif

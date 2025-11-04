@@ -3,7 +3,7 @@
 
 #include <winver.h>
 
-HELIX_HEXAGON ICON "p4.ico"
+P4_HEXAGON ICON "p4.ico"
 
 VS_VERSION_INFO VERSIONINFO
 FILEVERSION     P4_INT_MAJOR,P4_INT_MINOR,P4_INT_HBUILD,P4_INT_LBUILD
@@ -18,7 +18,7 @@ BEGIN
         BLOCK "040904E4"
         BEGIN
             VALUE "CompanyName", "Perforce Software Inc."
-            VALUE "FileDescription", "Helix Command-Line Client"
+            VALUE "FileDescription", "P4 Command-Line Client"
             VALUE "FileVersion", P4_FILE_VERSION
             VALUE "InternalName", "p4.exe"
             VALUE "LegalCopyright", "Copyright (C) 1995-" P4_COPYRIGHT

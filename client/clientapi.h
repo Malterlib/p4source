@@ -248,6 +248,7 @@ class ClientApi : public StrDict {
 	const StrPtr	&GetLanguage();
 	const StrPtr	&GetOs();
 	const StrPtr	&GetPassword();
+	const StrPtr	&GetPassword2();
 	const StrPtr	&GetPassword( const StrPtr *user );
 	const StrPtr	&GetPort();
 	const StrPtr	&GetProg();

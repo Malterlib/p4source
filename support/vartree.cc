@@ -282,7 +282,7 @@ VVarTree::LastNode() const
 }
 
 void *
-VVarTree::CopyOver( void *tgt, const void *src )
+VVarTree::CopyOver( void *tgt, const void *src ) const
 {
 	// Subclasses dealing with fixed-size objects may be able
 	// to implement this more efficiently by reusing tgt's memory.

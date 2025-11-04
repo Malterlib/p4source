@@ -22,8 +22,6 @@ ProgressReport::ProgressReport()
 
 ProgressReport::~ProgressReport()
 {
-	if( needfinal )
-	    DoReport( CPP_FAILDONE );
 }
 
 void
@@ -34,7 +32,7 @@ ProgressReport::Description( const StrPtr &d )
 }
 
 void
-ProgressReport::Units( int u )
+ProgressReport::Units( ProgressUnits u )
 {
 	units = u;
 	fieldChanged |= CP_UNITS;
@@ -66,7 +64,6 @@ ProgressReport::Increment( long p, int flag )
 	    position += p;
 	    fieldChanged |= CP_POS;
 	}
-	
 	ConsiderReport( flag );
 }
 
@@ -83,7 +80,3 @@ ProgressReport::ConsiderReport( int flag )
 	DoReport( flag );
 }
 
-void
-ProgressReport::DoReport( int flag )
-{
-}

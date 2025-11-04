@@ -620,6 +620,12 @@ typedef unsigned long useconds_t;
 # endif
 # endif
 
+# ifdef NEED_PSAPIH
+# ifdef OS_NT
+# include <psapi.h>
+# endif
+# endif
+
 /*
  * HAVE_TRUNCATE -- working truncate() call
  * HAVE_SYMLINKS -- OS supports SYMLINKS
@@ -860,6 +866,9 @@ typedef unsigned int p4size_t;
 # ifdef OS_NTX86
 # define _X86_
 # endif // OS_NTX86
+# ifdef OS_NTARM64
+# define _ARM64_
+# endif // OS_NTARM64
 
 # ifndef OS_MINGW
 # ifndef NOMINMAX

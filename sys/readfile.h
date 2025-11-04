@@ -70,7 +70,7 @@ class ReadFile
 	void		Close();
 
 	int		Char() { return *mptr; }
-	int		Get() { return Eof(), *mptr++; }
+	int		Get() { return Eof() ? 0 : *mptr++; }
 
 	void		Prev() { if( --mptr < maddr ) Seek( Tell() ); }
 	void		Next() { ++mptr; }
@@ -87,6 +87,8 @@ class ReadFile
 
 	offL_t 		Textcpy( char *dst, offL_t dstlen, 
 				offL_t srclen, LineType type );
+
+	bool		IsOpen() { return maddr != (unsigned char *)-1; }
 
     private:
 

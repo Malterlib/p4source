@@ -174,6 +174,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "suptool",	0, 0, 0, 10, 1, 1, 0, 1, &MsgConfig::Suptool,	0, CONFIG_APPLY_NONE, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_UNDOC, CONFIG_CAT_MISC },
 	{ "elog",	0, 1, 0, 5, 1, 1, 0, 1, &MsgConfig::Elog,	0, CONFIG_APPLY_SERVER, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_UNDOC, CONFIG_CAT_MISC },
 	{ "dltxfer",	0, 0, 0, 10, 1, 1, 0, 1, &MsgConfig::Dltxfer,	0, CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_NODOC, CONFIG_CAT_MISC },
+	{ "perf",	0, 0, 0, 10, 1, 1, 0, 1, &MsgConfig::Perf,	0, CONFIG_APPLY_CLIENT, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_NODOC, CONFIG_CAT_PERFORMANCE },
 
 	// P4Tunable's collection
 	//
@@ -206,7 +207,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "db.rt.io",			0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::DbRtIo,			0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_STOP,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_MONITORING },
 	{ "db.trylock",			0,	3,	0,	RBIG,	1,	R1K,	0,	1,	&MsgConfig::DbTrylock,			0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "dbarray.putcheck",		0,	R4K,	1,	RBIG,	1,	R1K,	0,	1,	&MsgConfig::DbarrayPutcheck,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
-	{ "dbarray.reserve",		0,	B4M,	B4K,	BBIG,	1,	B1K,	0,	1,	&MsgConfig::DbarrayReserve,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
+	{ "dbarray.reserve",		0,	B4M,	B4K,	BBIG,	1,	B1K,	0,	1,	&MsgConfig::DbarrayReserve,		0,	0,			CONFIG_RESTART_NONE,		CONFIG_SUPPORT_NODOC,	CONFIG_CAT_NONE },
 	{ "dbjournal.bufsize",		0,	B16K,	1,	BBIG,	1,	B1K,	0,	1,	&MsgConfig::DbjournalBufsize,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_PERFORMANCE|CONFIG_CAT_MONITORING },
 	{ "dbjournal.wordsize",		0,	B4K,	1,	BBIG,	1,	B1K,	0,	1,	&MsgConfig::DbjournalWordsize,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "dbopen.cache",		0,	96,	1,	RBIG,	1,	R1K,	0,	1,	&MsgConfig::DbopenCache,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
@@ -236,6 +237,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "dm.copy.movewarn",		0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::DmCopyMovewarn,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "dm.domain.accessupdate",	0,	300,	1,	RBIG,	1,	1,	0,	0,	&MsgConfig::DmDomainAccessupdate,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_PERFORMANCE },
 	{ "dm.domain.accessforce",	0,	3600,	1,	RBIG,	1,	1,	0,	0,	&MsgConfig::DmDomainAccessforce,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_PERFORMANCE },
+	{ "dm.dvcs.allowcasemismatch",	0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::DmDvcsAllowcasemismatch,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_DVCS },
 	{ "dm.fetch.preservechangenumbers",0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::DmFetchPreservechangenumbers, 0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_DVCS },
 	{ "dm.flushforce",		0,	R10K,	1,	RBIG,	1,	R1K,	0,	0,	&MsgConfig::DmFlushforce,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "dm.flushtry",		0,	100,	1,	RBIG,	1,	R1K,	0,	0,	&MsgConfig::DmFlushtry,			0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
@@ -245,7 +247,8 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "dm.grep.maxlinelength",	0,	B4K,	128,	B16K,	1,	B1K,	0,	0,	&MsgConfig::DmGrepMaxlinelength,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "dm.grep.maxrevs",		0,	R10K,	0,	RBIG,	1,	R1K,	0,	0,	&MsgConfig::DmGrepMaxrevs,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_PERFORMANCE },
 	{ "dm.grep.maxcontext",		0,	R1K,	0,	B16K,	1,	R1K,	0,	0,	&MsgConfig::DmGrepMaxcontext,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
-	{ "dm.info.hide",		0,	0,	0,	1,	1,	1,	0,	1,	&MsgConfig::DmInfoHide,			0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY|CONFIG_CAT_LICENSING },
+	{ "dm.have.preload",		0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::DmHavePreload,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_PERFORMANCE },
+	{ "dm.info.hide",		0,	0,	0,	1,	1,	1,	0,	1,	&MsgConfig::DmInfoHide,			"1",	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY|CONFIG_CAT_LICENSING },
 	{ "dm.integ.engine",		0,	3,	0,	3,	1,	1,	0,	0,	&MsgConfig::DmIntegEngine,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "dm.integ.maxact",		0,	R100K,	1,	RBIG,	1,	R1K,	0,	0,	&MsgConfig::DmIntegMaxact,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "dm.integ.maxbranch",		0,	100,	2,	RBIG,	1,	R1K,	0,	0,	&MsgConfig::DmIntegMaxbranch,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
@@ -301,14 +304,15 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "dm.topology.lastseenupdate",	0,	300,	1,	RBIG,	1,	1,	0,	0,	&MsgConfig::DmTopologyLastseenupdate,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_PERFORMANCE },
 	{ "dm.user.accessupdate",	0,	300,	1,	RBIG,	1,	1,	0,	0,	&MsgConfig::DmUserAccessupdate,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY|CONFIG_CAT_PERFORMANCE },
 	{ "dm.user.accessforce",	0,	3600,	1,	RBIG,	1,	1,	0,	0,	&MsgConfig::DmUserAccessforce,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY|CONFIG_CAT_PERFORMANCE },
+	{ "dm.user.accessmode",		0,	1,	0,	3,	1,	1,	0,	0,	&MsgConfig::DmUserAccessmode,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY|CONFIG_CAT_PERFORMANCE },
 	{ "dm.user.allowselfupdate",	0,	1,	0,	1,	1,	1,	0,	0,	&MsgConfig::DmUserAllowselfupdate,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY },
 	{ "dm.user.hideinvalid",	0,	0,	0,	1,	1,	1,	0,	1,	&MsgConfig::DmUserHideinvalid,		"1",	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY},
 	{ "dm.user.insecurelogin",	0,	0,	0,	1,	1,	1,	0,	1,	&MsgConfig::DmUserInsecurelogin,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "dm.user.loginattempts",	0,	3,	0,	10000,	1,	1,	0,	1,	&MsgConfig::DmUserLoginattempts,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY },
-	{ "dm.user.noautocreate",	0,	0,	0,	2,	1,	1,	0,	0,	&MsgConfig::DmUserNoautocreate,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY },
+	{ "dm.user.noautocreate",	0,	0,	0,	2,	1,	1,	0,	0,	&MsgConfig::DmUserNoautocreate,		"2",	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY },
 	{ "dm.user.numeric",		0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::DmUserNumeric,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
-	{ "dm.user.resetpassword",	0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::DmUserResetpassword,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY },
-	{ "dm.user.setinitialpasswd",	0,	1,	0,	1,	1,	1,	0,	0,	&MsgConfig::DmUserSetinitialpasswd,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY },
+	{ "dm.user.resetpassword",	0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::DmUserResetpassword,	"1",	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY },
+	{ "dm.user.setinitialpasswd",	0,	1,	0,	1,	1,	1,	0,	0,	&MsgConfig::DmUserSetinitialpasswd,	"0",	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY },
 	{ "filesys.atomic.rename",	0,	1,	0,	1,	1,	1,	0,	0,	&MsgConfig::FilesysAtomicRename,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_RESTART,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_MISC },
 	{ "filesys.binaryscan",		0,	B64K,	0,	BBIG,	1,	B1K,	0,	0,	&MsgConfig::FilesysBinaryscan,		0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_DOC, CONFIG_CAT_MISC },
 	{ "filesys.bufsize",		0,	B64K,	B4K,	B10M,	1,	B1K,	0,	0,	&MsgConfig::FilesysBufsize,		0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_DOC, CONFIG_CAT_PERFORMANCE },
@@ -358,12 +362,14 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "merge.dl.endeol",		0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::MergeDlEndeol,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_NODOC,	CONFIG_CAT_MISC },
 	{ "net.autotune",		0,	1,	0,	2,	1,	1,	0,	0,	&MsgConfig::NetAutotune,		0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT| CONFIG_APPLY_PROXY|CONFIG_APPLY_BROKER, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_DOC, CONFIG_CAT_NETWORK|CONFIG_CAT_PERFORMANCE|CONFIG_CAT_MONITORING },
 	{ "net.bufsize",		0,	B64K,	1,	BBIG,	1,	B1K,	0,	0,	&MsgConfig::NetBufsize,			0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_NODOC,	CONFIG_CAT_MISC },
+	{ "net.delta.rpl.minsize",	0,	B128K,	0,	BBIG,	1,	B1K,	B128K,	0,	&MsgConfig::NetDeltaRplMinsize,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART, 	CONFIG_SUPPORT_DOC,	CONFIG_CAT_NETWORK|CONFIG_CAT_PERFORMANCE },
+	{ "net.delta.rpl.threshold",	0,	90,	0,	100,	1,	1,	90,	0,	&MsgConfig::NetDeltaRplThreshold,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_NETWORK|CONFIG_CAT_PERFORMANCE },
 	{ "net.delta.transfer.minsize",	0,	B128K,	0,	BBIG,	1,	B1K,	B128K,	0,	&MsgConfig::NetDeltaTransferMinsize,	0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_DOC, CONFIG_CAT_MISC },
 	{ "net.delta.transfer.threshold",0,	90,	0,	100,	1,	1,	90,	0,	&MsgConfig::NetDeltaTransferThreshold,	0,	CONFIG_APPLY_CLIENT, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_DOC, CONFIG_CAT_MISC },
 	{ "net.keepalive.disable",	0,	0,	0,	1,	1,	R1K,	0,	0,	&MsgConfig::NetKeepaliveDisable,	0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_DOC, CONFIG_CAT_NETWORK },
-	{ "net.keepalive.idle",		0,	0,	0,	BBIG,	1,	R1K,	0,	0,	&MsgConfig::NetKeepaliveIdle,		0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_DOC, CONFIG_CAT_NETWORK },
-	{ "net.keepalive.interval",	0,	0,	0,	BBIG,	1,	R1K,	0,	0,	&MsgConfig::NetKeepaliveInterval,	0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_DOC, CONFIG_CAT_NETWORK },
-	{ "net.keepalive.count",	0,	0,	0,	BBIG,	1,	R1K,	0,	0,	&MsgConfig::NetKeepaliveCount,		0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_DOC, CONFIG_CAT_NETWORK },
+	{ "net.keepalive.idle",		0,	180,	0,	BBIG,	1,	R1K,	0,	0,	&MsgConfig::NetKeepaliveIdle,		0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_DOC, CONFIG_CAT_NETWORK },
+	{ "net.keepalive.interval",	0,	20,	0,	BBIG,	1,	R1K,	0,	0,	&MsgConfig::NetKeepaliveInterval,	0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_DOC, CONFIG_CAT_NETWORK },
+	{ "net.keepalive.count",	0,	6,	0,	BBIG,	1,	R1K,	0,	0,	&MsgConfig::NetKeepaliveCount,		0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_DOC, CONFIG_CAT_NETWORK },
 	{ "net.heartbeat.interval",	0,	2000,	1,	RBIG,	1,	R1K,	0,	1,	&MsgConfig::NetHeartbeatInterval,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_REF_DOC,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_NETWORK|CONFIG_CAT_PERFORMANCE },
 	{ "net.heartbeat.wait",		0,	2000,	1,	RBIG,	1,	R1K,	0,	1,	&MsgConfig::NetHeartbeatWait,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_REF_DOC,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_NETWORK|CONFIG_CAT_PERFORMANCE|CONFIG_CAT_TRIGGERS },
 	{ "net.heartbeat.missing.interval",0,	2000,	1,	RBIG,	1,	R1K,	0,	1,	&MsgConfig::NetHeartbeatMissingInterval, 0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_REF_DOC,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_NETWORK|CONFIG_CAT_PERFORMANCE },
@@ -372,6 +378,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "net.maxfaultpub",		0,	100,	0,	BBIG,	1,	1,	0,	0,	&MsgConfig::NetMaxFaultPub,		0,	CONFIG_APPLY_PROXY,	CONFIG_RESTART_STOP,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_NETWORK },
 	{ "net.maxclosewait",		0,	1000,	0,	BBIG,	1,	B1K,	0,	0,	&MsgConfig::NetMaxclosewait,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_NETWORK },
 	{ "net.maxwait",		0,	0,	0,	BBIG,	1,	B1K,	0,	0,	&MsgConfig::NetMaxwait,			0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT|CONFIG_APPLY_PROXY, CONFIG_RESTART_STOP, CONFIG_SUPPORT_DOC, CONFIG_CAT_NETWORK },
+	{ "net.nagle",			0,	2,	0,	2,	1,	1,	0,	0,	&MsgConfig::NetNagle,			0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT|CONFIG_APPLY_PROXY, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_DOC, CONFIG_CAT_NETWORK|CONFIG_CAT_PERFORMANCE },
 	{ "net.parallel.max",		0,	0,	0,	100,	1,	1,	0,	0,	&MsgConfig::NetParallelMax,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_NETWORK|CONFIG_CAT_PERFORMANCE },
 	{ "net.parallel.threads",	0,	0,	0,	100,	1,	1,	0,	0,	&MsgConfig::NetParallelThreads,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_NETWORK|CONFIG_CAT_PERFORMANCE },
 	{ "net.parallel.batch",		0,	8,	1,	RBIG,	1,	R1K,	0,	0,	&MsgConfig::NetParallelBatch,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_NETWORK|CONFIG_CAT_PERFORMANCE },
@@ -385,14 +392,15 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "net.parallel.submit.batch",	0,	8,	1,	RBIG,	1,	R1K,	0,	0,	&MsgConfig::NetParallelSubmitBatch,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_NETWORK|CONFIG_CAT_PERFORMANCE },
 	{ "net.parallel.submit.min",	0,	9,	2,	RBIG,	1,	R1K,	0,	0,	&MsgConfig::NetParallelSubmitMin,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_NETWORK|CONFIG_CAT_PERFORMANCE },
 	{ "net.parallel.sync.svrthreads",0,	0,	0,	RBIG,	1,	1,	0,	0,	&MsgConfig::NetParallelSyncSvrthreads,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_NETWORK|CONFIG_CAT_PERFORMANCE },
+	{ "net.quickack",		0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::NetQuickAck,		0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT|CONFIG_APPLY_PROXY, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_DOC, CONFIG_CAT_NETWORK|CONFIG_CAT_PERFORMANCE },
 	{ "net.rcvbuflowmark",		0,	0,	0,	B32K,	1,	B1K,	0,	0,	&MsgConfig::NetRcvbuflowmark,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "net.rcvbufmaxsize",		0,	B100M,	1,	B1G,	1,	B1K,	0,	0,	&MsgConfig::NetRcvbufmaxsize,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "net.rcvbufsize",		0,	B1M,	1,	BBIG,	1,	B1K,	0,	0,	&MsgConfig::NetRcvbufsize,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "net.reuseport",		0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::NetReuseport,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_STOP,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_NETWORK|CONFIG_CAT_PERFORMANCE },
-	{ "net.rfc3484",		0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::NetReuseport,		0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT, CONFIG_RESTART_STOP, CONFIG_SUPPORT_DOC, CONFIG_CAT_NETWORK },
+	{ "net.rfc3484",		0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::NetRfc3484,			0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT, CONFIG_RESTART_STOP, CONFIG_SUPPORT_DOC, CONFIG_CAT_NETWORK },
 	{ "net.sendlimit",		0,	B4K,	1,	BBIG,	1,	B1K,	0,	0,	&MsgConfig::NetSendlimit,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
-	{ "net.tcpsize",		0,	B512K,	B1K,	B256M,	B1K,	B1K,	0,	0,	&MsgConfig::NetTcpsize,			0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT|CONFIG_APPLY_PROXY, CONFIG_RESTART_STOP, CONFIG_SUPPORT_DOC, CONFIG_CAT_NETWORK|CONFIG_CAT_PERFORMANCE },
-	{ "net.backlog",		0,	128,	1,      SMAX,   1,	B1K,	0,	0,	&MsgConfig::NetBacklog,			0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_PROXY, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_DOC, CONFIG_CAT_NETWORK|CONFIG_CAT_PERFORMANCE },
+	{ "net.tcpsize",		0,	B512K,	B1K,	B256M,	B1K,	B1K,	0,	0,	&MsgConfig::NetTcpsize,			0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT|CONFIG_APPLY_PROXY, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_DOC, CONFIG_CAT_NETWORK|CONFIG_CAT_PERFORMANCE },
+	{ "net.backlog",		0,	128,	1,      SMAX,   1,	B1K,	0,	0,	&MsgConfig::NetBacklog,			0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_PROXY, CONFIG_RESTART_STOP, CONFIG_SUPPORT_DOC, CONFIG_CAT_NETWORK|CONFIG_CAT_PERFORMANCE },
 	{ "net.x3.minsize",		0,	B512K,	0,	RBIG,	B1K,	B1K,	0,	1,	&MsgConfig::NetX3Minsize,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "proxy.deliver.fix",		0,	1,	0,	1,	1,	1,	0,	1,	&MsgConfig::ProxyDeliverFix,		0,	CONFIG_APPLY_PROXY,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "proxy.monitor.interval",	0,	10,	1,	999,	1,	1,	0,	1,	&MsgConfig::ProxyMonitorInterval,	0,	CONFIG_APPLY_PROXY,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_MONITORING },
@@ -401,6 +409,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "proxy.suppresswarnings",	0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::ProxySuppresswarnings,	0,	CONFIG_APPLY_PROXY,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "rcs.maxinsert",		0,	R1G,	1,	RBIG,	1,	R1K,	0,	1,	&MsgConfig::RcsMaxinsert,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "rcs.nofsync",		0,	0,	0,	1,	1,	1,	0,	1,	&MsgConfig::RcsNofsync,			0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_PERFORMANCE },
+	{ "rmt.allow.remoteuser",	0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::RmtAllowRemoteUser,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY },
 	{ "rpc.delay",			0,	0,	0,	RBIG,	1,	1,	0,	0,	&MsgConfig::RpcDelay,			0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "rpc.durablewait",		0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::RpcDurablewait,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "rpc.himark",			0,	2000,	2000,	BBIG,	1,	B1K,	0,	0,	&MsgConfig::RpcHimark,			0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
@@ -453,7 +462,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "server.oom_adj_score",	0,	-1000,	-1000,	1000,	1,	1,	-1000,	0,	&MsgConfig::ServerOomAdjScore,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "server.maxcommands",		0,	0,	0,	RBIG,	1,	R1K,	0,	1,	&MsgConfig::ServerMaxcommands,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_STOP,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_PERFORMANCE },
 	{ "server.maxcommands.allow",	0,	1,	0,	1,	1,	1,	0,	1,	&MsgConfig::ServerMaxcommandsAllow,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_STOP,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY|CONFIG_CAT_PERFORMANCE },
-	{ "server.start.unlicensed",	0,	0,	0,	1,	1,	1,	0,	1,	&MsgConfig::ServerStartUnlicensed,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
+	{ "server.start.unlicensed",	0,	0,	0,	1,	1,	1,	0,	1,	&MsgConfig::ServerStartUnlicensed,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_LICENSING },
 	{ "filetype.bypasslock",	0,	0,	0,	1,	1,	1,	0,	1,	&MsgConfig::FiletypeBypasslock,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "filetype.maxtextsize",	0,	B10M,	0,	RBIG,	1,	R1K,	0,	0,	&MsgConfig::FiletypeMaxtextsize,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_MONITORING },
 	{ "spec.hashbuckets",		0,	99,	0,	999,	1,	1,	0,	0,	&MsgConfig::SpecHashbuckets,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_MISC },
@@ -538,7 +547,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	// Pressure monitoring is not implemented on OSX.
 	{ "sys.pressure.max.pause.time",0,	0,	0,	0,	1,	1,	0,	0,	&MsgConfig::SysPressureMaxPauseTime,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_PERFORMANCE|CONFIG_CAT_MONITORING },
 #endif
-	{ "sys.pressure.max.paused",	0,	1000,	0,	RBIG,	1,	1,	1000,	0,	&MsgConfig::SysPressureMaxPauseTime,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_PERFORMANCE|CONFIG_CAT_MONITORING },
+	{ "sys.pressure.max.paused",	0,	1000,	0,	RBIG,	1,	1,	1000,	0,	&MsgConfig::SysPressureMaxPaused,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_PERFORMANCE|CONFIG_CAT_MONITORING },
 	{ "sys.pressure.mem.high",	0,	95,	0,	100,	1,	1,	95,	0,	&MsgConfig::SysPressureMemHigh,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_PERFORMANCE|CONFIG_CAT_MONITORING },
 	{ "sys.pressure.mem.high.duration",
 	                                0,	1000,	100,	RBIG,	1,	1,	1000,	0,	&MsgConfig::SysPressureMemHighDuration,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_PERFORMANCE|CONFIG_CAT_MONITORING },
@@ -558,12 +567,13 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "sys.rename.wait",		0,	1000,	50,	RBIG,	1,	R1K,	0,	1,	&MsgConfig::SysRenameWait,		0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_DOC,	CONFIG_CAT_MISC },
 	{ "sys.threading.groups",	0,	0,	0,	1,	1,	1,	0,	1,	&MsgConfig::SysThreadingGroups,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_STOP,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_PERFORMANCE },
 	{ "sys.types.allow64",		0,	0,	0,	3,	1,	1,	0,	1,	&MsgConfig::SysTypesAllow64,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
+	{ "sys.types.text.storage.behavior",	0,	1,	0,	1,	1,	1,	1,	1,	&MsgConfig::SysTypesTextStorageBehavior,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "rpl.forward.all",		0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::RplForwardAll,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_REF_DOC,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_REPLICATION },
 	{ "rpl.forward.login",		0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::RplForwardLogin,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_REF_DOC,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY|CONFIG_CAT_REPLICATION },
 	{ "rpl.pull.position",		0,	0,	0,	RBIG,	1,	R1K,	0,	0,	&MsgConfig::RplPullPosition,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_REF_DOC,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_REPLICATION },
 	{ "rpl.pull.reload",		0,	60000,	0,	RBIG,	1,	R1K,	0,	0,	&MsgConfig::RplPullReload,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_REPLICATION },
 	{ "ssl.secondary.suite",	0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::SslSecondarySuite,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY|CONFIG_CAT_NETWORK },
-	{ "ssl.client.timeout",		0,	30,	1,	RBIG,	1,	1,	0,	0,	&MsgConfig::SslClientTimeout,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
+	{ "ssl.client.timeout",		0,	30,	1,	RBIG,	1,	1,	0,	0,	&MsgConfig::SslClientTimeout,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_NETWORK },
 	{ "ssl.client.tls.version.min",	0,	12,	10,	13,	1,	1,	0,	1,	&MsgConfig::SslClientTlsVersionMin,	0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT, CONFIG_RESTART_STOP, CONFIG_SUPPORT_DOC, CONFIG_CAT_SECURITY|CONFIG_CAT_NETWORK },
 	{ "ssl.client.tls.version.max",	0,	13,	10,	13,	1,	1,	0,	0,	&MsgConfig::SslClientTlsVersionMax,	0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT, CONFIG_RESTART_STOP, CONFIG_SUPPORT_DOC, CONFIG_CAT_SECURITY|CONFIG_CAT_NETWORK },
 	{ "ssl.client.trust.name",	0,	1,	0,	2,	1,	1,	0,	0,	&MsgConfig::SslClientTrustName,		0,	CONFIG_APPLY_CLIENT,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY|CONFIG_CAT_NETWORK },
@@ -597,11 +607,16 @@ P4Tunable::stunable P4Tunable::slist[] = {
 	// P4Debug's string collection
 
 	// name				isSet,	default, *value, sensitive, description, recommended, applicability, restart, support, cat, accepted
-    
+
+	{ "lbr.scan.ignore_pattern",		0,	0,	0,	1,	&MsgConfig::LbrScanIgnore,	0,	CONFIG_APPLY_SERVER,				CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_MISC, 0 },        
 	{ "security.digest",		0,	"sha256",0,	1,	&MsgConfig::SecurityDigest,	0,	CONFIG_APPLY_SERVER,				CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY, "sha256,sha224,sha384,sha512,sha512_224,sha512_256,sha3_224,sha3_256,sha3_384,sha3_512,blake3,md5,sha1" },
-	{ "ssl.client.ca.path",		0,	0,	0,	1,	&MsgConfig::SSLClientCAPath,	0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT,	CONFIG_RESTART_STOP,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY|CONFIG_CAT_NETWORK, 0 },
+	{ "ssl.client.ca.path",		0,	0,	0,	1,	&MsgConfig::SSLClientCAPath,	0,	CONFIG_APPLY_ALL,				CONFIG_RESTART_NO_RESTART,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY|CONFIG_CAT_NETWORK, 0 },
+	{ "ssl.client.cipher.list",	0,	0,	0,	1,	&MsgConfig::SslClientCipherList,0,	CONFIG_APPLY_ALL,				CONFIG_RESTART_NO_RESTART,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY|CONFIG_CAT_NETWORK, 0 },
+	{ "ssl.client.cipher.suites",	0,	0,	0,	1,	&MsgConfig::SslClientCipherSuites,0,	CONFIG_APPLY_ALL,				CONFIG_RESTART_NO_RESTART,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY|CONFIG_CAT_NETWORK, 0 },
+	{ "ssl.cipher.list",		0,	0,	0,	1,	&MsgConfig::SslCipherList,	0,	CONFIG_APPLY_ALL,				CONFIG_RESTART_NO_RESTART,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY|CONFIG_CAT_NETWORK, 0 },
+	{ "ssl.cipher.suites",		0,	0,	0,	1,	&MsgConfig::SslCipherSuites,	0,	CONFIG_APPLY_ALL,				CONFIG_RESTART_NO_RESTART,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY|CONFIG_CAT_NETWORK, 0 },
 	{ "ssl.keylog.file",		0,	0,	0,	1,	&MsgConfig::SSLKeylogFile,	0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT,	CONFIG_RESTART_STOP,		CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC, 0 },
-	
+
 	{ 0,				0,	0,	0,	0 }
 
 	// name				isSet,	default, *value, sensitive
@@ -611,7 +626,8 @@ P4Tunable::stunable P4Tunable::slist[] = {
 P4MT int
 list2[] = { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 }  ;
+	    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+	    -1 }  ;
 
 int
 P4Tunable::IsKnown( const char *n )
@@ -624,6 +640,39 @@ P4Tunable::IsKnown( const char *n )
 	    if( !strcmp( slist[i].name, n ) )
 	        return DTT_STR;
 	return DTT_NONE;
+}
+
+const char *
+P4Tunable::GetName( int t ) const
+{
+	if( t >= 0 && t < P4TUNE_LAST && list[t].name )
+	    return list[t].name;
+	int i = t - ( P4TUNE_LAST + 1 );
+	if( t > P4TUNE_LAST && t < P4TUNE_LAST_STR && slist[i].name )
+	    return slist[i].name;
+	return 0;
+}
+
+int
+P4Tunable::IsSet( int t ) const
+{
+	if( t >= 0 && t < P4TUNE_LAST && list[t].name )
+	    return list[t].isSet;
+	int i = t - ( P4TUNE_LAST + 1 );
+	if( t > P4TUNE_LAST && t < P4TUNE_LAST_STR && slist[i].name )
+	    return slist[i].isSet;
+	return 0;
+}
+
+int
+P4Tunable::IsSensitive( int t ) const
+{
+	if( t >= 0 && t < P4TUNE_LAST && list[t].name )
+	    return list[t].sensitive;
+	int i = t - ( P4TUNE_LAST + 1 );
+	if( t > P4TUNE_LAST && t < P4TUNE_LAST_STR && slist[i].name )
+	    return slist[i].sensitive;
+	return 1;
 }
 
 int
@@ -648,8 +697,17 @@ P4Tunable::GetTunable( int i ) const
 {
 	if( i >= 0 && i < P4TUNE_LAST && list[i].name )
 	    return &list[i];
-	
 	return 0;
+}
+
+int P4Tunable::IsStringTunable( int i ) const
+{
+	return i > P4TUNE_LAST;
+}
+
+int P4Tunable::IsStringTunable( const char *n ) const
+{
+	return( GetIndex( n ) > P4TUNE_LAST );
 }
 
 const P4Tunable::stunable* 
@@ -879,6 +937,32 @@ P4Tunable::Set( const char *set )
 	    }
 
 	    set = *comma ? comma + 1 : comma;
+	}
+}
+
+void
+P4Tunable::Set( char *name, char *value )
+{
+	for( int j = 0; slist[j].name; j++ )
+	{
+	    if( strcmp( slist[j].name, name) )
+	        continue;
+
+	    // Stash the pointer and "unset" the tunable
+	    char *oval = slist[j].value;
+	    slist[j].isSet = 0;
+	    slist[j].value = 0;
+	    int len = strlen( value ) + 1;
+	    char *nval = new char[ len ];
+	    memcpy( nval, value, len );
+	    // Replace the value and enable the tunable
+	    slist[j].value = nval;
+	    slist[j].isSet = 1;
+
+	    // Free the old value
+	    delete[] oval;
+	    Unbuffer();
+	    break;
 	}
 }
 

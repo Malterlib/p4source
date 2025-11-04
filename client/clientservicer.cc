@@ -26,6 +26,8 @@
 # include <ignore.h>
 # include <debug.h>
 # include <tunable.h>
+# include <vartree.h>
+# include <inttree.h>
 
 # include <p4tags.h>
 # include <msgclient.h>
@@ -40,32 +42,292 @@
 # include <diffan.h>
 # include <diff.h>
 
+# include <timer.h>
+# include <progress.h>
+
 # include "clientuser.h"
 # include "client.h"
 # include "clientprog.h"
+# include "clientprogressreport.h"
 
 # include "clientservice.h"
 # include "clientaltsynchandler.h"
+
+# ifdef HAS_CPP11
+# include <thread>
+# include <array>
+# include <vector>
+# endif
+
+class StrStr
+{
+    public:
+	StrStr( const char *name, const char *d ) :
+	    fileName( name ), digest( d ) {}
+
+	StrBuf fileName;
+	StrBuf digest;
+} ;
+
+class DigestTree : public VVarTree
+{
+    public:
+	DigestTree() {}
+	virtual ~DigestTree() { Clear(); }
+
+	virtual int Compare( const void *a, const void *b ) const
+	{
+	    const StrStr *aa = (const StrStr*)a;
+	    const StrStr *bb = (const StrStr*)b;
+	    return aa->fileName.XCompare( bb->fileName );
+	}
+
+	virtual void * Copy( const void *src ) const
+	{
+	    StrStr *s = ( StrStr* )src;
+	    return new StrStr( s->fileName.Text(), s->digest.Text() );
+	}
+
+	virtual void Delete( void *a ) const { delete ( StrStr* )a; }
+	virtual void Dump( void *a, StrBuf &buf ) const { /* do nothing */ }
+
+} ;
+
+struct StrSeq
+{
+	StrBuf fileName;
+	Sequence *sequence;
+	StrSeq( const char* name, Sequence* s = 0 ) :
+	        fileName( name ), sequence( s ) {}
+} ;
+
+class SequenceTree : public VVarTree
+{
+    public:
+	SequenceTree() {}
+	virtual ~SequenceTree() {
+	    // delete all sequences before removing all nodes
+	    VarTreeNode *n = FirstNode();
+	    while( n )
+	    {
+		StrSeq *s = ( StrSeq* )n->Value();
+		delete s->sequence;
+		n = n->Next();
+	    }
+	    Clear();
+	}
+
+	virtual int Compare( const void *a, const void *b ) const
+	{
+	    const StrSeq *aa = (const StrSeq*)a;
+	    const StrSeq *bb = (const StrSeq*)b;
+	    return aa->fileName.XCompare( bb->fileName );
+	}
+
+	virtual void * Copy( const void *src ) const
+	{
+	    StrSeq *s = ( StrSeq* )src;
+	    return new StrSeq( s->fileName.Text(), s->sequence );
+	}
+
+	virtual void Delete( void *a ) const { delete ( StrSeq* )a; }
+	virtual void Dump( void *a, StrBuf &buf ) const { /* do nothing */ }
+} ;
 
 /*
  * ReconcileHandle - handle reconcile's list of files to skip when adding
  */
 
 class ReconcileHandle : public LastChance {
-
     public:
-			ReconcileHandle() 
-			{ 
-			    pathArray = new StrArray;
-			    delCount = 0; 
-			}
-			~ReconcileHandle() 
-			{ 
-			    delete pathArray; 
-			}
+	static ReconcileHandle *
+	GetOrCreate( Client *client, bool create, Error *e )
+	{
+	    StrRef handleName( "skipAdd" );
+	    ReconcileHandle *h =
+	        (ReconcileHandle *)client->handles.Get( &handleName );
+	    if( !h && create )
+	    {
+	        h = new ReconcileHandle();
+	        client->handles.Install( &handleName, h, e );
 
-			StrArray *pathArray;
-			int delCount;
+	        if( e->Test() )
+	        {
+	            delete h;
+	            h = 0;
+	        }
+	    }
+	    return h;
+	}
+
+	virtual ~ReconcileHandle() 
+	{ 
+	    delete pathArray;
+	    delete progress;
+
+	    ReportPerfStats();
+	}
+
+	void BeginStage( Client *client, const StrPtr& s, int progressType  )
+	{
+	    if( stage == s )
+	        return;
+
+	    stage = s;
+	    delete progress;
+	    progress = CreateClientProgressReport( client, progressType );
+	    progress->Description( s );
+	    if( progressType == CPT_FILES || progressType == CPT_DIRS )
+	        progress->Units( progressType == CPT_FILES ? PRU_FILES
+	                                                   : PRU_DIRS );
+	    progress->DoReport( CPP_NORMAL );
+	}
+
+	void StageComplete( Client *client )
+	{
+	    if( progress )
+	        progress->DoReport( CPP_DONE );
+	}
+
+	void Increment( Client *client, long inc )
+	{
+	    if( !progress )
+	        return;
+
+	    progress->Increment( inc );
+	    if( progress->IsComplete() )
+	        StageComplete( client );
+	}
+
+	void LogDigestTimer( P4INT64 elapseTime )
+	{
+	    digestCounter += 1;
+	    digestTimer += elapseTime;
+	}
+
+	void LogSequenceTimer( P4INT64 elapseTime )
+	{
+	    sequenceCounter += 1;
+	    sequenceTimer += elapseTime;
+	}
+
+	void LogDiffTimer( P4INT64 elapseTime )
+	{
+	    diffCounter += 1;
+	    diffTimer += elapseTime;
+	}
+
+	Sequence *GetSequence( FileSys *f, const DiffFlags &flags, Error *e )
+	{
+	    StrSeq s( f->Name() );
+	    StrSeq *c = ( StrSeq* )seqTree.Get( &s );
+	    if( !c )
+	    {
+	        Timer timer;
+	        timer.Start();
+
+	        s.sequence = new Sequence( f, flags, e );
+	        seqTree.Put( &s, e );
+	        LogSequenceTimer( timer.Time() );
+
+	        return s.sequence;
+	    }
+	    else
+	    {
+	        c->sequence->Reuse( f, e );
+	        return c->sequence;
+	    }
+	}
+
+	void SetMatch( int i )
+	{
+	    Error e;
+	    matchedIndices.Insert( i, &e );
+	}
+
+	int AlreadyMatched( int i )
+	{
+	    return matchedIndices.Contains( i );
+	}
+
+	void GetDigest( FileSys *f, StrBuf &localDigest, Error *e )
+	{
+	    StrStr c( f->Name(), "" );
+	    StrStr *d = ( StrStr* )digestTree.Get( &c );
+	    if( d )
+	    {
+	        localDigest = d->digest;
+	    }
+	    else
+	    {
+	        Timer timer;
+	        timer.Start();
+
+	        f->Digest( &localDigest, e );
+	        c.digest = localDigest;
+	        digestTree.Put( &c, e );
+
+	        LogDigestTimer( timer.Time() );
+	    }
+	}
+
+	int delCount;
+	StrArray *pathArray;
+	ClientProgressReport *progress;
+
+    private:
+	// Progress reporting
+	StrBuf stage;
+	
+	// Performance tracking
+	P4INT64 digestCounter;
+	P4INT64 digestTimer;
+	P4INT64 sequenceCounter;
+	P4INT64 sequenceTimer;
+	P4INT64 diffCounter;
+	P4INT64 diffTimer;
+	
+	DigestTree digestTree;
+	SequenceTree seqTree;
+	P4INT64Tree matchedIndices;
+
+	ReconcileHandle()
+	{ 
+	    pathArray = new StrArray;
+	    delCount = 0;
+	    progress = 0;
+
+	    digestCounter = 0;
+	    digestTimer = 0;
+	    sequenceCounter = 0;
+	    sequenceTimer = 0;
+	    diffCounter = 0;
+	    diffTimer = 0;
+	}
+
+	ClientProgressReport *
+	CreateClientProgressReport( Client *client, int progressType )
+	{
+	    ClientProgress *indicator;
+	    indicator =  client->GetUi()->CreateProgress( progressType );
+	    return new ClientProgressReport( indicator );
+	}
+
+	void ReportPerfStats()
+	{
+	    if( !p4debug.IsSet( DT_PERF ) )
+	        return;
+
+	    if( !digestCounter && !sequenceCounter && !diffCounter )
+	        return;
+
+	    p4debug.printf( "Reconcile performance stats:\n" );
+	    p4debug.printf( "Digest/Sequence/Diff count+time(ms):\n");
+	    p4debug.printf( "%d+%d %d+%d %d+%d\n",
+	                    digestCounter, digestTimer,
+	                    sequenceCounter, sequenceTimer,
+	                    diffCounter, diffTimer );
+	}
 } ;
 
 /*
@@ -113,9 +375,8 @@ clientReconcileFlush( Client *client, Error *e )
 {
 	// Delete the client's reconcile handle
 
-	StrRef skipAdd( "skipAdd" );
 	ReconcileHandle *recHandle =
-			(ReconcileHandle *)client->handles.Get( &skipAdd );
+	    ReconcileHandle::GetOrCreate( client, false, e );
 
 	if( recHandle )
 	    delete recHandle;
@@ -150,6 +411,7 @@ clientReconcileEdit( Client *client, Error *e )
 	StrPtr *confirm = client->GetVar( P4Tag::v_confirm, e );
 	StrPtr *fileSize = client->GetVar( P4Tag::v_fileSize );
 	StrPtr *submitTime = client->GetVar( P4Tag::v_time );
+	StrPtr *count = client->GetVar( P4Tag::v_count );
 
 	if( e->Test() && !e->IsFatal() )
 	{
@@ -180,19 +442,15 @@ clientReconcileEdit( Client *client, Error *e )
 	// Save the list of depot files. We'll diff it against the list of all
 	// files on client to find files to add in clientReconcileAdd
 
-	StrRef skipAdd( "skipAdd" );
 	ReconcileHandle *recHandle =
-			(ReconcileHandle *)client->handles.Get( &skipAdd );
+	    ReconcileHandle::GetOrCreate( client, true, e );
+	if( e->Test() )
+	    return;
 
-	if( !recHandle )
-	{
-	    recHandle = new ReconcileHandle;
-	    client->handles.Install( &skipAdd, recHandle, e );
+	recHandle->BeginStage( client, StrRef( "Reconcile Edit" ), CPT_FILES );
+	if( count )
+	    recHandle->progress->Total( count->Atoi64() );
 
-	    if( e->Test() )
-		return;
-	}
-	
 	if( AltSyncCheckFile( client, confirm, status, ntype, e ) )
 	{
 	    if( !strcmp( status, "missing" ) )
@@ -270,6 +528,8 @@ clientReconcileEdit( Client *client, Error *e )
 
 	delete f;
 
+	recHandle->Increment( client, 1 );
+
 	// tell the server 
 
 	client->SetVar( P4Tag::v_type, ntype );
@@ -285,13 +545,16 @@ int
 clientTraverseShort( Client *client, StrPtr *cwd, const char *dir, int traverse,
 		    int noIgnore, int initial, int skipCheck, int skipCurrent,
 		    MapApi *map, StrArray *files, StrArray *dirs, int &idx,
-		    StrArray *depotFiles, int &ddx, const char *config, 
-		    Error *e )
+		    StrArray *depotFiles, int &ddx, const char *config,
+		    ClientProgressReport* progress, Error *e )
 {
 	// Variant of clientTraverseDirs that computes the files to be
 	// added during traversal of directories instead of at the end,
 	// and returns directories and files rather than all files.
 	// This is used by 'status -s'.
+
+	if( progress )
+	    progress->Increment( 1 );
 
 	// Scan the directory.
 
@@ -546,7 +809,7 @@ clientTraverseShort( Client *client, StrPtr *cwd, const char *dir, int traverse,
 						traverse, noIgnore, 0,
 						skipCheck, skipCurrent, map,
 						files, dirs, idx, depotFiles,
-						ddx, config, e );
+						ddx, config, progress, e );
 
 		    // Stop traversing directories when we have a file to
 		    // to add, unless we are at the top and need to check
@@ -647,15 +910,84 @@ clientTraverseShort( Client *client, StrPtr *cwd, const char *dir, int traverse,
 	return found;
 }
 
+static void
+SetDigestOrType( Client *client, FileSys *f, const char *fileName,
+	         StrArray *files, StrArray *sizes, StrArray *times,
+	         StrArray *digests, StrArray *types, Error *e )
+{
+	files->Put()->Set( fileName );
+	times->Put()->Set( StrNum( f->StatModTime() ) );
+
+	// Get the correct type for the digest and file size
+
+	FileSysType t = f->CheckType();
+	FileSys *f2 = client->GetUi()->File( t );
+
+	if( f2 )
+	{
+	    f2->SetContentCharSetPriv( client->content_charset );
+	    f2->Set( fileName );
+	    f2->Translator( ClientSvc::XCharset( client, FromClient ) );
+	}
+
+	// Pass 0 to f2->Digest() if we are not sending the digest
+	// to get only the correct size without calculating
+	// the digest.
+
+	StrBuf localDigest;
+	FileSys* fs = f2 ? f2 : f; // In case we failed to resolve the type
+	offL_t fsize = fs->Digest( digests ? &localDigest : 0, e );
+
+	if( e->Test() )
+	{
+	    // We "should" just be marking the file for add, so if we encounter
+	    // an error here, we won't be able to match it to a delete (yet)
+	    // but we might as well record its presence.
+	    // Suppress the error and pad the arrays
+	    e->Clear();
+	    if( digests )
+	        digests->Put();
+	    if( types )
+	        types->Put();
+	    if( sizes )
+	        sizes->Put();
+	    return;
+	}
+
+	if( digests )
+	    digests->Put()->Set( localDigest );
+
+	if( types )
+	{
+	    // Beware of empty files
+
+	    Error msg;
+	    const char *ntype = clientCheckFileType( f2, t,
+	                                             client->protocolXfiles,
+	                                             1, 0, 0, 0, &msg );
+	    if( !ntype )
+	        client->SetError();
+
+	    types->Put()->Set( ntype ? ntype : "" );
+	}
+	delete f2;
+
+	if( sizes )
+	    sizes->Put()->Set( StrNum( fsize ) );
+}
+
 void
 clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
-		    int getDigests, MapApi *map, StrArray *files,
-		    StrArray *sizes, StrArray *times, StrArray *digests,
+		    int getDigests, int getTypes, MapApi *map, StrArray *files,
+		    StrArray *sizes, StrArray *times, StrArray *digests, StrArray *types,
 		    int &hasIndex, StrArray *hasList, const char *config, 
-		    Error *e )
+		    ClientProgressReport* progress, Error *e )
 {
 	// Return all files in dir, and optionally traverse dirs in dir,
 	// while checking each file against map before returning it
+
+	if( progress )
+	    progress->Increment( 1 );
 
 	// Scan the directory.
 
@@ -679,7 +1011,7 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 	    CharSetCvt *cvt = ( (TransDict *)client->transfname )->ToCvt();
 	    fileName = cvt->FastCvt( f->Name(), strlen(f->Name()), 0 );
 	    if( !fileName )
-		fileName = f->Name();
+	        fileName = f->Name();
 	}
 	else
 	    fileName = f->Name();
@@ -691,19 +1023,14 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 	{
 	    if( ( fstat & FSF_EXISTS ) || ( fstat & FSF_SYMLINK ) )
 	    {
-		if( noIgnore || 
+	        if( noIgnore || 
 	            !ignore->Reject( StrRef(f->Name()), ignored, config ) )
-		{
-		    files->Put()->Set( fileName );
-		    sizes->Put()->Set( StrNum( f->GetSize() ) );
-		    times->Put()->Set( StrNum( f->StatModTime() ) );
-		    if( getDigests )
-		    {
-			f->Translator( ClientSvc::XCharset(client,FromClient));
-			f->Digest( &localDigest, e );
-			digests->Put()->Set( localDigest );
-		    }
-		}
+	        {
+	            SetDigestOrType( client, f, fileName,
+	                             files, sizes, times,
+	                             getDigests ? digests : 0,
+	                             getTypes ? types : 0, e );
+	        }
 	    }
 	    delete f;
 	    return;
@@ -717,15 +1044,10 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 	    if( noIgnore || 
 	        !ignore->Reject( StrRef(f->Name()), ignored, config ) )
 	    {
-		files->Put()->Set( fileName );
-		sizes->Put()->Set( StrNum( f->GetSize() ) );
-		times->Put()->Set( StrNum( f->StatModTime() ) );
-		if( getDigests )
-		{
-		    f->Translator( ClientSvc::XCharset(client,FromClient));
-		    f->Digest( &localDigest, e );
-		    digests->Put()->Set( localDigest );
-		}
+	        SetDigestOrType( client, f, fileName,
+	                         files, sizes, times,
+	                         getDigests ? digests : 0,
+	                         getTypes ? types : 0, e );
 	    }
 	    delete f;
 	    return;
@@ -774,13 +1096,13 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 
 	    if( client != client->translated )
 	    {
-		CharSetCvt *cvt = ( (TransDict *)client->transfname )->ToCvt();
-		fileName = cvt->FastCvt( f->Name(), strlen(f->Name()) );
-		if( !fileName )
-		    fileName = f->Name();
+	        CharSetCvt *cvt = ( (TransDict *)client->transfname )->ToCvt();
+	        fileName = cvt->FastCvt( f->Name(), strlen(f->Name()) );
+	        if( !fileName )
+	            fileName = f->Name();
 	    }
 	    else
-		fileName = f->Name();
+	        fileName = f->Name();
 
 	    // Do compare with array list (skip files if possible)
 	    int cmp = -1;
@@ -807,11 +1129,11 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 
 	    if( stat & FSF_DIRECTORY )
 	    {
-		if( stat & FSF_SYMLINK )
-		{
-		    from.Set( fileName );
-		    from << "/";
-		
+	        if( stat & FSF_SYMLINK )
+	        {
+	            from.Set( fileName );
+	            from << "/";
+
 #ifdef OS_NT
 	        convertSlash( from.Text() );
 #endif
@@ -825,32 +1147,27 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 	            else
 	                matched = map->Translate( from, to, MapLeftRight );
 
-		    if( !matched )
-			continue;
+	            if( !matched )
+	                continue;
 
-		    if( noIgnore || 
+	            if( noIgnore || 
 	                !ignore->Reject( StrRef(f->Name()), ignored, config ) )
-		    {
-			files->Put()->Set( fileName );
-			sizes->Put()->Set( StrNum( f->GetSize() ) );
-			times->Put()->Set( StrNum( f->StatModTime() ) );
-			if( getDigests )
-			{
-			    f->Translator( ClientSvc::XCharset(client,FromClient));
-			    f->Digest( &localDigest, e );
-			    digests->Put()->Set( localDigest );
-			}
-		    }
-		}
-		else if( traverse )
-		    clientTraverseDirs( client, f->Name(), traverse, noIgnore,
-					getDigests, map, files, sizes, times,
-					digests, hasIndex, hasList, 
-	                                config, e );
+	            {
+	                SetDigestOrType( client, f, fileName,
+	                                 files, sizes, times,
+	                                 getDigests ? digests : 0,
+	                                 getTypes ? types : 0, e );
+	            }
+	        }
+	        else if( traverse )
+	            clientTraverseDirs( client, f->Name(), traverse, noIgnore,
+	                                getDigests, getTypes, map, files, sizes, times,
+	                                digests, types, hasIndex, hasList, 
+	                                config, progress, e );
 	    }
 	    else if( ( stat & FSF_EXISTS ) || ( stat & FSF_SYMLINK ) )
 	    {
-		from.Set( fileName );
+	        from.Set( fileName );
 
 #ifdef OS_NT
 	        convertSlash( from.Text() );
@@ -864,22 +1181,17 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 	        else
 	            matched = map->Translate( from, to, MapLeftRight );
 
-		if( !matched )
-		    continue;
+	        if( !matched )
+	            continue;
 
-		if( noIgnore || 
+	        if( noIgnore || 
 	            !ignore->Reject( StrRef(f->Name()), ignored, config ) )
-		{
-		    files->Put()->Set( fileName );
-		    sizes->Put()->Set( StrNum( f->GetSize() ) );
-		    times->Put()->Set( StrNum( f->StatModTime() ) );
-		    if( getDigests )
-		    {
-			f->Translator( ClientSvc::XCharset(client,FromClient));
-			f->Digest( &localDigest, e );
-			digests->Put()->Set( localDigest );
-		    }
-		}
+	        {
+	            SetDigestOrType( client, f, fileName,
+	                             files, sizes, times,
+	                             getDigests ? digests : 0,
+	                             getTypes ? types : 0, e );
+	        }
 	    }
 	}
 
@@ -908,7 +1220,9 @@ clientReconcileAdd( Client *client, Error *e )
 	StrPtr *summary = client->GetVar( "summary" );
 	StrPtr *skipIgnore = client->GetVar( "skipIgnore" );
 	StrPtr *skipCurrent = client->GetVar( "skipCurrent" );
-	StrPtr *sendDigest = client->GetVar( "sendDigest" );
+	StrPtr *sendFileSize = client->GetVar( P4Tag::v_sendFileSize );
+	StrPtr *sendDigest = client->GetVar( P4Tag::v_sendDigest );
+	StrPtr *sendType = client->GetVar( P4Tag::v_sendType );
 	StrPtr *sendTime = client->GetVar( "sendTime" );
 	StrPtr *mapItem;
 
@@ -922,6 +1236,7 @@ clientReconcileAdd( Client *client, Error *e )
 	StrArray *dirs = new StrArray();
 	StrArray *depotFiles = new StrArray();
 	StrArray *digests = new StrArray();
+	StrArray *types = new StrArray();
 
 	// Construct a MapTable object from the strings passed in by server
 
@@ -950,31 +1265,22 @@ clientReconcileAdd( Client *client, Error *e )
 	// we need to have this list of depot files for computing files
 	// and directories to add (even if it is an empty list).
 
-	StrRef skipAdd( "skipAdd" );
 	ReconcileHandle *recHandle =
-			(ReconcileHandle *)client->handles.Get( &skipAdd );
-
-	if( recHandle )
+	    ReconcileHandle::GetOrCreate( client, true, e );
+	if( e->Test() )
 	{
-	    recHandle->pathArray->Sort( !StrBuf::CaseUsage() );
+	    delete files;
+	    delete sizes;
+	    delete times;
+	    delete dirs;
+	    delete depotFiles;
+	    delete digests;
+	    delete types;
+	    delete map;
+	    return;
 	}
-	else if( !recHandle && summary != 0 )
-	{
-	    recHandle = new ReconcileHandle;
-	    client->handles.Install( &skipAdd, recHandle, e );
-
-	    if( e->Test() )
-	    {
-	        delete files;
-	        delete sizes;
-	        delete times;
-	        delete dirs;
-	        delete depotFiles;
-	        delete digests;
-	        delete map;
-		return;
-	     }
-	}
+	recHandle->pathArray->Sort( !StrBuf::CaseUsage() );
+	recHandle->BeginStage( client, StrRef( "Reconcile Add" ), CPT_DIRS );
 
 	// status -s also needs the list of files opened for add appended
 	// to the list of depot files.
@@ -983,9 +1289,9 @@ clientReconcileAdd( Client *client, Error *e )
 	{
 	    const StrPtr *dfile;
 	    for( int j=0; ( dfile=client->GetVar( StrRef("depotFiles"), j) ); j++)
-		depotFiles->Put()->Set( dfile );
+	        depotFiles->Put()->Set( dfile );
 	    for( int j=0; ( dfile=recHandle->pathArray->Get(j) ); j++ )
-		depotFiles->Put()->Set( dfile );
+	        depotFiles->Put()->Set( dfile );
 	    depotFiles->Sort( !StrBuf::CaseUsage() );
 	}
 
@@ -1001,67 +1307,74 @@ clientReconcileAdd( Client *client, Error *e )
 	    int idx = 0;
 	    int ddx = 0;
 	    (void)clientTraverseShort( client, dir, dir->Text(), traverse != 0,
-				      skipIgnore != 0, 1, 0, skipCurrent != 0,
-				      map, files, dirs, idx,
-				      depotFiles, ddx, config, e );
+	                               skipIgnore != 0, 1, 0, skipCurrent != 0,
+	                               map, files, dirs, idx,
+	                               depotFiles, ddx, config, recHandle->progress, e );
 	}
 	else
 	    clientTraverseDirs( client, dir->Text(), traverse != 0,
-				skipIgnore != 0, sendDigest != 0, map,
-				files, sizes, times, digests, hasIndex, 
-				recHandle ? recHandle->pathArray : 0, 
-	                        config, e );
+	                        skipIgnore != 0, sendDigest != 0,
+	                        sendType != 0, map, files, sizes, times,
+	                        digests, types, hasIndex, recHandle->pathArray,
+	                        config, recHandle->progress, e );
 	delete map;
 
 	// Compare list of files on client with list of files in the depot
 	// if we have this list from ReconcileEdit. Skip this comparison
 	// if summary because it was done already.
 
-	if( recHandle && !summary )
+	if( !summary )
 	{
 	    int i1 = 0, i2 = 0, i0 = 0, l = 0;
 
 	    while( i1 < files->Count() )
 	    {
-		if( i2 >= recHandle->pathArray->Count())
-		    l = -1;
-		else
-		    l = files->Get( i1 )->SCompare( 
-		        *recHandle->pathArray->Get( i2 ) );
+	        if( i2 >= recHandle->pathArray->Count())
+	            l = -1;
+	        else
+	            l = files->Get( i1 )->SCompare( 
+	                *recHandle->pathArray->Get( i2 ) );
 
-		if( !l )
-		{
-		    ++i1;
-		    ++i2;
-		}
-		else if( l < 0 )
-		{
-		    client->SetVar( P4Tag::v_file, i0, *files->Get( i1 ) );
-		    if( !sendDigest && recHandle->delCount )
-		    {
-			// Deleted files?  Send filesize info so the
-			// server can try to pair up moves.
+	        if( !l )
+	        {
+	            ++i1;
+	            ++i2;
+	        }
+	        else if( l < 0 )
+	        {
+	            client->SetVar( P4Tag::v_file, i0, *files->Get( i1 ) );
 
-			client->SetVar( P4Tag::v_fileSize, 
-					i0, *sizes->Get( i1 ) );
-		    }
-		    if( sendDigest )
-			client->SetVar( P4Tag::v_digest, i0, *digests->Get(i1));
-		    if( sendTime )
-			client->SetVar( P4Tag::v_time, i0, *times->Get(i1) );
-		    ++i0;
-		    ++i1;
-		}
-		else
-		{
-		    ++i2;
-		}
+	            if( ( sendFileSize && ( i1 < sizes->Count() ) ) ||
+	                ( !sendDigest && recHandle->delCount ) )
+	            {
+	                // 2025.1 server always requests fileSize but older servers
+	                // did not so the client has to guess when to send based on
+	                // 1) !sendDigest: not doing flush and 
+	                // 2) delCount != 0: need for move match
 
-		if( !( ( i1 + 1 ) % 1000 ) )
-		{
-		    client->Confirm( confirm );
-		    i0 = 0;
-		}
+	                client->SetVar( P4Tag::v_fileSize, 
+	                                i0, *sizes->Get( i1 ) );
+	            }
+
+	            if( sendDigest )
+	                client->SetVar( P4Tag::v_digest, i0, *digests->Get(i1) );
+	            if( sendType )
+	                client->SetVar( P4Tag::v_type, i0, *types->Get(i1) );
+	            if( sendTime )
+	                client->SetVar( P4Tag::v_time, i0, *times->Get(i1) );
+	            ++i0;
+	            ++i1;
+	        }
+	        else
+	        {
+	            ++i2;
+	        }
+
+	        if( !( ( i1 + 1 ) % 1000 ) )
+	        {
+	            client->Confirm( confirm );
+	            i0 = 0;
+	        }
 	    }
 	}
 	else
@@ -1070,22 +1383,17 @@ clientReconcileAdd( Client *client, Error *e )
 
 	    for( int j = 0; j < files->Count(); j++ )
 	    {
-		client->SetVar( P4Tag::v_file, i0, *files->Get(j) );
+	        client->SetVar( P4Tag::v_file, i0++, *files->Get(j) );
 
-		if( sendDigest )
-		    client->SetVar( P4Tag::v_digest, i0, *digests->Get(j) );
-		if( sendTime )
-		    client->SetVar( P4Tag::v_time, i0, *times->Get(j) );
-
-		i0++;
-
-		if( !( ( j + 1 ) % 1000 ) )
-		{
-		    client->Confirm( confirm );
-		    i0 = 0;		    
-		}
+	        if( !( ( j + 1 ) % 1000 ) )
+	        {
+	            client->Confirm( confirm );
+	            i0 = 0;
+	        }
 	    }
 	}
+
+	recHandle->StageComplete( client );
 
 	client->Confirm( confirm );
 	delete files;
@@ -1094,6 +1402,7 @@ clientReconcileAdd( Client *client, Error *e )
 	delete dirs;
 	delete depotFiles;
 	delete digests;
+	delete types;
 }
 
 void
@@ -1118,18 +1427,32 @@ clientExactMatch( Client *client, Error *e )
 	client->NewHandler();
 	StrPtr *digest = client->GetVar( P4Tag::v_digest );
 	StrPtr *confirm = client->GetVar( P4Tag::v_confirm, e );
+	StrPtr *count = client->GetVar( P4Tag::v_count );
 
 	if( e->Test() )
 	    return;
 
+	ReconcileHandle *recHandle =
+	    ReconcileHandle::GetOrCreate( client, true, e );
+	if( e->Test() )
+	    return;
+
+	recHandle->BeginStage( client, StrRef( "Matching digest" ), CPT_FILES );
+	if( count )
+	    recHandle->progress->Total( count->Atoi64() );
+
 	StrPtr *matchFile = 0;
-	StrPtr *matchIndex = 0;
 	FileSys *f = 0;
 
-	for( int i = 0 ; 
-	     client->GetVar( StrRef( P4Tag::v_toFile ), i ) ;
+	for( int i = 0; 
+	     ( matchFile = client->GetVar( StrRef( P4Tag::v_toFile ), i ) );
 	     i++ )
 	{
+	    StrPtr *matchIndex = client->GetVar( StrRef(P4Tag::v_index), i );
+	    if( matchIndex &&
+	        recHandle->AlreadyMatched( matchIndex->Atoi() ) )
+	        continue;
+
 	    delete f;
 
 	    StrVarName path = StrVarName( StrRef( P4Tag::v_toFile ), i );
@@ -1159,7 +1482,7 @@ clientExactMatch( Client *client, Error *e )
 
 	    StrBuf localDigest;
 	    f->Translator( ClientSvc::XCharset( client, FromClient ) );
-	    f->Digest( &localDigest, e );
+	    recHandle->GetDigest( f, localDigest, e );
 
 	    if( e->Test() )
 	    {
@@ -1169,19 +1492,20 @@ clientExactMatch( Client *client, Error *e )
 
 	    if( !localDigest.XCompare( *digest ) )
 	    {
-		matchFile  = client->GetVar( StrRef(P4Tag::v_toFile), i );
-		matchIndex = client->GetVar( StrRef(P4Tag::v_index), i );
-		break; // doesn't get any better
+	        // found exact match
+
+	        client->SetVar( P4Tag::v_toFile, matchFile );
+	        client->SetVar( P4Tag::v_index, matchIndex );
+	        recHandle->SetMatch( matchIndex->Atoi() );
+	        recHandle->Increment( client, 1 );
+	        break;
 	    }
-	}
 
+	    // keep the cursor spinning
+
+	    recHandle->Increment( client, 0 );
+	}
 	delete f;
-
-	if( matchFile && matchIndex )
-	{
-	    client->SetVar( P4Tag::v_toFile, matchFile );
-	    client->SetVar( P4Tag::v_index, matchIndex );
-	}
 
 	client->Confirm( confirm );
 }
@@ -1218,6 +1542,52 @@ clientOpenMatch( Client *client, ClientFile *f, Error *e )
 	    f->matchDict->SetVar( 
 		   StrRef( P4Tag::v_toFile ), i, *file );
 	}
+
+	StrPtr *matchlines = client->GetVar( P4Tag::v_matchlines );
+	if( matchlines )
+	    f->matchDict->SetVar( P4Tag::v_matchlines, matchlines );
+
+	StrPtr *threads = client->GetVar( P4Tag::v_threads );
+	if( threads )
+	    f->matchDict->SetVar( P4Tag::v_threads, threads );
+
+	StrPtr *count = client->GetVar( P4Tag::v_count );
+	if( count )
+	    f->matchDict->SetVar( P4Tag::v_count, count );
+}
+
+static int
+DiffMatchFiles( Sequence &s1,
+	        FileSys *f2, Sequence *s2 )
+{
+	int same = 0;
+
+	DiffAnalyze diff( &s1, s2 );
+	for( Snake *s = diff.GetSnake() ; s ; s = s->next )
+	    same += ( s->u - s->x );
+
+	s2->Release();
+	delete f2;
+
+	return same;
+}
+
+static void
+DiffMatchFilesAsync( FileSys *f1, const Sequence *s1,
+	             FileSys *f2, Sequence *s2,
+	             const DiffFlags &flags, int *res )
+{
+	*res = 0;
+	Sequence s( *s1, flags );
+
+	Error e;
+	s.Reuse( f1, &e );
+	if( !e.Test() )
+	{
+	    *res = DiffMatchFiles( s, f2, s2 );
+	    s.Release();
+	}
+	delete f1;
 }
 
 void
@@ -1242,15 +1612,66 @@ clientCloseMatch( Client *client, ClientFile *f1, Error *e )
 	if( StrPtr* diffFlags = f1->matchDict->GetVar( P4Tag::v_diffFlags ) )
 	    flags.Init( diffFlags );
 
+	StrPtr *matchlines = f1->matchDict->GetVar( P4Tag::v_matchlines );
+	int matchPct = matchlines ? matchlines->Atoi() : 0;
+
 	int bestNum = 0;
 	int bestSame = 0; 
 	int totalLines = 0;
 
-	for( int i = 0 ; 
+	ReconcileHandle *recHandle =
+	    ReconcileHandle::GetOrCreate( client, true, e );
+	if( e->Test() )
+	    return;
+
+	recHandle->BeginStage( client, StrRef( "Matching content" ), CPT_FILES );
+	StrPtr *count = f1->matchDict->GetVar( P4Tag::v_count );
+	if( count )
+	    recHandle->progress->Total( count->Atoi64() );
+
+	Timer t; t.Start();
+	Sequence s1( f1->file, flags, e );
+	recHandle->LogSequenceTimer( t.Time() );
+
+	// If matchlines is not sent by the server
+	// both linesLower and linesUpper will be zero
+
+	int linesLower = ( matchPct * s1.Lines() ) / 100;
+	int linesUpper = matchPct ? ( ( s1.Lines() * 100 ) / matchPct ) : 0;
+
+# ifdef HAS_CPP11
+	const int maxThreads = 32;
+	StrPtr *strThreads = f1->matchDict->GetVar( P4Tag::v_threads );
+	int threads = strThreads ? strThreads->Atoi() : 1;
+	if( threads > maxThreads )
+	    threads = maxThreads;
+
+	int c = 0; // thread counter for setting
+	int r = 0; // thread counter for retrieval
+	std::array< int, maxThreads > res;
+	std::vector< std::thread > ts;
+	std::vector< int > indices;
+# endif
+
+	// Beware of duplicates in the list of files
+	// Use a DigestTree to ensure uniqueness
+
+	DigestTree fileSet;
+
+	for( int i = 0; 
 	     ( fname = f1->matchDict->GetVar( StrRef( P4Tag::v_toFile ), i ) );
 	     i++ )
 	{
-	    delete f2;
+	    StrPtr *matchIndex = f1->matchDict->GetVar( StrRef( P4Tag::v_index ), i );
+	    if( matchIndex &&
+	        recHandle->AlreadyMatched( matchIndex->Atoi() ) )
+	        continue;
+
+	    StrStr cf( fname->Text(), "" );
+	    if( fileSet.Get( &cf ) )
+	        continue;
+	    else
+	        fileSet.Put( &cf, e );
 
 	    f2 = client->GetUi()->File( f1->file->GetType() );
 	    f2->SetContentCharSetPriv( f1->file->GetContentCharSetPriv() );
@@ -1263,8 +1684,9 @@ clientCloseMatch( Client *client, ClientFile *f1, Error *e )
 		continue;
 	    }
 
-	    Sequence s1( f1->file, flags, e );
-	    Sequence s2( f2,       flags, e );
+	    Sequence *s2 = recHandle->GetSequence( f2, flags, e );
+	    totalLines = s1.Lines();
+
 	    if ( e->Test() )
 	    {
 		// still don't care
@@ -1272,34 +1694,109 @@ clientCloseMatch( Client *client, ClientFile *f1, Error *e )
 		continue;
 	    }
 
-	    DiffAnalyze diff( &s1, &s2 );
-
-	    int same = 0;
-	    for( Snake *s = diff.GetSnake() ; s ; s = s->next )
+	    // Skip the optimization if linesLower or linesUpper is 0
+	    
+	    if( ( !linesLower || !linesUpper ) ||
+	        ( s2->Lines() >= linesLower && s2->Lines() <= linesUpper ) )
 	    {
-		same += ( s->u - s->x );
-		if( s->u > totalLines )
-		    totalLines = s->u;
-	    }
+	        Timer timer;
+	        timer.Start();
 
-	    if( same > bestSame )
-	    {
-		bestNum = i;
-		bestSame = same;
+# ifdef HAS_CPP11
+	        if( threads > 1 )
+	        {
+	            if( ts.size() == threads )
+	            {
+	                // Once all threads have started, we wait
+	                // for the 1st/oldest thread to finish before
+	                // starting a new thread and put it at the end.
+	                // At any time, newer threads alway come after
+	                // older threads in the vector ts.
+
+	                if( r == threads )
+	                    r -= threads;
+
+	                ts.front().join();
+	                int same = res[ r++ ];
+	                if( same > bestSame )
+	                {
+	                    bestNum = indices.front();
+	                    bestSame = same;
+	                }
+	                ts.erase( ts.begin() );
+	                indices.erase( indices.begin() );
+	            }
+	            if( c == threads )
+	                c -= threads;
+
+	            FileSys *f1c = 0;
+	            f1c = client->GetUi()->File( f1->file->GetType() );
+	            f1c->SetContentCharSetPriv( f1->file->GetContentCharSetPriv() );
+	            f1c->Set( f1->file->Name() );
+	            ts.emplace_back( DiffMatchFilesAsync,
+	                                 f1c, &s1, f2, s2, flags,
+	                                 &res[ c++ ] );
+	            indices.push_back( i );
+	        }
+	        else
+	        {
+	            int same = DiffMatchFiles( s1, f2, s2 );
+	            if( same > bestSame )
+	            {
+	                bestNum = i;
+	                bestSame = same;
+	            }
+	        }
+# else
+	        int same = DiffMatchFiles( s1, f2, s2 );
+	        if( same > bestSame )
+	        {
+	            bestNum = i;
+	            bestSame = same;
+	        }
+# endif
+	        recHandle->LogDiffTimer( timer.Time() );
 	    }
+	    else
+	    {
+	        s2->Release();
+	        delete f2;
+	    }
+	    recHandle->Increment( client, 0 );
 	}
 
-	delete f2;
-	f1->file->Close( e );
+# ifdef HAS_CPP11
+	if( ts.size() )
+	{
+	    Timer timer;
+	    timer.Start();
+	    for( int t = 0; t < ts.size(); t++ )
+	    {
+	        if( r == threads )
+	            r -= threads;
 
-	totalLines++; // snake lines start at zero
+	        ts[ t ].join();
+	        int same = res[ r++ ];
+	        if( same > bestSame )
+	        {
+	            bestNum = indices[ t ];
+	            bestSame = same;
+	        }
+	    }
+	    ts.clear();
+	    indices.clear();
+	    recHandle->LogDiffTimer( timer.Time() );
+	}
+# endif
+	f1->file->Close( e );
+	recHandle->Increment( client, 1 );
 
 	if( bestSame )
 	{
 	    f1->matchDict->SetVar( P4Tag::v_index,
-		f1->matchDict->GetVar( StrRef( P4Tag::v_index ), bestNum ) );
+	        f1->matchDict->GetVar( StrRef( P4Tag::v_index ), bestNum ) );
 	    f1->matchDict->SetVar( P4Tag::v_toFile, 
-		f1->matchDict->GetVar( StrRef( P4Tag::v_toFile ), bestNum ) );
+	        f1->matchDict->GetVar( StrRef( P4Tag::v_toFile ), bestNum ) );
 
 	    f1->matchDict->SetVar( P4Tag::v_lower, bestSame );
 	    f1->matchDict->SetVar( P4Tag::v_upper, totalLines );
@@ -1349,6 +1846,19 @@ clientAckMatch( Client *client, Error *e )
 	    client->SetVar( P4Tag::v_index,  index );
 	    client->SetVar( P4Tag::v_lower,  lower );
 	    client->SetVar( P4Tag::v_upper,  upper );
+
+	    Error err;
+	    ReconcileHandle *recHandle =
+	        ReconcileHandle::GetOrCreate( client, false, &err );
+	    StrPtr *matchlines = f->matchDict->GetVar( P4Tag::v_matchlines );
+	    if( recHandle && matchlines )
+	    {
+	        int matchPct = ( 100 * lower->Atoi() ) / upper->Atoi();
+	        if( matchPct >= matchlines->Atoi() )
+	        {
+	            recHandle->SetMatch( index->Atoi() );
+	        }
+	    }
 	}
 
 	client->Confirm( confirm );

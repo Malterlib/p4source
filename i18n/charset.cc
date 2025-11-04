@@ -12,4 +12,24 @@
 # include <charset.h>
 
 int GlobalCharSet::globCharSet = 0;
+P4MT int GlobalCharSet::globCharSetAlt = 0;
+P4MT bool GlobalCharSet::globCharSetUseAlt = false;
 
+void GlobalCharSet::Set( int cs )
+{
+	if( globCharSetUseAlt )
+	    globCharSetAlt = cs;
+	else
+	    globCharSet = cs;
+}
+
+int GlobalCharSet::Get()
+{
+	return globCharSetUseAlt ? globCharSetAlt : globCharSet;
+}
+
+void GlobalCharSet::UseAlt( const bool val )
+{
+	globCharSetUseAlt = val;
+	globCharSetAlt = globCharSet;
+}

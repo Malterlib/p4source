@@ -159,13 +159,45 @@ void
 NetSslEndPoint::MoreSocketSetup( int fd, AddrType type, Error *e )
 {
 	TRANSPORT_PRINTF( DEBUG_CONNECT, "NetSslEndPoint::MoreSocketSetup(%d)", fd );
-# if defined(TCP_NODELAY)
-	int one = 1;
-	TYPE_SOCKLEN rsz = sizeof( one );
 
-	// disable the Nagle algorithm; it isn't needed with SSL and interacts badly with it
-	do_setsockopt( "NetSslEndPoint", fd, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<SOCKOPT_T *>(&one), rsz );
-# endif
+	// Let our parent do whatever extra setup it deems appropriate.
+	NetTcpEndPoint::MoreSocketSetup( fd, type, e );
+
+	/*
+	 * Disable the Nagle algorithm unless it's specifically requested;
+	 * it isn't needed with SSL and interacts badly with it.
+	 * Note that NetTcpEndPoint::MoreSocketSetup() might have enabled it.
+	 */
+	SetNagle( fd );
+}
+
+/*
+ * enable/disable the Nagle algorithm, ie:
+ * - 0: set TCP_NODELAY (disable Nagle)
+ * - 1: clear TCP_NODELAY (enable Nagle)
+ * - 2: for SSL: like 0 => Nagle disabled, but for TCP like 1 => Nagle enabled
+ * - default: 2 (for backwards compatibility; set to 0 if internal testing shows no problems)
+ *  = TODO: remove this compatibility hack when we're convinced
+ *    that we don't need it
+ */
+void
+NetSslEndPoint::SetNagle( int fd, int mode )
+{
+	if( mode == 2 )
+	    mode = 0; // backwards compatibility: Nagle normally disabled for SSL
+
+	TRANSPORT_PRINTF( DEBUG_CONNECT,
+	    "NetSslEndPoint::SetNagle(fd=%d, mode=%d)",
+	    fd, mode );
+
+	NetUtils::SetNagle( fd, mode );
+}
+
+void
+NetSslEndPoint::SetNagle( int fd )
+{
+	int mode = p4tunable.Get( P4TUNE_NET_NAGLE );
+	SetNagle( fd, mode );
 }
 
 /**
@@ -211,9 +243,7 @@ NetSslEndPoint::Accept( KeepAlive *, Error *e )
 	 */
 	SetupSocket( t, GetSocketFamily(t), AT_LISTEN, e );
 
-	sslTransport = new NetSslTransport( t, true, serverCredentials,
-	               customCipherList.Length()   ? &customCipherList   : 0,
-	               customCipherSuites.Length() ? &customCipherSuites : 0 );
+	sslTransport = new NetSslTransport( t, true, serverCredentials );
 
 	if(sslTransport)
 	{
@@ -289,8 +319,7 @@ NetSslEndPoint::Connect( Error *e )
 	signal( SIGPIPE, SIG_IGN );
 # endif
 
-	sslTransport = new NetSslTransport( t, false, &customCipherList,
-	                                    &customCipherList );
+	sslTransport = new NetSslTransport( t, false );
 	if(sslTransport)
 	{
 	    sslTransport->SetPortParser(GetPortParser());

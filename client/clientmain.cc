@@ -16,7 +16,7 @@
 
 # include <stdhdrs.h>
 
-# if defined(OS_NT) && (_MSC_VER >= 1900)
+# if defined(OS_NT) && (_MSC_VER >= 1900) && defined(USE_WILDARGS)
 # include <vcruntime_startup.h>
 # endif
 
@@ -63,7 +63,7 @@
 # include <msgclient.h>
 # include <msgsupp.h>
 
-# if defined(OS_NT) && (_MSC_VER >= 1900)
+# if defined(OS_NT) && (_MSC_VER >= 1900) && defined(USE_WILDARGS)
 extern "C" errno_t __cdecl _p4_configure_narrow_argv(_crt_argv_mode const mode);
 extern "C" errno_t __cdecl _p4_configure_wide_argv(_crt_argv_mode const mode);
 # endif
@@ -113,19 +113,19 @@ static const char long_usage[] =
 "\n"
 "	--script	Run the named P4-Lua script\n"
 "\n"
-"    The Helix Core client 'p4' requires a valid Helix Core server network\n"
-"    address 'P4PORT' for most operations, including its help system.\n"
-"    Without an explicit P4PORT, the Helix Core client will use a default\n"
-"    P4PORT of 'perforce:1666'.  That is to say, the host is named 'perforce'\n"
-"    and the port number is '1666'.\n"
+"    The P4 client 'p4' requires a valid P4 server network address 'P4PORT'\n"
+"    for most operations, including its help system.\n"
+"    Without an explicit P4PORT, the P4 client will use a default P4PORT of\n"
+"   'perforce:1666'.  That is to say, the host is named 'perforce' and the port\n"
+"    number is '1666'.\n"
 "\n"
-"    The Helix Core client accepts configuration via command-line options,\n"
-"    P4CONFIG files, environmental variables and on Windows, the registry.\n"
+"    The P4 client accepts configuration via command-line options, P4CONFIG\n"
+"    files, environmental variables and on Windows, the registry.\n"
 "    Run 'p4 set' to list the client's current settings.\n"
 "\n"
-"    Run 'p4 help' to ask the Helix Core server for information on commands.\n"
+"    Run 'p4 help' to ask the P4 server for information on commands.\n"
 "\n"
-"    For administrators, see the Helix Core server's help output in 'p4d -h'.\n"
+"    For administrators, see the P4 server's help output in 'p4d -h'.\n"
 "\n"
 "    For further information, visit the documentation at www.perforce.com.\n"
 "\n";
@@ -163,7 +163,7 @@ static char argv0[ 1024 ];
 
 /* And now main... */
 
-# if defined(OS_NT) && (_MSC_VER >= 1900)
+# if defined(OS_NT) && (_MSC_VER >= 1900) && defined(USE_WILDARGS)
 extern "C" int __p4_argc;
 extern "C" char** __p4_argv;
 # endif
@@ -173,7 +173,7 @@ main( int argc, char **argv )
 {
 	int w_argc = 0, n_argc = 0;
 
-# if defined(OS_NT) && (_MSC_VER >= 1900)
+# if defined(OS_NT) && (_MSC_VER >= 1900) && defined(USE_WILDARGS)
 
 	// Do argument processing twice in order to catch issues where
 	// the win32 *A(NSI) functions do best-fit mapping of characters,
@@ -222,7 +222,7 @@ main( int argc, char **argv )
 	if( uidebug )
 	    printf( "exit: %d\n", ret );
 
-# if defined(OS_NT) && (_MSC_VER >= 1900)
+# if defined(OS_NT) && (_MSC_VER >= 1900) && defined(USE_WILDARGS)
 # undef argc
 # undef argv
 # endif

@@ -9,7 +9,7 @@ if $(CLANGVER) && [ FVersionCmp $(CLANGVER) : 15 ] >= 0
 
 SubDirC++Flags [ FDefines Z_PREFIX ] ;
 
-if $(GCCVER)
+if $(GCCVER) || $(CLANGVER)
 {
 	C++FLAGS += -Wno-deprecated-declarations ;
 }

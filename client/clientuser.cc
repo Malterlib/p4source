@@ -32,6 +32,7 @@
 # include <enviro.h>
 # include <echoctl.h>
 # include <signaler.h>
+# include <strtable.h>
 # include <strops.h>
 # include <runcmd.h>
 # include <i18napi.h>
@@ -39,6 +40,7 @@
 
 # include <msgclient.h>
 # include <msgserver.h>
+
 
 # ifdef OS_MACOSX
 # include <CoreFoundation/CoreFoundation.h>
@@ -491,47 +493,87 @@ ClientUser::Diff( FileSys *f1, FileSys *f2, int doPage, char *df, Error *e )
 void
 ClientUser::Diff( FileSys *f1, FileSys *f2, FileSys *fout, int doPage, char *df, Error *e )
 {
-	if( !f1->IsTextual() || !f2->IsTextual() )
+	// Get the extension (the right file is the local one)
+
+	char *name = f2->Name();
+	char* ext = name + strlen( name ) - 1;
+	while( ext > name && *ext != '.' )
+	    ext--;
+	if( ext == name )
+	    ext = 0;
+
+	// Get ext specific diff tool
+
+	char *diffunicode = NULL;
+	char* diff = NULL;
+
+	if( ext && f1->IsUnicode() )
+	{
+	    StrBuf due = "P4DIFFUNICODE";
+	    due << ext;
+	    diffunicode = enviro->Get( due.Text() );
+	    if( diffunicode )
+	        diff = diffunicode;
+	}
+
+	StrBuf de = "P4DIFF";
+	if( ext )
+	    de << ext;
+	
+	if( ext && !diff )
+	    diff = enviro->Get( de.Text() );
+	if( ext && !diff )
+	    diff = enviro->Get( de.Text() + 2 ); // DIFF.ext
+
+	// If there's no ext specific P4DIFF, don't diff binary files
+
+	if( !diff && ( !f1->IsTextual() || !f2->IsTextual() ) )
 	{
 	    if( f1->Compare( f2, e ) )
 	    {
-		StrRef s( "(... files differ ...)\n" );
-		if( fout )
-		{
-		    fout->Open( FOM_WRITE, e );
-		    if( !e->Test() )
-		    {
-			fout->Write( s, e );
-			fout->Close( e );
-		    }
-		}
-		else
-		{
-		    printf( "%s", s.Text() );
-		}
+	        StrRef s( "(... files differ ...)\n" );
+	        if( fout )
+	        {
+	            fout->Open( FOM_WRITE, e );
+	            if( !e->Test() )
+	            {
+	                fout->Write( s, e );
+	                fout->Close( e );
+	            }
+	        }
+	        else
+	        {
+	            printf( "%s", s.Text() );
+	        }
 	    }
 	    return;
 	}
 
 	// Call diff to do text compare
-
-	const char *diffunicode = NULL;
-	const char *diff = enviro->Get( "P4DIFF" );
-	const char *pager = enviro->Get( "P4PAGER" );
+	
 	int charset = 0;
 	int output  = outputCharset;
 
+	if( !diff )
+	    diff = enviro->Get( "P4DIFF" );
 	if( !diff )
 	    diff = enviro->Get( "DIFF" );
 
 	if( f1->IsUnicode() )
 	{
-	    diffunicode = enviro->Get( "P4DIFFUNICODE" );
+	    if( !diffunicode )
+	    {
+	        diffunicode = enviro->Get( "P4DIFFUNICODE" );
+	        if( diffunicode )
+	            diff = diffunicode;
+	    }
+
 	    charset = f1->GetContentCharSetPriv();
 	    if( !output && charset == f2->GetContentCharSetPriv() )
-		output = charset;
+	        output = charset;
 	}
 
+	const char *pager = enviro->Get( "P4PAGER" );
 	if( !doPage )
 	    pager = 0;
 	else if( !pager )
@@ -547,7 +589,7 @@ ClientUser::Diff( FileSys *f1, FileSys *f2, FileSys *fout, int doPage, char *df,
 
 # else /* not VMS */
 
-	if( !diffunicode && !diff )
+	if( !diff )
 	{
 	    // diff expects to read files in raw mode, we must 
 	    // create new FileSys to allow this.
@@ -708,27 +750,69 @@ ClientUser::Diff( FileSys *f1, FileSys *f2, FileSys *fout, int doPage, char *df,
 	// Build up flags args
 	// Yuk.
 
-	if( !df || !*df )
+	char* p = diff;
+	char *q, *s;
+	int plain = strchr( p, '%' ) ? 0 : 1;
+	while( !plain && ( p = strchr( p, '%' ) ) )
+	{
+	    if( ( q = strchr( ++p, '%' ) ) )
+	    {
+	        if( ( s = strchr( p, ' ' ) ) && s < q )
+	            plain++;
+	        p = ++q;
+	    }
+	    else
+	        plain++;
+	}
+
+	StrBuf flags;
+	if( df && *df )
+	{
+	    flags.Set( "-", 1 );
+	    flags << df;
+	}
+
+	if( plain && !flags.Length() )
 	{
 	    if( diffunicode )
-		RunCmd( diffunicode,
-			CharSetApi::Name( (CharSetApi::CharSet)charset ),
-			f1->Name(), f2->Name(), 0, 0, pager, e );
+	        RunCmd( diffunicode,
+	                CharSetApi::Name( (CharSetApi::CharSet)charset ),
+	                f1->Name(), f2->Name(), 0, 0, pager, e );
 	    else
-		RunCmd( diff, f1->Name(), f2->Name(), 0, 0, 0, pager, e );
+	        RunCmd( diff, f1->Name(), f2->Name(), 0, 0, 0, pager, e );
+	}
+	else if( plain )
+	{
+	    if( diffunicode )
+	        RunCmd( diffunicode, flags.Text(),
+	                CharSetApi::Name( (CharSetApi::CharSet)charset ),
+	                f1->Name(), f2->Name(), 0, pager, e );
+	    else
+	        RunCmd( diff, flags.Text(), f1->Name(), f2->Name(),
+	                0, 0, pager, e );
 	}
 	else
 	{
-	    StrBuf flags;
-	    flags.Set( "-", 1 );
-	    flags << df;
-	    if( diffunicode )
-		RunCmd( diffunicode, flags.Text(),
-			CharSetApi::Name( (CharSetApi::CharSet)charset ),
-			f1->Name(), f2->Name(), 0, pager, e );
-	    else
-	        RunCmd( diff, flags.Text(), f1->Name(), f2->Name(),
-			0, 0, pager, e );
+	    StrBufDict args;
+	    args.SetVar( "leftPath", f1->Name() );
+	    args.SetVar( "rightPath", f2->Name() );
+	    if( charset )
+	        args.SetVar( "charset",
+	                     CharSetApi::Name( (CharSetApi::CharSet)charset ));
+	    if( flags.Length() )
+	        args.SetVar( "diffFlag", flags );
+
+	    // Diff doesn't send context yet, but when it does, we'll be ready
+	    StrPtr* t;
+	    if( ( t = varList->GetVar( "leftName" ) ) )
+	        args.SetVar( "leftName", t );
+	    if( ( t = varList->GetVar( "rightName" ) ) )
+	        args.SetVar( "rightName", t );
+	    args.SetVar( "quote", "\"" );
+
+	    StrBuf cmd;
+	    StrOps::Expand2( cmd, StrRef( diff ), args );
+	    RunCmd( cmd, e );
 	}
 }
 
@@ -740,22 +824,45 @@ ClientUser::Merge(
 	FileSys *result,
 	Error *e )
 {
-	char *merger;
+	char *merger = 0;
+
+	char *name = leg2->Name();
+	char* ext = name + strlen( name ) - 1;
+	while( ext > name && *ext != '.' )
+	    ext--;
+	if( ext == name )
+	    ext = 0;
 
 	if( result->IsUnicode() )
 	{
 	    int cs = result->GetContentCharSetPriv();
+	    StrBuf mue = "P4MERGEUNICODE";
+	    if( ext )
+	        mue << ext;
 
-	    if( cs != 0 && ( merger = enviro->Get( "P4MERGEUNICODE" ) ) )
+	    if( cs != 0 && (
+	        ( ext && ( merger = enviro->Get( mue.Text() ) ) ) ||
+	        ( merger = enviro->Get( "P4MERGEUNICODE" ) ) ) )
 	    {
-		RunCmd( merger, CharSetApi::Name( (CharSetApi::CharSet)cs ),
-			base->Name(), leg1->Name(), leg2->Name(),
-			result->Name(), 0, e );
-		return;
+	        RunCmd( merger, CharSetApi::Name( (CharSetApi::CharSet)cs ),
+	                base->Name(), leg1->Name(), leg2->Name(),
+	                result->Name(), 0, e );
+	        return;
 	    }
 	}
 
-	merger = enviro->Get( "P4MERGE" );
+	StrBuf me = "P4MERGE";
+	if( ext )
+	    me << ext;
+	
+	if( ext && !merger )
+	    merger = enviro->Get( me.Text() );
+	
+	if( ext && !merger )
+	    merger = enviro->Get( me.Text() + 2 );
+
+	if( !merger )
+	    merger = enviro->Get( "P4MERGE" );
 	
 	if( !merger )
 	    merger = enviro->Get( "MERGE" );
@@ -766,8 +873,52 @@ ClientUser::Merge(
 	    return;
 	}
 
-	RunCmd( merger, base->Name(), leg1->Name(), 
-		leg2->Name(), result->Name(), 0, 0, e );
+	char* p = merger;
+	char *q, *s;
+	int plain = strchr( p, '%' ) ? 0 : 1;
+	while( !plain && ( p = strchr( p, '%' ) ) )
+	{
+	    if( ( q = strchr( ++p, '%' ) ) )
+	    {
+	        if( ( s = strchr( p, ' ' ) ) && s < q )
+	            plain++;
+	        p = ++q;
+	    }
+	    else
+	        plain++;
+	}
+
+	if( plain )
+	{
+	    RunCmd( merger, base->Name(), leg1->Name(),
+	            leg2->Name(), result->Name(), 0, 0, e );
+	    return;
+	}
+
+	StrBufDict args;
+	args.SetVar( "basePath", base->Name() );
+	args.SetVar( "theirPath", leg1->Name() );
+	args.SetVar( "yourPath", leg2->Name() );
+	args.SetVar( "resultPath", result->Name() );
+	if( result->IsUnicode() )
+	{
+	    int cs = result->GetContentCharSetPriv();
+	    if( cs )
+	        args.SetVar( "charset",
+	                     CharSetApi::Name( (CharSetApi::CharSet) cs ) );
+	}
+	StrPtr* t;
+	if( ( t = varList->GetVar( "baseName" ) ) )
+	    args.SetVar( "baseName", t );
+	if( ( t = varList->GetVar( "yourName" ) ) )
+	    args.SetVar( "yourName", t );
+	if( ( t = varList->GetVar( "theirName" ) ) )
+	    args.SetVar( "theirName", t );
+	args.SetVar( "quote", "\"" );
+
+	StrBuf cmd;
+	StrOps::Expand2( cmd, StrRef( merger ), args );
+	RunCmd( cmd, e );
 }
 
 void
@@ -814,6 +965,32 @@ ClientUser::RunCmd(
 	signaler.Catch();	// catch SIGINT again
 }
 
+void
+ClientUser::RunCmd(
+	const StrPtr &command,
+	Error *e )
+{
+	// XXX RunCommand is dynamically allocated
+	// to work around linux 2.5 24x86 compiler bug.
+	// see job019081.
+
+	RunCommand *rc = new RunCommand;
+
+	fflush( stdout );
+
+	signaler.Block();	// reset SIGINT to SIGDFL
+
+	// Use AddCmd() to handle command which may be a mix of
+	// cmd name (with spaces on NT) and flags (following spaces).
+
+	RunArgs cmd( command );
+
+	rc->Run( cmd, e );
+	delete rc;
+
+	signaler.Catch();	// catch SIGINT again
+}
+
 FileSys *
 ClientUser::File( FileSysType type )
 {
@@ -827,15 +1004,15 @@ ClientUser::ProgressIndicator()
 }
 
 ClientProgress *
-ClientUser::CreateProgress( int t, P4INT64 s )
+ClientUser::CreateProgress( int progressType, P4INT64 fileSize )
 {
-	if( s >= 1024 )
-	    return CreateProgress( t );
+	if( fileSize >= 1024 )
+	    return CreateProgress( progressType );
 	return 0;
 }
 
 ClientProgress *
-ClientUser::CreateProgress( int )
+ClientUser::CreateProgress( int /* progressType */ )
 {
 	return NULL;
 }

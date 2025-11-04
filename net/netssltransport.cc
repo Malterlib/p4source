@@ -72,6 +72,7 @@
 # include "pathsys.h"
 
 # include <keepalive.h>
+# include "netutils.h"
 # include "netsupport.h"
 # include "netport.h"
 # include "netportparser.h"
@@ -318,6 +319,7 @@ failLoad:
  * Primary:   AES256-SHA        SSLv3 Kx=RSA      Au=RSA  Enc=AES(256)      Mac=SHA1
  * Secondary: CAMELLIA256-SHA   SSLv3 Kx=RSA      Au=RSA  Enc=Camellia(256) Mac=SHA1
  */
+# define SSL_PRIMARY_CIPHER_SUITE12 "ECDHE-RSA-AES128-GCM-SHA256"
 # define SSL_PRIMARY_CIPHER_SUITE "AES256-SHA"
 # define SSL_SECONDARY_CIPHER_SUITE "CAMELLIA256-SHA"
 
@@ -486,8 +488,7 @@ bool	NetSslTransport::sIsRestarting = false;
  * Client:
  * Socket setup is done in NetSslEndPoint::Connect().
  */
-NetSslTransport::NetSslTransport( int t, bool fromClient, StrBuf *cipherList,
-		StrBuf *cipherSuites )
+NetSslTransport::NetSslTransport( int t, bool fromClient )
     : NetTcpTransport( t, fromClient ), credentials(NULL)
 {
 	this->bio = NULL;
@@ -495,25 +496,25 @@ NetSslTransport::NetSslTransport( int t, bool fromClient, StrBuf *cipherList,
 	this->clientNotSsl = false;
 	this->ownsCreds = true;
 	this->credentials = new NetSslCredentials;
-	cipherSuite.Set( "encrypted" );
-	customCipherList = cipherList;
-	customCipherSuites = cipherSuites;
+
+	/*
+	 * proxy (and maybe broker) don't call SetupSocket()
+	 * on accepted sockets so we'll always do it,
+	 * even though p4d will also do it later.
+	 */
+	SetupSocket();
 }
 
 // Called for servers from NetSslEndPoint::Accept()
 // NB: NetSslEndPoint owns the passed-in cred
 NetSslTransport::NetSslTransport( int t, bool fromClient,
-		NetSslCredentials *cred, StrBuf *cipherList,
-		StrBuf *cipherSuites )
-    : NetTcpTransport( t, fromClient ), credentials(cred)
+				NetSslCredentials *cred )
+    : NetTcpTransport( t, fromClient ), credentials( cred )
 {
 	this->bio = NULL;
 	this->ssl = NULL;
 	this->clientNotSsl = false;
 	this->ownsCreds = false;
-	cipherSuite.Set( "encrypted" );
-	customCipherList = cipherList;
-	customCipherSuites = cipherSuites;
 
 	if( !credentials )
 	{
@@ -595,6 +596,17 @@ NetSslTransport::MoreSetupSocket()
 {
 	TRANSPORT_PRINTF( DEBUG_CONNECT, "NetSslTransport::MoreSetupSocket(fd=%d, reload=%d)", t, afterReload );
 	this->NetTcpTransport::MoreSetupSocket(); // parent might add code later
+
+	cipherSuite.Set( "encrypted" );
+	customCipherList = p4tunable.GetString( P4TUNE_SSL_CIPHER_LIST );
+	if( !isAccepted && p4tunable.IsSet( P4TUNE_SSL_CLIENT_CIPHER_LIST ) )
+	    customCipherList = p4tunable.GetString( P4TUNE_SSL_CLIENT_CIPHER_LIST );
+	customCipherSuites = p4tunable.GetString( P4TUNE_SSL_CIPHER_SUITES );
+	if( !isAccepted && p4tunable.IsSet( P4TUNE_SSL_CLIENT_CIPHER_SUITES ) )
+	    customCipherSuites = p4tunable.GetString( P4TUNE_SSL_CLIENT_CIPHER_SUITES );
+
+	int nagle = p4tunable.Get( P4TUNE_NET_NAGLE );
+	SetNagle( nagle );
 }
 
 // MS Visual Studio didn't implement snprintf until VS 2015.  Sigh.
@@ -720,9 +732,15 @@ NetSslTransport::CreateAndInitializeSslContext( const char *conntypename )
 	tlsmin = 10;
     if( tlsmin > 13 )
 	tlsmin = 13;
-
+    
     if( tlsmax < 10 )
 	tlsmax = 10;
+    if( tlsmax > 13 )
+	tlsmax = 13;
+
+    // Max can't exceed min
+    if( tlsmax < tlsmin )
+	tlsmax = tlsmin;
 
     if( SSLDEBUG_FUNCTION )
     {
@@ -1187,10 +1205,10 @@ NetSslTransport::DoHandshake( Error *e )
 	    }
 	    ssl = SSL_new( sServerCtx );
 	    SSLNULLHANDLER( ssl, e, "NetSslTransport::DoHandshake SSL_new", fail );
-	    if( customCipherList )
+	    if( customCipherList.Length() )
 	    {
 		ERR_clear_error();
-		SSL_set_cipher_list( ssl, customCipherList->Text() );
+		SSL_set_cipher_list( ssl, customCipherList.Text() );
 		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_cipher_list custom" );
 	    }
 	    else if ( p4tunable.Get( P4TUNE_SSL_SECONDARY_SUITE ) )
@@ -1199,10 +1217,19 @@ NetSslTransport::DoHandshake( Error *e )
 		SSL_set_cipher_list( ssl, SSL_SECONDARY_CIPHER_SUITE );
 		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_cipher_list secondary" );
 	    }
+	    else if ( p4tunable.Get( P4TUNE_SSL_TLS_VERSION_MIN ) < 12 )
+	    {
+		StrBuf cipherSuite;
+		cipherSuite << SSL_PRIMARY_CIPHER_SUITE12 << ":"
+			    << SSL_PRIMARY_CIPHER_SUITE;
+		ERR_clear_error();
+		SSL_set_cipher_list( ssl, cipherSuite.Text() );
+		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_cipher_list primary+legacy" );
+	    }
 	    else
 	    {
 		ERR_clear_error();
-		SSL_set_cipher_list( ssl, SSL_PRIMARY_CIPHER_SUITE );
+		SSL_set_cipher_list( ssl, SSL_PRIMARY_CIPHER_SUITE12 );
 		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_cipher_list primary" );
 	    }
 
@@ -1213,11 +1240,11 @@ NetSslTransport::DoHandshake( Error *e )
 	    SSL_set_num_tickets( ssl, 0 );
 	    SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_num_tickets" );
 	    
-	    if( customCipherSuites )
+	    if( customCipherSuites.Length() )
 	    {
 		ERR_clear_error();
-		    SSL_set_ciphersuites( ssl, customCipherSuites->Text() );
-		    SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_ciphersuites custom" );
+		SSL_set_ciphersuites( ssl, customCipherSuites.Text() );
+		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_ciphersuites custom" );
 	    }
 # endif
 	}
@@ -1227,12 +1254,32 @@ NetSslTransport::DoHandshake( Error *e )
 	    ssl = SSL_new( sClientCtx );
 	    SSLNULLHANDLER( ssl, e, "NetSslTransport::DoHandshake SSL_new", fail );
 
-	    StrBuf suites;
-	    suites << SSL_PRIMARY_CIPHER_SUITE << ":"
-	           << SSL_SECONDARY_CIPHER_SUITE << ":HIGH";
-	    ERR_clear_error();
-	    SSL_set_cipher_list( ssl, suites.Text() );
-	    SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_cipher_list primary+secondary+high" );
+	    if( customCipherList.Length() )
+	    {
+		ERR_clear_error();
+		SSL_set_cipher_list( ssl, customCipherList.Text() );
+		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_cipher_list custom" );
+	    }
+	    else
+	    {
+		StrBuf suites;
+		suites << SSL_PRIMARY_CIPHER_SUITE12 << ":"
+		       << "HIGH:"
+		       << SSL_PRIMARY_CIPHER_SUITE << ":"
+		       << SSL_SECONDARY_CIPHER_SUITE;
+		ERR_clear_error();
+		SSL_set_cipher_list( ssl, suites.Text() );
+		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_cipher_list primary+secondary+high" );
+	    }
+
+# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+	    if( customCipherSuites.Length() )
+	    {
+		ERR_clear_error();
+		SSL_set_ciphersuites( ssl, customCipherSuites.Text() );
+		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_ciphersuites custom" );
+	    }
+# endif
 
 	    // SNI support
 	    const char * hostname = GetPortParser().Host().Text();
@@ -2120,6 +2167,9 @@ NetSslTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 		errErrorNum = ERR_get_error();
 		SSLLOGFUNC( "NetSslTransport::SendOrReceive SSL_read", errErrorNum );
 
+		if( l >= 0 )
+		    SetQuickAck();
+
 		switch ( sslError = SSL_get_error( ssl, l ) )
 		{
 		case SSL_ERROR_NONE:
@@ -2194,6 +2244,7 @@ NetSslTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 					"NetSslTransport::SendOrReceive recv %d bytes\n",
 					l );
 				io.recvPtr += l;
+				SetQuickAck();
 			    }
 			}
 			return 1;
@@ -2502,10 +2553,31 @@ NetSslTransport::Close( void )
 		    Error::StrNetError( errbuf );
 		    TRANSPORT_PRINTF( SSLDEBUG_ERROR, "NetSslTransport::Close: read of FIN packet failed (ignored): %s", errbuf.Text() );
 		}
+		SetQuickAck();
 	    }
 	}
 
 	CloseSocket();
+}
+
+/*
+ * Like NetTcpTransport::SetNagle()
+ * - but we change 2 to 0 to disable Nagle for compatibility
+ *   with existing behavior.
+ * - TODO: remove this compatibility hack when we're convinced
+ *    that we don't need it
+ */
+void
+NetSslTransport::SetNagle( int nagle )
+{
+	TRANSPORT_PRINTF( DEBUG_CONNECT,
+	    "NetSslTransport::SetNagle(fd=%d, reload=%d, enable=%d)",
+		t, afterReload, nagle );
+
+	if( nagle == 2 )
+	    nagle = 0; // backwards compatibility: Nagle normally disabled for SSL
+
+	NetUtils::SetNagle( t, nagle );
 }
 
 /*

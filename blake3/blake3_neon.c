@@ -1,4 +1,4 @@
-#if defined(__ARM_NEON__) || defined(__ARM_NEON)
+#if defined(__ARM_NEON__) || defined(__ARM_NEON) || defined(_M_ARM64)
 
 #include "blake3_impl.h"
 

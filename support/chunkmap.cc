@@ -16,11 +16,14 @@
 # include <json.hpp>
 # include <md5.h>
 # include <msgdm2.h>
+# include <vartree.h>
 
 # include <string>
 # include <cstdint>
 # include <inttypes.h>
 
+# include <tunable.h>
+# include <intarray.h>
 # include "blake3digester.h"
 # include "fastcdc.h"
 # include "chunkmap.h"
@@ -702,6 +705,46 @@ ChunkMap::Diff( ChunkMap& other, Error* e )
 	return d;
 }
 
+// Determine if the number of chunks to send will be below the threshold,
+// where "below the threshold" is defined as 
+//     ( chunksToSend / numChunks ) * 100 < threshold
+int
+ChunkMap::BelowThreshold( P4INT64 chunksToSend, StrBuf *msg, bool isCltSvr )
+{
+	const P4INT64 threshold = isCltSvr ?
+
+	    // Delta Transfer is between client and server
+	    p4tunable.Get( P4TUNE_NET_DELTA_TRANSFER_THRESHOLD ) :
+
+	    // Delta Transfer is between upstream and downstream servers
+	    p4tunable.Get( P4TUNE_NET_DELTA_RPL_THRESHOLD );
+
+	if( !threshold )
+	{
+	    if( msg )
+	        *msg = "net.delta.transfer.threshold=0";
+
+	    return 0;
+	}
+
+	// Only perform delta transfer if the ratio of nChunksToSend
+	// over nTotalChunks is under the threshold to avoid further
+	// overhead when the saving on transfer is small. Set threshold
+	// to 100 to always perform delta transfer and 0 to disable it.
+
+	if( (chunksToSend * 100 ) > ( threshold * numChunks ) )
+	{
+	    if( msg )
+	    {
+	        P4INT64 pct = ( chunksToSend * 100 ) / numChunks ;
+	        *msg << "net.delta.transfer.threshold set/actual " <<
+	                threshold << "/" << pct;
+	    }
+	    return 0;
+	}
+
+	return 1;
+}
 # if defined( P4_FUZZ_CHUNKMAP )
 
 extern "C" int LLVMFuzzerTestOneInput( const uint8_t* data, size_t size )

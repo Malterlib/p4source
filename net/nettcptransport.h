@@ -27,8 +27,13 @@ class NetTcpTransport : public NetTransport {
 
 	virtual void	SetupSocket();
 	virtual void	MoreSetupSocket();
-	void		SetSockBlocking( int fd, bool blocking );
-	void		SetupKeepAlives( int t );
+	virtual void	SetSockBlocking( int fd, bool blocking );
+	virtual void	SetupKeepAlives( int t );
+
+	virtual void	SetNagle( int nagle );
+	virtual void	SetQuickAck( int fd, bool mode );
+	virtual void	SetQuickAck( int fd ); // use cached net.quickack
+	virtual void	SetQuickAck();
 
 	void		Send( const char *buffer, int length, Error *e );
 	int		Receive( char *buffer, int length, Error *e );
@@ -89,9 +94,8 @@ class NetTcpTransport : public NetTransport {
 #ifdef OS_NT
 	bool		SetWin32KeepAlives(
 			    int		socket,
-			    const SOCKOPT_T
-			    		ka_idlesecs,
-			    const int	ka_intvlsecs);
+			    const long	ka_idlesecs,
+			    const long	ka_intvlsecs);
 #endif // OS_NT
 	int 		Peek( int fd, char *buffer, int length );
 
@@ -109,7 +113,7 @@ class NetTcpTransport : public NetTransport {
 	int             maxWait;	// in ms
 
     protected:
+	bool		quickAck;	// cached net.quickack
 	bool		afterReload;	// configurables have been reloaded
-
 } ;
 

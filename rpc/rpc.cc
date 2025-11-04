@@ -293,16 +293,6 @@ RpcService::IsSSL()
 	return endPoint ? endPoint->IsSSL() : 0;
 }
 
-void
-RpcService::SetCiphers( StrPtr *cipherList, StrPtr *cipherSuites )
-{
-	if( !endPoint )
-	    return;
-	
-	endPoint->SetCipherList( cipherList );
-	endPoint->SetCipherSuites( cipherSuites );
-}
-
 static void RpcCleanup( Rpc *r )
 {
 	r->FlushTransport();
@@ -1103,6 +1093,13 @@ Rpc::Dispatch( DispatchFlag flag, RpcDispatcher *dispatcher )
 
 	if( flag == DfContain || !--dispatchDepth )
 	    endDispatch = 0;
+}
+
+void
+Rpc::TransportSetupSocket()
+{
+	if( transport )
+	    transport->SetupSocket();
 }
 
 NO_SANITIZE_UNDEFINED

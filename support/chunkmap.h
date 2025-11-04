@@ -154,6 +154,10 @@ class ChunkMap
 
 	    void DumpJSON( StrBuf& out );
 
+	    // Do delta transfer only if nChunksToSend / nChunksTotl < threshold
+	    int BelowThreshold( P4INT64 chunksToSend, StrBuf *msg=0,
+	                        bool isCltSvr=true );
+
 	    // CDC algorithm chunk size parameters.
 	    static size_t GetCDCMinSize();
 	    static size_t GetCDCAvgSize();
@@ -232,6 +236,72 @@ class ChunkMap
 	                        cdc_avg_size = 256000u,
 	                        cdc_max_size = 1024000u;
 # endif
+} ;
+
+class P4INT64Array;
+
+class ChunkOffsetTree : public VVarTree
+{
+    public:
+	class ChunkOffsets
+	{
+	    public:
+	        ChunkOffsets() : count( 0 ) {}
+	        ChunkOffsets( const char *h ) : count( 0 ), hash( h ) {}
+	        ~ChunkOffsets() {}
+
+	        int count;
+	        P4INT64Array offsets;
+	        StrBuf hash;
+
+	        void
+	        Put( P4INT64 offset )
+	        {
+	            offsets[ count++ ] = offset;
+	        }
+	} ;
+
+	ChunkOffsetTree() {}
+	virtual ~ChunkOffsetTree()
+	{
+	    Clear();
+	}
+
+	virtual int Compare( const void *a, const void *b ) const
+	{
+	    const ChunkOffsets *ca = (const ChunkOffsets *)a;
+	    const ChunkOffsets *cb = (const ChunkOffsets *)b;
+	    return ca->hash.XCompare( cb->hash );
+	    
+	}
+	
+	virtual void *Copy( const void *src ) const
+	{
+	    ChunkOffsets* c = new ChunkOffsets;
+	    c->hash = ( ( ChunkOffsets* )src )->hash;
+	    return c;
+	}
+	
+	virtual void Delete( void *a ) const
+	{
+	    delete ( ChunkOffsets* )a;
+	}
+
+	virtual void Dump( void *a, StrBuf &buf ) const
+	{
+	}
+
+	ChunkOffsets *Get( const char* hash )
+	{
+	    ChunkOffsets o( hash );
+	    return ( ChunkOffsets* )VVarTree::Get( &o );
+	}
+
+	ChunkOffsets *Put( const char* hash, Error *e )
+	{
+	    ChunkOffsets o( hash );
+	    return ( ChunkOffsets* )VVarTree::Put( &o, e );
+	}
 } ;
 
 # endif // HAS_CPP11

@@ -22,7 +22,7 @@
 # include <sha1.h>
 # include <sha256.h>
 
-void
+offL_t
 FileSys::Digest( StrBuf *digest, Error *e )
 {
 	// Use MD5 message digest algorithm to fingerprint the file.
@@ -35,28 +35,36 @@ FileSys::Digest( StrBuf *digest, Error *e )
 
 	StrFixed buf( BufferSize() );
 
+	offL_t fsize = 0;
 	while( !e->Test() )
 	{
 	    int l = Read( buf.Text(), buf.Length(), e );
 
 	    if( !l || e->Test() )
-		break;
+	        break;
 
 	    // Since the server MD5 is done as ASCII, so must this.
 
-# ifdef USE_EBCDIC
-	    if( IsTextual() )
-		__etoa_l( buf.Text(), l );
-# endif
+	    fsize += l;
 
-	    StrRef z;
-	    z.Set( buf.Text(), l );
-	    md5.Update( z );
+	    if( digest )
+	    {
+# ifdef USE_EBCDIC
+	        if( IsTextual() )
+	            __etoa_l( buf.Text(), l );
+# endif
+	        StrRef z;
+	        z.Set( buf.Text(), l );
+	        md5.Update( z );
+	    }
 	}
 
 	Close( e );
 
-	md5.Final( *digest );
+	if( digest )
+	    md5.Final( *digest );
+
+	return fsize;
 }
 
 int

@@ -47,6 +47,12 @@ void clientOpenMatch( Client *client, ClientFile *f, Error *e );
 void clientCloseMatch( Client *client, ClientFile *f, Error *e );
 void clientAckMatch( Client *client, Error *e );
 
+const char * clientCheckFileType( FileSys *f, FileSysType t,
+				  int clientProtocolFiles,
+				  int checkSize, StrPtr *wildType,
+				  StrPtr *forceType, StrPtr *msgType,
+				  Error *e );
+
 int AltSyncCheckFile( Client *client, StrPtr *confirm,
                       const char *status, const char *ntype, Error *e );
 
@@ -79,7 +85,7 @@ class ClientSvc
  */
 
 # ifdef USE_CDC
-class ChunkOffsetTree;
+class StrIntsTree;
 # endif
 
 class ProgressReport;
@@ -109,7 +115,7 @@ class ClientFile : public LastChance {
 	ProgressReport	*progress;
 
 # ifdef USE_CDC
-	ChunkOffsetTree	*chunkOffsetTree;
+	StrIntsTree	*chunkOffsetTree;
 # endif
 } ;
 

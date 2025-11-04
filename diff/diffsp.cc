@@ -76,6 +76,45 @@ Sequence::Sequence( FileSys *f, const DiffFlags &flags, Error *e )
 	sequencer->Load( e );
 }
 
+Sequence::Sequence( const Sequence &other, const DiffFlags &flags )
+{
+	lineCount = other.lineCount;
+	lineMax = other.lineMax;
+	line = new VarInfo[ lineMax ];
+	memcpy( line, other.line, sizeof( VarInfo ) * lineCount );
+
+	reallocCount = 0;
+	sequencer = 0;
+
+	readfile = new ReadFile;
+
+	switch( flags.sequence )
+	{
+	case DiffFlags::Line:	sequencer = new LineReader; break;
+	case DiffFlags::Word:	sequencer = new WordReader; break;
+	case DiffFlags::WClass:	sequencer = new WClassReader; break;
+	case DiffFlags::DashL:	sequencer = new DifflReader; break;
+	case DiffFlags::DashB:	sequencer = new DiffbReader; break;
+	case DiffFlags::DashW:	sequencer = new DiffwReader; break;
+	}
+
+	sequencer->A = this;
+	sequencer->src = readfile;
+	// Must call Reuse() before using this instance
+}
+
+void
+Sequence::Release()
+{
+	readfile->Close();
+}
+
+void
+Sequence::Reuse( FileSys *f, Error *e )
+{
+	readfile->Open( f, e );
+}
+
 /*
  * Sequence::~Sequence() - close file
  */
@@ -83,7 +122,6 @@ Sequence::Sequence( FileSys *f, const DiffFlags &flags, Error *e )
 Sequence::~Sequence()
 {
 	delete sequencer;
-	readfile->Close();
 	delete readfile;
 	if( line ) delete[] line;
 }

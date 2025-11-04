@@ -92,8 +92,6 @@ class NetEndPoint {
 				    value.Clear();
 				}
 	
-	virtual void		SetCipherList( const StrPtr *value ) {}
-	virtual void		SetCipherSuites( const StrPtr *value ) {}
 	virtual bool		IsAccepted()
 				{
 				    return isAccepted;
@@ -124,6 +122,8 @@ class NetTransport : public KeepAlive {
 
     public:
 	virtual		~NetTransport();
+	virtual void	SetupSocket() {}
+	virtual void	MoreSetupSocket() {}
 	virtual void    ClientMismatch( Error *e );
 	virtual void    SetMaxWait( const int maxWait ) {}
 	virtual void	DoHandshake( Error * /* e */) {} // default: do nothing
@@ -164,6 +164,8 @@ class NetTransport : public KeepAlive {
 			{
 			    return 0;
 			}
+
+
 	// I&O
 
 	virtual int	SendOrReceive( NetIoPtrs &io, Error *se, Error *re );

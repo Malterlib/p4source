@@ -217,31 +217,32 @@ RunArgv::Argc( char **argv, int nargs )
  */
 char *
 RunArgv::Text(
-        StrBuf  &buf)
+	StrBuf  &buf)
 {
-        buf.Clear();
+	buf.Clear();
 
 	for( int i = 0; i < args->Count(); i++)
 	{
-            if( i > 0 )
-            {
-                buf.Append( " " );
-            }
+	    if( i > 0 )
+	    {
+	        buf.Extend( ' ' );
+	    }
 	    const StrBuf
 			*argbuf = args->Get(i);
 
+	    // This is questionable - There are lots of reasons to quote
 	    if( strchr(argbuf->Text(), ' ') )
 	    {
-                buf.Append( QUOTE );
-                buf.Append( argbuf->Text() );
-                buf.Append( QUOTE );
+	        buf.Extend( *QUOTE );
+	        buf.Append( argbuf->Text() );
+	        buf.Extend( *QUOTE );
 	    }
 	    else
 	    {
-                buf.Append( argbuf->Text() );
+	        buf.Append( argbuf->Text() );
 	    }
 	}
-        buf.Terminate();
+	buf.Terminate();
 
 	return buf.Text();
 }
@@ -272,7 +273,7 @@ RunArgv::Text(
  *              to process output on the caller created pipe.
  */
 
-enum RunProcessMode { RPM_Normal, RPM_Silent, RPM_Window, RPM_Detach };
+enum RunProcessMode { RPM_Normal, RPM_Silent, RPM_Window, RPM_Detach, RPM_PGroup };
 
 PROCESS_INFORMATION *
 RunProcess( 
@@ -331,6 +332,15 @@ RunProcess(
 	case RPM_Detach:
 	    creationFlags |= DETACHED_PROCESS;
 	    break;
+
+	case RPM_PGroup:
+	    // Implement a hidden detach that creates its own process group.
+	    creationFlags |= DETACHED_PROCESS;
+	    creationFlags |= CREATE_NEW_PROCESS_GROUP;
+	    inheritHandles = FALSE;
+	    StartInfo.dwFlags &= ~STARTF_USESTDHANDLES;
+	    StartInfo.wShowWindow = SW_HIDE;
+	    break;
 	}
 
 	if( !CreateProcess( 
@@ -360,6 +370,7 @@ RunCommand::RunCommand()
 {
 	pid = 0;
 	abandon = false;
+	pgroup = false;
 }
 
 RunCommand::~RunCommand()
@@ -419,9 +430,15 @@ RunCommand::RunInWindow( RunArgs &command, Error *e )
 	// We don't wait for the subprocess to exit, so unless the launch
 	// failed we'll assume the command ran ok.
 
+	RunProcessMode mode;
+
+	mode = RPM_Window;
+	if( pgroup )
+	    mode = RPM_PGroup;
+
 	pid = RunProcess(
 		    command.Text(),
-		    RPM_Window,
+		    mode,
 		    NULL,
 		    NULL,
 		    NULL,
@@ -803,6 +820,7 @@ RunCommand::RunChild( RunArgv &cmd, int opts, int fds[2], Error *e )
 void
 RunCommand::DoRunChild( char *cmdText, char *argv[], int opts, int fds[2], Error *e )
 {
+	int to_file = ( opts & RCO_TO_FILE ) != 0;
 	// Fast return on empty command.
 	if( !strlen( cmdText ) )
 	{
@@ -817,6 +835,7 @@ RunCommand::DoRunChild( char *cmdText, char *argv[], int opts, int fds[2], Error
 	// the subprocess sends errno through the pipe to the parent.
 
 	int errchk[2];
+
 	if( pipe( errchk ) < 0 )
 	{
 	    e->Sys( "pipe", "" );
@@ -872,7 +891,7 @@ RunCommand::DoRunChild( char *cmdText, char *argv[], int opts, int fds[2], Error
 	// default
 	// Create rp for parent's stdin/subprocess' stdout, rp[0]/rp[1].
 	// Create wp for subprocess' stdin/parent's stdout, wp[0]/wp[1].
-
+	if( ! to_file )
 	{
 	    if( pipe( rp ) < 0 || pipe( wp ) < 0 )
 	    {
@@ -884,18 +903,19 @@ RunCommand::DoRunChild( char *cmdText, char *argv[], int opts, int fds[2], Error
 	// Return parent's read/write descriptors via fds[0]/fds[1].
 	// Tell subprocess to close off parent end of pipes, close
 	// on exec.  (1 is FD_CLOEXEC)
+	if( ! to_file )
+	{
+	    if( opts & RCO_USE_STDOUT )
+	        rp[0] = rp[1] = -1;
+	    else
+	        fcntl( rp[0], F_SETFD, 1 );
+	    fcntl( wp[1], F_SETFD, 1 );
 
-	if( opts & RCO_USE_STDOUT )
-	    rp[0] = rp[1] = -1;
-	else
-	    fcntl( rp[0], F_SETFD, 1 );
-	fcntl( wp[1], F_SETFD, 1 );
+	    // Assign parent's stdin/stdout fds[0]/fds[1]
 
-	// Assign parent's stdin/stdout fds[0]/fds[1]
-
-	fds[0] = rp[0];
-	fds[1] = wp[1];
-
+	    fds[0] = rp[0];
+	    fds[1] = wp[1];
+	}
 	// UNIX wizardry, entry level.
 
 	StrBuf buf;
@@ -910,47 +930,73 @@ RunCommand::DoRunChild( char *cmdText, char *argv[], int opts, int fds[2], Error
 	    // child
 
 	    // Close the parent's side of the error pipe.
-
 	    close( errchk[0] );
 
-	    // Set stdin to wp[0]
-
-	    if( 0 != wp[0] )
+	    if( to_file )
 	    {
+	        // Redirct stout for the command to the file fd.
+	        close( 1 );
+	        if( dup( fds[ 0 ] ) < 0 )
+	        {
+	            e->Sys( "dup", strerror( errno ) );
+	            _exit( -1 );
+	        }
+	        // Now redirect stderr
+	        close( 2 );
+	        if( dup( fds[ 1 ] ) < 0 )
+	        {
+	            e->Sys( "dup", strerror( errno ) );
+	            _exit( -1 );
+	        }
+	        close( fds[ 0 ] );
+	        close( fds[ 1 ] );
 	        close( 0 );
-	        if( dup( wp[0] ) < 0 )
+	        if( open("/dev/null", O_RDONLY) != 0 )
 	        {
-	            e->Sys( "dup", strerror( errno ) );
-	            _exit( -1 );
-	        }
-	        close( wp[0] );
+	            _exit( -1 ); // setting the error object is useless
+		}
 	    }
-
-	    // Set stdout to rp[1] and maybe stderr to rp[1]
-
-	    if( !( opts & RCO_USE_STDOUT ) && 1 != rp[1] )
+	    else
 	    {
-		close( 1 );
-	        if( dup( rp[1] ) < 0 )
+	        // Set stdin to wp[0]
+
+	        if( 0 != wp[0] )
 	        {
-	            e->Sys( "dup", strerror( errno ) );
-	            _exit( -1 );
+	            close( 0 );
+	            if( dup( wp[0] ) < 0 )
+	            {
+	                e->Sys( "dup", strerror( errno ) );
+	                _exit( -1 );
+	            }
+	            close( wp[0] );
 	        }
 
-		// The Server can emit logging on stderr, if using p4 rpc
-		// protocol avoid redirecting stderr to the protocol stream.
+	        // Set stdout to rp[1] and maybe stderr to rp[1]
 
-		if( ~opts & RCO_P4_RPC )
-		{
-	            close( 2 );
+	        if( !( opts & RCO_USE_STDOUT ) && 1 != rp[1] )
+	        {
+	            close( 1 );
 	            if( dup( rp[1] ) < 0 )
 	            {
 	                e->Sys( "dup", strerror( errno ) );
 	                _exit( -1 );
 	            }
-	        }
 
-		close( rp[1] );
+	            // The Server can emit logging on stderr, if using p4 rpc
+	            // protocol avoid redirecting stderr to the protocol stream.
+
+	            if( ~opts & RCO_P4_RPC )
+	            {
+	                close( 2 );
+	                if( dup( rp[1] ) < 0 )
+	                {
+	                    e->Sys( "dup", strerror( errno ) );
+	                    _exit( -1 );
+	                }
+	            }
+
+	            close( rp[1] );
+	        }
 	    }
 
 	    execvp( argv[0], argv );
@@ -971,7 +1017,6 @@ RunCommand::DoRunChild( char *cmdText, char *argv[], int opts, int fds[2], Error
 	    // parent
 
 	    // Close the subprocess' side of the error pipe.
-
 	    close( errchk[1] );
 
 	    break;
@@ -997,17 +1042,19 @@ RunCommand::DoRunChild( char *cmdText, char *argv[], int opts, int fds[2], Error
 
 	close( errchk[0] );
 
-	// Close the subprocess' end of the pipes, wp[0] and rp[1].
+	if( ! to_file )
+	{
+	    // Close the subprocess' end of the pipes, wp[0] and rp[1].
 
-	close( wp[0] );
-	if( ~opts & RCO_USE_STDOUT )
-	    close( rp[1] );
+	    close( wp[0] );
+	    if( ~opts & RCO_USE_STDOUT )
+	        close( rp[1] );
+	}
 
 	// If in error, close off the parent's end of the pipes.
-
-	if( e->Test() )
+	if( e->Test() && ! to_file )
 	{
-	    if( ~opts & RCO_USE_STDOUT )
+	    if(  ~opts & RCO_USE_STDOUT )
 		{ close( fds[0] ); fds[0] = -1; }
 	    close( fds[1] ); fds[1] = -1;
 	}
@@ -1063,6 +1110,7 @@ RunCommand::RunCommand()
 # ifdef HAVE_FORK
 	pid = 0;
 	abandon = false;
+	pgroup = false;
 # endif
 }
 

@@ -93,7 +93,8 @@ enum RunCommandOpts {
 	RCO_SOLO_FD = 0x01,	// RunChild() uses same fd for I/O
 	RCO_AS_SHELL = 0x02,	// RunChild() uses separate pipes, no socketPair
 	RCO_USE_STDOUT = 0x04,	// RunChild() preserves stdout for command
-	RCO_P4_RPC = 0x08	// RunChild() error output over p4 rpc
+	RCO_P4_RPC = 0x08,	// RunChild() error output over p4 rpc
+	RCO_TO_FILE = 0x10	// RunChild() writing output and error to a fd.
 
 } ;
 
@@ -175,6 +176,7 @@ class RunCommand {
 	void	DoRunChild( char *cmdText, char *argv[], int opts, int fds[2], Error *e );
 
 	void	SetAbandon() { abandon = true; }
+	void	SetPGroup() { pgroup = true; }
 	int	WaitChild();
 	void	StopChild();
 	bool    PollChild(unsigned long millisecs) const;
@@ -190,6 +192,7 @@ class RunCommand {
 # endif
 
 	bool abandon;
+	bool pgroup;
 
 } ;
 

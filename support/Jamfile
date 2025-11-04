@@ -10,7 +10,7 @@ SubDirC++Flags -I$(SSLINCDIR) ;
 BOOSTINCDIR ?= [ FDirName $(EXEC_INC) ] ;
 SubDirC++Flags -I$(BOOSTINCDIR) ;
 
-if USE_OPENLDAP
+if $(LDAPSTUB) = no && $(OS) != NT
 {
         SubDirC++Flags
                 -I$(OPENLDAPINCDIR)
@@ -18,7 +18,8 @@ if USE_OPENLDAP
 }
 
 # OpenTelelmetry Logging
-if USE_OTLP {
+if $(USE_OTEL)
+{
 	local tracer_obj = [ FAppendSuffix tracer : $(SUFOBJ) ] ;
 	C++FLAGS on [ FGristFiles $(tracer_obj) ] = -I \"$(OTLPINCDIR)\" -I \"$(P4)/script/libs/cURL\" ;
 }

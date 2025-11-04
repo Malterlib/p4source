@@ -15,7 +15,11 @@
  *    NetUtils - IP network address utilities
  */
 
-# define do_setsockopt( module, fd, level, optname, optval, optlen )	NetUtils::setsockopt( module, fd, level, optname, optval, optlen, #optname )
+# define do_setsockopt( module, fd, level, optname, optval, optlen ) \
+    NetUtils::setsockopt( module, fd, level, optname, optval, optlen, #optname )
+
+# define do_getsockopt( module, fd, level, optname, optval, optlen ) \
+    NetUtils::getsockopt( module, fd, level, optname, optval, optlen, #optname )
 
 // a guess at a good buffer size; big enough for a max IPv6 address plus surrounding "[...]"
 #define P4_INET6_ADDRSTRLEN	(INET6_ADDRSTRLEN+2)
@@ -33,6 +37,24 @@ public:
     setsockopt( const char *module, int sockfd, int level,
                 int optname, const SOCKOPT_T *optval,
                 socklen_t optlen, const char *name );
+    static void SetupSocketSizes( int fd, bool afterReload );
+
+    static int
+    getsockopt( const char *module, int sockfd, int level,
+                int optname, const SOCKOPT_T *optval,
+                socklen_t &optlen, const char *name );
+
+    static void
+    SetNagle( int fd, int mode );
+
+    static void
+    SetNagle( int fd );	// use net.nagle
+
+    static void
+    SetQuickAck( int fd, bool mode );
+
+    static void
+    SetQuickAck( int fd );	// use net.quickack
 
     /*
      * Get IPv4 or IPv6 sin[6]_addr ptr convenience function.
@@ -108,13 +130,13 @@ public:
 	    bool loopback = true );
 
     static bool
-    GetAllIPAndMACAddresses( StrArray* addressList );
+    GetAllIPAndMACAddresses( StrArray* addressList, bool loopback = true );
 
     static bool
     GetAllIPAndMACAddresses( StrArray *addressListIPv4,
 	    StrArray *addressListIPv6, StrArray *addressListMAC,
 	    IntArray *indexListIPv4, IntArray *indexListIPv6,
-	    IntArray *indexListMACC, bool loopback = false );
+	    IntArray *indexListMACC, bool loopback = true );
 
     static bool
     GetAddressesFromFQDN( const StrPtr &fqdn, StrArray &addresses );

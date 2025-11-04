@@ -6,10 +6,15 @@
 
 // client Progress type
 
+#define CPT_UNKNOWN	0
 #define CPT_SENDFILE	1
 #define CPT_RECVFILE	2
 #define CPT_FILESTRANS	3
+#define CPT_FILES	3
 #define CPT_COMPUTATION	4
+#define CPT_ITEMS	5
+#define CPT_DIRS	6   // directory scan
+#define CPT_DELFILE	7
 
 #define CPU_UNSPECIFIED	0
 #define CPU_PERCENT	1
@@ -17,6 +22,8 @@
 #define CPU_KBYTES	3
 #define CPU_MBYTES	4
 #define CPU_DELTAS	5
+#define CPU_ITEMS	6
+#define CPU_DIRS	7
 
 class ClientProgress
 {

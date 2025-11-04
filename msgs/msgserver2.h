@@ -143,6 +143,8 @@ class MsgServer2 {
 	static ErrorId StgOrphanWait;
 	static ErrorId StgScanHeader;
 	static ErrorId StgNoScans;
+	static ErrorId StgScanTargetMissing;
+	static ErrorId StgScanTargetNoDir;
 	static ErrorId UpgradeInfo;
 	static ErrorId UpgradeComplete;
 	static ErrorId UpgradeNeeded;
@@ -266,6 +268,7 @@ class MsgServer2 {
 	static ErrorId AltSyncNotConfigured;
 	static ErrorId AltSyncNoVersion;
 	static ErrorId AltSyncBadVersion;
+	static ErrorId AltSyncNoProg;
 	static ErrorId AltSyncActive;
 	static ErrorId UpgradeAuthDown;
 	static ErrorId UpgradeAuth;
@@ -315,7 +318,8 @@ class MsgServer2 {
 	static ErrorId Filelimit;
 	static ErrorId FilelimitSuf;
 	static ErrorId DiagsNotSupported;
-	static ErrorId DiagsDone;                
+	static ErrorId DiagsDone;
+	static ErrorId FileTarlimit;
 	static ErrorId ShelveCantUpdateSpec;
 	static ErrorId LogExportSummary;
 	static ErrorId CurrentServerTime;
@@ -328,6 +332,13 @@ class MsgServer2 {
 	static ErrorId UseMoveM;
 	static ErrorId StraceRuntime;
 	static ErrorId StraceBusy;
+	static ErrorId IdentFailed;
+	static ErrorId PullTransferVSummary;
+	static ErrorId UseSyncst;
+	static ErrorId DeltaTransferRplErr;
+	static ErrorId ObliterateExtension;
+	static ErrorId LoginIdled;
+	static ErrorId P4authNeeds20251;
 	static ErrorId RmtOpFailedInconsistent;
 	static ErrorId MustSetPasswordRequireSU;
 } ;

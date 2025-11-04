@@ -51,8 +51,8 @@ class VarArray {
 	void		Clear() { numElems = 0; }
 	int		Count() const { return numElems; }
 	void **		ElemTab() { return elems; }
-	void *		Get( int i ) const { return i<numElems ? elems[i]:0; }
-	void *		Edit( int i ) { return i<numElems ? elems[i]:0; }
+	void *		Get( int i ) const { return (i>=0 && i<numElems) ? elems[i]:0; }
+	void *		Edit( int i ) { return (i>=0 && i<numElems) ? elems[i]:0; }
 	void 		Move( int i, int j ) { elems[j] = elems[i]; }
 	void 		Remove( int i );
 	void *		Put( void *v ) { return *New() = v; }

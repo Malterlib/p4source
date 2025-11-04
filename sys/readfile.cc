@@ -68,9 +68,10 @@ ReadFile::Open( FileSys *f, Error *e )
 
 	int fd = fp->GetFd();
 
-	if( fd > 0 
-	    && size > 0
-	    && size <= p4tunable.Get( P4TUNE_FILESYS_MAXMAP ) )
+	if( !fp->IsTextual() &&
+	    fd > 0 &&
+	    size > 0 &&
+	    size <= p4tunable.Get( P4TUNE_FILESYS_MAXMAP ) )
 	{
 	    mlen = offset = size;
 
@@ -131,11 +132,11 @@ ReadFile::Read()
 
 	int n = fp->Read( (char*)maddr, mlen, e );
 
-	if( e->Test() )
+	if( e->Test() || !n )
 	{
 	    // say what? file got short?
 	    size = offset;
-	    n = 0;
+	    return 0;
 	}
 
 	mptr = maddr;
@@ -155,15 +156,33 @@ ReadFile::Seek( offL_t o )
 	// Either mmapped or in buffer
 	// Else actually seek underlying file.
 
-	if( l >= 0 &&  l <= mend - maddr )
+	if( l >= 0 && l <= mend - maddr )
 	{
+	    mptr = mend - l;
+	}
+	else if( fp->IsTextual() )
+	{
+	    // The in-memory offset and the underlying file offset
+	    // could be different due to the line-ending/charset conversion.
+
+	    // We can't trust seek, other than when we seek to the start
+	    // So if we have to go back, go to the start
+	    if( l > 0 )
+	    {
+	        fp->Seek( 0, e );
+	        offset = 0;
+	        l = offset - o;
+	    }
+
+	    // Now walk the blocks forward
+	    while( ( l < 0 || l > mend - maddr ) && Read() )
+	        l = offset - o;
+
 	    mptr = mend - l;
 	}
 	else
 	{
-	    Error e;
-
-	    fp->Seek( o, &e );
+	    fp->Seek( o, e );
 	    mend = mptr = maddr;
 	    offset = o;
 	}

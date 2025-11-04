@@ -244,9 +244,6 @@ Client::GetPassword()
 const StrPtr &
 Client::GetPassword( const StrPtr *usrName, int forceTFile )
 {
-	if( !forceTFile && password.Length() && ticketKey == serverID )
-	    return password;
-
 	// A 2007.2 server will send the serverID to use as the ticket key.
 	// If its not available, check using the old method (use P4PORT).
 
@@ -276,12 +273,19 @@ Client::GetPassword( const StrPtr *usrName, int forceTFile )
 	if( protocolNocase )
 	    StrOps::Lower( u );
 
+	if( !forceTFile &&
+	    password.Length() &&
+	    ticketKey == serverID &&
+	    ticketUser == u )
+	    return password;
+
 	if( serverID.Length() )
 	{
 	    Ticket t( &GetTicketFile() );
 	    if( ( c = t.GetTicket( serverID, u ) ) != 0 )
 	    {
-		ticketKey = serverID;
+	        ticketKey = serverID;
+	        ticketUser = u;
 	        password = c;
 	    }
 	}
@@ -291,7 +295,8 @@ Client::GetPassword( const StrPtr *usrName, int forceTFile )
 	    Ticket t( &GetTicketFile() );
 	    if( ( c = t.GetTicket( port, u ) ) != 0 )
 	    {
-		ticketKey = port;
+	        ticketKey = port;
+	        ticketUser = u;
 	        password = c;
 	    }
 	}

@@ -62,7 +62,7 @@ ErrorId MsgDm::BadType                 = { ErrorOf( ES_DM, 21, E_FAILED, EV_USAG
 ErrorId MsgDm::BadDigest               = { ErrorOf( ES_DM, 418, E_FAILED, EV_USAGE, 1 ), "Invalid digest string '%digest%'." } ;
 ErrorId MsgDm::BadTypePartial          = { ErrorOf( ES_DM, 435, E_FAILED, EV_USAGE, 0 ), "A partial file type is not allowed here." };
 ErrorId MsgDm::BadTypeAuto	       = { ErrorOf( ES_DM, 624, E_FAILED, EV_USAGE, 0 ), "Automatic type detection is not allowed here." };
-ErrorId MsgDm::NeedsUpgrades           = { ErrorOf( ES_DM, 22, E_FAILED, EV_ADMIN, 3 ), "Database is at old upgrade level %level%.  Use '%'p4d -r '%%root%%' -xu'%' to upgrade to level %level2%." } ;
+ErrorId MsgDm::NeedsUpgrades           = { ErrorOf( ES_DM, 22, E_FAILED, EV_ADMIN, 3 ), "Database is at old upgrade level %level%.  Use '%'p4d -r \"'%%root%%'\" -xu'%' to upgrade to level %level2%." } ;
 ErrorId MsgDm::PastUpgrade             = { ErrorOf( ES_DM, 23, E_FAILED, EV_ADMIN, 2 ), "Database is at upgrade level %level% past this server's level %level2%." } ;
 ErrorId MsgDm::Unicode                 = { ErrorOf( ES_DM, 24, E_FAILED, EV_ADMIN, 1 ), "Database has %value% tables with non-UTF8 text and can't be switched to Unicode mode." } ;
                                
@@ -642,7 +642,7 @@ ErrorId MsgDm::ProtectsData            = { ErrorOf( ES_DM, 440, E_INFO, EV_NONE,
 ErrorId MsgDm::ProtectsMaxData         = { ErrorOf( ES_DM, 452, E_INFO, EV_NONE, 1 ), "%perm%" };
 ErrorId MsgDm::ProtectsEmpty           = { ErrorOf( ES_DM, 456, E_FAILED, EV_ADMIN, 0 ), "Protections table is empty." } ;
 ErrorId MsgDm::ProtectsNoSuper         = { ErrorOf( ES_DM, 469, E_FAILED, EV_ADMIN, 0 ), "Can't delete last valid 'super' entry from protections table." } ;
-ErrorId MsgDm::ProtectsNotCompatible   = { ErrorOf( ES_DM, 587, E_FAILED, EV_ADMIN, 0 ), "Helix P4Admin tool not compatible with '##' comments in protection table.\nIf you wish to continue using Helix P4Admin to administer the protection table please remove all '##' comments." } ;
+ErrorId MsgDm::ProtectsNotCompatible   = { ErrorOf( ES_DM, 587, E_FAILED, EV_ADMIN, 0 ), "P4Admin tool not compatible with '##' comments in protection table.\nIf you wish to continue using P4Admin to administer the protection table please remove all '##' comments." } ;
 ErrorId MsgDm::ProtectsBadPerm         = { ErrorOf( ES_DM, 939, E_FAILED, EV_ADMIN, 0 ), "Can't add '%perm%' entry to sub-protections table." } ;
 ErrorId MsgDm::ProtectsPathOutOfScope  = { ErrorOf( ES_DM, 940, E_FAILED, EV_ADMIN, 0 ), "All paths in sub-protections table must be under path '%path%'." } ;
 ErrorId MsgDm::ProtectsOwnerEnds       = { ErrorOf( ES_DM, 941, E_FAILED, EV_ADMIN, 0 ), "Paths in 'owner' entries must end with '/...'." } ;

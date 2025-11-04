@@ -16,6 +16,7 @@
 #include <msgscript.h>
 #include <msgdm.h>
 #include <debug.h>
+#include <charset.h>
 
 # ifdef HAS_EXTENSIONS
 
@@ -262,7 +263,11 @@ bool p4script::doFile( const char *name, Error *e )
 	    return false;
 	}
 
-	return pimpl->doFile( name, e );
+	GlobalCharSet::UseAlt( true );
+	const bool r = pimpl->doFile( name, e );
+	GlobalCharSet::UseAlt( false );
+
+	return r;
 }
 
 bool p4script::doStr( const char *buf, Error *e )
@@ -273,7 +278,11 @@ bool p4script::doStr( const char *buf, Error *e )
 	    return false;
 	}
 
-	return pimpl->doStr( buf, e );
+	GlobalCharSet::UseAlt( true );
+	const bool r = pimpl->doStr( buf, e );
+	GlobalCharSet::UseAlt( false );
+
+	return r;
 }
 
 p4_std_any::p4_any p4script::doScriptFn( const char* name, Error* e )
@@ -284,7 +293,11 @@ p4_std_any::p4_any p4script::doScriptFn( const char* name, Error* e )
 	    return {};
 	}
 
-	return pimpl->doScriptFn( name, e );
+	GlobalCharSet::UseAlt( true );
+	auto r = pimpl->doScriptFn( name, e );
+	GlobalCharSet::UseAlt( false );
+
+	return r;
 }
 
 bool p4script::fnExists( const char* name )

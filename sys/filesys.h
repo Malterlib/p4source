@@ -464,7 +464,7 @@ class FileSys {
 	void 		CopyRange( offL_t offIn, size_t len,
 			           FileSys *targetFile, offL_t offOut,
 			           Error *e );
-	virtual void	Digest( StrBuf *digest, Error *e );
+	virtual offL_t	Digest( StrBuf *digest, Error *e );
 	void		Chmod2( FilePerm perms, Error *e );
 	void		Chmod2( const char *p, Error *e )
 			{ Chmod2( Perm( p ), e ); }

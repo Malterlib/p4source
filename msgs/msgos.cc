@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgOs error code is: 28
+ * Current high value for a MsgOs error code is: 29
  */
 # include <stdhdrs.h>
 # include <error.h>
@@ -64,5 +64,7 @@ ErrorId MsgOs::ZlibInflateInitSeek     = { ErrorOf( ES_OS, 25, E_FAILED, EV_FAUL
 
 ErrorId MsgOs::NoAtomicRename          = { ErrorOf( ES_OS, 27, E_FAILED, EV_USAGE, 0 ), "The filesys.atomic.rename configuration is not supported on this release of Windows." } ;
 ErrorId MsgOs::AtomicRenameFailed      = { ErrorOf( ES_OS, 28, E_INFO, EV_USAGE, 0 ), "Atomic rename not supported on %file%, fall back to copy truncate." } ;
+
+ErrorId MsgOs::UnknownExeFilePath      = { ErrorOf( ES_OS, 29, E_FATAL, EV_FAULT, 0 ), "Can not determine executable file path." } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 

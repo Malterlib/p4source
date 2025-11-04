@@ -154,6 +154,9 @@ class MsgDm2 {
 	static ErrorId OnlyOneClientReload;
 	static ErrorId UnknownParam;
 	static ErrorId BadS3Mode;
+	static ErrorId BadS3AuthKeys;
+	static ErrorId BadS3AuthToken;
+	static ErrorId BadS3AuthMultiple;
 	static ErrorId DepotBadAddress;
 	static ErrorId DepotBadRemoteAddress;
 	static ErrorId NoConfigHistory;
@@ -170,6 +173,10 @@ class MsgDm2 {
 	static ErrorId StreamSpecIntegrationNoFrmChange;
 
 	static ErrorId ExVIEWC;
+	
+	static ErrorId SaltFail;
+	static ErrorId HashFail;
+	static ErrorId NoMatchingMoves;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

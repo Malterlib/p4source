@@ -395,6 +395,8 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionOpenType },
 	{ "modtime",            Options::UseModTime,   'm', 0,
 	                      &MsgSupp::OptionUseModTime },
+	{ "match-moves",        Options::MatchMoves,   'M', 0,
+	                      &MsgSupp::OptionMatchMoves },
 	{ "local",              Options::Local,        'l', 0,
 	                      &MsgSupp::OptionLocal },
 	{ "output-base",        Options::OutputBase,   'o', 0,
@@ -800,7 +802,11 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionUserCaseInsensitive },
 	{ "client-case-insensitive", Options::ClientCaseInsensitive, 0, 0,
 	                      &MsgSupp::OptionClientCaseInsensitive },
+	{ "nonlbr",             Options::NonLbr, 0, 0, &MsgSupp::OptionNonLbr },
+	{ "pull-from-verify",   Options::PullFromVerify, 0, 0, 0 },
 	{ "strace-runtime", Options::StraceRuntime, 0, '#', &MsgSupp::OptionStraceRuntime },
+	{ "sync-time",      Options::SyncTime, 0, ':', &MsgSupp::OptionSyncTime },
+
 #ifdef _DEBUG
 	{ "debugbreak",         Options::DebugBreak,  0, 0,
 	                      &MsgSupp::OptionSSParentView },

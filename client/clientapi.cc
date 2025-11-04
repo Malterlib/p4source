@@ -101,6 +101,7 @@ const StrPtr & ClientApi::GetIgnoreFile() { return client->GetIgnoreFile(); }
 const StrPtr & ClientApi::GetLanguage() { return client->GetLanguage(); }
 const StrPtr & ClientApi::GetOs() { return client->GetOs(); }
 const StrPtr & ClientApi::GetPassword() { return client->GetPassword(); }
+const StrPtr & ClientApi::GetPassword2() { return client->GetPassword2(); }
 const StrPtr & ClientApi::GetPort() { return client->GetPort(); }
 const StrPtr & ClientApi::GetProg() { return client->GetProg(); }
 const StrPtr & ClientApi::GetUser() { return client->GetUser(); }

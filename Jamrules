@@ -1100,7 +1100,7 @@
 	    # Note that this probably only works on Windows 10 and newer.
 	    # We'd like to also use /fsanitize-address-use-after-return but it's buggy (MSVC 2022)
 
-	    if $(MALLOC_OVERRIDE) = yes || $(USE_SMARTHEAP) = yes
+	    if $(MALLOC_OVERRIDE) = yes || $(USE_SMARTHEAP) = yes || $(USE_MIMALLOC) = yes
 	    {
 	        # Running p4-test/server/test_tools/canary.t and
 	        # seeing what fails will say what won't work.  Enough
@@ -1110,10 +1110,13 @@
 
 	    CCFLAGS  += /fsanitize=address /Zi /DEBUG:full ;
 	    C++FLAGS += /fsanitize=address /Zi /DEBUG:full ;
-	    LINK += /InferASanLibs /incremental:no /debug:full ;
-	    # This library is located in a directory like
-	    # C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.32.31326\lib\x64
-	    LINK += /wholearchive:clang_rt.asan_cxx_dbg-x86_64.lib ;
+	    LINK += /InferASanLibs:no /incremental:no /debug:full ;
+
+	    # These are e.g. in: C:\\Progra~1\\MICROS~1\\2022\\Professional\\VC\\Tools\\MSVC\\14.40.33807\\lib\\x64\\ ;
+
+	    LINKFLAGS += /wholearchive:libvcasand.lib ;
+	    LINKFLAGS += /wholearchive:clang_rt.asan_dbg_dynamic-x86_64.lib ;
+	    LINKFLAGS += /wholearchive:clang_rt.asan_static_runtime_thunk-x86_64.lib ;
 
 	case *vsdebug* : # special-target builds; see NT section
 
@@ -1858,11 +1861,12 @@
 
 		# 2008-10-17: static only for now
 		# 2017-08-24: allow dyn builds for p4gt.
-		if [ FVersionCmp $(MSVSVER) : 8 ] >= 0
+		if [ FVersionCmp $(MSVSVER) : 8 ] >= 0 && $(USE_WILDARGS) != no
 		{
 			local _dyn ;
 			if $(TYPE_DYNAMIC) = true { _dyn = -dyn ; }
 
+			$(GENFLAGS) += /DUSE_WILDARGS ;
 			LINKLIBS += $(EXEC_LIB)/wild-vs$(MSVSVER)$(_dyn:E).obj ;
 		}
 

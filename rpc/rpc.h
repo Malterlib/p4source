@@ -171,7 +171,6 @@ class RpcService {
 	void		Unlisten();
 	int		IsSingle();
 	int		IsSSL();
-	void		SetCiphers( StrPtr *cipherList, StrPtr *cipherSuites );
 	void		GetHost( StrPtr *peerAddr, StrBuf & hostBuf, Error *e );
 	virtual void	GetMyFingerprint(StrBuf &value);
 	void		GetExpiration( StrBuf &buf );
@@ -365,6 +364,11 @@ class Rpc : public StrDict {
     protected:
 
 	virtual RpcType	GetRpcType() { return RPC_UNKNOWN; };
+
+    protected:
+	// for rhservice
+
+	virtual void	TransportSetupSocket();
 
     private:
 

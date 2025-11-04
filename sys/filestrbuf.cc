@@ -16,6 +16,7 @@ FileStrPtr::FileStrPtr( StrPtr *s )
 {
 	ptr = s;
 	offset = 0;
+	type = FST_BINARY;
 }
 
 void

@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSupp error code is: 466
+ * Current high value for a MsgSupp error code is: 467
  */
 # include <stdhdrs.h>
 # include <error.h>
@@ -260,6 +260,7 @@ ErrorId MsgSupp::OptionOpenDelete      = { ErrorOf( ES_SUPP, 206, E_INFO, EV_NON
 ErrorId MsgSupp::OptionOpenType        = { ErrorOf( ES_SUPP, 352, E_INFO, EV_NONE, 0 ), "%'--type (-t)'%: specifies files should be opened for edit when the file type changed." } ;
 ErrorId MsgSupp::OptionUseModTime      = { ErrorOf( ES_SUPP, 207, E_INFO, EV_NONE, 0 ), "%'--modtime (-m)'%: specifies the file modification time should be checked." } ;
 ErrorId MsgSupp::OptionLocal           = { ErrorOf( ES_SUPP, 208, E_INFO, EV_NONE, 0 ), "%'--local (-l)'%: specifies local syntax for filenames." } ;
+ErrorId MsgSupp::OptionMatchMoves      = { ErrorOf( ES_SUPP, 465, E_INFO, EV_NONE, 0 ), "%'--match-moves (-M)'%: specifies to match moves between adds and deletes." } ;
 ErrorId MsgSupp::OptionOutputBase      = { ErrorOf( ES_SUPP, 209, E_INFO, EV_NONE, 0 ), "%'--output-base (-o)'%: specifies to display the revision used as the base." } ;
 ErrorId MsgSupp::OptionSystem          = { ErrorOf( ES_SUPP, 210, E_INFO, EV_NONE, 0 ), "%'--system (-s)'%: specifies the value should apply to all users on the system." } ;
 ErrorId MsgSupp::OptionService         = { ErrorOf( ES_SUPP, 211, E_INFO, EV_NONE, 0 ), "%'--service (-S)'%: specifies the value applies to the named service." } ;
@@ -416,7 +417,9 @@ ErrorId MsgSupp::AwsRejected              = { ErrorOf( ES_SUPP, 438, E_FAILED, E
 ErrorId MsgSupp::XmlParseFailed           = { ErrorOf( ES_SUPP, 439, E_FAILED, EV_COMM, 1 ), "XML parse error: %xmlErr%" } ;
 ErrorId MsgSupp::InvalidUrl               = { ErrorOf( ES_SUPP, 458, E_FAILED, EV_USAGE, 2 ), "Invalid URL: %url%[ (%reason%)]" } ;
 ErrorId MsgSupp::OTLPInitFailed           = { ErrorOf( ES_SUPP, 459, E_FAILED, EV_USAGE, 2 ), "Failed to initailise %proto% OTLP logger: %ex%" } ;
-
+ErrorId MsgSupp::AwsRoleFetchFailed       = { ErrorOf( ES_SUPP, 462, E_FAILED, EV_COMM, 0 ), "Failed to retrieve role credentials!" } ;
+ErrorId MsgSupp::AwsProfileFailedAccess   = { ErrorOf( ES_SUPP, 463, E_FAILED, EV_ADMIN, 1 ), "Failed to open/read %path%" } ;
+ErrorId MsgSupp::AwsProfileFailedLoad     = { ErrorOf( ES_SUPP, 464, E_FAILED, EV_ADMIN, 2 ), "Failed to load S3 credentials for '%profile%' from %path%" } ;
 
 ErrorId MsgSupp::OptionNoSync             = { ErrorOf( ES_SUPP, 361, E_INFO, EV_NONE, 0 ), "%'--no-sync'%: do not sync after switch." } ;
 ErrorId MsgSupp::OptionNoScript           = { ErrorOf( ES_SUPP, 354, E_INFO, EV_NONE, 0 ), "%'--no-script'%: do not run client-side Extensions." } ;
@@ -498,8 +501,9 @@ ErrorId MsgSupp::OptionStrace             = { ErrorOf( ES_SUPP, 454, E_INFO, EV_
 ErrorId MsgSupp::OptionUserCaseInsensitive = { ErrorOf( ES_SUPP, 456, E_INFO, EV_NONE, 0 ), "%'--user-case-insensitive'%: causes pattern-matching for user to be case-insensitive" } ;
 ErrorId MsgSupp::OptionClientCaseInsensitive = { ErrorOf( ES_SUPP, 457, E_INFO, EV_NONE, 0 ), "%'--client-case-insensitive'%: causes pattern-matching for client to be case-insensitive" } ;
 ErrorId MsgSupp::OptionNonLbr             = { ErrorOf( ES_SUPP, 460, E_INFO, EV_NONE, 0 ), "%'--nonlbr'%: also remove any non archive files during scan" } ;
-ErrorId MsgSupp::OptionReport             = { ErrorOf( ES_SUPP, 461, E_INFO, EV_NONE, 0 ), "%'--report'%: report on nonlbr files deleted" } ;
 ErrorId MsgSupp::OptionStraceRuntime      = { ErrorOf( ES_SUPP, 466, E_INFO, EV_NONE, 0 ), "%'--strace-runtime'%: number of seconds of strace request" } ;
+ErrorId MsgSupp::OptionSyncTime           = { ErrorOf( ES_SUPP, 467, E_INFO, EV_NONE, 0 ), "%'--sync-time'%: update the recorded modtime in the metadata of the synced file(s)" } ;
+
 
 // ErrorId graveyard'%: retired/deprecated ErrorIds.
 
@@ -510,3 +514,4 @@ ErrorId MsgSupp::ZCNameConflict        = { ErrorOf( ES_SUPP, 27, E_FATAL, EV_ADM
 ErrorId MsgSupp::ZCRegistryFailed      = { ErrorOf( ES_SUPP, 28, E_WARN, EV_ADMIN, 1 ), "Perforce could not register with zeroconf: error is %err%" } ; // DEPRECATED ZeroConf NOTRANS
 ErrorId MsgSupp::ZCBrowseFailed        = { ErrorOf( ES_SUPP, 29, E_WARN, EV_ADMIN, 2 ), "Perforce could not browse zeroconf/%implementation%: error is %err%" } ; // DEPRECATED ZeroConf NOTRANS
 ErrorId MsgSupp::OptionShowFlags       = { ErrorOf( ES_SUPP, 147, E_INFO, EV_NONE, 0 ), "%'--show-flags (-s)'%: lists the files that satisfy the condition." } ; // NEVER USED NOTRANS
+ErrorId MsgSupp::OptionReport             = { ErrorOf( ES_SUPP, 461, E_INFO, EV_NONE, 0 ), "%'--report'%: report on nonlbr files deleted" } ;

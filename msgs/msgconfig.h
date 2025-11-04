@@ -57,6 +57,7 @@ class MsgConfig {
 	static ErrorId Suptool;
 	static ErrorId Elog;
 	static ErrorId Dltxfer;
+	static ErrorId Perf;
 
 	// Numeric tunables
 	static ErrorId ClusterJournalShared;
@@ -116,6 +117,7 @@ class MsgConfig {
 	static ErrorId DmCopyMovewarn;
 	static ErrorId DmDomainAccessupdate;
 	static ErrorId DmDomainAccessforce;
+	static ErrorId DmDvcsAllowcasemismatch;
 	static ErrorId DmFetchPreservechangenumbers;
 	static ErrorId DmFlushforce;
 	static ErrorId DmFlushtry;
@@ -125,6 +127,7 @@ class MsgConfig {
 	static ErrorId DmGrepMaxlinelength;
 	static ErrorId DmGrepMaxrevs;
 	static ErrorId DmGrepMaxcontext;
+	static ErrorId DmHavePreload;
 	static ErrorId DmInfoHide;
 	static ErrorId DmIntegEngine;
 	static ErrorId DmIntegMaxact;
@@ -181,6 +184,7 @@ class MsgConfig {
 	static ErrorId DmTopologyLastseenupdate;
 	static ErrorId DmUserAccessupdate;
 	static ErrorId DmUserAccessforce;
+	static ErrorId DmUserAccessmode;
 	static ErrorId DmUserAllowselfupdate;
 	static ErrorId DmUserHideinvalid;
 	static ErrorId DmUserInsecurelogin;
@@ -236,6 +240,8 @@ class MsgConfig {
 	static ErrorId MergeDlEndeol;
 	static ErrorId NetAutotune;
 	static ErrorId NetBufsize;
+	static ErrorId NetDeltaRplMinsize;
+	static ErrorId NetDeltaRplThreshold;
 	static ErrorId NetDeltaTransferMinsize;
 	static ErrorId NetDeltaTransferThreshold;
 	static ErrorId NetKeepaliveDisable;
@@ -250,6 +256,7 @@ class MsgConfig {
 	static ErrorId NetMaxFaultPub;
 	static ErrorId NetMaxclosewait;
 	static ErrorId NetMaxwait;
+	static ErrorId NetNagle;
 	static ErrorId NetParallelMax;
 	static ErrorId NetParallelThreads;
 	static ErrorId NetParallelBatch;
@@ -263,6 +270,7 @@ class MsgConfig {
 	static ErrorId NetParallelSubmitBatch;
 	static ErrorId NetParallelSubmitMin;
 	static ErrorId NetParallelSyncSvrthreads;
+	static ErrorId NetQuickAck;
 	static ErrorId NetRcvbuflowmark;
 	static ErrorId NetRcvbufmaxsize;
 	static ErrorId NetRcvbufsize;
@@ -279,6 +287,7 @@ class MsgConfig {
 	static ErrorId ProxySuppresswarnings;
 	static ErrorId RcsMaxinsert;
 	static ErrorId RcsNofsync;
+	static ErrorId RmtAllowRemoteUser;
 	static ErrorId RpcDelay;
 	static ErrorId RpcDurablewait;
 	static ErrorId RpcHimark;
@@ -333,6 +342,7 @@ class MsgConfig {
 	static ErrorId ServerMaxcommands;
 	static ErrorId ServerMaxcommandsAllow;
 	static ErrorId ServerStartUnlicensed;
+	static ErrorId ServerStartupAutoRestart;
 	static ErrorId FiletypeBypasslock;
 	static ErrorId FiletypeMaxtextsize;
 	static ErrorId SpecHashbuckets;
@@ -438,10 +448,15 @@ class MsgConfig {
 	static ErrorId AuthSsoNonldap;
 	static ErrorId ZlibCompressionLevel;
 	static ErrorId ZlibDisableOptim;
+	static ErrorId SysTypesTextStorageBehavior;
 
 	// String tunables
 	static ErrorId SecurityDigest;
 	static ErrorId SSLClientCAPath;
+	static ErrorId SslClientCipherList;
+	static ErrorId SslClientCipherSuites;
+	static ErrorId SslCipherList;
+	static ErrorId SslCipherSuites;
 	static ErrorId SSLKeylogFile;
 
 	// Configurables
@@ -518,7 +533,5 @@ class MsgConfig {
 	static ErrorId IdleUnloadInterval;
 	static ErrorId RtMonitorfile;
 	static ErrorId PullTriggerDir;
-	static ErrorId SslCipherList;
-	static ErrorId SslCipherSuites;
-
+	static ErrorId LbrScanIgnore;
 } ;

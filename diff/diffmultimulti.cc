@@ -243,6 +243,7 @@ FileMultiMerge::FileMultiMerge( MultiMerge *m, int rev )
 	this->rev = rev;
 	line = 0;
 	offset = 0;
+	type = FST_BINARY;
 }
 
 void

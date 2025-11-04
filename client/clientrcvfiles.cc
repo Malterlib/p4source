@@ -82,7 +82,8 @@ ThreadedTransfer::RunTransfer( ClientApi *client,
 	mutex.lock();
 
 	Error e;
-	ClientApi child;
+	Enviro env( *(client->GetEnviro()) );
+	ClientApi child( &env );
 	StrRef var, val;
 
 	for( int j = 0; pVars->GetVar( j++, var, val ); )
@@ -99,8 +100,8 @@ ThreadedTransfer::RunTransfer( ClientApi *client,
 	child.SetUser( &client->GetUser() );
 	child.SetClient( &client->GetClient() );
 
-	if( client->GetPassword().Length() )
-	    child.SetPassword( &client->GetPassword() );
+	if( client->GetPassword2().Length() )
+	    child.SetPassword( &client->GetPassword2() );
 
 	child.SetProtocolV( "tag" );
 	child.SetProg( client->GetProg().Text() );

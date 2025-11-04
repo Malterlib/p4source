@@ -23,7 +23,7 @@
  * value and update the following number:
  *
  * Current high value for a MsgDm2 error code is:
- *                                155 (ExVIEWC)
+ *                                161 (NoMatchingMoves)
  *                                               Max code is 1023!!!
  */
 # include <stdhdrs.h>
@@ -56,7 +56,7 @@ ErrorId MsgDm2::UnshelveStreamResolve    = { ErrorOf( ES_DM2, 9, E_INFO, EV_USAG
 ErrorId MsgDm2::StreamSpecIntegOkay     = { ErrorOf( ES_DM2, 10, E_INFO, EV_NONE, 8 ), "Stream spec %targetStreamSpec%@%targetChange% - %action% field %field% from %sourceStreamSpec%@%fromChange%[ using base %baseStreamSpec%][@%baseChange%]" } ;
 ErrorId MsgDm2::CheckFailedNoDB         = { ErrorOf( ES_DM2, 11, E_FAILED, EV_NONE, 1 ), "%table% not found in default/specified server root" } ;
 ErrorId MsgDm2::NoStreamSpecPermsWarn   = { ErrorOf( ES_DM2, 12, E_INFO, EV_PROTECT, 0 ), "You don't have streamspec permission for this operation." } ;
-ErrorId MsgDm2::StreamSpecProtectsNotCompatible   = { ErrorOf( ES_DM2, 13, E_FAILED, EV_ADMIN, 0 ), "Helix P4Admin tool version is not compatible with streamSpec permissions.\nThe protection table currently contains streamspec permissions.\nYou must use P4Admin with release >= 2020.1 or p4 to administer the protection table." } ;
+ErrorId MsgDm2::StreamSpecProtectsNotCompatible   = { ErrorOf( ES_DM2, 13, E_FAILED, EV_ADMIN, 0 ), "P4Admin tool version is not compatible with streamSpec permissions.\nThe protection table currently contains streamspec permissions.\nYou must use P4Admin with release >= 2020.1 or p4 to administer the protection table." } ;
 ErrorId MsgDm2::StreamOpenedByUser      = { ErrorOf( ES_DM2, 14, E_INFO, EV_NONE, 5 ), "Stream %stream%[@%haveChange%] - %action% stream spec %change% by %user%" } ;
 ErrorId MsgDm2::StreamOpenReOpen        = { ErrorOf( ES_DM2, 15, E_INFO, EV_NONE, 3 ), "%stream%[@%haveChange%] - reopened for %action%" } ;
 ErrorId MsgDm2::RemoteLabelOpenFailed   = { ErrorOf( ES_DM2, 16, E_FAILED, EV_FAULT, 1 ), "Failed to get global label %domainName% on commit server." } ;
@@ -130,7 +130,7 @@ ErrorId MsgDm2::DirsDataStreamViews               = { ErrorOf( ES_DM2, 85, E_INF
 ErrorId MsgDm2::FilesDataStreamViews              = { ErrorOf( ES_DM2, 86, E_INFO, EV_NONE, 6 ), "%streamFile%%depotRev% (mapped to %depotFile%) - %action% %change% (%type%)" } ;
 ErrorId MsgDm2::FilesDataTrait                    = { ErrorOf( ES_DM2, 148, E_INFO, EV_NONE, 6 ), "%depotFile%%depotRev% - %action% %change% (%type%) %trait%" } ;
 ErrorId MsgDm2::MaxMem                            = { ErrorOf( ES_DM2, 87, E_FAILED, EV_ADMIN, 1 ), "Too much memory used (over %maxMem%); see '%'p4 help maxmemory'%'." } ;
-ErrorId MsgDm2::GroupsDataVerbose222              = { ErrorOf( ES_DM2, 88, E_INFO, EV_NONE, 8 ), "%group% %maxresults% %maxscanrows% %maxtimeout% %maxopenfiles% %maxmem% %timeout% %passtimeout%" };
+ErrorId MsgDm2::GroupsDataVerbose222              = { ErrorOf( ES_DM2, 88, E_INFO, EV_NONE, 8 ), "%group% %maxresults% %maxscanrows% %maxtimeout% %maxopenfiles% %maxmem% %timeout% %passtimeout%[ %idleTimeout%]" };
 ErrorId MsgDm2::TopologyDelRecMarker              = { ErrorOf( ES_DM2, 89, E_INFO, EV_NONE, 0 ), "The server(s) marked as deleted" } ;
 ErrorId MsgDm2::TopologyAmbiguity                 = { ErrorOf( ES_DM2, 90, E_WARN, EV_NONE, 1 ), "Ambiguity found for the topology record with server address '%address%'" } ;
 ErrorId MsgDm2::TopologyTargetDeleted             = { ErrorOf( ES_DM2, 91, E_WARN, EV_NONE, 2 ), "The target server '%targetAddr%' is marked as deleted for the server '%address%'" } ;
@@ -176,6 +176,9 @@ ErrorId MsgDm2::UnsubmitNoStreamSpec             = { ErrorOf( ES_DM2, 143, E_FAI
 ErrorId MsgDm2::OnlyOneClientReload              = { ErrorOf( ES_DM2, 130, E_FAILED, EV_ADMIN, 0 ), "Cannot reload multiple clients from the remote server." } ;
 ErrorId MsgDm2::UnknownParam                     = { ErrorOf( ES_DM2, 131, E_FAILED, EV_USAGE, 1 ), "Unknown parameter '%param%'!" } ;
 ErrorId MsgDm2::BadS3Mode                        = { ErrorOf( ES_DM2, 132, E_FAILED, EV_USAGE, 1 ), "Invalid S3 mode[ '%mode%']!" } ;
+ErrorId MsgDm2::BadS3AuthKeys                    = { ErrorOf( ES_DM2, 158, E_FAILED, EV_USAGE, 0 ), "Both accessKey and secretKey must be set!" } ;
+ErrorId MsgDm2::BadS3AuthToken                   = { ErrorOf( ES_DM2, 159, E_FAILED, EV_USAGE, 0 ), "A token can only be provided when accessKey and secretKey are also set!" } ;
+ErrorId MsgDm2::BadS3AuthMultiple                = { ErrorOf( ES_DM2, 160, E_FAILED, EV_USAGE, 0 ), "Only 1 authentication source may be provided (accessKey and secretKey, profile or role)!" } ;
 ErrorId MsgDm2::DepotBadAddress                  = { ErrorOf( ES_DM2, 133, E_FAILED, EV_USAGE, 2 ), "Depots of type '%depotType%' require 'Address' to [either be unset or set to a valid external storage scheme (currently %schemes%)|be unset]." } ;
 ErrorId MsgDm2::DepotBadRemoteAddress            = { ErrorOf( ES_DM2, 134, E_FAILED, EV_USAGE, 0 ), "Remote depots require 'Address' to be a valid P4PORT" } ;
 ErrorId MsgDm2::NoConfigHistory                  = { ErrorOf( ES_DM2, 135, E_FAILED, EV_USAGE, 2 ), "Config history [iteration %iteration% ]for '%name%' not found" } ;
@@ -192,6 +195,10 @@ ErrorId MsgDm2::DbBodTextCxEntryMissing          = { ErrorOf( ES_DM2, 153, E_FAI
 ErrorId MsgDm2::StreamSpecIntegrationNoFrmChange = { ErrorOf( ES_DM2, 154, E_FAILED, EV_FAULT, 2 ), "Can't find stream spec rev for stream '%fromstream%' at change '%change%'." };
 
 ErrorId MsgDm2::ExVIEWC                          = { ErrorOf( ES_DM2, 155, E_WARN, EV_EMPTY, 1 ), "[%argc% - file(s)|File(s)] not in command limit view." } ;
+
+ErrorId MsgDm2::SaltFail                          = { ErrorOf( ES_DM2, 156, E_FAILED, EV_EMPTY, 0 ), "Failed to generate random salt." } ;
+ErrorId MsgDm2::HashFail                          = { ErrorOf( ES_DM2, 157, E_FAILED, EV_FAULT, 0 ), "Failed to generate password hash." } ;
+ErrorId MsgDm2::NoMatchingMoves                   = { ErrorOf( ES_DM2, 161, E_INFO, EV_EMPTY, 0 ), "No matching moves found." } ;
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 

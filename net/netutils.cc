@@ -26,6 +26,7 @@
 # include "netsupport.h"
 # include "debug.h"
 # include "netdebug.h"
+# include <tunable.h>
 
 // Required to scan over interfaces looking for MAC addresses
 # ifdef OS_NT
@@ -38,6 +39,18 @@
 #     include <linux/if_packet.h>
 #   else
 #     include <net/if_dl.h>
+#   endif
+# endif
+
+# ifdef OS_NT
+#   include <mstcpip.h> // for SIO_TCP_SET_ACK_FREQUENCY
+#   ifndef SIO_KEEPALIVE_VALS
+        struct tcp_keepalive {
+            unsigned long onoff;
+            unsigned long keepalivetime;
+            unsigned long keepaliveinterval;
+        };
+#       define SIO_KEEPALIVE_VALS _WSAIOW(IOC_VENDOR,4)
 #   endif
 # endif
 
@@ -386,6 +399,111 @@ inet_aton(
 # endif // OS_MINGW || OS_NT
 
 /*
+ * enable/disable the Nagle algorithm, ie:
+ * - 0: set TCP_NODELAY (disable Nagle)
+ * - 1: clear TCP_NODELAY (enable Nagle)
+ * - 2: for SSL: like 0 => Nagle disabled, but for TCP like 1 => Nagle enabled
+ * - default: 2 (for backwards compatibility; set to 0 if internal testing shows no problems)
+ *   NetSslEndPoint::SetNagle() changes 2 to 0 before calling here
+ *
+ * [static]
+ */
+void
+NetUtils::SetNagle( int fd, int mode )
+{
+# if defined(TCP_NODELAY)
+	/*
+	 * Leave 0 and 1 unchanged but change 2 to 1;
+	 * then invert to map {enable/disable Nagle}
+	 * to {disable/enable NODELAY}.
+	 */
+	mode = !mode; // NODELAY is the inverse of Nagle
+	TYPE_SOCKLEN rsz = sizeof( mode );
+
+
+	if( DEBUG_CONNECT )
+	{
+	    p4debug.printf( "NetUtils::SetNagle(fd=%d, TCP_NODELAY, %d)\n",
+		fd, mode );
+	}
+
+	do_setsockopt( "NetTcpEndPoint", fd, IPPROTO_TCP, TCP_NODELAY, reinterpret_cast<SOCKOPT_T *>(&mode), rsz );
+# endif
+}
+
+/*
+ * [static]
+ */
+void
+NetUtils::SetNagle( int fd )
+{
+	int mode = p4tunable.Get( P4TUNE_NET_NAGLE );
+	SetNagle( fd, mode );
+}
+
+/*
+ * NB: On Windows, enabling QuickAck remains in effect until disabled,
+ *     unlike on linux where it auto disables after every read().
+ *
+ * [static]
+ */
+void
+NetUtils::SetQuickAck( int fd, bool mode )
+{
+# if defined(OS_NT)
+#   if defined(SIO_TCP_SET_ACK_FREQUENCY)
+	/*
+	 * Windows treatment of the freq arg to WSAOIoctl:
+	 * 	0: same as 2
+	 * 	1: ACK after 1 received packet (ie, immediately)
+	 * 	2: (NT default) ACK after 2 received packets (ie, every other packet)
+	 *  range: 0 .. 255
+	 */
+
+	int freq = mode; // only 0 or 1
+	DWORD bytesReturned = 0; // we don't care
+
+	if( DEBUG_INFO )
+	{
+	    p4debug.printf(
+		"NetUtils::SetQuickAck(fd=%d, SIO_TCP_SET_ACK_FREQ, %d)\n",
+		fd, freq );
+	}
+
+	int result = WSAIoctl( fd, SIO_TCP_SET_ACK_FREQUENCY, &freq, sizeof(freq), NULL,
+			    0, &bytesReturned, NULL, NULL );
+#   endif
+# else
+#   if defined(TCP_QUICKACK)
+	int freq = mode; // only 0 or 1
+	TYPE_SOCKLEN rsz = sizeof( freq );
+
+	if( DEBUG_INFO )
+	{
+	    p4debug.printf(
+		"NetUtils::SetQuickAck(fd=%d, TCP_QUICKACK, %d)\n",
+		fd, freq );
+	}
+
+	if( freq )
+	    do_setsockopt( "NetTcpTransport", fd, IPPROTO_TCP, TCP_QUICKACK, reinterpret_cast<SOCKOPT_T *>(&freq), rsz );
+#   endif
+# endif // OS_NT
+}
+
+/*
+ * convenience wrapper for SetQuickAck
+ *
+ * [static]
+ */
+void
+NetUtils::SetQuickAck( int fd )
+{
+	bool quickAck = p4tunable.Get( P4TUNE_NET_QUICKACK );
+	SetQuickAck( fd, quickAck );
+}
+
+/*
  * convenience wrapper for setsockopt
  */
 int
@@ -399,6 +517,125 @@ NetUtils::setsockopt( const char *module, int sockfd, int level, int optname, co
 	        StrBuf errnum;
 	        Error::StrNetError( errnum );
 	        p4debug.printf( "%s setsockopt(%s, %d) failed, error = %s\n",
+	            module, name, *reinterpret_cast<const int *>(optval), errnum.Text() );
+	    }
+	}
+
+	return retval;
+}
+
+/*
+ * Set SNDBUF and RCVBUF socket options.
+ *
+ * afterReload is 0 when called via a NetTcpEndPoint ctor
+ * and 1 when called later.  It's used only to distinguish the
+ * two cases in log messages because when the ctor is called
+ * we haven't yet reloaded the current values of configurables..
+ *
+ * Similarly, our log messages also include the value of autotune.
+ * Both the autotune and afterReload values are used in
+ * p4-test/server/transport/socket-setup.t (although autotune
+ * is used just for debugging).
+ *
+ * I examined the pre-processor output to verify that the #ifdef's
+ * do the correct thing for both Windows and non-Windows platforms
+ * because it was hard for me to follow the nesting visually. (MW)
+ *
+ * [static]
+ */
+void
+NetUtils::SetupSocketSizes( int fd, bool afterReload )
+{
+	// Set buffer sizes.
+
+	int sz;
+	TYPE_SOCKLEN rsz = sizeof( sz );
+	const int MinBufSz = p4tunable.Get( P4TUNE_NET_TCPSIZE );
+	const int autotune = p4tunable.Get( P4TUNE_NET_AUTOTUNE );
+
+	if( DEBUG_CONNECT )
+	{
+	    p4debug.printf( "NetUtils::SetupSocketSizes(fd=%d, auto=%d, after=%d, req=%d)\n",
+		fd, autotune, afterReload, MinBufSz );
+	}
+
+# ifndef OS_NT
+	// Windows doesn't autotune snd buffers, so ignore net.autotune value
+	if( !autotune ) {
+# endif
+# ifdef SO_SNDBUF
+	// never reduce the buffer size, so don't set it if we can't get the old value
+	if( !::getsockopt( fd, SOL_SOCKET, SO_SNDBUF, reinterpret_cast<SOCKOPT_T *>(&sz), &rsz ) )
+	{ 
+	    if( DEBUG_CONNECT )
+	    {
+		p4debug.printf( "NetUtils::SetupSocketSizes(fd=%d, auto=%d, after=%d, req=%d): snd buf=%d\n",
+		    fd, autotune, afterReload, MinBufSz, sz );
+	    }
+
+	    if( sz < MinBufSz )
+	    {
+	        sz = MinBufSz;
+	        do_setsockopt( "NetUtils", fd, SOL_SOCKET, SO_SNDBUF, reinterpret_cast<SOCKOPT_T *>(&sz), rsz );
+
+		if( DEBUG_INFO )
+		{
+		    p4debug.printf( "NetUtils::SetupSocketSizes(fd=%d, auto=%d, after=%d, req=%d): sndbuf=%d\n",
+			fd, autotune, afterReload, MinBufSz, sz );
+		}
+	    }
+	}
+# endif
+
+# ifdef OS_NT
+	// we already checked autotune for non-Windows
+	if( !autotune ) {
+# endif
+# ifdef SO_RCVBUF
+	// never reduce the buffer size, so don't set it if we can't get the old value
+	if( !::getsockopt( fd, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<SOCKOPT_T *>(&sz), &rsz ) )
+	{
+	    if( DEBUG_CONNECT )
+	    {
+		p4debug.printf( "NetUtils::SetupSocketSizes(fd=%d, auto=%d, after=%d, req=%d): rcv buf=%d\n",
+		    fd, autotune, afterReload, MinBufSz, sz );
+	    }
+
+	    if( sz < MinBufSz )
+	    {
+	        sz = MinBufSz;
+	        do_setsockopt( "NetUtils", fd, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<SOCKOPT_T *>(&sz), rsz );
+
+		if( DEBUG_INFO )
+		{
+		    p4debug.printf( "NetUtils::SetupSocketSizes(fd=%d, auto=%d, after=%d, req=%d): rcvbuf=%d\n",
+			fd, autotune, afterReload, MinBufSz, sz );
+		}
+	    }
+	}
+# endif
+	// this is strange, but it balances the braces
+# ifdef OS_NT
+	} // !autotune
+# else
+	} // !autotune
+# endif
+}
+
+/*
+ * convenience wrapper for getsockopt
+ */
+int
+NetUtils::getsockopt( const char *module, int sockfd, int level, int optname, const SOCKOPT_T *optval, socklen_t &optlen, const char *name )
+{
+	int retval = ::getsockopt( sockfd, level, optname, (char *)optval, &optlen );
+	if( retval < 0 )
+	{
+	    if( DEBUG_CONNECT )
+	    {
+	        StrBuf errnum;
+	        Error::StrNetError( errnum );
+	        p4debug.printf( "%s getsockopt(%s, %d) failed, error = %s\n",
 	            module, name, *reinterpret_cast<const int *>(optval), errnum.Text() );
 	    }
 	}
@@ -1094,10 +1331,10 @@ NetUtils::FindAllIPsFromAllNICs( StrArray *addresses, IntArray *indexes,
 	        !( loopback && adapter->IfType == IF_TYPE_SOFTWARE_LOOPBACK ) )
 	        continue;
 
-	    if( adapter->OperStatus != IfOperStatusUp )
+	    if( !loopback && adapter->PhysicalAddressLength != 6 )
 	        continue;
 
-	    if( adapter->PhysicalAddressLength != 6 )
+	    if( adapter->OperStatus != IfOperStatusUp )
 	        continue;
 
 	    if( recordMAC && adapter->IfType != IF_TYPE_SOFTWARE_LOOPBACK )
@@ -1347,9 +1584,9 @@ NetUtils::FindAllIPsFromAllNICs( StrArray *addresses, IntArray *indexes,
 # endif // !OS_NT
 
 bool
-NetUtils::GetAllIPAndMACAddresses( StrArray *addressList )
+NetUtils::GetAllIPAndMACAddresses( StrArray *addressList, bool loopback )
 {
-	FindAllIPsFromAllNICs( addressList, 0, 1, 1, 1 );
+	FindAllIPsFromAllNICs( addressList, 0, 1, 1, 1, loopback );
 	return addressList->Count();
 }
 
@@ -1452,7 +1689,9 @@ NetUtils::IsAddressOnNIC( const StrPtr& address, StrBuf *first )
 {
 	StrArray addressList;
 	bool addressFound = false;
-	bool valid = GetAllIPAndMACAddresses( &addressList );
+
+	// Allow user to specify a loopback address --------v
+	bool valid = GetAllIPAndMACAddresses( &addressList, 1 );
 
 	if( first )
 	    first->Clear();

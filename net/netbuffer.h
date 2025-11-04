@@ -109,6 +109,12 @@ class NetBuffer : public NetTransport {
 			    else return false;
 			}
 
+	virtual void	SetupSocket()
+			{
+			    if( transport )
+				transport->SetupSocket();
+			}
+
 
 	void		Flush( Error *e ) { Flush( e, e ); }
 	void		Shutdown( Error *e ) { Shutdown( e, e ); }

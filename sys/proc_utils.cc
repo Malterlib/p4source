@@ -5,6 +5,8 @@
  */
 
 # define NEED_ERRNO
+# define NEED_WINDOWSH
+# define NEED_PSAPIH
 # include <stdhdrs.h>
 
 # ifdef HAS_CPP11
@@ -153,4 +155,36 @@ void OSProcessUtils::ResetOOMKillerStatus( Error* e )
 	isHidden = false;
 }
 
+# ifdef OS_NT
+
+// Return values,
+//  0 - fetch of file path failed.
+//  1 - fetch of file path succeeded.
+//
+int
+OSProcessUtils::GetCurrentExecutablePath( StrBuf *exename, Error *e )
+{
+	HANDLE hProcess;
+	DWORD ret;
+
+	hProcess = GetCurrentProcess();
+
+	ret = GetModuleFileNameEx (
+	            hProcess,
+	            NULL,
+	            exename->Text(),
+	            exename->Length()
+	);
+	if( ret == 0 )
+	{
+	    e->Sys( "GetCurrentExecutablePath", "GetModuleFileNameEx" );
+	    return 0;
+	}
+
+	return 1;
+}
+
+# endif
+
 # endif // HAS_CPP11
+

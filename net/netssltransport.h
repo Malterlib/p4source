@@ -74,14 +74,13 @@ class NetSslTransport : public NetTcpTransport
 {
 
     public:
-	NetSslTransport( int t, bool fromClient,
-	                 StrBuf *cipherList, StrBuf *cipherSuites );
-	NetSslTransport( int t, bool fromClient, NetSslCredentials *cred,
-	                 StrBuf *cipherList, StrBuf *cipherSuites );
+	NetSslTransport( int t, bool fromClient );
+	NetSslTransport( int t, bool fromClient, NetSslCredentials *cred );
 	virtual ~NetSslTransport();
 
-	virtual void    SetupSocket();
-	virtual void    MoreSetupSocket();
+	virtual void	SetupSocket();
+	virtual void	MoreSetupSocket();
+	virtual void    SetNagle( int nagle );
 	void            ValidateCredentials( Error *e );
 	bool            CheckCtxErrors( const char *msg, Error *e );
 	void            ClientMismatch( Error *e );
@@ -123,9 +122,9 @@ class NetSslTransport : public NetTcpTransport
 	bool            clientNotSsl;
 	bool		ownsCreds;
 	NetSslCredentials *credentials;
-	StrPtr          *customCipherList;
-	StrPtr          *customCipherSuites;
+	StrBuf          customCipherList;
+	StrBuf          customCipherSuites;
 	static bool     sIsRestarting;
 } ;
 
-# endif //USE_SSL
+# endif // USE_SSL

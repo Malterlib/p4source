@@ -114,7 +114,7 @@ class VSequence {
 class Sequence : public VSequence {
 
     public:
-
+			Sequence( const Sequence &other, const DiffFlags &fl );
 			Sequence( FileSys *f, const DiffFlags &fl, Error *e );
 			~Sequence();
 
@@ -159,9 +159,11 @@ class Sequence : public VSequence {
 	int 		reallocCount;
 
     public:
+	void		Release();
+	void		Reuse( FileSys *f, Error* e );
+
 	/* Actual underlying file reader */
 
 	Sequencer	*sequencer;
 	ReadFile	*readfile;
-
-};
+} ;

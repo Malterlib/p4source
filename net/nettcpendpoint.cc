@@ -100,6 +100,9 @@ void
 NetTcpEndPoint::SetupSocket( int fd, int ai_family, AddrType type, Error *e )
 {
 	TRANSPORT_PRINTF( DEBUG_CONNECT, "NetTcpEndPoint::SetupSocket(%d)", fd );
+
+	NetUtils::SetupSocketSizes( fd, false );
+
 # ifdef F_SETFD
 	/*
 	 * Set close-on-exec:
@@ -110,8 +113,6 @@ NetTcpEndPoint::SetupSocket( int fd, int ai_family, AddrType type, Error *e )
 	 */
 	fcntl( fd, F_SETFD, 1 );
 # endif
-
-	// Set buffer size.
 
 	// Turn on misc options:
 	//    REUSEADDR - allows listens while dead connections exist
@@ -133,43 +134,6 @@ NetTcpEndPoint::SetupSocket( int fd, int ai_family, AddrType type, Error *e )
 
 	int sz;
 	TYPE_SOCKLEN rsz = sizeof( sz );
-	const int MinBufSz = p4tunable.Get( P4TUNE_NET_TCPSIZE );
-
-# ifndef OS_NT
-	if( !p4tunable.Get( P4TUNE_NET_AUTOTUNE ) ) {
-# endif
-# ifdef SO_SNDBUF
-	// never reduce the buffer size, so don't set it if we can't get the old value
-	if( !getsockopt( fd, SOL_SOCKET, SO_SNDBUF, reinterpret_cast<SOCKOPT_T *>(&sz), &rsz ) )
-	{
-	    if( sz < MinBufSz )
-	    {
-	        sz = MinBufSz;
-	        do_setsockopt( "NetTcpEndPoint", fd, SOL_SOCKET, SO_SNDBUF, reinterpret_cast<SOCKOPT_T *>(&sz), rsz );
-	    }
-	}
-# endif
-
-# ifdef OS_NT
-	if( !p4tunable.Get( P4TUNE_NET_AUTOTUNE ) ) {
-# endif
-# ifdef SO_RCVBUF
-	// never reduce the buffer size, so don't set it if we can't get the old value
-	if( !getsockopt( fd, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<SOCKOPT_T *>(&sz), &rsz ) )
-	{
-	    if( sz < MinBufSz )
-	    {
-	        sz = MinBufSz;
-	        do_setsockopt( "NetTcpEndPoint", fd, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<SOCKOPT_T *>(&sz), rsz );
-	    }
-	}
-# endif
-	// this is strange, but it balances the braces
-# ifdef OS_NT
-	} // !autotune
-# else
-	} // !autotune
-# endif
 
 # if defined( SO_REUSEADDR ) && !defined( OS_NT )
 	if( (type == AT_LISTEN) || (type == AT_CHECK) )
@@ -225,7 +189,53 @@ void
 NetTcpEndPoint::MoreSocketSetup( int fd, AddrType type, Error *e )
 {
 	TRANSPORT_PRINTF( DEBUG_CONNECT, "NetTcpEndPoint::MoreSocketSetup(%d)", fd );
+	SetNagle( fd );
+
+# if defined(OS_NT)
+	NetUtils::SetQuickAck( fd );
+# endif
 }
+
+/*
+ * enable/disable the Nagle algorithm, ie:
+ * - 0: set TCP_NODELAY (disable Nagle)
+ * - 1: clear TCP_NODELAY (enable Nagle)
+ * - 2: for SSL: like 0 => Nagle disabled, but for TCP like 1 => Nagle enabled
+ * - default: 2 (for backwards compatibility; set to 0 if internal testing shows no problems)
+ *  - TODO: remove this compatibility hack when we're convinced
+ *    that we don't need it
+ */
+void
+NetTcpEndPoint::SetNagle( int fd, int mode )
+{
+	TRANSPORT_PRINTF( DEBUG_CONNECT,
+	    "NetTcpEndPoint::SetNagle(fd=%d, mode=%d)",
+	    fd, mode );
+
+	NetUtils::SetNagle( fd, mode );
+}
+
+void
+NetTcpEndPoint::SetNagle( int fd )
+{
+	bool mode = p4tunable.Get( P4TUNE_NET_NAGLE );
+	SetNagle( fd, mode );
+}
+
+#if defined(OS_NT)
+void
+NetTcpEndPoint::SetQuickAck( int fd, bool mode )
+{
+	NetUtils::SetQuickAck( fd, mode );
+}
+
+void
+NetTcpEndPoint::SetQuickAck( int fd )
+{
+	bool mode = p4tunable.Get( P4TUNE_NET_QUICKACK );
+	NetUtils::SetQuickAck( fd, mode );
+}
+# endif
 
 int
 NetTcpEndPoint::CreateSocket(

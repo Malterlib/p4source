@@ -248,6 +248,7 @@ class MsgSupp {
 	static ErrorId OptionOpenType;
 	static ErrorId OptionUseModTime;
 	static ErrorId OptionLocal;
+	static ErrorId OptionMatchMoves;
 	static ErrorId OptionOutputBase;
 	static ErrorId OptionSystem;
 	static ErrorId OptionService;
@@ -422,6 +423,9 @@ class MsgSupp {
 	static ErrorId XmlParseFailed;
 	static ErrorId InvalidUrl;
 	static ErrorId OTLPInitFailed;
+	static ErrorId AwsRoleFetchFailed;
+	static ErrorId AwsProfileFailedAccess;
+	static ErrorId AwsProfileFailedLoad;
 
 	static ErrorId FatalLockError;
 	static ErrorId MissingKeyCert;
@@ -479,9 +483,9 @@ class MsgSupp {
 	static ErrorId OptionUserCaseInsensitive;
 	static ErrorId OptionClientCaseInsensitive;
 	static ErrorId OptionNonLbr;
-	static ErrorId OptionReport;
 	static ErrorId OptionStraceRuntime;
 	static ErrorId AmbiguousArgs;
+	static ErrorId OptionSyncTime;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 
@@ -493,5 +497,6 @@ class MsgSupp {
 	static ErrorId ZCNameConflict; // DEPRECATED 2013.1 removed ZeroConf
 	static ErrorId ZCRegistryFailed; // DEPRECATED 2013.1 removed ZeroConf
 	static ErrorId ZCBrowseFailed; // DEPRECATED 2013.1 removed ZeroConf
+	static ErrorId OptionReport;        
 } ;
 

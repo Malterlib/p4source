@@ -63,9 +63,18 @@
 
 # define PEEK_TIMEOUT 200 /* 200 milliseconds */
 
+/*
+ * Server:
+ * p4tunables::list[] has values from the defns in debug.cc + loaded by
+ * LoadConfig() at server startup (or admin restart).
+ *
+ * Client:
+ * Socket setup is done in NetTcpEndPoint::Connect().
+ */
 NetTcpTransport::NetTcpTransport( int t, bool fromClient )
 : isAccepted(fromClient)
 , shutdownCalled(false)
+, quickAck(false)
 , afterReload(false)
 {
 	this->t = t;
@@ -73,8 +82,6 @@ NetTcpTransport::NetTcpTransport( int t, bool fromClient )
 	lastRead = 0;
 	maxWait = -1;
 	selector = new NetTcpSelector( t );
-
-	SetupKeepAlives( t );
 
 	/*
 	 * accept() or connect() have already completed,
@@ -114,8 +121,19 @@ NetTcpTransport::SetupSocket()
 	TRANSPORT_PRINTF( DEBUG_CONNECT, "NetTcpTransport::SetupSocket(fd=%d, reload=%d)", t, afterReload );
 const int autotune = p4tunable.Get( P4TUNE_NET_AUTOTUNE );
 TRANSPORT_PRINTF( DEBUG_CONNECT, "NetTcpTransport::SetupSocket(fd=%d, reload=%d, autotune=%d)", t, afterReload, autotune );
-
 	SetupKeepAlives( t );
+	NetUtils::SetupSocketSizes( t, afterReload );
+
+	int nagle = p4tunable.Get( P4TUNE_NET_NAGLE );
+	TRANSPORT_PRINTF( DEBUG_CONNECT,
+	    "NetTcpTransport: reload=%d, nagle=%d", afterReload, nagle );
+	SetNagle( nagle );
+
+	quickAck = p4tunable.Get( P4TUNE_NET_QUICKACK );
+	TRANSPORT_PRINTF( DEBUG_CONNECT,
+	    "NetTcpTransport: reload=%d, quickAck=%d", afterReload, quickAck );
+	SetQuickAck( t, quickAck );
+
 	MoreSetupSocket();
 }
 
@@ -198,6 +216,44 @@ NetTcpTransport::SetSockBlocking( int fd, bool blocking )
 # endif
 }
 
+/*
+ * enable/disable Quick ACK
+ * - 0: do nothing [Quick ACK auto-disables after each read() or recv()]
+ * - 1: set TCP_QUICKACK (enable Quick ACK)
+ * - default: 0 (for backwards compatibility)
+ */
+void
+NetTcpTransport::SetQuickAck( int fd, bool mode )
+{
+	TRANSPORT_PRINTF( DEBUG_INFO,
+	    "NetTcpTransport::SetQuickAck(fd=%d, TCP_QUICKACK, enable=%d, reload=%d)",
+		fd, mode, afterReload );
+
+	NetUtils::SetQuickAck( fd, mode );
+}
+
+void
+NetTcpTransport::SetQuickAck( int fd )
+{
+	SetQuickAck( fd, quickAck );
+}
+
+void
+NetTcpTransport::SetQuickAck()
+{
+# if defined(OS_NT)
+    	/*
+	 * On Windows QuickACK is sticky so there's no need to set it again;
+	 * if you need to change it, call one of the two other methods.
+	 * We log it here anyway so that "socket-nagle-quickack.t"
+	 * can count the calls.
+	 */
+
+# else
+	SetQuickAck( t, quickAck );
+# endif
+}
+
 # ifdef OS_NT
 /*
  * Set the keepalive parameters on Windows
@@ -211,8 +267,8 @@ NetTcpTransport::SetSockBlocking( int fd, bool blocking )
 bool
 NetTcpTransport::SetWin32KeepAlives(
 	int		socket,
-	const SOCKOPT_T	ka_idlesecs,
-	const int	ka_intvlsecs)
+	const long	ka_idlesecs,
+	const long	ka_intvlsecs)
 {
 	// default values -- don't set, don't complain, and return success
 	if( (ka_idlesecs == 0) && (ka_intvlsecs == 0) )
@@ -282,8 +338,8 @@ NetTcpTransport::SetupKeepAlives( int t )
 
 	    do_setsockopt( "NetTcpTransport", t, SOL_SOCKET, SO_KEEPALIVE, &one, sizeof( one ) );
 # ifdef OS_NT
-	    const SOCKOPT_T ka_idlesecs = p4tunable.Get( P4TUNE_NET_KEEPALIVE_IDLE );
-	    const int ka_intvlsecs = p4tunable.Get( P4TUNE_NET_KEEPALIVE_INTERVAL );
+	    const long ka_idlesecs = p4tunable.Get( P4TUNE_NET_KEEPALIVE_IDLE );
+	    const long ka_intvlsecs = p4tunable.Get( P4TUNE_NET_KEEPALIVE_INTERVAL );
 	    SetWin32KeepAlives( t, ka_idlesecs, ka_intvlsecs );
 # else // OS_NT
 
@@ -625,6 +681,9 @@ NetTcpTransport::SendOrReceive( NetIoPtrs &io, Error *se, Error *re )
 	            TRANSPORT_PRINTF( DEBUG_TRANS, 
 	                "NetTcpTransport recv %d bytes", l );
 
+		if( l >= 0 )
+		    SetQuickAck();
+
 	        if( l > 0 )
 	        {
 	            /*
@@ -714,7 +773,7 @@ NetTcpTransport::GetSendBuffering()
 # ifdef SO_SNDBUF
 	TYPE_SOCKLEN rsz = sizeof( sz );
 
-	if( getsockopt( t, SOL_SOCKET, SO_SNDBUF, (char *)&sz, &rsz ) < 0 )
+	if( ::getsockopt( t, SOL_SOCKET, SO_SNDBUF, (char *)&sz, &rsz ) < 0 )
 	    sz = 4096;
 # endif
 
@@ -744,7 +803,7 @@ NetTcpTransport::GetSendBuffering()
 
 	int sl;
 
-	if( getsockopt( t, SOL_SOCKET, SO_SNDLOWAT, (char *)&sl, &rsz ) == 0 )
+	if( ::getsockopt( t, SOL_SOCKET, SO_SNDLOWAT, (char *)&sl, &rsz ) == 0 )
 	    sz -= sl;
 # endif
 
@@ -759,7 +818,7 @@ NetTcpTransport::GetRecvBuffering()
 # ifdef SO_RCVBUF
 	TYPE_SOCKLEN rsz = sizeof( sz );
 
-	if( getsockopt( t, SOL_SOCKET, SO_RCVBUF, (char *)&sz, &rsz ) < 0 )
+	if( ::getsockopt( t, SOL_SOCKET, SO_RCVBUF, (char *)&sz, &rsz ) < 0 )
 	    sz =  4096;
 # endif
 
@@ -808,6 +867,7 @@ NetTcpTransport::Close( void )
 		    Error::StrNetError( errbuf );
 		    TRANSPORT_PRINTF( SSLDEBUG_ERROR, "NetTcpTransport::Close: read of FIN packet failed (ignored): %s", errbuf.Text() );
 		}
+		SetQuickAck();
 	    }
 	}
 
@@ -889,6 +949,16 @@ NetTcpTransport::CloseSocket()
 	    close( t );
 	    t = -1;
 	}
+}
+
+void
+NetTcpTransport::SetNagle( int nagle )
+{
+	TRANSPORT_PRINTF( DEBUG_CONNECT,
+	    "NetTcpTransport::SetNagle(fd=%d, reload=%d, enable=%d)",
+	    t, afterReload, nagle );
+
+	NetUtils::SetNagle( t, nagle );
 }
 
 int
@@ -1028,7 +1098,7 @@ NetTcpTransport::GetInfo( StrBuf *b )
 		struct tcp_info tinfo;
 		socklen_t sl = sizeof tinfo;
 
-		if( getsockopt( t, IPPROTO_TCP, TCP_INFO, (void *)&tinfo, &sl ) >= 0 )
+		if( ::getsockopt( t, IPPROTO_TCP, TCP_INFO, (void *)&tinfo, &sl ) >= 0 )
 		{
 # ifdef OS_FREEBSD
 		    b->UAppend( "options" );

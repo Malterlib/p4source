@@ -45,6 +45,17 @@ IntArray::Find( int v )
 	}
 }
 
+static int
+IntsAscending( const void* a, const void* b )
+{
+	return (*( int* )a - *( int* )b);
+}
+
+void
+IntArray::Sort()
+{
+	qsort( ints, count, sizeof( int ), IntsAscending );
+}
 
 int
 P4INT64Array::Find( P4INT64 v )

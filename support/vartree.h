@@ -61,7 +61,7 @@ class VVarTree {
     protected:
 	// Derived classes: if returning 0, set an Error to say why.
 	virtual int	CanPut( Error *e ) { return 1; }
-	virtual void *	CopyOver( void *tgt, const void *src );
+	virtual void *	CopyOver( void *tgt, const void *src ) const;
 	virtual void	Dump( void *val );  // to log
 
     private:

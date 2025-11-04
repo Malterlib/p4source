@@ -160,8 +160,8 @@ class ClientUser {
 	virtual void	Help( const char *const *help );
 
 	virtual FileSys	*File( FileSysType type );
-	virtual ClientProgress *CreateProgress( int, P4INT64 );
-	virtual ClientProgress *CreateProgress( int );
+	virtual ClientProgress *CreateProgress( int /* progressType */, P4INT64 /* fileSize */ );
+	virtual ClientProgress *CreateProgress( int /* progressType */ );
 	virtual int	ProgressIndicator();
 	virtual int	CanParallelProgress() { return 0; }
 
@@ -180,6 +180,7 @@ class ClientUser {
 				const char *arg4, const char *arg5,
 				const char *pager, 
 				Error *e );
+	static void	RunCmd( const StrPtr &command, Error *e );
 
 	virtual void	SetOutputCharset( int );
 	virtual void	DisableTmpCleanup();

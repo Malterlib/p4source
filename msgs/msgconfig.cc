@@ -267,6 +267,11 @@ R"(Enables debug logging of the delta transfer.
 )"
 };
 
+ErrorId MsgConfig::Perf = { ErrorOf( ES_CONFIG, 501, E_INFO, EV_NONE, 0 ),
+R"(Enables display of performance stats.
+)"
+};
+
 //
 // Numeric Tunables
 //
@@ -577,7 +582,7 @@ the client root.
 
 ErrorId MsgConfig::DmClientLimitprotects = { ErrorOf( ES_CONFIG, 49, E_INFO, EV_NONE, 0 ),
 R"(If enabled, restricts the user's effective protections by their client view
-when running commands that would be limited the the scope of the client view.
+when running commands that would be limited to the scope of the client view.
 )"
 };
 
@@ -947,6 +952,11 @@ R"(When enabled, structured logs are rotated when the journal is rotated.
 )"
 };
 
+ErrorId MsgConfig::DmHavePreload = { ErrorOf( ES_CONFIG, 508, E_INFO, EV_NONE, 0 ),
+R"(When disabled, reduce memory usage on syncs.
+)"
+};
+
 ErrorId MsgConfig::DmShelveAccessupdate = { ErrorOf( ES_CONFIG, 101, E_INFO, EV_NONE, 0 ),
 R"(Time interval to update the shelve access time.
 )"
@@ -1027,6 +1037,16 @@ R"(Time interval to update user access time, if a lock can be taken.
 
 ErrorId MsgConfig::DmUserAccessforce = { ErrorOf( ES_CONFIG, 113, E_INFO, EV_NONE, 0 ),
 R"(Time interval to force the user access time update.
+)"
+};
+
+ErrorId MsgConfig::DmUserAccessmode = { ErrorOf( ES_CONFIG, 505, E_INFO, EV_NONE, 0),
+R"(Conditions for updating user access times:
+	0: Access times are only updated on command start
+	1: Access times for users with IdleTimeouts are updated periodically
+	   during and at the end of a command
+	2: All user's access times are periodically updated
+	3: As above, but including service type users too
 )"
 };
 
@@ -1340,8 +1360,10 @@ this threshold beyond its default may result in server instability.
 
 ErrorId MsgConfig::MapOverlayLegacy = { ErrorOf( ES_CONFIG, 163, E_INFO, EV_NONE, 0 ),
 R"(If set to 1, revert overlay client views to their 'legacy' pre-2023.1 behavior.
-This configurable will be deprecated in the 2025.1 release and should only be
-used on a temporary basis with the careful guidance of technical support.
+The pre-2023.1 behavior caused a number of confusing and often wrong results,
+so setting this configurable to a non-zero value is not recommended.
+Non-zero values for map.overlay.legacy are also incompatible with the
+Sparse Stream feature.
 )"
 };
 
@@ -1365,16 +1387,31 @@ R"(Network buffer size for sends.
 )"
 };
 
+ErrorId MsgConfig::NetDeltaRplMinsize = { ErrorOf( ES_CONFIG, 506, E_INFO, EV_NONE, 0 ),
+R"(Minimum file size to perform replica delta transfer. Must be non-zero on
+both upstream and downstream servers to activate delta transfer. Upstream
+server values are used for replica delta transfer.
+)"
+};
+
+ErrorId MsgConfig::NetDeltaRplThreshold = { ErrorOf( ES_CONFIG, 507, E_INFO, EV_NONE, 0 ),
+R"(Maximum percentage of file size to perform replica delta transfer before
+reverting to streaming the complete file. Must be non-zero on both upstream
+and downstream servers to activate delta transfer. Upstream server values are
+used for replica delta transfer.
+)"
+};
+
 ErrorId MsgConfig::NetDeltaTransferMinsize = { ErrorOf( ES_CONFIG, 487, E_INFO, EV_NONE, 0 ),
-R"(Minimum file size to perform a delta content transfer. A value of 0 disables
-delta content transfers.
+R"(Minimum file size to perform a delta transfer between server and client.
+A value of 0 disables delta transfers.
 )"
 };
 
 ErrorId MsgConfig::NetDeltaTransferThreshold = { ErrorOf( ES_CONFIG, 489, E_INFO, EV_NONE, 0 ),
-R"(Maximum percentage of file size to perform a delta content transfer before
-reverting to streaming the complete file. A value of 0 disables delta content
-transfers.
+R"(Maximum percentage of file size to perform a delta transfer between
+server and client before reverting to streaming the complete file. A value
+of 0 disables delta transfers.
 )"
 };
 
@@ -1441,6 +1478,12 @@ R"(Milliseconds to wait for a network close.
 
 ErrorId MsgConfig::NetMaxwait = { ErrorOf( ES_CONFIG, 178, E_INFO, EV_NONE, 0 ),
 R"(Time, in seconds, before a network connection times out and is closed.
+)"
+};
+
+ErrorId MsgConfig::NetNagle = { ErrorOf( ES_CONFIG, 509, E_INFO, EV_NONE, 0 ),
+R"(Enable the Nagle algorithm (ie, clear %'TCP_NODELAY'% socket option) if
+'%'net.nagle=1'%'.
 )"
 };
 
@@ -1517,6 +1560,12 @@ R"(Minimum number of files in a change to enable parallel file transfer for
 
 ErrorId MsgConfig::NetParallelSyncSvrthreads = { ErrorOf( ES_CONFIG, 191, E_INFO, EV_NONE, 0 ),
 R"(Server-wide parallel sync transmit thread limit.
+)"
+};
+
+ErrorId MsgConfig::NetQuickAck = { ErrorOf( ES_CONFIG, 510, E_INFO, EV_NONE, 0 ),
+R"(Don't delay ACKs (ie, set %'TCP_QUICKACK'% socket option) if
+'%'net.quickack=1'%'.
 )"
 };
 
@@ -1601,6 +1650,12 @@ R"(Maximum number of lines that can be inserted to an RCS archive chunk.
 
 ErrorId MsgConfig::RcsNofsync = { ErrorOf( ES_CONFIG, 206, E_INFO, EV_NONE, 0 ),
 R"(When set to 1, RCS files will be closed without a call to fsync.
+)"
+};
+
+ErrorId MsgConfig::RmtAllowRemoteUser = { ErrorOf( ES_CONFIG, 511, E_INFO, EV_NONE, 0 ),
+R"(When set to 1 and at security levels below 4, the 'remote' user may be used
+for server to server connections (for example, remote depots).
 )"
 };
 
@@ -1927,6 +1982,12 @@ and '%'p4 fetch -t'%' commands.
 )"
 };
 
+ErrorId MsgConfig::DmDvcsAllowcasemismatch = { ErrorOf( ES_CONFIG, 500, E_INFO, EV_NONE, 0 ),
+R"(If set to a non-zero value, allows this server to send/receive changes
+with another server whose case handling is different.
+)"
+};
+
 ErrorId MsgConfig::ServerGlobalClientViews = { ErrorOf( ES_CONFIG, 255, E_INFO, EV_NONE, 0 ),
 R"(Controls whether the view maps (or client maps) of a non-stream client on an
 edge server are made global when a client is modified.
@@ -1955,7 +2016,7 @@ ErrorId MsgConfig::ServerMaxcommands = { ErrorOf( ES_CONFIG, 257, E_INFO, EV_NON
 R"(If monitoring is enabled, this configurable is set to a nonzero value, and
 the limit is exceeded:
 
-Helix Core Server refuses to accept more than this many simultaneous command
+P4 Server refuses to accept more than this many simultaneous command
 requests users receive the TooManyCommands error.
 )"
 };
@@ -1971,6 +2032,11 @@ You must restart the server after changing the value of this configurable.
 ErrorId MsgConfig::ServerStartUnlicensed = { ErrorOf( ES_CONFIG, 259, E_INFO, EV_NONE, 0 ),
 R"(When enabled, the server may start even if the license is invalid.
 User's commands will be rejected until a valid license is installed.
+)"
+};
+
+ErrorId MsgConfig::ServerStartupAutoRestart = { ErrorOf( ES_CONFIG, 504, E_INFO, EV_NONE, 0 ),
+R"(When enabled, the server will automatically restart startup commands.
 )"
 };
 
@@ -2349,21 +2415,22 @@ R"(Value to set the stack size limit to on Linux.
 
 ErrorId MsgConfig::SysPressureMaxPauseTime = { ErrorOf( ES_CONFIG, 315, E_INFO, EV_NONE, 0 ),
 R"(The number of seconds a command is able to spend in the paused state because of
-resource pressure before the Helix Core Server returns an error to the client.
+resource pressure before the P4 Server returns an error to the client.
 Setting this configurable to 0 disables pausing commands entirely.
 )"
 };
 
 ErrorId MsgConfig::SysPressureMaxPaused = { ErrorOf( ES_CONFIG, 316, E_INFO, EV_NONE, 0 ),
 R"(The maximum number of concurrently resource pressure paused client commands on
-the Helix Core Server (0 is unlimited). New incoming commands above this
+the P4 Server (0 is unlimited). New incoming commands above this
 threshold will be rejected with an error.
 )"
 };
 
 ErrorId MsgConfig::SysPressureMemHigh = { ErrorOf( ES_CONFIG, 317, E_INFO, EV_NONE, 0 ),
 R"(While the server is above this threshold, commands might be cancelled and return
-an error to the client
+an error to the client.
+Setting this configurable to 0 disables this memory threshold check.
 )"
 };
 
@@ -2388,6 +2455,7 @@ R"((Linux) CPU monitoring is only available if cgroups v2 support is configured.
 This configurable represents the amount of time some processes on the system
 are spending stalled waiting for CPU time. For Linux cgroup support,
 only the system-wide '%'/proc/pressure/*'%' files are considered.
+Setting this configurable to 0 disables this check on stalled processes.
 )"
 };
 
@@ -2402,10 +2470,11 @@ R"((Windows and Linux) Amount of time some processes on the system are spending
 stalled waiting for the memory. New incoming commands received by the server
 while at this threshold are rejected. Existing commands that request more
 memory while the server is above this threshold might be canceled and return
-an error to the client. When the Helix Core Server limits its work, it does
+an error to the client. When the P4 Server limits its work, it does
 not distinguish between memory used by other processes on the operating system
 and its own. For example, if a large external process comes and consumes a
-large amount of memory, the Helix Core Server can throttle itself in response.
+large amount of memory, the P4 Server can throttle itself in response.
+Setting this configurable to 0 disables this threshold checking.
 )"
 };
 
@@ -2632,7 +2701,7 @@ R"(Enables license expiry warning:
 };
 
 ErrorId MsgConfig::AuthLicenseexpiryWarnthreshold = { ErrorOf( ES_CONFIG, 353, E_INFO, EV_NONE, 0 ),
-R"(Number of days prior to the expiration of the Helix Core license to start
+R"(Number of days prior to the expiration of the P4 license to start
 providing the warning if '%'auth.licenseexpiry.warn'%' is set.
 )"
 };
@@ -2683,6 +2752,15 @@ may address this:
 )"
 };
 
+ErrorId MsgConfig::SysTypesTextStorageBehavior = { ErrorOf( ES_CONFIG, 496, E_INFO, EV_NONE, 0 ),
+R"(When enabled decide the implicit storage Modifier for input of basetype
+rcs based on the current lbr.autocompress and always show the storage modifier
+for basetype text in command outputs:
+	0: Disabled - old behavior
+	1: Enabled
+)"
+};
+
 //
 // String Tunables
 //
@@ -2702,6 +2780,33 @@ validation against a specific CA is required.
 
 This configurable applies to any client connection, including when a server
 connects to another server.
+)"
+};
+
+ErrorId MsgConfig::SslClientCipherList = { ErrorOf( ES_CONFIG, 497, E_INFO, EV_NONE, 0 ),
+R"(The list of OpenSSL ciphers the client will allow when establishing a TLS 1.2
+or below connection, overriding the default, or 'ssl.cipher.list' if set.
+)"
+};
+
+ErrorId MsgConfig::SslClientCipherSuites = { ErrorOf( ES_CONFIG, 498, E_INFO, EV_NONE, 0 ),
+R"(The list of OpenSSL cipher suites the client will allow when establishing a
+TLS 1.3 connection, overriding the OpenSSL defaults, or 'ssl.cipher.suites'
+if set.
+)"
+};
+
+ErrorId MsgConfig::SslCipherList = { ErrorOf( ES_CONFIG, 431, E_INFO, EV_NONE, 0 ),
+R"(The list of OpenSSL ciphers the server will allow when establishing a TLS 1.2
+or below connection, overriding the default.
+This will be used by clients too unless 'ssl.client.cipher.list' is also set.
+)"
+};
+
+ErrorId MsgConfig::SslCipherSuites = { ErrorOf( ES_CONFIG, 432, E_INFO, EV_NONE, 0 ),
+R"(The list of OpenSSL cipher suites the server will allow when establishing a
+TLS 1.3 connection, overriding the OpenSSL defaults.
+This will be used by clients too unless 'ssl.client.cipher.suites' is also set.
 )"
 };
 
@@ -2898,8 +3003,7 @@ gap are ignored.
 };
 
 ErrorId MsgConfig::DbReplication = { ErrorOf( ES_CONFIG, 381, E_INFO, EV_NONE, 0 ),
-R"(Control behavior of commands that access metadata (%'db.*'% files) on the Helix
-Server server:
+R"(Control behavior of commands that access metadata (%'db.*'% files) on the P4 server:
 	'%'readonly'%': User commands that read metadata are accepted;
 	                commands that modify metadata are rejected.
 
@@ -3062,13 +3166,13 @@ N may not exceed 500.
 };
 
 ErrorId MsgConfig::ServerlogEventsN = { ErrorOf( ES_CONFIG, 395, E_INFO, EV_NONE, 0 ),
-R"(The optional explicit list of events to include in the the structured log file.
+R"(The optional explicit list of events to include in the structured log file.
 This applies to the structured log file designated with the same %'.N'% value.
 )"
 };
 
 ErrorId MsgConfig::ServerlogFormatN = { ErrorOf( ES_CONFIG, 396, E_INFO, EV_NONE, 0 ),
-R"(The optional format of the the structured log file. Only '%'csv'%' is supported.
+R"(The optional format of the structured log file. Only '%'csv'%' is supported.
 This applies to the structured log file designated with the same %'.N'% value.
 )"
 };
@@ -3120,7 +3224,7 @@ R"(Should server enforce '%'p4 server'%' settings.
 
 ErrorId MsgConfig::SubmitIdentity = { ErrorOf( ES_CONFIG, 403, E_INFO, EV_NONE, 0 ),
 R"(Enable the generation of global changelist ids. This is relevant for users of
-the Helix Core Server's distributed versioning (DVCS) features.
+the P4 Server's distributed versioning (DVCS) features.
 	'%'uuid'%': generates the id in uuid format.
 	'%'checksum'%': generates the id in checksum format.
 	'%'serverid'%': generates the id in serverid+change format.
@@ -3154,7 +3258,7 @@ assume '%'p4 sync -k'%', and do not alter contents of the workspace.
 
 ErrorId MsgConfig::RejectList = { ErrorOf( ES_CONFIG, 408, E_INFO, EV_NONE, 0 ),
 R"(Specifies one or more clients whose requests should be blocked.
-For more information, see "Blocking Clients" in Helix Core Server Administrator
+For more information, see "Blocking Clients" in P4 Server Administrator
 Guide.
 )"
 };
@@ -3191,7 +3295,7 @@ enables additional details in the '%'p4 monitor -L'%' output.
 ErrorId MsgConfig::AuthDefaultMethod = { ErrorOf( ES_CONFIG, 414, E_INFO, EV_NONE, 0 ),
 R"(The default method to use for authenticating new users:
 	'%'perforce'%': specifies that the user is to be authenticated by
-	            password against either the Helix Core database or by
+	            password against either the P4 database or by
 	            authentication triggers.
 	'%'ldap'%':     specifies the user be authenticated directly against
 	            an AD/LDAP server.
@@ -3263,7 +3367,8 @@ R"(This configurable has been deprecated and is no longer used.
 
 ErrorId MsgConfig::ClientReadonlyDir = { ErrorOf( ES_CONFIG, 425, E_INFO, EV_NONE, 0 ),
 R"(Directory for the server to store the have database files for the workspaces of
-type '%'readonly'%', '%'partitioned'%' and '%'partitioned-jnl'%'.
+type '%'readonly'%', '%'partitioned'%' and '%'partitioned-jnl'%'. A relative path
+to the server's root directory is recommended.
 )"
 };
 
@@ -3294,16 +3399,10 @@ R"(The location that the '%'p4 pull -u --trigger'%' command writes the temporary
 passed as '%'%archiveList%'%' to the '%'pull-archive'%' trigger.
 )"
 };
-
-ErrorId MsgConfig::SslCipherList = { ErrorOf( ES_CONFIG, 431, E_INFO, EV_NONE, 0 ),
-R"(The list of OpenSSL ciphers the server will allow when establishing a TLS 1.2
-or below connection, overriding the the OpenSSL defaults.
-)"
-};
-
-ErrorId MsgConfig::SslCipherSuites = { ErrorOf( ES_CONFIG, 432, E_INFO, EV_NONE, 0 ),
-R"(The list of OpenSSL cipher suites the server will allow when establishing a
-TLS 1.3 connection, overriding the the OpenSSL defaults
+ErrorId MsgConfig::LbrScanIgnore = { ErrorOf( ES_CONFIG, 499, E_INFO, EV_NONE, 0 ),
+R"(A JSON format array of regular expressions. This list is examined during
+a storage scan with the --nonlbr flag specified. Any filename that matcheds
+any one of the patterns in this list will not be removed or moved.
 )"
 };
 

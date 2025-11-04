@@ -67,6 +67,7 @@ enum P4DebugType {
 	DT_SUPTOOLS,    // Support Tools 
 	DT_ELOG,	// Exported logs
 	DT_DLTXFER,	// Delta transfer stats
+	DT_PERF,	// Performance stats
 	DT_LAST
 }  ;
 
@@ -77,10 +78,11 @@ enum P4TunableType {
 } ;
 
 enum P4TunableApplicability {
-	CONFIG_APPLY_NONE = 0x0000,
+	CONFIG_APPLY_NONE   = 0x0000,
+	CONFIG_APPLY_ALL    = 0x000f, // Helper mask
 	CONFIG_APPLY_CLIENT = 0x0001,
 	CONFIG_APPLY_SERVER = 0x0002,
-	CONFIG_APPLY_PROXY = 0x0004,
+	CONFIG_APPLY_PROXY  = 0x0004,
 	CONFIG_APPLY_BROKER = 0x0008
 	// When you add new types, update the string array in userconfig.cc
 } ;
@@ -160,6 +162,7 @@ class P4Tunable {
 	};
 
 	void		Set( const char *set );
+	void		Set( char *name, char *val );
 	void		SetTLocal( const char *set );
 	void		Unset( const char *set );
 	int		Get( int t ) const {
@@ -169,6 +172,8 @@ class P4Tunable {
 
 	const tunable	*GetTunable( int i ) const;
 
+	int		IsStringTunable( int i ) const;
+	int		IsStringTunable( const char *n ) const;
 	const stunable	*GetStringTunable( int i ) const;
 
 	int		GetOriginalValue( int t ) const {
@@ -178,13 +183,13 @@ class P4Tunable {
 	StrBuf		GetString( const char *n ) const;
 	StrBuf		GetString( int t ) const;
 	int		GetIndex( const char *n ) const;
-	const char	*GetName( int t ) const { return list[t].name; }
-	int		IsSet( int t ) const { return list[t].isSet; }
+	const char	*GetName( int t ) const;
+	int		IsSet( int t ) const;
 	int		IsSet( const char * n ) const;
 	int		IsKnown( const char * n );
 	int		IsNumeric( const char * n );
 	void		IsValid( const char * n, const char * v, Error *e );
-	int		IsSensitive( int t ) const { return list[t].sensitive;}
+	int		IsSensitive( int t ) const;
 	void		Unbuffer();
 	void		UnsetAll();
 

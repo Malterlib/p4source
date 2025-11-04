@@ -4,6 +4,7 @@ SubDirHdrs $(P4) client ;
 SubDirHdrs $(P4) script lua-5.3 ;
 SubDirHdrs $(P4) script libs p4api ;
 SubDirHdrs $(P4) script libs p4-lua ;
+SubDirHdrs $(P4) i18n ;
 
 local C++FLAGS = [ C++FLAGS+STD $(C++_VERSION_MAX) ] ;
 

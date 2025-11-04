@@ -19,6 +19,9 @@ class OSProcessUtils
 	bool	HideFromOOMKiller( Error* e, const bool verify );
 	bool	TestHideFromOOMKiller();
 	void	ResetOOMKillerStatus( Error* e );
+#ifdef OS_NT
+	static int	GetCurrentExecutablePath( StrBuf *exename, Error *e );
+#endif
 
     private:
 

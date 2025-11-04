@@ -53,17 +53,6 @@ class NetSslEndPoint : public NetTcpEndPoint
 		    delete serverCredentials;
 	    }
 
-	virtual void
-	SetCipherList(const StrPtr *value)
-	    {
-		    customCipherList.Set(value);
-	    }
-	virtual void
-	SetCipherSuites(const StrPtr *value)
-	    {
-		    customCipherSuites.Set(value);
-	    }
-
 	virtual void	NotifyRestarting();
 	virtual void	MoreSocketSetup( int fd, AddrType type, Error *e );
 	void	    	Listen( Error *e );
@@ -73,6 +62,13 @@ class NetSslEndPoint : public NetTcpEndPoint
 	virtual void    GetMyFingerprint(StrBuf &value);
 	virtual void    GetExpiration( StrBuf &buf );
 	virtual int     IsSSL() { return 1; };
+	virtual void    SetNagle( int fd, int mode );
+	virtual void    SetNagle( int fd ); // use net.nagle
+	virtual void    SetNagle()
+	                {
+	                    SetNagle( s );
+	                }
+
 
     private:
 	/*
@@ -81,9 +77,5 @@ class NetSslEndPoint : public NetTcpEndPoint
 	 * credentials are NetSslTransport data members instead.
 	 */
 	NetSslCredentials *serverCredentials;
-
-	// Cipher List/Suites are only set server side
-	StrBuf          customCipherList;
-	StrBuf          customCipherSuites;
 } ;
 # endif //USE_SSL

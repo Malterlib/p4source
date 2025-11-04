@@ -63,6 +63,7 @@ enum P4TunableName {
 	P4TUNE_DM_COPY_MOVEWARN,
 	P4TUNE_DM_DOMAIN_ACCESSUPDATE,		// see dmadomain.cc
 	P4TUNE_DM_DOMAIN_ACCESSFORCE,		// see dmadomain.cc
+	P4TUNE_DM_DVCS_ALLOWCASEMISMATCH,	// DVCS feature enabling
 	P4TUNE_DM_FETCH_PRESERVECHANGENUMBERS,
 	P4TUNE_DM_FLUSHFORCE,
 	P4TUNE_DM_FLUSHTRY,
@@ -72,6 +73,7 @@ enum P4TunableName {
 	P4TUNE_DM_GREP_MAXLINELENGTH,
 	P4TUNE_DM_GREP_MAXREVS,
 	P4TUNE_DM_GREP_MAXCONTEXT,
+	P4TUNE_DM_HAVE_PRELOAD,			// see dmsync.cc
 	P4TUNE_DM_INFO_HIDE,
 	P4TUNE_DM_INTEG_ENGINE,
 	P4TUNE_DM_INTEG_MAXACT,
@@ -126,8 +128,9 @@ enum P4TunableName {
 	P4TUNE_DM_SYNC_STREAM_CHANGE,		// see usersync.cc
 	P4TUNE_DM_SUBPROTECTS_GRANT_ADMIN,
 	P4TUNE_DM_TOPOLOGY_LASTSEENUPDATE,	// see dmatopology.cc
-	P4TUNE_DM_USER_ACCESSUPDATE,		// see dmauser.cc
-	P4TUNE_DM_USER_ACCESSFORCE,		// see dmauser.cc
+	P4TUNE_DM_USER_ACCESSUPDATE,		// see dmauser.cc dmcaller.cc
+	P4TUNE_DM_USER_ACCESSFORCE,		// see dmauser.cc dmcaller.cc
+	P4TUNE_DM_USER_ACCESSMODE,		// see dmauser.cc dmcaller.cc
 	P4TUNE_DM_USER_ALLOWSELFUPDATE,		// see dmsuser.cc
 	P4TUNE_DM_USER_HIDEINVALID,		// see userlogin.cc
 	P4TUNE_DM_USER_INSECURELOGIN,		// see userlogin.cc
@@ -184,6 +187,8 @@ enum P4TunableName {
 	P4TUNE_MERGE_DL_ENDEOL,
 	P4TUNE_NET_AUTOTUNE,
 	P4TUNE_NET_BUFSIZE,			// see netbuffer.h
+	P4TUNE_NET_DELTA_RPL_MINSIZE,		// see rpl.cc, rmtservice.cc
+	P4TUNE_NET_DELTA_RPL_THRESHOLD,		// see rpl.cc, rmtservice.cc
 	P4TUNE_NET_DELTA_TRANSFER_MINSIZE,	// see clientservice.cc/usersubmit.cc
 	P4TUNE_NET_DELTA_TRANSFER_THRESHOLD,	// see clientservice.cc
 	P4TUNE_NET_KEEPALIVE_DISABLE,		// see nettcptransport.cc
@@ -196,8 +201,9 @@ enum P4TunableName {
 	P4TUNE_NET_HEARTBEAT_MISSING_WAIT,	// see userheartbeat.cc
 	P4TUNE_NET_HEARTBEAT_MISSING_COUNT,	// see userheartbeat.cc
 	P4TUNE_NET_MAX_FAULT_PUB,		// see proxy/pxclient.cc
-	P4TUNE_NET_MAXCLOSEWAIT,		// see nettcptransport.cc, netssltrancport.cc
-	P4TUNE_NET_MAXWAIT,			// see nettcptransport.cc, netssltrancport.cc
+	P4TUNE_NET_MAXCLOSEWAIT,		// see net{ssl,tcp}transport.cc
+	P4TUNE_NET_MAXWAIT,			// see net{ssl,tcp}transport.cc
+	P4TUNE_NET_NAGLE,			// see nettcpendpoint.cc
 	P4TUNE_NET_PARALLEL_MAX,		// see dmparsend.cc
 	P4TUNE_NET_PARALLEL_THREADS,		// see usersync.cc
 	P4TUNE_NET_PARALLEL_BATCH,		// see usersync.cc
@@ -211,6 +217,7 @@ enum P4TunableName {
 	P4TUNE_NET_PARALLEL_SUBMIT_BATCH,	// see usersubmit.cc
 	P4TUNE_NET_PARALLEL_SUBMIT_MIN,		// see usersubmit.cc
 	P4TUNE_NET_PARALLEL_SYNC_SVRTHREADS,	// see usersync.cc
+	P4TUNE_NET_QUICKACK,			// see nettcp{endpoint,transport}.cc
 	P4TUNE_NET_RCVBUFLOWMARK,		// see netbuffer.cc
 	P4TUNE_NET_RCVBUFMAXSIZE,		// see netbuffer.cc
 	P4TUNE_NET_RCVBUFSIZE,			// see netbuffer.h
@@ -227,6 +234,7 @@ enum P4TunableName {
 	P4TUNE_PROXY_SUPPRESSWARNINGS,		// see pxservice.cc
 	P4TUNE_RCS_MAXINSERT,
 	P4TUNE_RCS_NOFSYNC,			// see rcsvfile.cc
+	P4TUNE_RMT_ALLOW_REMOTEUSER,		// see rmtservice.cc
 	P4TUNE_RPC_DELAY,			// see rpc.cc
 	P4TUNE_RPC_DURABLEWAIT,			// see rhservice.cc
 	P4TUNE_RPC_HIMARK,
@@ -356,6 +364,7 @@ enum P4TunableName {
 	P4TUNE_SYS_RENAME_WAIT,			// see fileiont.cc
 	P4TUNE_SYS_THREADING_GROUPS,		// see threading.cc
 	P4TUNE_SYS_TYPES_ALLOW64,		// allow 64bit fields
+	P4TUNE_SYS_TYPES_TEXT_STORAGE_BEHAVIOR,
 	P4TUNE_RPL_FORWARD_ALL,
 	P4TUNE_RPL_FORWARD_LOGIN,		// see rhmain.cc
 	P4TUNE_RPL_PULL_POSITION,		// see userpull.cc
@@ -387,11 +396,15 @@ enum P4TunableName {
 	P4TUNE_LAST,
 
 	// BEGIN STRINGS
-	
+	P4TUNE_LBR_SCAN_IGNORE_PATTERN,		// see userstorage.cc
 	P4TUNE_SECURITY_DIGEST,			// see digester.cc, rhservice.cc
 	P4TUNE_SSL_CLIENT_CA_PATH,		// see netssltransport.cc
+	P4TUNE_SSL_CLIENT_CIPHER_LIST,		// see netssltransport.cc
+	P4TUNE_SSL_CLIENT_CIPHER_SUITES,	// see netssltransport.cc
+	P4TUNE_SSL_CIPHER_LIST,			// see netssltransport.cc
+	P4TUNE_SSL_CIPHER_SUITES,		// see netssltransport.cc
 	P4TUNE_SSL_KEYLOG_FILE,			// see netssltransport.cc
-	
+
 	P4TUNE_LAST_STR
 
 }  ;

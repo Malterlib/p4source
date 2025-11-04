@@ -41,10 +41,11 @@
 
 # ifdef USE_CDC
 # include <blake3digester.h>
-# include <chunkmap.h>
 # include <vararray.h>
 # include <intarray.h>
 # include <vartree.h>
+# include <strintstree.h>
+# include <chunkmap.h>
 # endif
 
 # include <p4tags.h>
@@ -71,76 +72,10 @@
 # include "clientscript.h"
 # include "client.h"
 # include "clientprog.h"
+# include "clientprogressreport.h"
 # include "clientaltsynchandler.h"
 
 # define SSOMAXLENGTH 131072    // max sso message 128k
-
-# ifdef USE_CDC
-
-class ChunkOffsetTree : public VVarTree
-{
-    public:
-	class ChunkOffsets
-	{
-	    public:
-	        ChunkOffsets() : count( 0 ) {}
-	        ChunkOffsets( const char *h ) : count( 0 ), hash( h ) {}
-	        ~ChunkOffsets() {}
-
-	        int count;
-	        P4INT64Array offsets;
-	        StrBuf hash;
-
-	        void
-	        Put( P4INT64 offset )
-	        {
-	            offsets[ count++ ] = offset;
-	        }
-	} ;
-
-	ChunkOffsetTree() {}
-	virtual ~ChunkOffsetTree()
-	{
-	    Clear();
-	}
-
-	virtual int Compare( const void *a, const void *b ) const
-	{
-	    const ChunkOffsets *ca = (const ChunkOffsets *)a;
-	    const ChunkOffsets *cb = (const ChunkOffsets *)b;
-	    return ca->hash.XCompare( cb->hash );
-	    
-	}
-	
-	virtual void *Copy( const void *src ) const
-	{
-	    ChunkOffsets* c = new ChunkOffsets;
-	    c->hash = ( ( ChunkOffsets* )src )->hash;
-	    return c;
-	}
-	
-	virtual void Delete( void *a ) const
-	{
-	    delete ( ChunkOffsets* )a;
-	}
-
-	virtual void Dump( void *a, StrBuf &buf ) const
-	{
-	}
-
-	ChunkOffsets *Get( const char* hash )
-	{
-	    ChunkOffsets o( hash );
-	    return ( ChunkOffsets* )VVarTree::Get( &o );
-	}
-
-	ChunkOffsets *Put( const char* hash, Error *e )
-	{
-	    ChunkOffsets o( hash );
-	    return ( ChunkOffsets* )VVarTree::Put( &o, e );
-	}
-} ;
-# endif
 
 ClientFile::ClientFile( FileSys *fs )
 {
@@ -476,36 +411,6 @@ ClientSvc::File( Client *client, Error *e )
 	return FileFromPath( client, P4Tag::v_path, e );
 }
 
-class ClientProgressReport : public ProgressReport {
-    public:
-	ClientProgressReport( ClientProgress *p ) : cp(p) {}
-	~ClientProgressReport() { delete cp; }
-	void DoReport( int );
-
-    protected:
-	ClientProgress *cp;
-};
-
-void
-ClientProgressReport::DoReport( int flag )
-{
-	if( cp )
-	{
-	    if( fieldChanged & ( CP_DESC|CP_UNITS) )
-		cp->Description( &description, units );
-	    if( fieldChanged & CP_TOTAL )
-		cp->Total( total );
-	    if( fieldChanged & CP_POS )
-		cp->Update( position );
-	    fieldChanged = 0;
-	    if( flag == CPP_DONE || flag == CPP_FAILDONE )
-	    {
-		cp->Done( flag == CPP_FAILDONE );
-		needfinal = 0;
-	    }
-	}
-}
-
 /*
  * Client Service -- top half 
  */
@@ -819,7 +724,7 @@ clientOpenFile( Client *client, Error *e )
 	    {
 	        f->progress = new ClientProgressReport( indicator );
 	        f->progress->Description( *clientPath );
-	        f->progress->Units( CPU_KBYTES );
+	        f->progress->Units( PRU_KBYTES );
 	        f->progress->Total( (long)( svrSize->Atoi64() / 1024 ) );
 	    }
 	}
@@ -1168,38 +1073,6 @@ class CDCStats : public LastChance
 	}
 } ;
 
-static int
-checkCDCThreshold( P4INT64 chunksToSend, P4INT64 chunksTotal, StrBuf* msg = 0 )
-{
-	const P4INT64 cdcThreshold =
-	    p4tunable.Get( P4TUNE_NET_DELTA_TRANSFER_THRESHOLD );
-
-	if( !cdcThreshold )
-	{
-	    if( msg )
-	        *msg = "net.delta.transfer.threshold=0";
-
-	    return 0;
-	}
-
-	// Only perform delta transfer if the ratio of nChunksToSend
-	// over nTotalChunks is under the threshold to avoid further
-	// overhead when the saving on transfer is small. Set threshold
-	// to 100 to always perform delta transfer and 0 to disable it.
-
-	if( (chunksToSend * 100 ) > (cdcThreshold * chunksTotal ) )
-	{
-	    if( msg )
-	    {
-	        P4INT64 pct = ( chunksToSend * 100 ) / chunksTotal;
-	        *msg << "net.delta.transfer.threshold set/actual " <<
-	                cdcThreshold << "/" << pct;
-	    }
-	    return 0;
-	}
-	return 1;
-}
-
 static bool
 clientChunkMapInternal( Client* client, StrPtr *clientPath,
 	StrPtr *index, StrPtr *confirm, ChunkMap &cm,
@@ -1257,11 +1130,10 @@ clientChunkMapInternal( Client* client, StrPtr *clientPath,
 	if( e->Test() || !cmDiff )
 	    return false;
 
-	P4INT64 nTotalChunks = cm.ChunkCount();
 	P4INT64 nChunksToSend = cmDiff->Count();
 	if( nChunksToSend )
 	{
-	    if( !checkCDCThreshold( nChunksToSend, nTotalChunks, &status ) )
+	    if( !cm.BelowThreshold( nChunksToSend, &status ) )
 	    {
 	        delete cmDiff;
 	        return false;
@@ -1422,7 +1294,7 @@ clientChunkMap( Client *client, Error *e )
 static void
 clientWriteFileChunks( Client *client, Error *e )
 {
-	ChunkOffsetTree::ChunkOffsets *co = 0;
+	StrIntsTree::StrInts *co = 0;
 
 	StrPtr *clientHandle = client->GetVar( P4Tag::v_handle, e );
 	StrPtr *clientPath = client->transfname->GetVar( P4Tag::v_path, e );
@@ -1516,7 +1388,7 @@ clientWriteFileChunks( Client *client, Error *e )
 	    if( cdcStats )
 	        cdcStats->LogFile( cm.GetFileSize() );
 
-	    f->chunkOffsetTree = new ChunkOffsetTree;
+	    f->chunkOffsetTree = new StrIntsTree;
 
 	    // create the local chunkmap again
 
@@ -1569,7 +1441,7 @@ clientWriteFileChunks( Client *client, Error *e )
 	{
 	    for( int i = 0; i < co->count && !e->Test(); i++ )
 	    {
-	        f->file->Seek( (P4INT64)co->offsets[ i ], e );
+	        f->file->Seek( (P4INT64)co->ints[ i ], e );
 	        f->file->Write( data, e );
 	    }
 	}
@@ -1839,6 +1711,7 @@ void
 clientDeleteFile( Client *client, Error *e )
 {
 	client->NewHandler();
+	StrPtr *clientPath = client->GetVar( P4Tag::v_path, e );
 	StrPtr *noclobber = client->GetVar( P4Tag::v_noclobber );
 	StrPtr *clientHandle = client->GetVar( P4Tag::v_handle );
 	StrPtr *rmdir = client->GetVar( P4Tag::v_rmdir );
@@ -1853,6 +1726,17 @@ clientDeleteFile( Client *client, Error *e )
 
 	if( rmdir && *rmdir == P4Tag::v_false )
 	    rmdir = 0;
+
+	ClientProgress *indicator;
+	ProgressReport *progress = 0;
+
+	if( ( indicator = client->GetUi()->CreateProgress( CPT_DELFILE, 0 ) ) )
+	{
+	    progress = new ClientProgressReport( indicator );
+	    progress->Description( *clientPath );
+	    progress->Units( PRU_FILES );
+	    progress->Total( 1 );
+	}
 
 	FileSys *f = 0;
 	int stat = 0;
@@ -2015,6 +1899,10 @@ clientDeleteFile( Client *client, Error *e )
 	delete f;
 
 end:
+	if( progress )
+	    progress->Position( e->Test() ? 0 : 1,
+	                        e->Test() ? CPP_FAILDONE : CPP_DONE );
+
 	// Ack fallthough
 
 	if( confirm )
@@ -2261,6 +2149,69 @@ const struct ctTable {
 
 static void clientCheckFileGraph( Client *client, Error *e );
 
+const char *
+clientCheckFileType( FileSys *f, FileSysType t, int clientProtocolFiles,
+	             int checkSize, StrPtr *wildType, StrPtr *forceType,
+	             StrPtr *msgType, Error *e )
+{
+	const ctTable *c;
+
+	for( c = checkTable; c->type; c++ )
+	    if( t == c->checkType )
+	        break;
+
+	if( !c->type )
+	    c = checkTable;
+
+	const char *ntype = "text";
+
+	switch( c->action[ clientProtocolFiles >= c->xlevel ] )
+	{
+	case OK:
+	    // Use the primary type
+	    ntype = forceType ? forceType->Text() : c->type;
+	    break;
+
+	case CHKSZ:
+	    // If server sends a maximum size for file, check it
+	    if( forceType )
+	        ntype = forceType->Text();
+	    else if( checkSize )
+	        ntype = c->cmpType;
+	    else
+	        ntype = c->type;
+	    break;
+
+	case ASS:
+	    // Use the altType, saying we're assuming it
+	    ntype = forceType ? forceType->Text() : c->altType;
+
+	    if( wildType )
+	        e->Set( MsgClient::CheckFileAssumeWild ) 
+	                << f->Name() << c->type << ntype << wildType;
+	    else
+	        e->Set( MsgClient::CheckFileAssume ) << f->Name()
+	                << c->type << ( msgType ? msgType->Text() : ntype );
+	    break;
+
+	case SUBST:
+	    // Substitute altType for type
+	    ntype = c->altType;
+
+	    e->Set( MsgClient::CheckFileSubst )
+	            << f->Name() << c->altType << c->type;
+	    break;
+
+	case CANT:
+	    // Just can't do it
+	    e->Set( MsgClient::CheckFileCant )
+	            << f->Name() << c->type;
+	    return 0;
+	}
+
+	return ntype;
+}
+
 void
 clientCheckFile( Client *client, Error *e )
 {
@@ -2274,11 +2225,15 @@ clientCheckFile( Client *client, Error *e )
 	StrPtr *digestType = client->GetVar( P4Tag::v_digestType );
 	StrPtr *confirm = client->GetVar( P4Tag::v_confirm, e );
 	StrPtr *fileSize = client->GetVar( P4Tag::v_fileSize );
+	StrPtr *sendFileSize = client->GetVar( P4Tag::v_sendFileSize );
 	StrPtr *scanSize = client->GetVar( P4Tag::v_scanSize );
 	StrPtr *ignore = client->GetVar( P4Tag::v_ignore );
 	StrPtr *checkLinks = client->GetVar( P4Tag::v_checkLinks );
 	StrPtr *checkLinksNs = client->GetVar( P4Tag::v_checkLinksN );
 	const int checkLinksN = checkLinksNs ? checkLinksNs->Atoi() : 0;
+
+	if( !sendFileSize && fileSize )
+	    client->RemoveVar( P4Tag::v_fileSize );
 
 	StrPtr *revertmovecheck = client->GetVar( P4Tag::v_revertmovecheck );
 	if( revertmovecheck )
@@ -2485,6 +2440,9 @@ clientCheckFile( Client *client, Error *e )
 		e->Clear();
 	    }
 
+	    if( sendFileSize )
+	        client->SetVar( P4Tag::v_fileSize, StrNum( f->GetSize() ) );
+
 	    delete f;
 	}
 	else
@@ -2500,81 +2458,48 @@ clientCheckFile( Client *client, Error *e )
 
 	    int scan = -1;
 	    if( scanSize )
-		scan = scanSize->Atoi();
-
-	    Error msg;
-	    const ctTable *c;
+	        scan = scanSize->Atoi();
 
 	    FileSys *f = client->GetUi()->File( FST_BINARY );
 	    f->SetContentCharSetPriv( client->ContentCharset() );
 	    f->Set( *clientPath );
 	    FileSysType t = f->CheckType( scan );
 	    offL_t size = f->GetSize();
-
-	    for( c = checkTable; c->type; c++ )
-		if( t == c->checkType )
-		    break;
-
-	    if( !c->type )
-		c = checkTable;
-
-	    switch( c->action[ client->protocolXfiles >= c->xlevel ] )
+	    if( t != FST_BINARY && sendFileSize )
 	    {
-	    case OK:
-		// Use the primary type
-		ntype = forceType ? forceType->Text() : c->type;
-		break;
+	        // The file was originally opened as binary.
+	        // Need to reopen the file with the now known
+	        // type if it's not binary to get the correct
+	        // file size. f2 would be 0 if file is missing.
 
-	    case CHKSZ:
-		// If server sends a maximum size for file, check it
-		if( forceType )
-		    ntype = forceType->Text();
-	        else if( fileSize && size > checkSize )
-	 	    ntype = c->cmpType;
-		else
-	 	    ntype = c->type;
-		break;
-
-	    case ASS:
-		// Use the altType, saying we're assuming it
-		ntype = forceType ? forceType->Text() : c->altType;
-
-	        if( wildType )
-		    msg.Set( MsgClient::CheckFileAssumeWild ) 
-		        << f->Name() << c->type << ntype << wildType;
-	        else
-		    msg.Set( MsgClient::CheckFileAssume ) << f->Name()
-		        << c->type << ( msgType ? msgType->Text() : ntype );
-
-		client->GetUi()->Message( &msg );
-		break;
-
-	    case SUBST:
-		// Substitute altType for type
-		ntype = c->altType;
-
-		msg.Set( MsgClient::CheckFileSubst )
-		    << f->Name() << c->altType << c->type;
-
-		client->GetUi()->Message( &msg );
-		break;
-
-	    case CANT:
-		// Just can't do it
-
-		msg.Set( MsgClient::CheckFileCant )
-		    << f->Name() << c->type;
-
-		client->GetUi()->Message( &msg );
-		client->SetError();
-		delete f;
-		return;
+	        FileSys *f2 = client->GetUi()->File( t );
+	        if( f2 )
+	        {
+	            f2->SetContentCharSetPriv( client->ContentCharset() );
+	            f2->Set( *clientPath );
+	            size = f2->Digest( 0, e );
+	            delete f2;
+	        }
 	    }
 
+	    if( sendFileSize )
+	        client->SetVar( P4Tag::v_fileSize, StrNum( size ) );
+
+	    Error msg;
+	    ntype = clientCheckFileType( f, t, client->protocolXfiles,
+	                                 fileSize && size > checkSize,
+	                                 wildType, forceType, msgType, &msg );
+	    if( msg.GetSeverity() )
+	        client->GetUi()->Message( &msg );
 	    delete f;
+	    if( !ntype )
+	    {
+	        client->SetError();
+	        return;
+	    }
 	}
 
-        // set the charset here?
+	// set the charset here?
 
 	client->SetVar( P4Tag::v_type, ntype );
 	client->SetVar( P4Tag::v_status, status );
@@ -3311,7 +3236,7 @@ clientSendFileChunked( Client *client, ProgressReport **progress, FileSys *f,
 	{
 	    *progress = new ClientProgressReport( indicator );
 	    (*progress)->Description( *clientPath );
-	    (*progress)->Units( CPU_DELTAS );
+	    (*progress)->Units( PRU_DELTAS );
 	    (*progress)->Total( dm->Count() );
 	}
 
@@ -3397,7 +3322,7 @@ clientSendFileWhole( Client *client, ProgressReport **progress, FileSys *f,
 	{
 	    *progress = new ClientProgressReport( indicator );
 	    (*progress)->Description( *clientPath );
-	    (*progress)->Units( CPU_KBYTES );
+	    (*progress)->Units( PRU_KBYTES );
 	    (*progress)->Total( filesize / 1024 );
 	}
 
@@ -3694,7 +3619,7 @@ clientSendFile( Client *client, Error *e )
 	    P4INT64 nTotalChunks = cm.ChunkCount();
 	    P4INT64 nChunksToSend = dm ? dm->Count() : nTotalChunks;
 
-	    if( checkCDCThreshold( nChunksToSend, nTotalChunks ) )
+	    if( cm.BelowThreshold( nChunksToSend ) )
 	    {
 	        clientSendFileChunked( client, &progress, f, filesize, dm,
 	                               clientPath, handle, chunkWrite, e );
@@ -4707,7 +4632,11 @@ clientCrypto( Client *client, Error *e )
 	StrPtr *ipAddr = client->GetEVar( P4Tag::v_ipaddr );
 	StrPtr *svrName = client->GetEVar( P4Tag::v_svrname );
 	StrPtr *svcPass = client->GetEVar( P4Tag::v_password );
-	StrPtr *daddr = client->GetEVar( P4Tag::v_port );
+	StrPtr *svrPort = client->GetEVar( P4Tag::v_port );
+	StrPtr *daddr = svrPort;
+	StrPtr *sid = client->GetEVar( P4Tag::v_serverID );
+	StrPtr *stype = client->GetEVar( P4Tag::v_serverType );
+	StrPtr *sver = client->GetEVar( P4Tag::v_serverVersion );
 
 	if( e->Test() )
 	    return;
@@ -4857,6 +4786,15 @@ clientCrypto( Client *client, Error *e )
 
 		md5.Final( phash );
 		client->SetVar( P4Tag::v_dhash, 0, phash );
+
+		if( stype )
+		    client->SetVar( P4Tag::v_serverType, 0, *stype );
+		if( sid )
+		    client->SetVar( P4Tag::v_serverID, 0, *sid );
+		if( sver )
+		    client->SetVar( P4Tag::v_serverVersion, 0, *sver );
+		if( svrPort )
+		    client->SetVar( P4Tag::v_laddr, *svrPort );
 	    }
 	}
 
@@ -4957,11 +4895,6 @@ clientSetPassword( Client *client, Error *e )
 	    client->GetUi()->Message( &msg );
 	    return;
 	}
-	
-	// Set the password
-
-	if( sameUser )
-	   client->SetPassword( data->Text() );
 
 	// Downcase the username when setting/updating the ticket file
 	// from a case insensitive server.
@@ -4987,7 +4920,7 @@ clientSetPassword( Client *client, Error *e )
 	    Ticket t( &client->GetTicketFile() );
 	    const StrPtr *port = serverID ? serverID : &client->GetPort();
 	    t.ReplaceTicket( *port, *user, *data, e );
-	    client->SetTicketKey( port );
+	    client->SetTicket( port, user, data );
 	    return;
 	}
 
