@@ -35,6 +35,7 @@ SubDirHdrs $(P4) script libs cURL curl ;
 
 P4APILibrary $(P4SCRIPT_CURL) :
 	bearssl.c
+	cipher_suite.c
 	gtls.c
 	hostcheck.c
 	keylog.c

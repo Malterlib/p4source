@@ -830,14 +830,14 @@ nt_getStdHandle( int std_desc, int flags )
 	HANDLE std_fh;
 
 	if( std_desc < 0 || std_desc > 2 )
-	    return NULL;
+	    return FD_ERR;
 
 	std_fh = (HANDLE)_get_osfhandle( std_desc );
 
 	// If we are a Windows Service, we want to error on a bad handle.
 
 	if( std_fh == INVALID_HANDLE_VALUE2 )
-	    return NULL;
+	    return FD_ERR;
 
 	FD_TYPE fd = new struct P4_FD;
 
@@ -1164,17 +1164,33 @@ nt_open2( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 {
 	HANDLE osfh;
 
-	osfh = ntw_open( fname, flags, mode, dounicode, lfn );
-
-	if( osfh == INVALID_HANDLE_VALUE )
+	while( true )
 	{
-	    // Claer LFN_UTF8 so that the MS Unicode conversion is used
-	    // instead of our CVT class in nt_wname().  This is the only
-	    // significant difference as compared to the Posix ::open().
-	    //
-	    int lfn_fallback = lfn & ~LFN_UTF8;
+	    osfh = ntw_open( fname, flags, mode, dounicode, lfn );
 
-	    osfh = ntw_open( fname, flags, mode, dounicode, lfn_fallback );
+	    if( osfh == INVALID_HANDLE_VALUE )
+	    {
+	        // Claer LFN_UTF8 so that the MS Unicode conversion is used
+	        // instead of our CVT class in nt_wname().  This is the only
+	        // significant difference as compared to the Posix ::open().
+	        //
+	        int lfn_fallback = lfn & ~LFN_UTF8;
+
+	        osfh = ntw_open( fname, flags, mode, dounicode, lfn_fallback );
+	    }
+
+	    if ( GetLastError() == ERROR_PIPE_BUSY )
+	    {
+	        if( WaitNamedPipe( fname->Text(), NMPWAIT_USE_DEFAULT_WAIT ) )
+	        {
+	            SetLastError( ERROR_SUCCESS );
+	            continue;
+	        }
+	        else
+                    break;   // timeout, don't try again
+	    }
+	    else
+	        break;
 	}
 
 	return osfh ;
@@ -1189,6 +1205,8 @@ nt_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 
 	osfh = nt_open2( fname, flags, mode, dounicode, lfn );
 
+	// System error already set in nt_open2.
+	//
 	if( osfh == INVALID_HANDLE_VALUE )
 	    return FD_ERR;
 
@@ -1222,16 +1240,22 @@ nt_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 }
 
 // Close the handle without the FD_TYPE book keeping.
+// This function is intended internal only.
 //
-void
+static void
 nt_close2(FD_TYPE fd)
 {
 	// Close handle if it is not a standard handle.
 
-	if( !(fd->fdFlags & FD_IsSTD) )
-	    CloseHandle( fd->fh );
+	// A NULL check on fd is performed in nt_close().
+	// nt_close() frees the fd structure.
 
-	fd->fh = INVALID_HANDLE_VALUE;
+	if( !(fd->fdFlags & FD_IsSTD) )
+	    if( fd->fh != INVALID_HANDLE_VALUE )
+	    {
+	        CloseHandle( fd->fh );
+	        fd->fh = INVALID_HANDLE_VALUE;
+	    }
 }
 
 // Close the handle with the FD_TYPE book keeping.
@@ -1239,7 +1263,10 @@ nt_close2(FD_TYPE fd)
 int
 nt_close(FD_TYPE fd)
 {
-	BOOL bRet = TRUE;
+	// Treat a double close or failed open as not an error.
+	//
+	if( fd == FD_ERR )
+	    return 0;
 
 	nt_close2( fd );
 
@@ -1252,10 +1279,10 @@ nt_close(FD_TYPE fd)
 	delete fd;
 	fd = FD_INIT;
 
-	return bRet ? 0 : -1;
+	return 0;
 }
 
-// Close and reopen the given journal related file handle.
+// Close and reopen on the given journal related file handle.
 // This can occur after a journal atomic rename.
 //
 // Return values,
@@ -1264,11 +1291,17 @@ nt_close(FD_TYPE fd)
 int
 nt_reopen( StrPtr *fname, FD_TYPE fd )
 {
+	if( fd == FD_ERR )
+	{
+	    SetLastError( ERROR_INVALID_HANDLE );
+	    return 1;
+	}
+
 	if( fd->fdFlags & FD_LOCKED )
 	    if( lockFileByHandle( fd->fh, LOCKF_UN) < 0 )
 	        return 1;
 
-	nt_close2( fd);
+	nt_close2( fd );
 
 	fd->fh = nt_open2( fname,
 	                    fd->flags, fd->mode, fd->dounicode, fd->lfn );
@@ -1291,6 +1324,12 @@ nt_reopen( StrPtr *fname, FD_TYPE fd )
 int
 nt_reopen_wait( StrPtr *fname, FD_TYPE fd )
 {
+	if( fd == FD_ERR )
+	{
+	    SetLastError( ERROR_INVALID_HANDLE );
+	    return 1;
+	}
+
 	int count;
 	int renameMax  = p4tunable.Get( P4TUNE_SYS_RENAME_MAX );
 	int renameWait = p4tunable.Get( P4TUNE_SYS_RENAME_WAIT );
@@ -1312,11 +1351,19 @@ nt_reopen_wait( StrPtr *fname, FD_TYPE fd )
 	return nt_reopen( fname, fd );
 }
 
+// Return -1 on error, or bytes read.
+//
 int
 nt_read( FD_TYPE fd, const void *buf, unsigned len )
 {
 	BOOL bRet;
 	DWORD l;
+
+	if( fd == FD_ERR )
+	{
+	    SetLastError( ERROR_INVALID_HANDLE );
+	    return -1;
+	}
 
 	if( fd->flags & O_BINARY )
 	{
@@ -1409,6 +1456,12 @@ nt_read( FD_TYPE fd, const void *buf, unsigned len )
 int
 nt_write ( StrPtr *fname, FD_TYPE fd, const void *buf, unsigned cnt )
 {
+	if( fd == FD_ERR )
+	{
+	    SetLastError( ERROR_INVALID_HANDLE );
+	    return -1;
+	}
+
 	int lfcount = 0;	// count of line feeds
 	int charcount = 0;	// count of chars written so far
 	DWORD written;		// count of chars written on this write
@@ -1438,11 +1491,13 @@ nt_write ( StrPtr *fname, FD_TYPE fd, const void *buf, unsigned cnt )
 	        // We make an attempt to wait out the delete pending.
 	        //
 	        case FH_DELETE_PENDING:
-	            nt_reopen_wait( fname, fd );
+	            if( nt_reopen_wait( fname, fd ) )
+	                return -1;
 	            break;
 
 	        case FH_READ_ONLY:
-	            nt_reopen( fname, fd );
+	            if( nt_reopen( fname, fd ) )
+	                return -1;
 	            break;
 	    }
 	}
@@ -2624,6 +2679,22 @@ FileIO::Unlink( Error *e )
 	}
 }
 
+void
+FileIO::UnlinkNoRetry( Error *e )
+{
+	if( *Name() )
+	{
+	    // yeech - must be writable to remove
+	    nt_chmod( Path(), PERM_0666  & ~global_umask, DOUNICODE, LFN );
+
+	    if( nt_unlink( Path(), DOUNICODE, LFN ) < 0)
+	    {
+	        if( e && ! e->Test() )
+	            e->Sys( "unlink", Name() );
+	    }
+	}
+}
+
 // Caller must free the memory.
 wchar_t *
 FileIO::UnicodeName( StrBuf *fname, int lfn )
@@ -2728,6 +2799,8 @@ FileIO::Truncate( Error *e )
 	// then open O_TRUNC.
 	
 	FD_TYPE fd;
+	// checkFd() just returns on Windows, fd value doesn't matter.
+	//
 	fd = checkFd( nt_open( Path(), O_WRONLY|O_TRUNC, PERM_0666,
 	                        DOUNICODE, LFN ) );
 	if( fd != FD_ERR )
@@ -3264,11 +3337,15 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 	    if( fd == FD_ERR )
 	        e->Sys( openModes[ mode ].modeName, Name() );
 
+	    // checkStdio() just returns on Windows, fd doesn't matter.
+	    //
 	    checkStdio( (FD_TYPE)fd );
 	    isStd = 1;
 	}
 	else
 	{
+	    // checkFd() just returns on Windows, fd doesn't matter.
+	    //
 	    if( (fd = checkFd( nt_open( Path(), bits, PERM_0666,
 	        DOUNICODE, LFN ) ) ) == FD_ERR)
 	    {
@@ -3318,8 +3395,21 @@ FileIOBinary::Close( Error *e )
 	    return;
 	}
 
-	if( isStd || fd == FD_ERR )
+	if( isStd )
 	    return;
+
+	if( fd == FD_ERR )
+	{
+# ifdef PPOSSIBLE_FUTURE_ERROR_REPORT
+	    // A failed open with out error checking or double
+		// close can land us here.  Right now just return
+		// without reporting an error.
+		//
+	    SetLastError( ERROR_INVALID_HANDLE );
+	    e->Sys( "Close", Name() );
+# endif
+	    return;
+	}
 
 	if( ( GetType() & FST_M_SYNC ) )
 	    Fsync( e );
@@ -3350,6 +3440,13 @@ FileIOBinary::Write( const char *buf, int len, Error *e )
 	    return;
 	}
 
+	if( fd == FD_ERR )
+	{
+	    SetLastError( ERROR_INVALID_HANDLE );
+	    e->Sys( "Write", Name() );
+	    return;
+	}
+
 	// Raw, unbuffered write
 
 	int l;
@@ -3370,6 +3467,13 @@ FileIOBinary::Read( char *buf, int len, Error *e )
 	    return delegate->Read( buf, len, e );
 
 	// Raw, unbuffered read
+
+	if( fd == FD_ERR )
+	{
+	    SetLastError( ERROR_INVALID_HANDLE );
+	    e->Sys( "Read", Name() );
+	    return -1;
+	}
 
 	int l;
 
@@ -3423,6 +3527,13 @@ FileIOBinary::Seek( offL_t offset, Error *e )
 	if( delegate )
 	{
 	    delegate->Seek( offset, e );
+	    return;
+	}
+
+	if( fd == FD_ERR )
+	{
+	    SetLastError( ERROR_INVALID_HANDLE );
+	    e->Sys( "Seek", Name() );
 	    return;
 	}
 
@@ -3482,6 +3593,8 @@ FileIOAppend::Open( FileOpenMode mode, Error *e )
 	}
 	else
 	{
+	    // checkFd() just returns on Windows, fd value doesn't matter.
+	    //
 	    if ( ( fd = checkFd( nt_open( Path(), bits,
 	                        PERM_0666, DOUNICODE, LFN ) ) ) == FD_ERR )
 	    {
@@ -3492,9 +3605,16 @@ FileIOAppend::Open( FileOpenMode mode, Error *e )
 
 // Should work with unicode and LFN.
 offL_t
-FileIOAppend::GetSize()
+FileIOAppend::GetSize( )
 {
 	offL_t s = 0;
+
+	if( fd == FD_ERR )
+	{
+	    SetLastError( ERROR_INVALID_HANDLE );
+	    return -1;
+	}
+
 	if( !lockFile( (FD_TYPE)fd, LOCKF_SH ) )
 	{
 	    BY_HANDLE_FILE_INFORMATION bhfi;
@@ -3531,6 +3651,13 @@ FileIOAppend::Write( const char *buf, int len, Error *e )
 	if( delegate )
 	{
 	    delegate->Write( buf, len, e );
+	    return;
+	}
+
+	if( fd == FD_ERR )
+	{
+	    SetLastError( ERROR_INVALID_HANDLE );
+	    e->Sys( "Write", Name() );
 	    return;
 	}
 

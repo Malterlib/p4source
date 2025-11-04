@@ -36,6 +36,38 @@ else
 		      -fvisibility=hidden $(flag) ;
 }
 
+
+{
+	# We don't want the 'undefined' option set in -fsanitize
+	# flag when building the files in this directory (really
+	# any that use buf_chunk in bufq.h)
+
+
+	# We take a local copy of OPTIM
+	local OPTIM = $(OPTIM) ;
+	for x in $(OPTIM)
+	{
+	    switch $(x)
+	    {
+	        case -fsanitize=* :
+	             local sub = [ FSplit $(x) : "=" ] ;
+	             local work = [ FSplit $(sub[2]) : "," ] ;
+	             local newwork ;
+	             for k in $(work)
+	             {
+	                switch $(k)
+	                {
+	                      case undefined :
+	                      case * :
+	                      newwork += $(k) ;
+	                }
+	             }
+	             OPTIM = $(sub[1]) ;
+	             OPTIM += $(newwork:J=,) ;
+	             OPTIM = $(OPTIM:J="=") ;
+	    }
+	}
+
 P4APILibrary $(P4SCRIPT_CURL) :
 	amigaos.c
 	altsvc.c
@@ -64,17 +96,19 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	curl_memrchr.c
 	curl_multibyte.c
 	curl_ntlm_core.c
-	curl_ntlm_wb.c
 	curl_path.c
 	curl_range.c
 	curl_rtmp.c
 	curl_sasl.c
+	curl_sha512_256.c
 	curl_sspi.c
 	curl_threads.c
 	curl_trc.c
+	cw-out.c
 	c-hyper.c
 	dict.c
 	doh.c
+	dllmain.c
 	dynbuf.c
 	dynhds.c
 	easy.c
@@ -135,6 +169,7 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	psl.c
 	rand.c
 	rename.c
+	request.c
 	rtsp.c
 	select.c
 	sendf.c
@@ -168,7 +203,7 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	warnless.c
 	ws.c
 	;
-
+}
 SubInclude p4 script libs cURL vauth ;
 SubInclude p4 script libs cURL vtls ;
 SubInclude p4 script libs cURL vquic ;

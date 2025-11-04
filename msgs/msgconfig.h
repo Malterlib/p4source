@@ -312,6 +312,7 @@ class MsgConfig {
 	static ErrorId RunRenameclientAllow;
 	static ErrorId RunUnzipUserAllow;
 	static ErrorId RunUsersAuthorize;
+	static ErrorId LbrS3UploadRetries;
 	static ErrorId ServerCommandlimits;
 	static ErrorId ServerCtrlcFilecleanup;
 	static ErrorId ServerExtsAllowAdmin;

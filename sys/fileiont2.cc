@@ -95,7 +95,10 @@ nt_atrename( StrPtr *srcname, StrPtr *dstname, int dounicode, int lfn )
 	int bits = FileIOBinary::GetModeAflags( FOM_RW );
 
 	// Unicode filenames only here.
+	// nt_open() sets the system error.
 	srcfd = nt_open( srcname, bits, PERM_0666, dounicode, lfn );
+	if( srcfd == FD_ERR )
+	    return 1;
 
 	// Wide character version of destination file.
 	const wchar_t *wdstname = nt_wname( dstname, lfn, NULL );

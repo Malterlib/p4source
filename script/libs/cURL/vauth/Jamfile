@@ -36,7 +36,7 @@ SubDirHdrs $(P4) script libs cURL curl ;
 P4APILibrary $(P4SCRIPT_CURL) :
 	cleartext.c
 	cram.c
-	digest.c
+	curl_digest.c
 	digest_sspi.c
 	gsasl.c
 	krb5_gssapi.c

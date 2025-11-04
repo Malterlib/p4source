@@ -379,3 +379,9 @@ FileIO::Unlink( Error *e )
 	while( remove( Name() ) >= 0 )
 	    ;
 }
+
+void
+FileIO::UnlinkNoRetry( Error *e )
+{
+	Unlink( e );
+}

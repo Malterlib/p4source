@@ -73,7 +73,6 @@ class MsgDm2 {
 	static ErrorId StreamViewMatchData;
 	static ErrorId NoTopologyRecord;
 	static ErrorId NoServerIDSet;
-	static ErrorId NoPartitionedToReadonly;
 	static ErrorId TopologyRecDeleted;
 	static ErrorId TopologyRecNotFound;
 	static ErrorId LockNameNull;
@@ -168,4 +167,10 @@ class MsgDm2 {
 	static ErrorId UpgradeToCreatePJnlClient;
 	static ErrorId DbBodTextCxEntryMissing;
 	static ErrorId StreamSpecIntegrationNoFrmChange;
+
+	// Retired ErrorIds. We need to keep these so that clients 
+	// built with newer apis can commnunicate with older servers 
+	// still sending these.
+
+	static ErrorId NoPartitionedToReadonly; // DEPRECATED
 } ;

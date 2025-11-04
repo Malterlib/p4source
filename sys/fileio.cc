@@ -648,6 +648,12 @@ FileIO::Unlink( Error *e )
 }
 
 void
+FileIO::UnlinkNoRetry( Error *e )
+{
+	Unlink( e );
+}
+
+void
 FileIO::Chmod( FilePerm perms, Error *e )
 {
 	// Don't set perms on symlinks

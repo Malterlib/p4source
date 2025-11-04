@@ -856,14 +856,21 @@ NetUtils::GetAddress(
 	    char *buf = printableAddress.Text();
 
 	    // format IPv6 numeric addresses nicely to make them easier to read (and unambiguous)
+	    INADDR_PTR_TYPE aaddr = (INADDR_PTR_TYPE)GetInAddr(addr);
+
 	    if( isIPv6 )
 	    {
-	        printableAddress.Set( "[" );
-	        buf++;
+	        if( IN6_IS_ADDR_V4MAPPED((struct in6_addr *)aaddr) ) {
+	           isIPv6 = false;
+	           family = AF_INET;
+	           aaddr = (INADDR_PTR_TYPE)(((struct in6_addr *)aaddr)->s6_addr+12);
+	        } else {
+	           *buf++ = '[';
+	        }
 	    }
 
 	    // just get the numeric form of the hostname.
-	    if( ::inet_ntop( family, (INADDR_PTR_TYPE)GetInAddr(addr), buf, INET6_ADDRSTRLEN ) )
+	    if( ::inet_ntop( family, aaddr, buf, INET6_ADDRSTRLEN ) )
 	    {
 	        printableAddress.SetLength();
 	    }
@@ -874,7 +881,10 @@ NetUtils::GetAddress(
 	    }
 
 	    if( isIPv6 )
-	        printableAddress.Append( "]" );
+	    {
+	        printableAddress.Extend( ']' );
+	        printableAddress.Terminate();
+	    }
 	}
 
 	if( raf_flags & RAF_PORT )
@@ -883,8 +893,8 @@ NetUtils::GetAddress(
 	    int portnum = GetInPort( addr );
 	    StrNum numbuf( portnum );
 
-	    printableAddress.Append( ":" );
-	    printableAddress.Append(&numbuf);
+	    printableAddress.Extend( ':' );
+	    printableAddress.UAppend(&numbuf);
 	}
 }
 

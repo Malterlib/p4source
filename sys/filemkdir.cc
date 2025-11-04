@@ -133,10 +133,10 @@ FileSys::MkDir( const StrPtr &path, Error *e )
 	// Ensure it is a dir.  On cygwin (at least) we can create
 	// a directory with the same apparent name as a file (on
 	// cygwin only if that file is a .exe).
-
 	struct stat sb;
 
-	if( stat( p->Text(), &sb ) >= 0 && S_ISDIR( sb.st_mode ) )
+	if( stat( p->Text(), &sb ) >= 0 && S_ISDIR( sb.st_mode ) &&
+	    sb.st_nlink != 0 )
 	{
 	    delete p;
 	    return;

@@ -310,4 +310,6 @@ class MsgServer2 {
 	static ErrorId NoStreamSpecEditStreamAtChangeClient;
 	static ErrorId NoStreamSpecUnshelveStreamAtChangeClient;
 	static ErrorId SparseStreamOperationNotAllowed;
+	static ErrorId RmtOpFailedInconsistent;
+	static ErrorId MustSetPasswordRequireSU;
 } ;

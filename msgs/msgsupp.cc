@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSupp error code is: 449
+ * Current high value for a MsgSupp error code is: 455
  */
 # include <stdhdrs.h>
 # include <error.h>
@@ -35,6 +35,7 @@ ErrorId MsgSupp::InvalidDate           = { ErrorOf( ES_SUPP, 2, E_FAILED, EV_USA
 ErrorId MsgSupp::InvalidCharset        = { ErrorOf( ES_SUPP, 244, E_FAILED, EV_USAGE, 1 ), "Invalid charset '%charset%'." } ;
 
 ErrorId MsgSupp::TooMany               = { ErrorOf( ES_SUPP, 3, E_FATAL, EV_FAULT, 0 ), "Too many options on command!" } ;
+ErrorId MsgSupp::MissingCmd            = { ErrorOf( ES_SUPP, 455, E_FATAL, EV_FAULT, 0 ), "Missing command!" } ;
 ErrorId MsgSupp::Invalid               = { ErrorOf( ES_SUPP, 4, E_FAILED, EV_USAGE, 1 ), "Invalid option: -%option%." } ;
 ErrorId MsgSupp::NeedsArg              = { ErrorOf( ES_SUPP, 5, E_FAILED, EV_USAGE, 1 ), "Option: -%option% needs argument." } ;
 ErrorId MsgSupp::NeedsNonNegArg        = { ErrorOf( ES_SUPP, 33, E_FAILED, EV_USAGE, 1 ), "Option: -%option% needs a non-negative integer argument." } ;

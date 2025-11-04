@@ -376,6 +376,7 @@ class FileSys {
 	virtual void	Truncate( Error *e ) = 0;
 	virtual void	Truncate( offL_t offset, Error *e ) = 0;
 	virtual void	Unlink( Error *e = 0 ) = 0;
+	virtual void	UnlinkNoRetry( Error* e = 0 ) { Unlink( e ); }
 	virtual void	Rename( FileSys *target, Error *e ) = 0;
 	virtual void	Chmod( FilePerm perms, Error *e ) = 0;
 	virtual void	ChmodTime( Error *e ) = 0;

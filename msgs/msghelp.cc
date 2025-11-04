@@ -869,6 +869,7 @@ R"(
 		71819 -- 2013.2 - clears unneeded/invalid charset data
 		71917 -- 2014.2 - promoted shelved changes on commit server
 		103829 -- 2020.2 - disable all authentication extensions
+		123929 -- fix db.bodtextcx inconsistencies
 
     p4d -xf update.change.identity //path/to/files/...
 	Retrospectively applies the server's configured submit.identity
@@ -975,7 +976,6 @@ R"(
 	db.internal.repair       0 Runtime BTree consolidation and recovery
 	db.isalive             10K Rows scanned before maxLockTime check
 	db.page.migrate		 0 Avoid allocating pages at end of btree
-	db.reorg.disable	 1 Disable BTree reorganization
 	db.reorg.misorder	80 BTree reorg percent out of order trigger
 	db.reorg.occup		 8 BTree reorg percent of page free remaining
 	db.trylock               3 Attempts to avoid locks that block
@@ -1023,11 +1023,8 @@ R"(
 	dm.integ.undo            0 Enable re-integration of undone changes
 	dm.isalive             50K Rows scanned before client connection check
 	dm.maxkey               1K Longest identifier (client, label, etc)
-	dm.protects.allow.admin  0 Allow admin to use -agu flags (protects)
 	dm.protects.hide         0 Hide exclusionary protections (protects)
 	dm.resolve.attribs       1 Schedule resolves for changes to attributes
-	dm.resolve.ignoredeleted 0 Treat auto-resolve changes to deleted files
-	                           as ignored
 	dm.quick.clients       10M Release lock if all needed rows buffered
 	dm.quick.domains        1M Release lock if all needed rows buffered
 	dm.quick.have           1M Release lock if all needed rows buffered
@@ -1045,7 +1042,6 @@ R"(
 	filesys.maxmap       1000M Use read rather than mmapping big files
 	filesys.maxsymlink      1K Symlink maximum content length
 	filesys.maxtmp          1M Rollover for creating temp file names
-	filesys.windows.lfn      1 Enable Windows filename > 260 characters
 	map.joinmax1           10K Produce at most map1+map2+joinmax1
 	map.joinmax2            1M Produce at most joinmax2
 	map.maxwild             10 Maximum number of wildcards per line
@@ -2215,22 +2211,25 @@ R"(
 	or 'p4 unshelve'.
 
 	The -i flag causes the attribute value to be read from the standard
-	input. Only one file argument is allowed when using this option.
+	input. This option supports both text and binary input. Only one
+	file argument is allowed when using this option.
 
-	The -I flag causes the attribute value to be read from a file as
-	binary data. This is recommended for attribute data that is greater
-	than 250MB in size, which might cause the command to fail with the
-	'Rpc buffer too big' error. The '-e' option to specify the value as
-	hex cannot be used with this option. Only one file argument
-	is allowed when using this option. Also, only one trait value may be
-	set using this option. To display attributes set with this option,
-	the 'p4 print -T' command is recommended instead of the
-	'p4 fstat -Oa' command because 'p4 print -T' can handle larger
+	The -I flag causes the attribute value to be read from a file.
+	This option supports both text and binary files. This is
+	recommended for attribute data that is greater than 250MB in size,
+	which might cause the command to fail with the 'Rpc buffer too big'
+	error. The '-e' option to specify the value as hex cannot be used
+	with this option. Only one file argument is allowed when using this
+	option. Also, only one trait value may be set using this option.
+	To display attributes set with this option, the 'p4 print -T'
+	command is recommended instead of the 'p4 fstat -Oa' command because
+	'p4 print -T' can handle larger text data as well as larger
 	non-encoded binary data.
 
 	Multiple attributes can be set or cleared by specifying multiple
 	'-n name' flags and an equal number of corresponding '-v value'
-	flags (to set) or no '-v' flags (to clear).
+	flags (to set) or no '-v' flags (to clear). Note that '-v value'
+	only supports text data input.
 
 	When an attribute is created, the configurable 'trait.storagedepot.min'
 	determines how the attribute is stored. By default, attribute values
@@ -12890,6 +12889,7 @@ R"(
 	                           2: basic lockless operation (default)
 	                           3: extra lockless operation
 	db.peeking.usemaxlock      When peeking, obey maxlocktime setting.
+	db.reorg.disable           Disable BTree reorganization
 	db.replication             Replica metadata access mode
 	db.rt.io                   Database IO tracked by rt.monitorfile
 	dbjournal.bufsize          Journal/checkpoint read/write size
@@ -12900,6 +12900,8 @@ R"(
 	                           a commit server during 'p4 labelsync'
 	dm.change.skipkeyed        Disable generation of digest for ktext
 	                           revisions during submitted change updates
+	dm.configure.comment.mandatory Require comment when changing
+	                               configurable value with 'p4 configure'
 	dm.domain.accessupdate     Time interval to update domain access time
 	dm.domain.accessforce      Time interval to force domain access time
 	dm.fetch.preservechangenumbers Preserve change numbers on 'p4 fetch'
@@ -12924,9 +12926,17 @@ R"(
 	dm.password.minlength      Minimum password length (when enabled)
 	dm.populate.skipkeyed      Disable generation of digest for ktext
 	                           revisions during populate
+	dm.protects.exclusioncheck Users with protections that have been
+	                           entirely removed by exclusionary protection
+	                           rules will be treated as if they had no
+	                           protections
+	dm.protects.allow.admin    Enable users with admin protections to run
+	                           'p4 protects -a|-u|-g|-s'
 	dm.protects.streamspec     Enable streamspec permissions
 	dm.proxy.protects          Add 'proxy-' to IP (see 'p4 help protect')
 	dm.resolve.attrib          Enable resolve for attributes
+	dm.resolve.ignoredeleted   Enable integrations into deleted files to be
+	                           resolved as 'ignored' by 'p4 resolve -as'
 	dm.rotatelogwithjnl        Rotate logs when journals are rotated.
 	dm.shelve.accessupdate     Time interval to update shelve access time
 	dm.shelve.maxfiles         Max number of files that can be shelved
@@ -12937,6 +12947,7 @@ R"(
 	                           0: keep pack files
 	                           1: unpack on update
 	                           2: unpack all
+	dm.stream.components       Enables stream components functionality
 	dm.stream.parentview       Default for stream spec ParentView field
 	                           0: inherit ParentView for all new streams
 	                           1: noinherit Parentview for new mainline,
@@ -12959,6 +12970,8 @@ R"(	dm.topology.lastseenupdate Time interval to update topology record.
 	dm.user.accessforce        Time interval to force user access time
 	dm.user.loginattempts      Number of password attempts before delay
 	dm.user.allowselfupdate    Users may update their email and fullname
+	dm.user.hideinvalid        Hide invalid user error on authentication
+	                           failure
 	dm.user.noautocreate       User autocreation level
 	dm.user.resetpassword      New user requires password reset
 	dm.user.setinitialpasswd   Unset password handling
@@ -12966,6 +12979,11 @@ R"(	dm.topology.lastseenupdate Time interval to update topology record.
 	                              can set/unset initial passwords
 	                           1: Users can set their own initial passwords
 	                             (default)
+	dm.sync.streamchange       Syncing a stream client to a specific
+	                           changelist will also apply the stream's view
+	                           at that change
+	filesys.atomic.rename      Enables atomic rename semantics for the
+	                           journal file on Windows
 	filesys.binaryscan         'add' looks this far for binary chars
 	filesys.bufsize            Client file I/O buffer size
 	filesys.checklinks         Reject symlinked directories on add
@@ -12975,9 +12993,14 @@ R"(	dm.topology.lastseenupdate Time interval to update topology record.
 	filesys.P4JOURNAL.min      Minimum space for P4JOURNAL filesystem
 	filesys.P4LOG.min          Minimum space for P4LOG filesystem
 	filesys.TEMP.min           Minimum space for TEMP filesystem
+	filesys.windows.lfn        Enables long filename support on Windows:
+	                           0: Off
+	                           1: Paths longer than 255 characters use LFN
+	                           10: All paths use LFN
 	filetype.maxtextsize       Maximum file size for text type detection
 	journalPrefix              Prefix or directory location for journals
 	                           and checkpoints
+	journalPrefixBackup        Secondary location for journalPrefix
 	info.p4auth.usercheck      Validate username against P4AUTH server
 	lbr.autocompress           By default, use compressed text storage
 	                           instead of RCS
@@ -13078,6 +13101,8 @@ R"(	dm.topology.lastseenupdate Time interval to update topology record.
 	                           1: rotated to journalPrefix
 	rpl.labels.global          Label default for distributed installations
 	rpl.pull.position          Interval in ms for pull position reports
+	rpl.pull.reload            Interval in milliseconds for 'p4 pull' to
+	                           reload any configuration changes
 	rpl.replay.userrp          Include db.user.rp data from P4TARGET
 	rpl.submit.nocopy          Disable default submit archive file copy
 	rpl.track.behind           Report journals/total bytes not replicated
@@ -13114,10 +13139,15 @@ R"(	run.clientexts.allow       Allow client-side Extensions to run
 	                           1: This server can push to other servers
 	                           2: Other servers can push to this server
 	                           3: Both (1) and (2) are allowed
-	server.allowremoteLocking  Allow DVCS servers to lock files here
+	server.allowremotelocking  Allow DVCS servers to lock files here
 	server.allowrewrite        Whether submitted changes can be rewritten
 	server.depot.root          Base directory of depots with relative maps
 	server.extensions.dir      Directory for Extension-owned storage
+	server.extensions.allow.admin When enabled, users with 'admin'
+	                              protections can install and configure
+	                              extensions
+	server.extensions.allow.unsigned Enables users with super protections
+	                                 to install unsigned extensions
 	server.locks.dir           "server.locks" server lock directory
 	server.locks.archive       Should archive/restore lock metadata
 	server.locks.global        Lock globally by default from edge server
@@ -13146,6 +13176,12 @@ R"(	run.clientexts.allow       Allow client-side Extensions to run
 	serviceUser                Intermediate service identity
 	spec.hashbuckets           Maximum number of subdirectories for hashed
 	                           directory structures
+	ssl.cipher.list            The list of OpenSSL ciphers the server will
+	                           allow when establishing a TLS 1.2 or below
+	                           connection, overriding the OpenSSL defaults
+	ssl.cipher.suites          The list of OpenSSL cipher suites the server
+	                           will allow when establishing a TLS 1.3
+	                           connection, overriding the OpenSSL defaults
 	ssl.client.ca.path         Path of CA PEM file to validate server cert
 	ssl.client.cert.validate   Mode of validation of server cert
 	                           0: Only use P4TRUST
@@ -13177,6 +13213,9 @@ R"(	run.clientexts.allow       Allow client-side Extensions to run
 	                           uuid: generate as uuid
 	                           checksum: generate as checksum
 	                           serverid: generate as serverid+change
+	submit.storagefields       Controls the action of a submit request with
+	                           regards to the 'compCksum' field in a
+	                           storage record
 	sys.pressure.max.pause.time Max seconds to wait while paused.
 	sys.pressure.max.paused    Max number of processes allowed to be
 	                           paused.
@@ -13203,6 +13242,8 @@ R"(	run.clientexts.allow       Allow client-side Extensions to run
 	template.client            Client to use as template if -t omitted
 	template.label             Label to use as template if -t omitted
 	track                      Default based on number of licensed users
+	                            -1: Default based on number of licensed
+	                                users
 	                             0: Turn off tracking
 	                             1: Track all commands
 	                           2-5: Report tracking metrics exceeding
@@ -15107,7 +15148,7 @@ R"(
 
     Files of type +l can be cooperatively locked across servers. The
     shared server must be configured as a Commit Server, and must also
-    set server.allowremoteLocking=1. Then individual personal servers
+    set server.allowremotelocking=1. Then individual personal servers
     can use the --remote flag on 'p4 edit' to manage exclusive file locks
     on the Commit Server; these locks are released when the files are
     pushed. See 'p4 help edit', 'p4 help push', and 'p4 help unlock'.

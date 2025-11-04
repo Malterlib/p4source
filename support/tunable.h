@@ -164,6 +164,7 @@ enum P4TunableName {
 	P4TUNE_LBR_REPLICA_NOTRANSFER,		// see rhservice.cc
 	P4TUNE_LBR_RETRY_MAX,			// see lbrstatus.cc
 	P4TUNE_LBR_STAT_INTERVAL,		// see pxclient.cc and lbrstatus.cc
+	P4TUNE_LBR_S3_UPLOADRETRIES,		// see lbr/s3client.cc
 	P4TUNE_LBR_VERIFY_IN,			// see lbrservice.cc
 	P4TUNE_LBR_VERIFY_OUT,			// see rhservice.cc
 	P4TUNE_LBR_VERIFY_SCRIPT_OUT,		// see rhservice.cc

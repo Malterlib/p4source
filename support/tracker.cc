@@ -77,6 +77,7 @@ static int grid[ TT_LAST ][ 7 ] = {
 { /* TT_LT_S3DOWNLOADS */   Alot,   1, 1, 1,      10,      10000,    100000 },
 { /* TT_LT_S3DELETES */     Alot,   1, 1, 1,      10,      100,      1000 },
 { /* TT_LT_S3STATS */       Alot,   1, 1, 1,      10,      100,      1000 },
+{ /* TT_LT_S3RETRIES */     Alot,   1, 1, 1,      10,      100,      1000 },
 
 } ;
 

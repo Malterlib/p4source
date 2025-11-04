@@ -478,6 +478,13 @@ RunCommand::RunChild( RunArgv &cmd, int ops, int fds[2], Error *e )
 void
 RunCommand::DoRunChild( char *cmdText, char *argv[], int ops, int fds[2], Error *e )
 {
+	// Fast return on empty command.
+	if( !strlen( cmdText ) )
+	{
+	    e->Set( MsgSupp::MissingCmd );
+	    return;
+	}
+
 	/*
 	 * Windows doesn't have socketpair(), so use separate pipes.
 	 * We use pipe(), rather than CreatePipe(), because we need fds.
@@ -796,6 +803,13 @@ RunCommand::RunChild( RunArgv &cmd, int opts, int fds[2], Error *e )
 void
 RunCommand::DoRunChild( char *cmdText, char *argv[], int opts, int fds[2], Error *e )
 {
+	// Fast return on empty command.
+	if( !strlen( cmdText ) )
+	{
+	    e->Set( MsgSupp::MissingCmd );
+	    return;
+	}
+
 	// Create an error pipe which allows the subprocess to report
 	// to the parent that the exec failed.  The parent reads from
 	// this pipe after the fork.  If the exec succeeds the pipe

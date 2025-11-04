@@ -18,6 +18,7 @@ class MsgSupp {
 	static ErrorId InvalidCharset;
 
 	static ErrorId TooMany;
+	static ErrorId MissingCmd;
 	static ErrorId Invalid;
 	static ErrorId NeedsArg;
 	static ErrorId Needs2Arg;

@@ -47,6 +47,7 @@ class FileIO : public FileSys {
 	virtual void	ChmodTime( P4INT64 modTime, Error *e );
 	virtual void	ChmodTimeHP( const DateTimeHighPrecision &modTime, Error *e );
 	virtual void	Unlink( Error *e );
+	virtual void	UnlinkNoRetry( Error* e );
 	virtual void	Rename( FileSys *target, Error *e );
 	virtual void	RenameSourceSubstrInTargetSubdir(
 	                    StrBuf &currentName,

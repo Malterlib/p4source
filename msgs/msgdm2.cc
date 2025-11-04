@@ -96,7 +96,6 @@ ErrorId MsgDm2::TopologyData            = { ErrorOf( ES_DM2, 50, E_INFO, EV_NONE
 ErrorId MsgDm2::StreamViewMatchData     = { ErrorOf( ES_DM2, 51, E_INFO, EV_NONE, 6 ), "Stream %stream% %pathtype% %viewPath% %depotPath%[@%depotRev%][ (%status%)]" } ;
 ErrorId MsgDm2::NoTopologyRecord        = { ErrorOf( ES_DM2, 52, E_WARN, EV_ADMIN, 3 ), "No entries made in db.topology for server address: '%address%', dest address: '%destaddress%' and serverID: '%svrId%'." } ;
 ErrorId MsgDm2::NoServerIDSet           = { ErrorOf( ES_DM2, 53, E_WARN, EV_ADMIN, 0 ), "ServerID for the server should be set and a server restart is required." } ;
-ErrorId MsgDm2::NoPartitionedToReadonly    = { ErrorOf( ES_DM2, 54, E_FAILED, EV_USAGE, 1 ), "Cannot change client type from '[%from%|partitioned]' to 'readonly'." } ;
 ErrorId MsgDm2::TopologyRecDeleted      = { ErrorOf( ES_DM2, 55, E_INFO, EV_NONE, 4 ), "Deleted Topology Record: Addr-'%address%' DestAddr-'%destaddress%' SvrID-'%serverID%' Date-'%date%'" } ;
 ErrorId MsgDm2::TopologyRecNotFound     = { ErrorOf( ES_DM2, 56, E_FAILED, EV_FAULT, 3 ), "Specified topology record[ with address '%addr%'][ target address '%taddr%'][ and server id '%svrID%'] not found" } ;
 ErrorId MsgDm2::LockNameNull            = { ErrorOf( ES_DM2, 57, E_FAILED, EV_ADMIN, 1 ), "ServerLock name is null. Lock type is %locktype%." } ;
@@ -190,3 +189,7 @@ ErrorId MsgDm2::UpgradeToCreatePJnlClient        = { ErrorOf( ES_DM2, 150, E_FAI
 ErrorId MsgDm2::NoTopologyActiveRec              = { ErrorOf( ES_DM2, 152, E_WARN, EV_USAGE, 2 ), "No active topology record found with the source address '%saddr%' and the target address '%taddr%'." };
 ErrorId MsgDm2::DbBodTextCxEntryMissing          = { ErrorOf( ES_DM2, 153, E_FAILED, EV_FAULT, 2 ), "No entry for stream '%stream%' at change '%change%' found in db.bodtexcx. Stream spec integration analysis cannot continue." };
 ErrorId MsgDm2::StreamSpecIntegrationNoFrmChange = { ErrorOf( ES_DM2, 154, E_FAILED, EV_FAULT, 2 ), "Can't find stream spec rev for stream '%fromstream%' at change '%change%'." };
+
+// ErrorId graveyard: retired/deprecated ErrorIds. 
+
+ErrorId MsgDm2::NoPartitionedToReadonly    = { ErrorOf( ES_DM2, 54, E_FAILED, EV_USAGE, 1 ), "Cannot change client type from '[%from%|partitioned]' to 'readonly'." } ; //NOTRANS

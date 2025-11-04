@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgServer2 error code is: 298
+ * Current high value for a MsgServer2 error code is: 343
  *                                                   Max code is 1023!!!
  *
  * The MsgServer2 class contains overflow messages from MsgServer.
@@ -331,3 +331,5 @@ ErrorId MsgServer2::MissingPcdir = { ErrorOf( ES_SERVER2, 291, E_FAILED, EV_ADMI
 ErrorId MsgServer2::NoStreamSpecEditStreamAtChangeClient = { ErrorOf( ES_SERVER2, 292, E_FAILED, EV_USAGE, 0 ), "Stream spec cannot be opened for edit in StreamAtChange client." } ;
 ErrorId MsgServer2::NoStreamSpecUnshelveStreamAtChangeClient = { ErrorOf( ES_SERVER2, 293, E_FAILED, EV_USAGE, 0 ), "Stream spec cannot be unshelved in StreamAtChange client." } ;
 ErrorId MsgServer2::SparseStreamOperationNotAllowed = { ErrorOf( ES_SERVER2, 298, E_FAILED, EV_USAGE, 0 ), "This operation is not allowed on sparse streams." } ;
+ErrorId MsgServer2::RmtOpFailedInconsistent   = { ErrorOf( ES_SERVER2, 342, E_FAILED, EV_FAULT, 0 ), "Operation failed on remote server because of data inconsistency, possibly due to stalled or slow replication." };
+ErrorId MsgServer2::MustSetPasswordRequireSU = { ErrorOf( ES_SERVER2, 343, E_FAILED, EV_USAGE, 0 ), "Password must be set by super user before access can be granted." };

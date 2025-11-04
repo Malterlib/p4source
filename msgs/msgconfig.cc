@@ -22,7 +22,7 @@
  * When adding a new error make sure it's greater than the current high
  * value and update the following number:
  *
- * Current high value is: 491
+ * Current high value is: 503
  */
 
 //
@@ -118,6 +118,7 @@ R"(Enables debug logging from the spec parser/formatter subsystem.
 
 ErrorId MsgConfig::Track = { ErrorOf( ES_CONFIG, 451, E_INFO, EV_NONE, 0 ),
 R"(Controls the detail of performance tracking relative to the number of users:
+	-1: Default based on number of licensed users
 	0: Off
 	1: Maximum detail regardless of user count
 	>=2: Increasing thresholds before track information is logged
@@ -319,7 +320,7 @@ A value of 0 disables it.
 )"
 };
 
-ErrorId MsgConfig::DbJournalrotateWarnthresh = { ErrorOf( ES_CONFIG, 486, E_INFO, EV_NONE, 0 ),
+ErrorId MsgConfig::DbJournalrotateWarnthresh = { ErrorOf( ES_CONFIG, 488, E_INFO, EV_NONE, 0 ),
 R"(Number of days prior to another journal rotation being needed and
 providing the warning if '%'db.journalrotate.warnthresh'%' is more than zero.
 )"
@@ -363,12 +364,12 @@ file as possible instead.
 )"
 };
 
-ErrorId MsgConfig::DbPartitionVerify = { ErrorOf( ES_CONFIG, 484, E_INFO, EV_NONE, 0 ),
+ErrorId MsgConfig::DbPartitionVerify = { ErrorOf( ES_CONFIG, 485, E_INFO, EV_NONE, 0 ),
 R"(Enables the verification of partitioned tables.
 )"
 };
 
-ErrorId MsgConfig::DbPartitionDrop = { ErrorOf( ES_CONFIG, 485, E_INFO, EV_NONE, 0 ),
+ErrorId MsgConfig::DbPartitionDrop = { ErrorOf( ES_CONFIG, 486, E_INFO, EV_NONE, 0 ),
 R"(Enabling the deletion of the partitioned have table instead of deleting the
 records in the table.
 )"
@@ -672,7 +673,7 @@ selection (per file being integrated).
 )"
 };
 
-ErrorId MsgConfig::DmIntegStreamAllowDepotFilespec = { ErrorOf( ES_CONFIG, 491, E_INFO, EV_NONE, 0 ),
+ErrorId MsgConfig::DmIntegStreamAllowDepotFilespec = { ErrorOf( ES_CONFIG, 492, E_INFO, EV_NONE, 0 ),
 R"(If set to 1, removes requirement for force flag (-F) when integrating
 between streams using filespecs with depot syntax. The default is 0.
 )"
@@ -1225,6 +1226,11 @@ R"(Number of times a replica should retry a failed archive transfer.
 )"
 };
 
+ErrorId MsgConfig::LbrS3UploadRetries = { ErrorOf( ES_CONFIG, 494, E_INFO, EV_NONE, 0 ),
+R"(Number of times an upload to S3 will be retried.
+)"
+};
+
 ErrorId MsgConfig::LbrStatInterval = { ErrorOf( ES_CONFIG, 149, E_INFO, EV_NONE, 0 ),
 R"(Proxy file status interval. See '%'p4p -h'%'.
 )"
@@ -1350,7 +1356,7 @@ delta content transfers.
 )"
 };
 
-ErrorId MsgConfig::NetDeltaTransferThreshold = { ErrorOf( ES_CONFIG, 488, E_INFO, EV_NONE, 0 ),
+ErrorId MsgConfig::NetDeltaTransferThreshold = { ErrorOf( ES_CONFIG, 489, E_INFO, EV_NONE, 0 ),
 R"(Maximum percentage of file size to perform a delta content transfer before
 reverting to streaming the complete file. A value of 0 disables delta content
 transfers.
@@ -1567,7 +1573,7 @@ R"(The threshold in number of days for Proxy cache clearing, used by the command
 )"
 };
 
-ErrorId MsgConfig::ProxySuppresswarnings = { ErrorOf( ES_CONFIG, 490, E_INFO, EV_NONE, 0 ),
+ErrorId MsgConfig::ProxySuppresswarnings = { ErrorOf( ES_CONFIG, 491, E_INFO, EV_NONE, 0 ),
 R"(Used to suppress Proxy warning level errors to the client. A value of 0 means
 errors are passed to the client. This does not impact error logging.
 )"
@@ -2295,20 +2301,20 @@ decommit delay in milli-seconds for freed segments
 )"
 };
 
-ErrorId MsgConfig::SysMemoryMiDestroyonexit = { ErrorOf( ES_CONFIG, 483, E_INFO, EV_NONE, 0 ),
+ErrorId MsgConfig::SysMemoryMiDestroyonexit = { ErrorOf( ES_CONFIG, 484, E_INFO, EV_NONE, 0 ),
 R"(Exposed mimalloc option - not guaranteed to take effect:
 release all OS memory on process exit; careful with dangling pointer
 or after-exit frees!
 )"
 };
 
-ErrorId MsgConfig::SysMemoryMiArenareserve = { ErrorOf( ES_CONFIG, 484, E_INFO, EV_NONE, 0 ),
+ErrorId MsgConfig::SysMemoryMiArenareserve = { ErrorOf( ES_CONFIG, 502, E_INFO, EV_NONE, 0 ),
 R"(Exposed mimalloc option - not guaranteed to take effect:
 reserve memory N KiB at a time
 )"
 };
 
-ErrorId MsgConfig::SysMemoryMiArenapurgemult = { ErrorOf( ES_CONFIG, 485, E_INFO, EV_NONE, 0 ),
+ErrorId MsgConfig::SysMemoryMiArenapurgemult = { ErrorOf( ES_CONFIG, 503, E_INFO, EV_NONE, 0 ),
 R"(Exposed mimalloc option - not guaranteed to take effect:
 purge delay multiplier for arena's
 )"

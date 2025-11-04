@@ -94,6 +94,7 @@ enum TrackerType {
 	TT_LT_S3DOWNLOADS,		// downloads from s3, by libType
 	TT_LT_S3DELETES,		// deletes from s3, by libType
 	TT_LT_S3STATS,			// stats to s3, by libType
+	TT_LT_S3RETRIES,		// retries to s3, by libType
 
 	TT_LAST
 }  ;
