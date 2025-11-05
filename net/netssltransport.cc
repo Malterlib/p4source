@@ -1239,19 +1239,28 @@ NetSslTransport::DoHandshake( Error *e )
 		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_cipher_list primary" );
 	    }
 
-# if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined (OPENSSL_IS_BORINGSSL)
+# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+#  if !defined(OPENSSL_IS_BORINGSSL)
 	    // TLS 1.3 can send session-resumption info after the main handshake, which
 	    // will cause us to hang, so since we don't use sessions, disable that.
 	    ERR_clear_error();
 	    SSL_set_num_tickets( ssl, 0 );
 	    SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_num_tickets" );
-	    
+
 	    if( customCipherSuites.Length() )
 	    {
 		ERR_clear_error();
 		SSL_set_ciphersuites( ssl, customCipherSuites.Text() );
 		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_ciphersuites custom" );
 	    }
+#  else
+	    // BoringSSL does not support SSL_set_num_tickets or customizing TLS 1.3 cipher suites
+	    // TLS 1.3 ciphers have a built-in preference order
+	    if( customCipherSuites.Length() )
+	    {
+		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_ciphersuites not supported in BoringSSL (TLS 1.3 uses built-in preference)" );
+	    }
+#  endif
 # endif
 	}
 	else
@@ -1279,12 +1288,21 @@ NetSslTransport::DoHandshake( Error *e )
 	    }
 
 # if OPENSSL_VERSION_NUMBER >= 0x10100000L
+#  if !defined(OPENSSL_IS_BORINGSSL)
 	    if( customCipherSuites.Length() )
 	    {
 		ERR_clear_error();
 		SSL_set_ciphersuites( ssl, customCipherSuites.Text() );
 		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_ciphersuites custom" );
 	    }
+#  else
+	    // BoringSSL does not support customizing TLS 1.3 cipher suites
+	    // TLS 1.3 ciphers have a built-in preference order
+	    if( customCipherSuites.Length() )
+	    {
+		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_ciphersuites not supported in BoringSSL (TLS 1.3 uses built-in preference)" );
+	    }
+#  endif
 # endif
 
 	    // SNI support

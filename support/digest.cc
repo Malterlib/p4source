@@ -36,12 +36,16 @@ static struct MD_TYPE {
     { "sha224", 0, EVP_sha224 },
     { "sha384", 0, EVP_sha384 },
     { "sha512", 0, EVP_sha512 },
+#ifndef OPENSSL_IS_BORINGSSL
     { "sha512_224", 0, EVP_sha512_224 },
+#endif
     { "sha512_256", 0, EVP_sha512_256 },
+#ifndef OPENSSL_IS_BORINGSSL
     { "sha3_224", 0, EVP_sha3_224 },
     { "sha3_256", 0, EVP_sha3_256 },
     { "sha3_384", 0, EVP_sha3_384 },
     { "sha3_512", 0, EVP_sha3_512 },
+#endif
     { "blake3", 0, NULL }, // This has special handling
     { NULL, 0, NULL }
 };
