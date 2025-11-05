@@ -25,7 +25,7 @@ void GlobalCharSet::Set( int cs )
 
 int GlobalCharSet::Get()
 {
-	return globCharSetUseAlt ? globCharSetAlt : globCharSet;
+	return globCharSetUseAlt ? globCharSetAlt : globCharSet.load();
 }
 
 void GlobalCharSet::UseAlt( const bool val )
