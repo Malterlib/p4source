@@ -1,6 +1,23 @@
 
 Property.AddIncludePaths_p4api: bool = false
 
+Property
+{
+	PerforceOS: string
+	PerforceOS "MACOSX"
+	{
+		!!PlatformFamily "macOS"
+	}
+	PerforceOS "LINUX"
+	{
+		!!PlatformFamily "Linux"
+	}
+	PerforceOS "NT"
+	{
+		!!PlatformFamily "Windows"
+	}
+}
+
 Compile
 {
 	&
@@ -8,7 +25,7 @@ Compile
 		CompileDialect "C"
 		AddIncludePaths_p4api true
 	}
-	
+
 	SearchPath += [
 		"client"->MakeAbsolute()
 		, "sys"->MakeAbsolute()
@@ -17,6 +34,7 @@ Compile
 		, "msgs"->MakeAbsolute()
 		, "i18n"->MakeAbsolute()
 	]
+	PreprocessorDefines += `OS_@(PerforceOS)`
 }
 
 %Target "Lib_p4api"
@@ -24,19 +42,6 @@ Compile
 	Property
 	{
 		AddIncludePaths_p4api true
-		PerforceOS: string
-		PerforceOS "MACOSX"
-		{
-			!!PlatformFamily "macOS"
-		}
-		PerforceOS "LINUX"
-		{
-			!!PlatformFamily "Linux"
-		}
-		PerforceOS "NT"
-		{
-			!!PlatformFamily "Windows"
-		}
 	}
 	Target
 	{
