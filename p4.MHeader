@@ -93,6 +93,11 @@ Compile
 		{
 			!!PlatformFamily "Windows"
 		}
+		PreprocessorDefines += "CASE_INSENSITIVE" // p4 folds case where Perforce's Jamrules build it so, for NT and MACOSX
+		{
+			!!PlatformFamily "Windows"
+			!!PlatformFamily "macOS"
+		}
 		Warnings_UnusedFunction false
 		{
 			!!Compiler "Clang"
