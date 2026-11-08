@@ -37,6 +37,19 @@ class Ignore {
 	int		GetIgnoreFiles( const StrPtr &ignoreName, int absolute,
 			                int relative, StrArray &ignoreFiles );
 
+	// Malterlib: sets the ignore files from a list instead of splitting
+	// a P4IGNORE value, so a path can hold ';' or ':'.  ignoreName then
+	// stands for the list in Reject and RejectDir.
+
+	void		SetIgnoreFiles( const StrPtr &ignoreName,
+			                const StrArray &files );
+
+	// Malterlib: a filter the files to read are given to before they are
+	// opened; a file it returns 0 for is read as missing.
+
+	void		SetFileFilter( int (*filter)( const char *path ) )
+			{ fileFilter = filter; }
+
     private:
 	void		BuildIgnoreFiles( const StrPtr &ignoreName );
 	int		Build( const StrPtr &path, const StrPtr &ignoreName,
@@ -58,4 +71,5 @@ class Ignore {
 	StrArray	*ignoreFiles;
 	StrBuf		ignoreStr;
 	int		relatives;
+	int		(*fileFilter)( const char *path );
 };
