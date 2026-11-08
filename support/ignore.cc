@@ -200,6 +200,7 @@ Ignore::Ignore()
 	ignoreList = 0;
 	relatives = 0;
 	defaultList = 0;
+	fileFilter = 0;
 }
 
 Ignore::~Ignore()
@@ -720,6 +721,9 @@ Ignore::ParseFile( FileSys *f, const char *cwd, IgnoreArray *list )
 	StrBuf dline;
 	StrArray tmpList;
 
+	if( fileFilter && !fileFilter( f->Name() ) )
+	    return 0;
+
 	f->Open( FOM_READ, &e );
 	
 	if( e.Test() )
@@ -927,4 +931,25 @@ Ignore::BuildIgnoreFiles( const StrPtr &ignoreNames )
 	}
 
 	ignoreStr = ignoreNames;
+}
+
+void
+Ignore::SetIgnoreFiles( const StrPtr &ignoreName, const StrArray &files )
+{
+	relatives = 0;
+
+	if( ignoreFiles )
+	    delete ignoreFiles;
+
+	ignoreFiles = new StrArray;
+
+	for( int i = 0; i < files.Count(); i++ )
+	{
+	    StrBuf *file = ignoreFiles->Put();
+	    file->Set( *files.Get( i ) );
+	    if( !strchr( file->Text(), SLASH[0] ) )
+	        relatives++;
+	}
+
+	ignoreStr = ignoreName;
 }
