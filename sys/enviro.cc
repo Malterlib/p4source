@@ -726,8 +726,33 @@ Enviro::SetCharSet( int i )
 	if( i == charset )
 	    return;
 
+	// Malterlib: the settings are read again in the new charset, except those
+	// set with Update, which are the caller's and not read from anywhere.
+	// Client::SetTrans sets the charset and then reads the P4CONFIG files,
+	// also when the client sets up its translation itself (SetupUnicode and
+	// LearnUnicode in Init), so a caller's P4CONFIG is kept through it.
+	StrArray updateVars;
+	StrArray updateValues;
+
+	if( symbolTab )
+	{
+	    for( int j = 0; j < symbolTab->Count(); j++ )
+	    {
+		EnviroItem *a = (EnviroItem *)symbolTab->Get( j );
+
+		if( a->type != UPDATE )
+		    continue;
+
+		updateVars.Put()->Set( a->var );
+		updateValues.Put()->Set( a->value );
+	    }
+	}
+
 	charset = i;
 	Reload();
+
+	for( int j = 0; j < updateVars.Count(); j++ )
+	    Update( updateVars.Get( j )->Text(), updateValues.Get( j )->Text() );
 }
 
 int
