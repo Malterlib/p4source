@@ -720,6 +720,12 @@ GetEnvW( const char * var, EnviroItem * item )
 void
 Enviro::SetCharSet( int i )
 {
+	// Malterlib: the same charset again keeps the settings, also those set
+	// with Update, so a caller can set the charset and its overrides before
+	// Client::SetTrans, which sets it and then reads the P4CONFIG files.
+	if( i == charset )
+	    return;
+
 	charset = i;
 	Reload();
 }
