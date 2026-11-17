@@ -29,7 +29,7 @@
 
 #include "urldata.h"
 #include "curl_threads.h"
-#include "curlx/win32-fopen.h"  /* for CURLX_FOPEN_*() */
+#include "curlx/fopen.h"  /* for CURLX_FOPEN_LOW(), CURLX_FREOPEN_LOW() */
 
 #ifdef USE_BACKTRACE
 #include <backtrace.h>

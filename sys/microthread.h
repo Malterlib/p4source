@@ -4,9 +4,15 @@
  * This file is part of Perforce - the FAST SCM System.
  */
 
+#if defined( HAS_CPP11 ) && !defined( HAVE_THREAD )
+#error did you forget to include '#define NEED_THREAD'?
+#endif
+
 class MicroThreadPool;
 
 class MicroThread {
+	friend class MicroThreadPool;
+
     public:
 	                MicroThread();
 	virtual         ~MicroThread();
@@ -15,12 +21,14 @@ class MicroThread {
 	void            Wait();
 	bool            Started();
 	bool            Running() const { return running; }
+	bool            Joined() const { return joined; }
 	void            SetPool( MicroThreadPool *p ) { pool = p; }
 	void            SwitchThread( MicroThread * );
 
     protected:
 	virtual void    Work();
 	virtual void    PostWork();
+	MicroThreadPool *GetPool() { return pool; }
 
     private:
 	static void     WorkLaunch( void * );
@@ -63,6 +71,7 @@ class MicroThreadPool {
 	MicroThreadMutex  &PoolMutex() { return poolMutex; }
 	int               IsSkipOnError() { return skiponerror; }
 	void              SetSkipOnError() { skiponerror = 1; }
+	bool              AnyActive();
     private:
 	void StartWaiting();
 

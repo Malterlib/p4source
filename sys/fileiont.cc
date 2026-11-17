@@ -3400,7 +3400,6 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 	    return;
 
 	// Do we need to preallocate (fragmentation ?)
-	// Never for stdout: it may be a pipe, which cannot be rewound.
 
 	offL_t sizeOffSet = GetSizeHint();
 
@@ -3408,7 +3407,7 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 	{
 	    delegate->SizeHint( sizeOffSet );
 	}
-	else if( sizeOffSet && !isStd )
+	else if( sizeOffSet )
 	{
 	    FileIOBinary::Seek( sizeOffSet - (offL_t)1, e );
 

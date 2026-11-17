@@ -68,6 +68,7 @@ enum P4DebugType {
 	DT_ELOG,	// Exported logs
 	DT_DLTXFER,	// Delta transfer stats
 	DT_PERF,	// Performance stats
+	DT_WEBSERVER,	// Web Server
 	DT_LAST
 }  ;
 
@@ -121,7 +122,7 @@ enum P4TunableCategory {
 	// When you add new types, update the string array in userconfig.cc
 } ;
 
-extern P4MT int list2[ DT_LAST ];
+extern P4MT int list2[];
 
 class P4Tunable {
 

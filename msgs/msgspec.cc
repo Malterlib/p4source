@@ -68,6 +68,8 @@ ErrorId MsgSpec::SpecClient = { ErrorOf( ES_SPEC, 2, E_INFO, EV_NONE, 0  ),
 "#  %'ServerID'%:    If set, restricts access to the named server.\n"
 "#  %'View'%:        Lines to map depot files into the client workspace.\n"
 "#  %'ChangeView'%:  Lines to restrict depot files to specific changelists.\n"
+"#  %'LimitView'%:   Lines to further restrict the %'View'%. May be specified in\n"
+"#               client syntax or depot syntax; not a combination of the two.\n"
 "#  %'Stream'%:      The stream to which this client's view will be dedicated.\n"
 "#               (Files in stream paths can be submitted only by dedicated\n"
 "#               stream clients.) When this optional field is set, the\n"
@@ -617,6 +619,7 @@ ErrorId MsgSpec::SpecRemote = { ErrorOf( ES_SPEC, 17, E_INFO, EV_NONE, 0  ),
 "#  %'LastPush'%:    The last changelist that was pushed.\n"
 "#  %'DepotMap'%:    Lines to map local files to remote files.\n"
 "#  %'ArchiveLimits'%: Lines to limit the archives fetched (optional)\n"
+"#  %'RemoteCharset'%: Charset of the remote server (optional)\n"
 "#\n"
 "#                   See 'p4 help remote' for detailed information.\n" };
 

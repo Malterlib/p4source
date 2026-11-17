@@ -256,7 +256,6 @@ class MsgServer {
 	static ErrorId InfoPeerAddress;
 	static ErrorId InfoServerAddress;
 	static ErrorId InfoServerEncryption;
-	static ErrorId InfoServerCertExpire;
 	static ErrorId InfoServerRoot;
 	static ErrorId InfoServerDate;
 	static ErrorId InfoServerVersion;
@@ -268,7 +267,6 @@ class MsgServer {
 	static ErrorId InfoProxyVersion;
 	static ErrorId InfoProxyAddress;
 	static ErrorId InfoProxyEncryption;
-	static ErrorId InfoProxyCertExpire;
 	static ErrorId InfoAuthServer;
 	static ErrorId InfoServerID;
 	static ErrorId InfoServerServices;

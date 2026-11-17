@@ -5,7 +5,7 @@
  *
  * Please check that each new entry matches what is in msgconfig.cc:
  *
- * Current high value is: 536
+ * Current high value is: 526
  */
 
 # define NEED_SMARTHEAP
@@ -69,6 +69,7 @@ ErrorId MsgConfig::Suptool = { ErrorOf( ES_CONFIG, 483, E_INFO, EV_NONE, 0 ), "M
 ErrorId MsgConfig::Elog = { ErrorOf( ES_CONFIG, 490, E_INFO, EV_NONE, 0 ), "MsgConfig::Elog placeholder." };
 ErrorId MsgConfig::Dltxfer = { ErrorOf( ES_CONFIG, 495, E_INFO, EV_NONE, 0 ), "MsgConfig::Dltxfer placeholder." };
 ErrorId MsgConfig::Perf = { ErrorOf( ES_CONFIG, 501, E_INFO, EV_NONE, 0 ), "MsgConfig::Perf placeholder." };
+ErrorId MsgConfig::WebSrv = { ErrorOf( ES_CONFIG, 512, E_INFO, EV_NONE, 0 ), "MsgConfig::WebSrv placeholder." };
 
 // Numeric tunables
 ErrorId MsgConfig::ClusterJournalShared = { ErrorOf( ES_CONFIG, 1, E_INFO, EV_NONE, 0), "MsgConfig::ClusterJournalShared placeholder." };
@@ -155,6 +156,8 @@ ErrorId MsgConfig::DmLocksExclBatchNet = { ErrorOf( ES_CONFIG, 73, E_INFO, EV_NO
 ErrorId MsgConfig::DmLocksGlobalBatchNet = { ErrorOf( ES_CONFIG, 74, E_INFO, EV_NONE, 0), "MsgConfig::DmLocksGlobalBatchNet placeholder." };
 ErrorId MsgConfig::DmLocksGlobalResultBatchNet = { ErrorOf( ES_CONFIG, 75, E_INFO, EV_NONE, 0), "MsgConfig::DmLocksGlobalResultBatchNet placeholder." };
 ErrorId MsgConfig::DmMaxkey = { ErrorOf( ES_CONFIG, 76, E_INFO, EV_NONE, 0), "MsgConfig::DmMaxkey placeholder." };
+ErrorId MsgConfig::DmObliterateSkiphave = { ErrorOf( ES_CONFIG, 527, E_INFO, EV_NONE, 0 ), "MsgConfig::DmObliterateSkiphave placeholder." };
+ErrorId MsgConfig::DmObliterateSkiplabel = { ErrorOf( ES_CONFIG, 528, E_INFO, EV_NONE, 0 ), "MsgConfig::DmObliterateSkiplabel placeholder." };
 ErrorId MsgConfig::DmOpenShowGloballocks = { ErrorOf( ES_CONFIG, 77, E_INFO, EV_NONE, 0), "MsgConfig::DmOpenShowGloballocks placeholder." };
 ErrorId MsgConfig::DmPasswordMinlength = { ErrorOf( ES_CONFIG, 78, E_INFO, EV_NONE, 0), "MsgConfig::DmPasswordMinlength placeholder." };
 ErrorId MsgConfig::DmPopulateSkipkeyed = { ErrorOf( ES_CONFIG, 79, E_INFO, EV_NONE, 0), "MsgConfig::DmPopulateSkipkeyed placeholder." };
@@ -278,6 +281,7 @@ ErrorId MsgConfig::NetParallelMax = { ErrorOf( ES_CONFIG, 179, E_INFO, EV_NONE, 
 ErrorId MsgConfig::NetParallelThreads = { ErrorOf( ES_CONFIG, 180, E_INFO, EV_NONE, 0), "MsgConfig::NetParallelThreads placeholder." };
 ErrorId MsgConfig::NetParallelBatch = { ErrorOf( ES_CONFIG, 181, E_INFO, EV_NONE, 0), "MsgConfig::NetParallelBatch placeholder." };
 ErrorId MsgConfig::NetParallelBatchsize = { ErrorOf( ES_CONFIG, 182, E_INFO, EV_NONE, 0), "MsgConfig::NetParallelBatchsize placeholder." };
+ErrorId MsgConfig::NetParallelCheckAlive = { ErrorOf( ES_CONFIG, 532, E_INFO, EV_NONE, 0), "MsgConfig::NetParallelCheckAlive placeholder." };
 ErrorId MsgConfig::NetParallelMin = { ErrorOf( ES_CONFIG, 183, E_INFO, EV_NONE, 0), "MsgConfig::NetParallelMin placeholder." };
 ErrorId MsgConfig::NetParallelMinsize = { ErrorOf( ES_CONFIG, 184, E_INFO, EV_NONE, 0), "MsgConfig::NetParallelMinsize placeholder." };
 ErrorId MsgConfig::NetParallelShelveThreads = { ErrorOf( ES_CONFIG, 185, E_INFO, EV_NONE, 0), "MsgConfig::NetParallelShelveThreads placeholder." };
@@ -320,6 +324,12 @@ ErrorId MsgConfig::RplChecksumTable = { ErrorOf( ES_CONFIG, 218, E_INFO, EV_NONE
 ErrorId MsgConfig::RplCompress = { ErrorOf( ES_CONFIG, 219, E_INFO, EV_NONE, 0), "MsgConfig::RplCompress placeholder." };
 ErrorId MsgConfig::RplCounterHook = { ErrorOf( ES_CONFIG, 220, E_INFO, EV_NONE, 0), "MsgConfig::RplCounterHook placeholder." };
 ErrorId MsgConfig::RplDeferredSends = { ErrorOf( ES_CONFIG, 221, E_INFO, EV_NONE, 0), "MsgConfig::RplDeferredSends placeholder." };
+ErrorId MsgConfig::RplFilterExpandBatch = { ErrorOf( ES_CONFIG, 523, E_INFO, EV_NONE, 0), "MsgConfig::RplFilterExpandBatch placeholder." };
+ErrorId MsgConfig::RplFilterExpand = { ErrorOf( ES_CONFIG, 524, E_INFO, EV_NONE, 0), "MsgConfig::RplFilterExpand placeholder." };
+ErrorId MsgConfig::RplFilterExpandThreads = { ErrorOf( ES_CONFIG, 525, E_INFO, EV_NONE, 0), "MsgConfig::RplFilterExpandThreads placeholder." };
+ErrorId MsgConfig::RplFilterRestrictBatch = { ErrorOf( ES_CONFIG, 514, E_INFO, EV_NONE, 0), "MsgConfig::RplFilterRestrictBatch placeholder." };
+ErrorId MsgConfig::RplFilterRestrict = { ErrorOf( ES_CONFIG, 515, E_INFO, EV_NONE, 0), "MsgConfig::RplFilterRestrict placeholder." };
+ErrorId MsgConfig::RplFilterRestrictThreads = { ErrorOf( ES_CONFIG, 516, E_INFO, EV_NONE, 0), "MsgConfig::RplFilterRestrictThreads placeholder." };
 ErrorId MsgConfig::RplJnlBatchSize = { ErrorOf( ES_CONFIG, 222, E_INFO, EV_NONE, 0), "MsgConfig::RplJnlBatchSize placeholder." };
 ErrorId MsgConfig::RplJnlwaitAdjust = { ErrorOf( ES_CONFIG, 223, E_INFO, EV_NONE, 0), "MsgConfig::RplJnlwaitAdjust placeholder." };
 ErrorId MsgConfig::RplJnlwaitInterval = { ErrorOf( ES_CONFIG, 224, E_INFO, EV_NONE, 0), "MsgConfig::RplJnlwaitInterval placeholder." };

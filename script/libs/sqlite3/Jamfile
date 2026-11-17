@@ -25,5 +25,10 @@ ObjectDefines sqlite3.c : SQLITE_ENABLE_JSON1 ;
 # -Os: https://www.sqlite.org/footprint.html
 ObjectCcFlags sqlite3.o : -Os ;
 
-P4Main sqlite3 : shell.c ;
-LinkLibraries sqlite3 : $(P4SCRIPT_SQLITE) ;
+if ! $(GLOBLINKOBJ) in $(LINKLIBS) && $(OS) = NT
+{
+	LINKLIBS on sqlite3$(SUFEXE) += $(GLOBLINKOBJ) ;
+}
+
+P4Main sqlite3$(SUFEXE) : shell.c ;
+LinkLibraries sqlite3$(SUFEXE) : $(P4SCRIPT_SQLITE) ;

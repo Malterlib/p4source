@@ -71,6 +71,9 @@ extern "C" {	// OpenSSL
 # include "rpcservice.h"
 # include "netsslcredentials.h"
 
+P4INT64 lastSSLCertModTime = 0;
+P4INT64 lastSSLKeyModTime = 0;
+
 const char *RpcTypeNames[] = {
 	"",		//    RPC_CLIENT = 0,
 	"rmt: ",	//    RPC_REMOTE,
@@ -536,8 +539,10 @@ Rpc::GetExpiration(StrBuf &value)
 void
 Rpc::SetHiMark( int sndbuf, int rcvbuf )
 {
-	// For testing and emergencies setting rpc.himark overrides all.
+	if( !transport )
+	    return;
 
+	// For testing and emergencies setting rpc.himark overrides all.
 	if( p4tunable.IsSet( P4TUNE_RPC_HIMARK ) )
 	    return;
 
@@ -1095,6 +1100,88 @@ Rpc::Dispatch( DispatchFlag flag, RpcDispatcher *dispatcher )
 	    endDispatch = 0;
 }
 
+
+void
+Rpc::DispatchAndRunCallback( const StrPtr& func, bool passError /*= false */ )
+{
+	DispatchAndRunCallback( service->dispatcher, func, passError );
+}
+
+
+void
+Rpc::DispatchAndRunCallback( const RpcDispatcher* dispatcher, 
+	                     const StrPtr& func, 
+	                     bool passError )
+{
+	// Find the registered function as given with 'func'.
+	// If no such function is found, call 'funcHandler'.
+	// If any error occurs, call 'errorHandler'.
+	// If no 'errorHandler' just report the error and return.
+	const RpcDispatch* disp = dispatcher->Find( func.Text() );
+
+	if( !disp && !( disp = dispatcher->Find( P4Tag::p_funcHandler ) ) )
+	{
+	    ue.Set( MsgRpc::UnReg ) << func;
+	    goto error;
+	}
+
+	// Invoke requested function.
+
+	RunCallback( disp, ue );
+
+	// Take a copy of the errors
+
+	le = ue;
+
+	// If we have just finished processing an ack, now is a good
+	// time to process any masked Control-C's.
+	//
+	// We don't need to actually check if we are in a sync here.  If
+	// we are not, the non-masked Control-C will terminate the client
+	// process. If we are in a sync, the Control-C will be masked and
+	// will not be processed until this condition is checked.
+	//
+
+	if( signaler.IsMaskedIntr() )
+	{
+	    if( strcmp( func.Text(), P4Tag::c_Ack ) == 0 )
+	    {
+	        endDispatch = 1;
+	        return;
+	    }
+	}
+
+	// If an error occurred, we'll call the caller's errorHandle
+	// function.  If the error was fatal, we'll tack on some tracing
+	// information.
+
+	if( !ue.Test() )
+	    return;
+
+	if( ue.IsFatal() )
+	    ue.Set( MsgRpc::Operat ) << disp->opName;
+
+    error:
+	// If a user error occurred, invoke errorHandler to deal with it.
+	// In this case, the Error is actually passed in to the dispatched 
+	// function, rather than being just an output parameter.
+
+	// The exception is if we are running as a nested Dispatch that will
+	// pass this error to its parent (then this will be done by the parent)
+
+	if( passError )
+	    return;
+
+	if( ( disp = dispatcher->Find( P4Tag::p_errorHandler ) ) )
+	{
+	    RunCallback( disp, ue );
+	    return;
+	}
+
+	AssertLog.Report( &ue );
+
+}
+
 void
 Rpc::TransportSetupSocket()
 {
@@ -1179,75 +1266,10 @@ Rpc::DispatchOne( RpcDispatcher *dispatcher, bool passError )
 	RPC_DBG_PRINTF( DEBUG_FUNCTION,
 		"Rpc dispatch %s", func->Text() );
 
-	// Find the registered function as given with 'func'.
-	// If no such function is found, call 'funcHandler'.
-	// If any error occurs, call 'errorHandler'.
-	// If no 'errorHandler' just report the error and return.
 
 	ue.Clear();
 
-	const RpcDispatch *disp = dispatcher->Find( func->Text() );
-
-	if( !disp && !( disp = dispatcher->Find( P4Tag::p_funcHandler ) ) )
-	{
-	    ue.Set( MsgRpc::UnReg ) << *func;
-	    goto error;
-	}
-
-	// Invoke requested function.
-
-	RunCallback( disp, ue );
-
-	// Take a copy of the errors
-
-	le = ue;
-
-	// If we have just finished processing an ack, now is a good
-	// time to process any masked Control-C's.
-	//
-	// We don't need to actually check if we are in a sync here.  If
-	// we are not, the non-masked Control-C will terminate the client
-	// process. If we are in a sync, the Control-C will be masked and
-	// will not be processed until this condition is checked.
-	//
-
-	if( signaler.IsMaskedIntr() )
-	{
-	    if( strcmp( func->Text(), P4Tag::c_Ack ) == 0 )
-	    {
-	        endDispatch = 1;
-	        return;
-	    }
-	}
-
-	// If an error occurred, we'll call the caller's errorHandle
-	// function.  If the error was fatal, we'll tack on some tracing
-	// information.
-
-	if( !ue.Test() )
-	    return;
-
-	if( ue.IsFatal() )
-	    ue.Set( MsgRpc::Operat ) << disp->opName;
-
-    error:
-	// If a user error occurred, invoke errorHandler to deal with it.
-	// In this case, the Error is acutally passed in to the dispatched 
-	// function, rather than being just an output parameter.
-
-	// The exception is if we are running as a nested Dispatch that will
-	// pass this error to its parent (then this will be done by the parent)
-
-	if( passError )
-	    return;
-
-	if( ( disp = dispatcher->Find( P4Tag::p_errorHandler ) ) )
-	{
-	    RunCallback( disp, ue );
-	    return;
-	}
-
-	AssertLog.Report( &ue );
+	DispatchAndRunCallback( dispatcher, *func, passError );
 }
 
 int
@@ -1755,4 +1777,32 @@ RpcUtility::Generate(RpcUtilityType type,
 	e->Set( MsgRpc::SslNoSsl );
 # endif //USE_SSL
 
+}
+
+void
+RpcUtility::GetModTimes( P4INT64 *keyFile, P4INT64 *certFile, Error *e )
+{
+# ifdef USE_SSL
+	NetSslCredentials credentials;
+	credentials.GetModTimes( keyFile, certFile, e );
+# else
+	e->Set( MsgRpc::SslNoSsl );
+# endif //USE_SSL
+}
+
+bool
+RpcUtility::CheckCertsChanged( Error *e )
+{
+	P4INT64 keyTime = 0;
+	P4INT64 certTime = 0;
+	RpcUtility::GetModTimes( &keyTime, &certTime, e );
+	
+	if( ( keyTime <= 0 || keyTime <= lastSSLKeyModTime ) &&
+	    ( certTime <= 0 || certTime <= lastSSLCertModTime ) )
+	    return false;
+	
+	lastSSLKeyModTime = keyTime;
+	lastSSLCertModTime = certTime;
+
+	return true;
 }

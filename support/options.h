@@ -455,6 +455,10 @@ class Options
 			NonLbr          , // --nonlbr
 			PullFromVerify  , // --pull-from-verify
 			SyncTime        , // --sync-time
+			ServerSizeRCS   , // --server-size-rcs
+			RestrictOnly    , // --restrict
+			ExpandOnly      , // --expand
+
 #ifdef _DEBUG
 			DebugBreak,    // --debugbreak
 #endif

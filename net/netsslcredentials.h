@@ -35,6 +35,7 @@
 class VarArray;
 class IntArray;
 class PathSys;
+class DateTime;
 
 class NetSslCredentials
 {
@@ -83,17 +84,20 @@ public:
 		void SetCertO(StrBuf &certO);
 		void SetCertST(StrBuf &certSt);
 		void SetSslDir(StrPtr *sslDir);
+		void GetCredentialFilepaths( PathSys *keyFile,
+		                             PathSys *certFile, Error * e );
 		void GetFingerprintFromCert( Error *e );
 		int IsSelfSigned();
 		void SetCertValid( int depth, int error, X509 *cert );
+
+		void GetModTimes( P4INT64 *keyFile, P4INT64 *certFile,
+		                  Error *e );
 
 private:
 		// Utilities
 		void ParseConfig( Error *e );
 		void WriteCredentials( PathSys *keyFile, PathSys *certFile,
 		                       Error * e );
-		void GetCredentialFilepaths( PathSys *keyFile,
-		                             PathSys *certFile, Error * e );
 		void MakeSslCredentials( Error *e );
 		void CompareFileUids( Error *e );
 		void CompareDirUid( Error *e );

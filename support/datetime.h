@@ -20,12 +20,12 @@ class DateTime {
 
     public:
 		DateTime() {}
-		DateTime( const int date ) { Set( date ); }
+		DateTime( const P4INT64 date ) { Set( date ); }
 		DateTime( const char *date, Error *e ) { Set( date, e ); }
 
  	void	Set( const char *date, Error *e );
  	void	Set( const P4INT64 date ) { wholeDay = 0; tval = (time_t)date; }
-	void	SetNow() { Set( (int)Now() ); }
+	void	SetNow() { Set( Now() ); }
 
 	P4INT64	Compare( const DateTime &t2 ) const { 
 	        return (tval - t2.tval); };
@@ -35,7 +35,8 @@ class DateTime {
 	void	FmtDayUTC( char *buf ) const;
 	void	FmtTz( char *buf ) const;
 	void	FmtUTC( char *buf ) const;
-	void 	FmtElapsed( char *buf, const DateTime &t2 );
+	void	FmtElapsed( char *buf, const DateTime &t2 );
+	void	FmtElapsedISO8601( char *buf, const DateTime &t2 );
 	void	FmtUnifiedDiff( char *buf ) const;
 	void	FmtISO8601( char *buf ) const;
 	void	FmtISO8601Min( char *buf ) const;

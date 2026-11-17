@@ -57,16 +57,18 @@
 #define DIGEST_QOP_VALUE_STRING_AUTH_CONF "auth-conf"
 #endif
 
-bool Curl_auth_digest_get_pair(const char *str, struct Curl_str *value,
-                               char *content, const char **endptr)
+bool Curl_auth_digest_get_pair(const char *str, char *value, char *content,
+                               const char **endptr)
 {
   int c;
-  size_t content_length = 0;
   bool starts_with_quote = FALSE;
   bool escape = FALSE;
 
-  if(curlx_str_until(&str, value, DIGEST_MAX_VALUE_LENGTH, '=') ||
-     curlx_str_single(&str, '='))
+  for(c = DIGEST_MAX_VALUE_LENGTH - 1; (*str && (*str != '=') && c--);)
+    *value++ = *str++;
+  *value = 0;
+
+  if('=' != *str++)
     /* eek, no match */
     return FALSE;
 
@@ -76,7 +78,7 @@ bool Curl_auth_digest_get_pair(const char *str, struct Curl_str *value,
     starts_with_quote = TRUE;
   }
 
-  for(c = DIGEST_MAX_CONTENT_LENGTH; *str && c--; str++) {
+  for(c = DIGEST_MAX_CONTENT_LENGTH - 1; *str && c--; str++) {
     if(!escape) {
       switch(*str) {
       case '\\':
@@ -115,16 +117,9 @@ bool Curl_auth_digest_get_pair(const char *str, struct Curl_str *value,
       }
     }
 
-    if(content_length >= DIGEST_MAX_CONTENT_LENGTH - 1) {
-      /* no room for this byte plus the terminator */
-      return FALSE;
-    }
-
     escape = FALSE;
     *content++ = *str;
-    content_length++;
   }
-
   if(escape)
     return FALSE; /* No character after backslash */
 
@@ -371,7 +366,6 @@ CURLcode Curl_auth_create_digest_md5_message(struct Curl_easy *data,
   char *qrealm;
   char *qnonce;
   char *quserp;
-  char *qspn;
 
   /* Decode the challenge message */
   CURLcode result = auth_decode_digest_md5_message(chlg,
@@ -485,25 +479,23 @@ CURLcode Curl_auth_create_digest_md5_message(struct Curl_easy *data,
   for(i = 0; i < MD5_DIGEST_LEN; i++)
     curl_msnprintf(&resp_hash_hex[2 * i], 3, "%02x", digest[i]);
 
-  /* escape double quotes and backslashes in the username, realm, nonce and
-     spn as necessary */
+  /* escape double quotes and backslashes in the username, realm and nonce as
+     necessary */
   qrealm = auth_digest_string_quoted(realm);
   qnonce = auth_digest_string_quoted(nonce);
   quserp = auth_digest_string_quoted(userp);
-  qspn = auth_digest_string_quoted(spn);
-  if(qrealm && qnonce && quserp && qspn)
+  if(qrealm && qnonce && quserp)
     /* Generate the response */
     response = curl_maprintf("username=\"%s\",realm=\"%s\",nonce=\"%s\","
                              "cnonce=\"%s\",nc=\"%s\",digest-uri=\"%s\","
                              "response=%s,qop=%s",
                              quserp, qrealm, qnonce,
-                             cnonce, nonceCount, qspn, resp_hash_hex, qop);
+                             cnonce, nonceCount, spn, resp_hash_hex, qop);
 
   curlx_free(qrealm);
   curlx_free(qnonce);
   curlx_free(quserp);
   curlx_free(spn);
-  curlx_free(qspn);
   if(!response)
     return CURLE_OUT_OF_MEMORY;
 
@@ -538,46 +530,47 @@ CURLcode Curl_auth_decode_digest_http_message(const char *chlg,
   Curl_auth_digest_cleanup(digest);
 
   for(;;) {
-    struct Curl_str value;
+    char value[DIGEST_MAX_VALUE_LENGTH];
     char content[DIGEST_MAX_CONTENT_LENGTH];
 
     /* Pass all additional spaces here */
-    curlx_str_passblanks(&chlg);
+    while(*chlg && ISBLANK(*chlg))
+      chlg++;
 
     /* Extract a value=content pair */
-    if(Curl_auth_digest_get_pair(chlg, &value, content, &chlg)) {
-      if(curlx_str_casecompare(&value, "nonce")) {
+    if(Curl_auth_digest_get_pair(chlg, value, content, &chlg)) {
+      if(curl_strequal(value, "nonce")) {
         curlx_free(digest->nonce);
         digest->nonce = curlx_strdup(content);
         if(!digest->nonce)
           return CURLE_OUT_OF_MEMORY;
       }
-      else if(curlx_str_casecompare(&value, "stale")) {
+      else if(curl_strequal(value, "stale")) {
         if(curl_strequal(content, "true")) {
           digest->stale = TRUE;
           digest->nc = 1; /* we make a new nonce now */
         }
       }
-      else if(curlx_str_casecompare(&value, "realm")) {
+      else if(curl_strequal(value, "realm")) {
         curlx_free(digest->realm);
         digest->realm = curlx_strdup(content);
         if(!digest->realm)
           return CURLE_OUT_OF_MEMORY;
       }
-      else if(curlx_str_casecompare(&value, "opaque")) {
+      else if(curl_strequal(value, "opaque")) {
         curlx_free(digest->opaque);
         digest->opaque = curlx_strdup(content);
         if(!digest->opaque)
           return CURLE_OUT_OF_MEMORY;
       }
-      else if(curlx_str_casecompare(&value, "qop")) {
+      else if(curl_strequal(value, "qop")) {
         const char *token = content;
         struct Curl_str out;
         bool foundAuth = FALSE;
         bool foundAuthInt = FALSE;
         /* Pass leading spaces */
-        curlx_str_passblanks(&token);
-
+        while(*token && ISBLANK(*token))
+          token++;
         while(!curlx_str_until(&token, &out, 32, ',')) {
           if(curlx_str_casecompare(&out, DIGEST_QOP_VALUE_STRING_AUTH))
             foundAuth = TRUE;
@@ -586,7 +579,8 @@ CURLcode Curl_auth_decode_digest_http_message(const char *chlg,
             foundAuthInt = TRUE;
           if(curlx_str_single(&token, ','))
             break;
-          curlx_str_passblanks(&token);
+          while(*token && ISBLANK(*token))
+            token++;
         }
 
         /* Select only auth or auth-int. Otherwise, ignore */
@@ -603,7 +597,7 @@ CURLcode Curl_auth_decode_digest_http_message(const char *chlg,
             return CURLE_OUT_OF_MEMORY;
         }
       }
-      else if(curlx_str_casecompare(&value, "algorithm")) {
+      else if(curl_strequal(value, "algorithm")) {
         curlx_free(digest->algorithm);
         digest->algorithm = curlx_strdup(content);
         if(!digest->algorithm)
@@ -634,7 +628,7 @@ CURLcode Curl_auth_decode_digest_http_message(const char *chlg,
         else
           return CURLE_BAD_CONTENT_ENCODING;
       }
-      else if(curlx_str_casecompare(&value, "userhash")) {
+      else if(curl_strequal(value, "userhash")) {
         if(curl_strequal(content, "true")) {
           digest->userhash = TRUE;
         }
@@ -647,10 +641,12 @@ CURLcode Curl_auth_decode_digest_http_message(const char *chlg,
       break; /* We are done here */
 
     /* Pass all additional spaces here */
-    curlx_str_passblanks(&chlg);
+    while(*chlg && ISBLANK(*chlg))
+      chlg++;
 
     /* Allow the list to be comma-separated */
-    (void)curlx_str_single(&chlg, ',');
+    if(',' == *chlg)
+      chlg++;
   }
 
   /* We had a nonce since before, and we got another one now without

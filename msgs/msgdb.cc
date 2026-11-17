@@ -151,8 +151,8 @@ ErrorId MsgDb::CannotUseSpecificPTable = { ErrorOf( ES_DB, 113, E_FAILED, EV_USA
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 
 
-ErrorId MsgDb::MaxResults              = { ErrorOf( ES_DB, 32, E_FAILED, EV_ADMIN, 1 ), "Request too large (over %maxResults%); see 'p4 help maxresults'." } ;//NOTRANS
-ErrorId MsgDb::MaxScanRows             = { ErrorOf( ES_DB, 61, E_FAILED, EV_ADMIN, 1 ), "Too many rows scanned (over %maxScanRows%); see 'p4 help maxscanrows'." } ;//NOTRANS
+ErrorId MsgDb::MaxResults              = { ErrorOf( ES_DB, 32, E_FAILED, EV_ADMIN, 1 ), "Request too large (over %maxResults%); see '%'p4 help maxresults'%'." } ;//NOTRANS
+ErrorId MsgDb::MaxScanRows             = { ErrorOf( ES_DB, 61, E_FAILED, EV_ADMIN, 1 ), "Too many rows scanned (over %maxScanRows%); see '%'p4 help maxscanrows'%'." } ;//NOTRANS
 ErrorId MsgDb::NotUnderRoot            = { ErrorOf( ES_DB, 39, E_FAILED, EV_CONTEXT, 2 ), "Path '%path%' is not under client's root '%root%'." } ;//NOTRANS
 ErrorId MsgDb::NotUnderClient          = { ErrorOf( ES_DB, 40, E_FAILED, EV_CONTEXT, 2 ), "Path '%path%' is not under client '%client%'." } ;//NOTRANS
 ErrorId MsgDb::ClientGone              = { ErrorOf( ES_DB, 62, E_FATAL, EV_ADMIN, 0 ), "Client has dropped connection, terminating request." } ;//NOTRANS

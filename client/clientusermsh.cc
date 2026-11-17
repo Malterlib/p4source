@@ -144,8 +144,8 @@ class JSONDict : public MarshalDict
 	void		AddPair( const StrPtr &code, const int value )
 			{ j[ code.Text() ] = value; };
 	void		AddPair( const StrPtr &code, const StrPtr &value )
-			{ j[ code.Text() ] = value.Text(); };
-
+			{ j[ code.Text() ] =
+			  std::string( value.Text(), value.Length() ); };
 
     private:
 

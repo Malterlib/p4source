@@ -280,7 +280,7 @@ Error::Marshall1( StrDict &out, int uniquote ) const
 
 	for( i = 0; i < ep->errorCount; i++ )
 	{
-	    out.SetVar( P4Tag::v_code, i, StrNum( ep->ids[i].code ) );
+	    out.SetVar( P4Tag::v_code, i, ep->ids[i].code );
 
 	    if( uniquote )
 		out.SetVar( P4Tag::v_fmt, i, StrRef( ep->ids[i].fmt ) );

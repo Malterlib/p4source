@@ -227,6 +227,7 @@ class SpecElem {
 				|| type == SDT_SELECT
 				|| type == SDT_LINE 
 				|| type == SDT_DATE; }
+	int	IsLine() { return type == SDT_LINE; }
 
 	int	CheckValue( StrBuf &value );
 
@@ -366,6 +367,7 @@ class SpecData {
 
 } ;
 
+// This class translates our text specification form to tag data
 class SpecDataTable : public SpecData {
 
     public:

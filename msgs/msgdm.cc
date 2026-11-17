@@ -93,7 +93,7 @@ ErrorId MsgDm::NoProtect               = { ErrorOf( ES_DM, 123, E_FAILED, EV_PRO
 ErrorId MsgDm::PathNotUnder            = { ErrorOf( ES_DM, 42, E_FAILED, EV_CONTEXT, 2 ), "Path '%depotFile%' is not under '%prefix%'." } ;
 ErrorId MsgDm::TooManyUsers            = { ErrorOf( ES_DM, 43, E_FAILED, EV_ADMIN, 0 ), "Can't create a new user - over license quota." } ;
 ErrorId MsgDm::MapNotUnder             = { ErrorOf( ES_DM, 44, E_FAILED, EV_CONTEXT, 2 ), "Mapping '%depotFile%' is not under '%prefix%'." } ;
-ErrorId MsgDm::MapNoListAccess         = { ErrorOf( ES_DM, 432, E_FAILED, EV_CONTEXT, 0 ), "User does not have list access for mapped depots." } ;
+ErrorId MsgDm::MapNoListAccess         = { ErrorOf( ES_DM, 432, E_FAILED, EV_CONTEXT, 1 ), "User does not have list access for mapped depots[ in %field%]." } ;
                                
 ErrorId MsgDm::NoSuchStorage           = { ErrorOf( ES_DM, 985, E_FAILED, EV_UNKNOWN, 2 ), "Archive information for '%lbrFile%' revision %lbrRev% doesn't exist." } ;
 ErrorId MsgDm::ExSTORAGE               = { ErrorOf( ES_DM, 986, E_WARN, EV_EMPTY, 1 ), "[%argc% - no|No] such archive storage." } ;
@@ -844,8 +844,8 @@ ErrorId MsgDm::UnshelveStreamIsOpen    = { ErrorOf( ES_DM, 1004, E_FAILED, EV_NO
 ErrorId MsgDm::UserSave                = { ErrorOf( ES_DM, 356, E_INFO, EV_NONE, 1 ), "User %user% saved." } ;
 ErrorId MsgDm::UserNoChange            = { ErrorOf( ES_DM, 357, E_INFO, EV_NONE, 1 ), "User %user% not changed." } ;
 ErrorId MsgDm::UserNotExist            = { ErrorOf( ES_DM, 358, E_FAILED, EV_UNKNOWN, 1 ), "User %user% doesn't exist." } ;
-ErrorId MsgDm::UserNotExistInfo        = { ErrorOf( ES_DM, 994, E_INFO, EV_UNKNOWN, 2 ), "User %user% doesn't exist (Extension owner:%owner%)." } ;
-ErrorId MsgDm::GroupNotExistInfo       = { ErrorOf( ES_DM, 996, E_INFO, EV_UNKNOWN, 2 ), "Groups (%groups%) don't exist (Extension owner:%owner%)." } ;
+ErrorId MsgDm::UserNotExistError       = { ErrorOf( ES_DM, 994, E_FAILED, EV_UNKNOWN, 2 ), "User %user% doesn't exist (Extension owner:%owner%)." } ;
+ErrorId MsgDm::GroupNotExistError      = { ErrorOf( ES_DM, 996, E_FAILED, EV_UNKNOWN, 2 ), "Groups (%groups%) don't exist (Extension owner:%owner%)." } ;
 ErrorId MsgDm::UserCantDelete          = { ErrorOf( ES_DM, 359, E_INFO, EV_NONE, 2 ), "User %user% has file(s) open on %value% client(s) and can't be deleted." } ;
 ErrorId MsgDm::UserDelete              = { ErrorOf( ES_DM, 360, E_INFO, EV_NONE, 1 ), "User %user% deleted." } ;
                                

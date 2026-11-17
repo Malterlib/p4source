@@ -122,6 +122,7 @@ class Threader {
 	virtual void	NoDowngrade();
 	virtual void	Quiesce();
 	virtual void	Reap();
+	virtual int	IsSingle() { return 1; }
 
 # ifndef OS_NT
 	virtual void	Cleanup( pid_t pid );
@@ -161,6 +162,7 @@ class Threading {
 	static int	GetThreadCount()
 	                { return current ? current->GetThreadCount() : -1; }
 	static void	LaunchCurrentThread( Thread *t ) { if( current ) current->Launch( t ); }
+	static int	IsSingle() { return current ? current->IsSingle() : 1; }
 
 # ifndef OS_NT
 	static void	Cleanup( pid_t pid ) { if( current ) current->Cleanup( pid ); }

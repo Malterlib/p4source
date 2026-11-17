@@ -540,13 +540,16 @@ int ZEXPORT deflateSetHeader_opt (strm, head)
 
 /* ========================================================================= */
 #ifdef __aarch64__
-int ZEXPORT deflatePending (strm, pending, bits)
+int ZEXPORT deflatePending
 #else
-int ZEXPORT deflatePending_opt (strm, pending, bits)
+int ZEXPORT deflatePending_opt
 #endif
-    uint32_t  *pending;
-    int *bits;
-    z_streamp strm;
+(
+    z_streamp strm,
+    uint32_t  *pending,
+    int *bits
+)
+
 {
     if (deflateStateCheck(strm)) return Z_STREAM_ERROR;
     if (pending != Z_NULL)
@@ -558,13 +561,13 @@ int ZEXPORT deflatePending_opt (strm, pending, bits)
 
 /* ========================================================================= */
 #ifdef __aarch64__
-int ZEXPORT deflatePrime (strm, bits, value)
+int ZEXPORT deflatePrime
 #else
-int ZEXPORT deflatePrime_opt (strm, bits, value)
+int ZEXPORT deflatePrime_opt
 #endif     
-    z_streamp strm;
-    int bits;
-    int value;
+(    z_streamp strm,
+     int bits,
+     int value)
 {
     deflate_state *s;
     int put;
@@ -588,13 +591,13 @@ int ZEXPORT deflatePrime_opt (strm, bits, value)
 
 /* ========================================================================= */
 #ifdef __aarch64__
-int ZEXPORT deflateParams(strm, level, strategy)
+int ZEXPORT deflateParams
 #else
-int ZEXPORT deflateParams_opt(strm, level, strategy)
+int ZEXPORT deflateParams_opt
 #endif
-    z_streamp strm;
-    int level;
-    int strategy;
+(    z_streamp strm,
+     int level,
+     int strategy)
 {
     deflate_state *s;
     compress_func func;
@@ -629,15 +632,16 @@ int ZEXPORT deflateParams_opt(strm, level, strategy)
 
 /* ========================================================================= */
 #ifdef __aarch64__
-int ZEXPORT deflateTune(strm, good_length, max_lazy, nice_length, max_chain)
+int ZEXPORT deflateTune
 #else
-int ZEXPORT deflateTune_opt(strm, good_length, max_lazy, nice_length, max_chain)
+int ZEXPORT deflateTune_opt
 #endif
-    z_streamp strm;
-    int good_length;
-    int max_lazy;
-    int nice_length;
-    int max_chain;
+(
+    z_streamp strm,
+    int good_length,
+    int max_lazy,
+    int nice_length,
+    int max_chain)
 {
     deflate_state *s;
 
@@ -668,12 +672,13 @@ int ZEXPORT deflateTune_opt(strm, good_length, max_lazy, nice_length, max_chain)
  * allocation.
  */
 #ifdef __aarch64__
-uLong ZEXPORT deflateBound(strm, sourceLen)
+uLong ZEXPORT deflateBound
 #else
-uLong ZEXPORT deflateBound_opt(strm, sourceLen)
+uLong ZEXPORT deflateBound_opt
 #endif
-    z_streamp strm;
-    uLong sourceLen;
+(
+    z_streamp strm,
+    uLong sourceLen)
 {
     deflate_state *s;
     uint64_t complen, wraplen;
@@ -2019,12 +2024,18 @@ static block_state deflate_huff(s, flush)
 
 #ifndef __aarch64__
 extern int x86_cpu_enable_simd;
-int deflateInit__nosimd();
-int ZEXPORT deflateInit_(strm, level, version, stream_size)
-    z_streamp strm;
-    int level;
-    const char *version;
-    int stream_size;
+
+int deflateInit__nosimd(
+    z_streamp strm,
+    int level,
+    const char *version,
+    int stream_size);
+
+int ZEXPORT deflateInit_(
+    z_streamp strm,
+    int level,
+    const char *version,
+    int stream_size)
 {
     if( x86_cpu_enable_simd )
         return deflateInit__opt(strm, level, version, stream_size);
@@ -2032,17 +2043,25 @@ int ZEXPORT deflateInit_(strm, level, version, stream_size)
         return deflateInit__nosimd(strm, level, version, stream_size);
 }
 
-int deflateInit2__nosimd();
-int ZEXPORT deflateInit2_(strm, level, method, windowBits, memLevel, strategy,
-                  version, stream_size)
-    z_streamp strm;
-    int  level;
-    int  method;
-    int  windowBits;
-    int  memLevel;
-    int  strategy;
-    const char *version;
-    int stream_size;
+int deflateInit2__nosimd(
+    z_streamp strm,
+    int  level,
+    int  method,
+    int  windowBits,
+    int  memLevel,
+    int  strategy,
+    const char *version,
+    int stream_size);
+
+int ZEXPORT deflateInit2_(
+    z_streamp strm,
+    int  level,
+    int  method,
+    int  windowBits,
+    int  memLevel,
+    int  strategy,
+    const char *version,
+    int stream_size)
 {
     if( x86_cpu_enable_simd )
         return deflateInit2__opt(strm, level, method, windowBits, memLevel,
@@ -2052,11 +2071,15 @@ int ZEXPORT deflateInit2_(strm, level, method, windowBits, memLevel, strategy,
                                     strategy, version, stream_size);
 }
 
-int deflateSetDictionary_nosimd ();
-int ZEXPORT deflateSetDictionary (strm, dictionary, dictLength)
-    z_streamp strm;
-    const uint8_t  *dictionary;
-    uint32_t  dictLength;
+int deflateSetDictionary_nosimd (
+    z_streamp strm,
+    const uint8_t  *dictionary,
+    uint32_t  dictLength);
+
+int ZEXPORT deflateSetDictionary (
+    z_streamp strm,
+    const uint8_t  *dictionary,
+    uint32_t  dictLength)
 {
     if( x86_cpu_enable_simd )
         return deflateSetDictionary_opt (strm, dictionary, dictLength);
@@ -2064,9 +2087,9 @@ int ZEXPORT deflateSetDictionary (strm, dictionary, dictLength)
         return deflateSetDictionary_nosimd (strm, dictionary, dictLength);
 }
 
-int deflateResetKeep_nosimd ();
-int ZEXPORT deflateResetKeep (strm)
-    z_streamp strm;
+int deflateResetKeep_nosimd (z_streamp strm);
+
+int ZEXPORT deflateResetKeep (z_streamp strm)
 {
     if( x86_cpu_enable_simd )
         return deflateResetKeep_opt (strm);
@@ -2074,9 +2097,9 @@ int ZEXPORT deflateResetKeep (strm)
         return deflateResetKeep_nosimd (strm);        
 }
 
-int deflateReset_nosimd ();
-int ZEXPORT deflateReset (strm)
-    z_streamp strm;
+int deflateReset_nosimd (z_streamp strm);
+
+int ZEXPORT deflateReset (z_streamp strm)
 {
     if( x86_cpu_enable_simd )
         return deflateReset_opt (strm);
@@ -2084,10 +2107,13 @@ int ZEXPORT deflateReset (strm)
         return deflateReset_nosimd (strm);
 }
 
-int deflateSetHeader_nosimd ();
-int ZEXPORT deflateSetHeader (strm, head)
-    z_streamp strm;
-    gz_headerp head;
+int deflateSetHeader_nosimd (
+    z_streamp strm,
+    gz_headerp head);
+
+int ZEXPORT deflateSetHeader (
+    z_streamp strm,
+    gz_headerp head)
 {
     if( x86_cpu_enable_simd )
         return deflateSetHeader_opt (strm, head);
@@ -2095,11 +2121,14 @@ int ZEXPORT deflateSetHeader (strm, head)
         return deflateSetHeader_nosimd (strm, head);
 }
 
-int deflatePending_nosimd ();
-int ZEXPORT deflatePending (strm, pending, bits)
-    uint32_t  *pending;
-    int *bits;
-    z_streamp strm;
+int deflatePending_nosimd(
+    z_streamp strm,
+    unsigned *pending,
+    int *bits);
+int deflatePending(
+    z_streamp strm,
+    unsigned *pending,
+    int *bits)
 {
     if( x86_cpu_enable_simd )        
         return deflatePending_opt (strm, pending, bits);
@@ -2107,11 +2136,15 @@ int ZEXPORT deflatePending (strm, pending, bits)
         return deflatePending_nosimd (strm, pending, bits);
 }
 
-int deflatePrime_nosimd ();
-int ZEXPORT deflatePrime (strm, bits, value)
-    z_streamp strm;
-    int bits;
-    int value;
+int deflatePrime_nosimd (
+    z_streamp strm,
+    int bits,
+    int value);
+
+int ZEXPORT deflatePrime (
+    z_streamp strm,
+    int bits,
+    int value)
 {
     if( x86_cpu_enable_simd )        
         return deflatePrime_opt (strm, bits, value);
@@ -2119,11 +2152,15 @@ int ZEXPORT deflatePrime (strm, bits, value)
         return deflatePrime_nosimd (strm, bits, value);
 }
 
-int deflateParams_nosimd();
-int ZEXPORT deflateParams(strm, level, strategy)
-    z_streamp strm;
-    int level;
-    int strategy;
+int deflateParams_nosimd(
+    z_streamp strm,
+    int level,
+    int strategy);
+
+int ZEXPORT deflateParams(
+    z_streamp strm,
+    int level,
+    int strategy)
 {
     if( x86_cpu_enable_simd )
         return deflateParams_opt(strm, level, strategy);
@@ -2131,13 +2168,19 @@ int ZEXPORT deflateParams(strm, level, strategy)
         return deflateParams_nosimd(strm, level, strategy);
 }
 
-int deflateTune_nosimd();
-int ZEXPORT deflateTune(strm, good_length, max_lazy, nice_length, max_chain)
-    z_streamp strm;
-    int good_length;
-    int max_lazy;
-    int nice_length;
-    int max_chain;
+int deflateTune_nosimd(
+    z_streamp strm,
+    int good_length,
+    int max_lazy,
+    int nice_length,
+    int max_chain);
+
+int ZEXPORT deflateTune(
+    z_streamp strm,
+    int good_length,
+    int max_lazy,
+    int nice_length,
+    int max_chain)
 {
     if( x86_cpu_enable_simd )        
         return deflateTune_opt(strm, good_length, max_lazy, nice_length, max_chain);
@@ -2145,10 +2188,13 @@ int ZEXPORT deflateTune(strm, good_length, max_lazy, nice_length, max_chain)
         return deflateTune_nosimd(strm, good_length, max_lazy, nice_length, max_chain);            
 }
 
-uLong deflateBound_nosimd();
-uLong ZEXPORT deflateBound(strm, sourceLen)
-    z_streamp strm;
-    uLong sourceLen;
+uLong deflateBound_nosimd(
+    z_streamp strm,
+    uLong sourceLen);
+
+uLong ZEXPORT deflateBound(
+    z_streamp strm,
+    uLong sourceLen)
 {
     if( x86_cpu_enable_simd )        
         return deflateBound_opt(strm, sourceLen);
@@ -2156,10 +2202,9 @@ uLong ZEXPORT deflateBound(strm, sourceLen)
         return deflateBound_nosimd(strm, sourceLen);
 }
 
-int deflate_nosimd ();
-int ZEXPORT deflate (strm, flush)
-    z_streamp strm;
-    int flush;
+int deflate_nosimd (z_streamp strm, int flush);
+
+int ZEXPORT deflate (z_streamp strm, int flush)
 {
     if( x86_cpu_enable_simd )
         return deflate_opt (strm, flush);
@@ -2167,9 +2212,9 @@ int ZEXPORT deflate (strm, flush)
         return deflate_nosimd (strm, flush);
 }
 
-int deflateEnd_nosimd ();
-int ZEXPORT deflateEnd (strm)
-    z_streamp strm;
+int deflateEnd_nosimd (z_streamp strm);
+
+int ZEXPORT deflateEnd (z_streamp strm)
 {
     if( x86_cpu_enable_simd )
         return deflateEnd_opt (strm);
@@ -2177,10 +2222,13 @@ int ZEXPORT deflateEnd (strm)
         return deflateEnd_nosimd (strm);
 }
 
-int deflateCopy_nosimd ();
-int ZEXPORT deflateCopy (dest, source)
-    z_streamp dest;
-    z_streamp source;
+int deflateCopy_nosimd (
+    z_streamp dest,
+    z_streamp source);
+
+int ZEXPORT deflateCopy (
+    z_streamp dest,
+    z_streamp source)
 {
     if( x86_cpu_enable_simd )
         return deflateCopy_opt (dest, source);

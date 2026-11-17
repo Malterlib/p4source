@@ -54,6 +54,7 @@ class ExtensionData
 	        const std::string& extname, const std::string& extrev );
 
 	    int GetAPIVersion() const;
+	    int GetManifestVersion() const;
 	    StrPtr* GetDescription();
 	    StrPtr* GetNamespc();
 	    StrPtr* GetName();
@@ -67,6 +68,8 @@ class ExtensionData
 	    StrPtr* GetLicense();
 	    StrPtr* GetDeveloperUrl();
 	    StrPtr* GetHomepageUrl();
+	    StrPtr* GetLimitInstance();
+	    bool GetRequireUser();
 	    StrBuf SerializeCompatProds() const;
 	    std::unordered_map< std::string,
 	                        std::unordered_map< std::string, std::string > >
@@ -119,7 +122,9 @@ class ExtensionData
 	    StrBuf name, namespc, version, versionName, description, license,
 	           licenseBody, defaultLocale, homepageUrl,
 	           key, developerName, developerUrl, runtimeLanguage,
-	           runtimeVersion;
+	           runtimeVersion, limitInstance;
+
+	    bool requireUser;
 } ;
 
 # else

@@ -65,6 +65,9 @@ class MsgSupp {
 	static ErrorId TunableValueTooLow;
 	static ErrorId TunableValueTooHigh;
 
+	static ErrorId JsonNotEnabled;
+	static ErrorId JsonSerializationFailed;
+
 	static ErrorId OptionChange;
 	static ErrorId OptionPort;
 	static ErrorId OptionUser;
@@ -486,6 +489,9 @@ class MsgSupp {
 	static ErrorId OptionStraceRuntime;
 	static ErrorId AmbiguousArgs;
 	static ErrorId OptionSyncTime;
+	static ErrorId OptionServerSizeRCS;
+	static ErrorId OptionRestrictOnly;
+	static ErrorId OptionExpandOnly;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

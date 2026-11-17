@@ -250,14 +250,25 @@ ClientUserMunge::Munge( StrDict *dict, StrPtrArray *fields, ClientUser *ui )
 	    {
 		// List entry, get index for last item.
 
-		for( int j = 0 ; d.GetVar( field, j ) ; j++ )
+		int j = 0;
+		for( ; d.GetVar( field, j ) ; j++ )
 		    x = j + 1;
+
+		if( elem->GetFmt() & SDF_COMMENT )
+		{
+		    StrBuf cm;
+		    cm = field;
+		    cm << "Comment";
+		    for( ; d.GetVar( cm, j ) ; j++ )
+			x = j + 1;
+		}
 	    }
 	    if( x && !plus )
 	    {
 		// Go back and remove existing list items.
 
 		StrBuf fn;
+		StrBuf cm;
 
 		while( x )
 		{
@@ -265,6 +276,14 @@ ClientUserMunge::Munge( StrDict *dict, StrPtrArray *fields, ClientUser *ui )
 		    fn = field;
 		    fn.Append( StrNum( x ).Text() );
 		    d.RemoveVar( fn );
+
+		    if( elem->GetFmt() & SDF_COMMENT )
+		    {
+			cm = field;
+			cm << "Comment";
+			cm.Append( StrNum( x ).Text() );
+			d.RemoveVar( cm );
+		    }
 		}
 	    }
 
@@ -274,6 +293,15 @@ ClientUserMunge::Munge( StrDict *dict, StrPtrArray *fields, ClientUser *ui )
 		d.SetVar( field, x, value );
 	    else
 	        d.ReplaceVar( field, value );
+
+	    if( elem->IsList() && elem->GetFmt() & SDF_COMMENT )
+	    {
+		StrBuf cm;
+		cm = field;
+		cm << "Comment";
+		cm.Append( StrNum( x ).Text() );
+		d.RemoveVar( cm );
+	    }
 	}
 
 	// Format spec.

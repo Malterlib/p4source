@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSupp error code is: 467
+ * Current high value for a MsgSupp error code is: 471
  */
 # include <stdhdrs.h>
 # include <error.h>
@@ -82,6 +82,9 @@ ErrorId MsgSupp::TracerNoFlush         = { ErrorOf( ES_SUPP, 448, E_FAILED, EV_F
 ErrorId MsgSupp::UnknownTunable        = { ErrorOf( ES_SUPP, 319, E_FAILED, EV_USAGE, 1 ), "Unknown configurable: %conf%" } ;
 ErrorId MsgSupp::TunableValueTooLow    = { ErrorOf( ES_SUPP, 320, E_FAILED, EV_USAGE, 2 ), "Configurable '%config%' cannot be set to a value less than '%minVal%'." } ;
 ErrorId MsgSupp::TunableValueTooHigh   = { ErrorOf( ES_SUPP, 321, E_FAILED, EV_USAGE, 2 ), "Configurable '%config%' cannot be set to a value greater than '%maxVal%'." } ;
+
+ErrorId MsgSupp::JsonNotEnabled        = { ErrorOf( ES_SUPP, 469, E_FAILED, EV_UPGRADE, 0 ), "Reading and writing JSON is not supported by this server." };
+ErrorId MsgSupp::JsonSerializationFailed = { ErrorOf( ES_SUPP, 470, E_FATAL, EV_FAULT, 1 ), "Error serializing specification to JSON: %jsonError%" };
 
 ErrorId MsgSupp::OptionChange          = { ErrorOf( ES_SUPP, 37, E_INFO, EV_NONE, 0 ), "%'--change (-c)'%: specifies the changelist to use for the command." } ;
 ErrorId MsgSupp::OptionPort            = { ErrorOf( ES_SUPP, 38, E_INFO, EV_NONE, 0 ), "%'--port (-p)'%: specifies the network address of the server." } ;
@@ -503,6 +506,9 @@ ErrorId MsgSupp::OptionClientCaseInsensitive = { ErrorOf( ES_SUPP, 457, E_INFO, 
 ErrorId MsgSupp::OptionNonLbr             = { ErrorOf( ES_SUPP, 460, E_INFO, EV_NONE, 0 ), "%'--nonlbr'%: also remove any non archive files during scan" } ;
 ErrorId MsgSupp::OptionStraceRuntime      = { ErrorOf( ES_SUPP, 466, E_INFO, EV_NONE, 0 ), "%'--strace-runtime'%: number of seconds of strace request" } ;
 ErrorId MsgSupp::OptionSyncTime           = { ErrorOf( ES_SUPP, 467, E_INFO, EV_NONE, 0 ), "%'--sync-time'%: update the recorded modtime in the metadata of the synced file(s)" } ;
+ErrorId MsgSupp::OptionServerSizeRCS      = { ErrorOf( ES_SUPP, 468, E_INFO, EV_NONE, 0 ), "%'--server-size-rcs'%: update the serverSize field in the storage record for RCS based revisions" } ;
+ErrorId MsgSupp::OptionRestrictOnly       = { ErrorOf( ES_SUPP, 470, E_INFO, EV_NONE, 0 ), "%'--restrict-only'%: purge records excluded by replica filter." } ;
+ErrorId MsgSupp::OptionExpandOnly         = { ErrorOf( ES_SUPP, 471, E_INFO, EV_NONE, 0 ), "%'--expand-only'%: reconcile records that were previously excluded by replica filter." } ;
 
 
 // ErrorId graveyard'%: retired/deprecated ErrorIds.

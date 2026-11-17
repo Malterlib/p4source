@@ -56,13 +56,18 @@
 #include "curlx/strcopy.h"
 #include "curlx/strparse.h"
 
+#define MAX_HOSTCACHE_LEN (255 + 7) /* max FQDN + colon + port number + zero */
+
 #define MAX_DNS_CACHE_SIZE 29999
 
-/* @unittest 3217 */
-UNITTEST void dnsc_peer2id(struct dnsc_id *pid, char type,
-                           struct Curl_peer *peer);
-UNITTEST void dnsc_peer2id(struct dnsc_id *pid, char type,
-                           struct Curl_peer *peer)
+struct dnsc_id {
+  struct Curl_str name;
+  uint16_t port;
+  char type;
+};
+
+static void dnsc_peer2id(struct dnsc_id *pid, char type,
+                         struct Curl_peer *peer)
 {
   curlx_str_assign(&pid->name, peer->hostname, strlen(peer->hostname));
   pid->port = peer->port;
@@ -77,41 +82,26 @@ static void dnsc_str2id(struct dnsc_id *pid, char type,
   pid->type = type;
 }
 
+struct dnsc_key {
+  char data[MAX_HOSTCACHE_LEN];
+  size_t len;
+};
+
 /*
  * Create a hostcache id string for the provided host + port, to be used by
  * the DNS caching. Without alloc. Return length of the id string.
- *
- * @unittest 3217
  */
-UNITTEST void dnsc_id2key(struct dnsc_key *key, struct dnsc_id *id);
-UNITTEST void dnsc_id2key(struct dnsc_key *key, struct dnsc_id *id)
+static void dnsc_id2key(struct dnsc_key *key, struct dnsc_id *id)
 {
   size_t namelen = curlx_strlen(&id->name);
-  if(namelen > (MAX_HOSTCACHE_LEN - 3))
-    namelen = MAX_HOSTCACHE_LEN - 3;
+  if(namelen > (sizeof(key->data) - 8))
+    namelen = sizeof(key->data) - 8;
   /* store and lower case the name */
   key->data[0] = id->type;
-  key->data[1] = (uint8_t)((id->port >> 8) & 0xff);
-  key->data[2] = (uint8_t)(id->port & 0xff);
-  Curl_strntolower((char *)key->data + 3, curlx_str(&id->name), namelen);
-  key->len = namelen + 3;
-}
-
-/* @unittest 3271 */
-UNITTEST bool dnsc_id_matches_entry(struct dnsc_id *id,
-                                    struct Curl_dns_entry *dns);
-UNITTEST bool dnsc_id_matches_entry(struct dnsc_id *id,
-                                    struct Curl_dns_entry *dns)
-{
-  return dns &&
-         /* Neither the requested nor the cached key was truncated. */
-         (((dns->hostlen <= (MAX_HOSTCACHE_LEN - 3)) &&
-           (id->name.len <= (MAX_HOSTCACHE_LEN - 3))) ||
-          /* port and host string are the same, case insensitive */
-          ((id->port == dns->port) && (id->name.len == dns->hostlen) &&
-           /* for most lookups, case is the same, try that first */
-           (!strcmp(id->name.str, dns->hostname) ||
-            curl_strequal(id->name.str, dns->hostname))));
+  Curl_strntolower(key->data + 1, curlx_str(&id->name), namelen);
+  /* include the terminating 0 in key length */
+  key->len = namelen + 2 +
+             curl_msnprintf(&key->data[namelen + 1], 7, ":%u", id->port);
 }
 
 static void dnscache_entry_free(struct Curl_dns_entry *dns)
@@ -124,7 +114,7 @@ static void dnscache_entry_free(struct Curl_dns_entry *dns)
 }
 
 struct dnscache_prune_data {
-  const struct curltime *pnow;
+  struct curltime now;
   timediff_t oldest_ms; /* oldest time in cache not pruned. */
   timediff_t max_age_ms;
 };
@@ -141,27 +131,15 @@ static int dnscache_entry_is_stale(void *datap, void *hc)
   struct dnscache_prune_data *prune = (struct dnscache_prune_data *)datap;
   struct Curl_dns_entry *dns = (struct Curl_dns_entry *)hc;
 
-  if(!dns->permanent) {
+  if(dns->timestamp.tv_sec || dns->timestamp.tv_usec) {
     /* get age in milliseconds */
-    timediff_t age_ms = curlx_ptimediff_ms(prune->pnow, &dns->added);
-    switch(dns->type) {
-    case CURL_DNST_ADDR:
-      if(!dns->addr)
-        age_ms *= 2; /* negative entries age twice as fast */
-      break;
-#ifdef USE_HTTPSRR
-    case CURL_DNST_HTTPS:
-      if(!dns->hinfo)
-        age_ms *= 2; /* negative entries age twice as fast */
-      break;
-#endif
-    default:
-      break;
-    }
-    if(age_ms >= prune->max_age_ms)
+    timediff_t age = curlx_ptimediff_ms(&prune->now, &dns->timestamp);
+    if(!dns->addr)
+      age *= 2; /* negative entries age twice as fast */
+    if(age >= prune->max_age_ms)
       return TRUE;
-    if(age_ms > prune->oldest_ms)
-      prune->oldest_ms = age_ms;
+    if(age > prune->oldest_ms)
+      prune->oldest_ms = age;
   }
   return FALSE;
 }
@@ -172,12 +150,12 @@ static int dnscache_entry_is_stale(void *datap, void *hc)
  */
 static timediff_t dnscache_prune(struct Curl_hash *hostcache,
                                  timediff_t cache_timeout_ms,
-                                 const struct curltime *pnow)
+                                 struct curltime now)
 {
   struct dnscache_prune_data user;
 
   user.max_age_ms = cache_timeout_ms;
-  user.pnow = pnow;
+  user.now = now;
   user.oldest_ms = 0;
 
   Curl_hash_clean_with_criterium(hostcache,
@@ -214,7 +192,7 @@ static void dnscache_unlock(struct Curl_easy *data,
  * Library-wide function for pruning the DNS cache. This function takes and
  * returns the appropriate locks.
  */
-void Curl_dnscache_prune(struct Curl_easy *data, const struct curltime *pnow)
+void Curl_dnscache_prune(struct Curl_easy *data)
 {
   struct Curl_dnscache *dnscache = dnscache_get(data);
   /* the timeout may be set -1 (forever) */
@@ -229,7 +207,7 @@ void Curl_dnscache_prune(struct Curl_easy *data, const struct curltime *pnow)
   do {
     /* Remove outdated and unused entries from the hostcache */
     timediff_t oldest_ms =
-      dnscache_prune(&dnscache->entries, timeout_ms, pnow);
+      dnscache_prune(&dnscache->entries, timeout_ms, *Curl_pgrs_now(data));
 
     if(Curl_hash_count(&dnscache->entries) > MAX_DNS_CACHE_SIZE)
       /* prune the ones over half this age */
@@ -255,11 +233,11 @@ void Curl_dnscache_clear(struct Curl_easy *data)
 }
 
 /* lookup address, returns entry if found and not stale */
-static CURLcode fetch_entry(struct Curl_easy *data,
-                            struct Curl_dnscache *dnscache,
-                            uint8_t dns_queries,
-                            struct Curl_peer *peer,
-                            struct Curl_dns_entry **pdns)
+static CURLcode fetch_addr(struct Curl_easy *data,
+                           struct Curl_dnscache *dnscache,
+                           uint8_t dns_queries,
+                           struct Curl_peer *peer,
+                           struct Curl_dns_entry **pdns)
 {
   struct Curl_dns_entry *dns = NULL;
   struct dnsc_id id;
@@ -278,11 +256,6 @@ static CURLcode fetch_entry(struct Curl_easy *data,
   /* See if it is already in our dns cache */
   dns = Curl_hash_pick(&dnscache->entries, key.data, key.len);
 
-  if(dns && !dnsc_id_matches_entry(&id, dns)) {
-    /* May happen on hostnames longer than MAX_HOSTCACHE_LEN */
-    dns = NULL;
-  }
-
   /* No entry found in cache, check if we might have a wildcard entry */
   if(!dns && (type == CURL_DNST_ADDR) && data->state.wildcard_resolve) {
     struct Curl_str wildname;
@@ -299,7 +272,7 @@ static CURLcode fetch_entry(struct Curl_easy *data,
     /* See whether the returned entry is stale. Done before we release lock */
     struct dnscache_prune_data user;
 
-    user.pnow = Curl_pgrs_now(data);
+    user.now = *Curl_pgrs_now(data);
     user.max_age_ms = data->set.dns_cache_timeout_ms;
     user.oldest_ms = 0;
 
@@ -358,7 +331,7 @@ CURLcode Curl_dnscache_get(struct Curl_easy *data,
   CURLcode result = CURLE_OK;
 
   dnscache_lock(data, dnscache);
-  result = fetch_entry(data, dnscache, dns_queries, peer, &dns);
+  result = fetch_addr(data, dnscache, dns_queries, peer, &dns);
   if(!result && dns)
     dns->refcount++; /* we pass out a reference */
   else if(result) {
@@ -465,27 +438,31 @@ static bool dnscache_ai_has_family(struct Curl_addrinfo *ai, int ai_family)
   return FALSE;
 }
 
-static struct Curl_dns_entry *dnsc_entry_create(struct dnsc_id *pid,
+static struct Curl_dns_entry *dnsc_entry_create(struct Curl_easy *data,
+                                                struct dnsc_id *pid,
                                                 bool permanent)
 {
   struct Curl_dns_entry *dns = NULL;
 
-  if(curlx_strlen(&pid->name) > UINT16_MAX)
-    goto out;
-
-  /* Create a new cache entry,
-     struct already has the hostname null-terminator */
+  /* Create a new cache entry, struct already has the hostname NUL */
   dns = curlx_calloc(1, sizeof(struct Curl_dns_entry) +
                      curlx_strlen(&pid->name));
   if(!dns)
     goto out;
 
   dns->refcount = 1; /* the cache has the first reference */
+  dns->hostlen = curlx_strlen(&pid->name);
   dns->port = pid->port;
-  dns->hostlen = (uint16_t)curlx_strlen(&pid->name);
   if(dns->hostlen)
     memcpy(dns->hostname, curlx_str(&pid->name), dns->hostlen);
-  dns->permanent = permanent;
+
+  if(permanent) {
+    dns->timestamp.tv_sec = 0; /* an entry that never goes stale */
+    dns->timestamp.tv_usec = 0; /* an entry that never goes stale */
+  }
+  else {
+    dns->timestamp = *Curl_pgrs_now(data);
+  }
 
 out:
   return dns;
@@ -568,7 +545,7 @@ struct Curl_dns_entry *Curl_dnsc_mk_addr(struct Curl_easy *data,
   struct Curl_dns_entry *dns;
 
   dnsc_peer2id(&id, CURL_DNST_ADDR, peer);
-  dns = dnsc_entry_create(&id, FALSE);
+  dns = dnsc_entry_create(data, &id, FALSE);
   dns = dnsc_entry_assign_addr(data, dns, dns_queries, paddr, NULL);
   return dns;
 }
@@ -583,18 +560,9 @@ struct Curl_dns_entry *Curl_dnsc_mk_addr2(struct Curl_easy *data,
   struct Curl_dns_entry *dns;
 
   dnsc_peer2id(&id, CURL_DNST_ADDR, peer);
-  dns = dnsc_entry_create(&id, FALSE);
+  dns = dnsc_entry_create(data, &id, FALSE);
   dns = dnsc_entry_assign_addr(data, dns, dns_queries, paddr1, paddr2);
   return dns;
-}
-
-static struct Curl_dns_entry *dnsc_add_entry(struct Curl_easy *data,
-                                             struct Curl_dnscache *dnscache,
-                                             struct dnsc_key *key,
-                                             struct Curl_dns_entry *entry)
-{
-  entry->added = *Curl_pgrs_now(data);
-  return Curl_hash_add(&dnscache->entries, key->data, key->len, entry);
 }
 
 #ifdef USE_HTTPSRR
@@ -633,9 +601,8 @@ struct Curl_dns_entry *Curl_dnsc_mk_https(struct Curl_easy *data,
   struct dnsc_id id;
   struct Curl_dns_entry *dns;
 
-  (void)data;
   dnsc_peer2id(&id, CURL_DNST_HTTPS, peer);
-  dns = dnsc_entry_create(&id, FALSE);
+  dns = dnsc_entry_create(data, &id, FALSE);
   dns = dnsc_entry_assign_https(dns, phinfo);
   return dns;
 }
@@ -643,19 +610,20 @@ struct Curl_dns_entry *Curl_dnsc_mk_https(struct Curl_easy *data,
 static struct Curl_dns_entry *dnsc_add_https(struct Curl_easy *data,
                                              struct Curl_dnscache *dnscache,
                                              struct Curl_https_rrinfo **phinfo,
-                                             struct dnsc_id *id)
+                                             struct dnsc_id *id,
+                                             bool permanent)
 {
   struct Curl_dns_entry *dns, *dns2;
   struct dnsc_key key;
 
-  dns = dnsc_entry_create(id, FALSE);
+  dns = dnsc_entry_create(data, id, permanent);
   dns = dnsc_entry_assign_https(dns, phinfo);
   if(!dns)
     return NULL;
 
   /* Store the resolved data in our DNS cache. */
   dnsc_id2key(&key, id);
-  dns2 = dnsc_add_entry(data, dnscache, &key, dns);
+  dns2 = Curl_hash_add(&dnscache->entries, key.data, key.len, (void *)dns);
   if(!dns2) {
     dnscache_entry_free(dns);
     return NULL;
@@ -678,13 +646,13 @@ static struct Curl_dns_entry *dnsc_add_addr(struct Curl_easy *data,
   struct Curl_dns_entry *dns;
   struct Curl_dns_entry *dns2;
 
-  dns = dnsc_entry_create(id, permanent);
+  dns = dnsc_entry_create(data, id, permanent);
   dns = dnsc_entry_assign_addr(data, dns, dns_queries, paddr, NULL);
   if(!dns)
     return NULL;
 
   /* Store the resolved data in our DNS cache. */
-  dns2 = dnsc_add_entry(data, dnscache, key, dns);
+  dns2 = Curl_hash_add(&dnscache->entries, key->data, key->len, (void *)dns);
   if(!dns2) {
     dnscache_entry_free(dns);
     return NULL;
@@ -707,14 +675,14 @@ static struct Curl_dns_entry *dnsc_add_peer_addr(
   struct Curl_dns_entry *dns2;
   struct dnsc_key key;
 
-  dns = dnsc_entry_create(id, permanent);
+  dns = dnsc_entry_create(data, id, permanent);
   dns = dnsc_entry_assign_addr(data, dns, dns_queries, paddr, NULL);
   if(!dns)
     return NULL;
 
   /* Store the resolved data in our DNS cache. */
   dnsc_id2key(&key, id);
-  dns2 = dnsc_add_entry(data, dnscache, &key, dns);
+  dns2 = Curl_hash_add(&dnscache->entries, key.data, key.len, (void *)dns);
   if(!dns2) {
     dnscache_entry_free(dns);
     return NULL;
@@ -744,7 +712,7 @@ CURLcode Curl_dnscache_add(struct Curl_easy *data,
 
   /* Store the resolved data in our DNS cache and up ref count */
   dnscache_lock(data, dnscache);
-  if(!dnsc_add_entry(data, dnscache, &key, entry)) {
+  if(!Curl_hash_add(&dnscache->entries, key.data, key.len, (void *)entry)) {
     dnscache_unlock(data, dnscache);
     return CURLE_OUT_OF_MEMORY;
   }
@@ -781,7 +749,7 @@ CURLcode Curl_dnscache_add_negative(struct Curl_easy *data,
 #ifdef USE_HTTPSRR
   else if(dns_queries == CURL_DNSQ_HTTPS) {
     dnsc_peer2id(&id, CURL_DNST_HTTPS, peer);
-    dns = dnsc_add_https(data, dnscache, NULL, &id);
+    dns = dnsc_add_https(data, dnscache, NULL, &id, FALSE);
     if(!dns)
       result = CURLE_OUT_OF_MEMORY;
   }
@@ -839,7 +807,7 @@ static void dnscache_entry_dtor(void *entry)
  */
 void Curl_dnscache_init(struct Curl_dnscache *dns, size_t size)
 {
-  Curl_hash_init(&dns->entries, size, CURL_HASH_TYPE_BYTES,
+  Curl_hash_init(&dns->entries, size, Curl_hash_str, curlx_str_key_compare,
                  dnscache_entry_dtor);
 }
 

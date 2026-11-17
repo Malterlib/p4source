@@ -214,6 +214,11 @@ int ExtensionData::GetAPIVersion() const
 	return apiVersion;
 }
 
+int ExtensionData::GetManifestVersion() const
+{
+	return manifestVersion;
+}
+
 StrPtr* ExtensionData::GetDescription()
 {
 	return &description;
@@ -260,6 +265,16 @@ StrPtr* ExtensionData::GetDeveloperUrl()
 StrPtr* ExtensionData::GetHomepageUrl()
 {
 	return &homepageUrl;
+}
+
+StrPtr* ExtensionData::GetLimitInstance()
+{
+	return &limitInstance;
+}
+
+bool ExtensionData::GetRequireUser()
+{
+	return requireUser;
 }
 
 StrBuf ExtensionData::SerializeCompatProds() const
@@ -456,6 +471,11 @@ bool ExtensionData::LoadManifest( Error* e )
 	    check( js, k, [&](){ v = js[ k ]; } );
 	};
 
+	auto gb = [&]( const json& js, const char* k, bool& v )
+	{
+	    check( js, k, [&](){ v = js[ k ]; } );
+	};
+
 	try {
 	    gi( j, "api_version", apiVersion );
 	    gi( j, "manifest_version", manifestVersion );
@@ -476,6 +496,14 @@ bool ExtensionData::LoadManifest( Error* e )
 	    gs( j[ "developer" ], "url", developerUrl );
 	    gs( j[ "script_runtime" ], "language", runtimeLanguage );
 	    gs( j[ "script_runtime" ], "version", runtimeVersion );
+	    if( manifestVersion < 2 )
+	        limitInstance = "multiple";
+	    else
+	        gs( j, "limit_instance", limitInstance );
+	    if( manifestVersion < 2 )
+	        requireUser = true;
+	    else
+	        gb( j, "require_user", requireUser );
 	    check( j, "supported_locales" );
 	    for( const auto& lc : j[ "supported_locales" ] )
 	        supportedLocales.push_back( lc );
@@ -521,6 +549,12 @@ bool ExtensionData::LoadManifest( Error* e )
 	if( runtimeVersion != "5.3" )
 	{
 	    e->Set( E_FAILED, "Error in the runtimeVersion field" );
+	    return false;
+	}
+
+	if( limitInstance != "single" && limitInstance != "multiple" )
+	{
+	    e->Set( E_FAILED, "Error in the limitInstance field" );
 	    return false;
 	}
 

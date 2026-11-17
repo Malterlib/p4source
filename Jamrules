@@ -216,6 +216,43 @@
 		return $(result) ;
 	}
 
+    rule FDirEntriesRecursive
+    {
+        # Usage: files = [ FDirEntriesRecursive path_to_dir : pattern ] ;
+        # Returns list of entries in directory and all sub-directories
+        # which match the pattern ( default '*' )
+
+        # Example usage:
+        #   [ FDirEntriesRecursive ../rest : "*.rs" ] ;
+        #   Returns: [ "../rest/build.rs", "../rest/lib/src.rs" ]
+
+        # First we gather up the matching files from the current directory
+        local files = [ FDirEntries $(1) : $(2) ] ;
+        local result = $(1)$(SLASH)$(files) ;
+
+        # Next, we ask for all the contents of the current directory
+        # and then recurse into each directory asking for matching
+        # files.
+        local dir_contents = [ Glob $(1) : "*" ] ;
+        for f in $(dir_contents)
+        {
+            # If this is a directory...
+            if [ Glob $(f) : $(DOT) ]
+            {
+                # Don't recurse into . or .., if we don't check this we
+                # go into an infinite loop.
+                #   $(f:B) gives you the 'filename' without suffix, blah/. = "", blah/.. = "."
+                #   $(f:S) gives you the file suffix, blah/. = "."
+                if  $(f:B) != $(DOT) && $(f:S) != $(DOT)
+                {
+                    result += [ FDirEntriesRecursive $(f) : $(2) ] ;
+                }
+            }
+        }
+
+        return $(result) ;
+    }
+
 	# Rules for modifying target-specific variables.
 	# If a variable does not already have a target-specific binding, one is
 	# created with a copy of the global value prior to altering the
@@ -916,6 +953,20 @@
 		LOCATE on $($(1)) = $(EXEC) ;
 	}
 
+	rule SetRustLibName
+	{
+		# Rust libraries always start with 'lib' on
+		# Unix platforms, and always omit the 'lib'
+		# on Windows.
+		local libName = $(2) ;
+		if $(OS) != "NT"
+		{
+			libName = lib$(libName) ;
+		}
+
+		SetLibName $(1) : $(libName) ;
+	}
+
 	SetLibName CLIENTLIB        : libclient     ;
 	SetLibName DMLIB            : libdm         ;
 	SetLibName FTPLIB           : libp4ftp 	    ;
@@ -974,6 +1025,8 @@
 	SetLibName P4SHAREDLIB	    : libp4shared   ;
 	SetLibName ZKUILIB	        : libzkui       ;
 	SetLibName ASPLIB           : libasp  ;		# maybe
+
+	SetRustLibName RESTLIB      : rest      ;
 
 #################################################
 #
@@ -1855,15 +1908,16 @@
 			C++FLAGS = [ FRemoveAny $(C++FLAGS) : /wd4996 ] ;
 		}
 
-		# Use setargv.obj to get wildcard expansion.
-		# This is coupled with our own modified wildcard expander used by
-		# setargv.obj in VS8 or later, per job030753.
+		# With the latest wild.cpp wildcard expansion code in p4.exe,
+		# we do not need setargv.obj in p4.exe.  See the P4Main rule
+		# for the details.
 
 		# LINKLIBS comes from jambase wrongly initialized
 		# do not use += here
-		LINKLIBS  = setargv.obj advapi32.lib oldnames.lib
-		            kernel32.lib ws2_32.lib shell32.lib
-		            bcrypt.lib iphlpapi.lib ;
+		GLOBLINKOBJ  = setargv.obj ;
+		LINKLIBS  = advapi32.lib oldnames.lib kernel32.lib
+		            ws2_32.lib shell32.lib bcrypt.lib iphlpapi.lib ;
+
 		if $(SSL) = yes
 		{
 			LINKLIBS += User32.lib Ole32.lib Oleaut32.lib Gdi32.lib ;
@@ -2390,6 +2444,12 @@
 		Main    $(<) : $(>) ;
 		LinkSSL $(<) ;
 		Strip   $(<) ;
+
+		if ! $(GLOBLINKOBJ) in $(LINKLIBS) && $(OS) = NT &&
+		    $(<) != p4 && $(<) != showargs
+		{
+			LINKLIBS on $(<)$(SUFEXE) += $(GLOBLINKOBJ) ;
+		}
 
 		# Things get a little messy with supc++/stdc++ depending on the
 		# compiler front end used for linking.
@@ -3402,6 +3462,18 @@
 
 		local e = [ FAppendSuffix $(<) : $(SUFEXE) ] ;
 		OnTargetVarPrepend $(e) : LINKLIBS : $(LDAPLIB) ;
+	}
+
+	rule LinkRestLib
+	{
+		if $(OS) = "NT"
+		{
+			# We use the Windows SDK on NT.
+			ADDEDRESTLIBS ?= userenv.lib ntdll.lib ;
+		}
+
+		local e = [ FAppendSuffix $(<) : $(SUFEXE) ] ;
+		OnTargetVarPrepend $(e) : LINKLIBS : $(ADDEDRESTLIBS) ;
 	}
 
 	rule LinkOpenTelemetry

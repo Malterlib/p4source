@@ -127,6 +127,7 @@ class MsgDm2 {
 	static ErrorId StreamViewGenAtChangeSkip; 
 	static ErrorId DepotTraitDup;
 	static ErrorId NoTraitDepot;
+	static ErrorId NoTraitName;
 
 	static ErrorId ComponentStreamInvalidSparse;
 	static ErrorId NoReparentSparse;
@@ -173,15 +174,20 @@ class MsgDm2 {
 	static ErrorId StreamSpecIntegrationNoFrmChange;
 
 	static ErrorId ExVIEWC;
-	
+	static ErrorId ExLIMITVIEW;
+	static ErrorId LimitViewMixed;
+
 	static ErrorId SaltFail;
 	static ErrorId HashFail;
 	static ErrorId NoMatchingMoves;
-	static ErrorId MultiplePartitionedRevSpec;
+	static ErrorId Translate2Utf8;
 	static ErrorId TopologyNoRoot;
 	static ErrorId TopologyCycle;
 	static ErrorId TopologyBadTerm;
 	static ErrorId TopologyNoTerm;
+
+	static ErrorId UserNotExistInfo;
+	static ErrorId MultiplePartitionedRevSpec;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

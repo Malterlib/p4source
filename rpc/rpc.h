@@ -85,6 +85,7 @@ class RpcService;
 class RpcForward;
 class Timer;
 class NetSslCredentials;
+class DateTime;
 
 typedef void (*RpcCallback)( Rpc *, Error * );
 
@@ -215,7 +216,7 @@ class Rpc : public StrDict {
 	int		IsSingle() { return service->IsSingle(); }
 
 	void		Connect( Error *e );
-	void		Disconnect();
+	virtual void	Disconnect();
 	void		DoHandshake( Error *e );
 	void		CheckKnownHost( Error *e, const StrRef & trustfile );
 	void    	ClientMismatch( Error *e );
@@ -252,7 +253,7 @@ class Rpc : public StrDict {
 
 	void		Dispatch( DispatchFlag f, RpcDispatcher *d );
 
-	void		Dispatch() { 
+	virtual void	Dispatch() { 
 			    Dispatch( DfComplete, service->dispatcher ); 
 			}
 
@@ -269,7 +270,7 @@ class Rpc : public StrDict {
 	// Variable setting/getting
 	// The V* are virtuals of StrDict
 
-	StrBuf *	MakeVar( const char *var );
+	virtual StrBuf *MakeVar( const char *var );
 	void		VSetVar( const StrPtr &var, const StrPtr &val );
 	StrPtr *	VGetVar( const StrPtr &var );
 	int		VGetVarX( int x, StrRef &var, StrRef &val );
@@ -281,7 +282,7 @@ class Rpc : public StrDict {
 	virtual int	GetArgc();
 	virtual StrPtr *GetArgv();
 	StrPtr *	GetArgi( int i, Error *e );
-	StrPtr *	GetArgi( int i );
+	virtual StrPtr *GetArgi( int i );
 
 	void		CopyVars();
 
@@ -319,7 +320,7 @@ class Rpc : public StrDict {
 	void		GotReleased() { endDispatch = 1; }
 	void		GotSendCompressed( Error *e );
 	void		GotRecvCompressed( Error *e );
-	int		InvokeOne( const char *opName );
+	virtual int	InvokeOne( const char *opName );
 
 	void		FlushTransport();
 	void		ShutdownTransport();
@@ -359,16 +360,25 @@ class Rpc : public StrDict {
 
 	RpcType		RpcTypeIs() { return GetRpcType(); }
 
-	int		GetInfo( StrBuf * );
+	virtual int	GetInfo( StrBuf * );
 
     protected:
-
+	void		DispatchAndRunCallback( const StrPtr& func,
+						bool passError = false );
+	void		DispatchAndRunCallback( const RpcDispatcher* dispatcher, 
+						const StrPtr& func, 
+						bool passError = false);
 	virtual RpcType	GetRpcType() { return RPC_UNKNOWN; };
 
     protected:
 	// for rhservice
 
 	virtual void	TransportSetupSocket();
+
+	int		dispatchDepth;		// count nested calls
+	int		endDispatch;		// cause Dispatch() to return
+	int		suspendDispatch;
+	int		priorityDispatch;	// for file transfers to server
 
     private:
 
@@ -389,11 +399,6 @@ class Rpc : public StrDict {
 	int		duplexFrecv;		// and data received back...
 	int		duplexRsend;		// bytes InvokeDuplexRev sent 
 	int		duplexRrecv;		// and data received back...
-
-	int		dispatchDepth;		// count nested calls
-	int		endDispatch;		// cause Dispatch() to return
-	int		suspendDispatch;
-	int		priorityDispatch;	// for file transfers to server
 
 	int		protocolSent;		// protoSendBuffer sent
 
@@ -431,6 +436,8 @@ enum RpcUtilityType {
 class RpcUtility
 {
 public:
-
+    
     void Generate(RpcUtilityType type, Error *e );
+    static void GetModTimes( P4INT64* keyFile, P4INT64* certFile, Error* e );
+    static bool CheckCertsChanged( Error *e );
 };

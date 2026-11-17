@@ -8,6 +8,8 @@
 # include <vararray.h>
 # include <strarray.h>
 
+# include <new>
+
 # define DEBUG_RECORDS  ( p4debug.GetLevel( DT_RECORDS ) >= 4 )
 # define DEBUG_EXTEND   ( p4debug.GetLevel( DT_RECORDS ) >= 5 )
 
@@ -229,12 +231,41 @@ StrPtrArray::StrPtrArray()
 	tabLength = 0;
 }
 
+/**
+ * StrPtrArray::StrPtrArray -
+ * Creates a StrPtrArray and pre-allocates storage for the specified number of
+ * StrPtrs. Space is allocated without any additional padding, so the first 
+ * time someone tries to add more values than the specified size, we will need 
+ * to re-allocate the array.
+ * 
+ * This is optimized for scenarios when you are creating a StrPtrArray and you
+ * know exactly how many values will be placed into that array.
+ *
+ * @param[in] size - Number of StrPtrs to pre-allocate space for.
+ */
+StrPtrArray::StrPtrArray( int size )
+	: tabVal(0),
+	  tabSize(0),
+	  tabLength(0)
+{
+	Extend( size );
+}
+
 StrPtrArray::~StrPtrArray()
 {
 	delete []tabVal;
 }
 
-void
+/**
+ * StrPtrArray::Put -
+ * Puts the provided StrPtr into the array, growing the array storage size
+ * as needed.
+ *
+ * @param[in] val - Value to store into the array
+ * @return bool - Returns true if the value was stored into the array, false
+ *	          if we failed to extend the array to accommodate the new value.
+ */
+bool
 StrPtrArray::Put( const StrPtr &val )
 {
 	if( tabLength == tabSize )
@@ -243,22 +274,50 @@ StrPtrArray::Put( const StrPtr &val )
 
 	    // grow geometrically, please
 	    int newSize = (tabSize + 50) * 3 / 2;
-	    StrRef *newtabVal = new StrRef[newSize];
+	    if( !Extend( newSize ) ) return false;
+	}
+
+	tabVal[ tabLength++ ] = val;
+
+	return true;
+}
+
+/**
+ * StrPtrArray::Extend -
+ * If the 'newSize' is larger than the 'tabSize', this will allocate enough
+ * internal storage to hold 'newSize' StrRefs. It will then transfer all data
+ * from the old array to the new array.
+ * 
+ * If the allocation fails due to an out-of-memory error, this will return
+ * false.
+ *
+ * @param[in] newSize - New array size to allocate in memory.
+ * @return bool - True if the memory allocation was successful, false otherwise.
+ */
+bool
+StrPtrArray::Extend( int newSize )
+{
+	if( newSize > tabSize )
+	{
+	    // Attempt to allocate the new array, return false on failure
+	    StrRef* newtabVal = 0;
+	    try { newtabVal = new StrRef[ newSize ];
+	    } catch( const std::bad_alloc& e ) { return false; }
 
 	    if( tabVal )
 	    {
-	         for( int i = 0; i < tabSize; i++ )
-	             newtabVal[i] = tabVal[i];
+	        for( int i = 0; i < tabSize; i++ )
+	            newtabVal[ i ] = tabVal[ i ];
 
-	         delete []tabVal;
+	        delete[]tabVal;
 	    }
 
 	    tabVal = newtabVal;
 	    tabSize = newSize;
 
 	    if( DEBUG_EXTEND )
-	        p4debug.printf("StrPtrArray extend %d\n", tabSize);
+	        p4debug.printf( "StrPtrArray extend %d\n", tabSize );
 	}
 
-	tabVal[ tabLength++ ] = val;
+	return true;
 }

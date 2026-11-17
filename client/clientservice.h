@@ -49,7 +49,7 @@ void clientAckMatch( Client *client, Error *e );
 
 const char * clientCheckFileType( FileSys *f, FileSysType t,
 				  int clientProtocolFiles,
-				  int checkSize, int scan, StrPtr *wildType,
+				  int checkSize, StrPtr *wildType,
 				  StrPtr *forceType, StrPtr *msgType,
 				  Error *e );
 
@@ -75,15 +75,9 @@ class ClientSvc
 				               const StrPtr *utf8bom, Error *e );
 	
 	static int		CheckFilePath( Client *client, FileSys *f,
-				               Error *e );
+				               Error *e, int skipClientPath = 0 );
 
 	static CharSetCvt	*XCharset( Client *client, XDir d );
-
-	// True when the on-disk byte count equals the LF-equivalent count the
-	// server records, so GetSize() answers without reading the file.
-
-	static bool		SizeMatchesDepot( FileSysType t,
-				                  CharSetCvt *cvt );
 };
 
 /*

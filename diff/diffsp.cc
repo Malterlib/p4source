@@ -81,7 +81,7 @@ Sequence::Sequence( const Sequence &other, const DiffFlags &flags )
 	lineCount = other.lineCount;
 	lineMax = other.lineMax;
 	line = new VarInfo[ lineMax ];
-	memcpy( line, other.line, sizeof( VarInfo ) * lineCount );
+	memcpy( line, other.line, sizeof( VarInfo ) * lineMax );
 
 	reallocCount = 0;
 	sequencer = 0;

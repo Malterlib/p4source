@@ -36,51 +36,11 @@ StrDict::CopyVars( StrDict &dict )
 	}
 }
 
-void
-StrDict::SetVar( const StrPtr &var, int x, const StrPtr &val )
-{
-	SetVar( StrVarName( var, x ), val );
-}
-
-void
-StrDict::SetVar( const char *var, int x, const StrPtr &val )
-{
-	SetVar( StrVarName( StrRef( var ), x ), val );
-}
-
-void
-StrDict::SetVar( const char *var, int x, int y, const StrPtr &val )
-{
-	SetVar( StrVarName( StrRef( var ), x, y ), val );
-}
-
 void		
 StrDict::SetVar( const char *var )
 {
 	VSetVar( StrRef( (char*)var ), StrRef::Null() );
 }
-
-void		
-StrDict::SetVar( const char *var, int value )
-{
-	VSetVar( StrRef( (char*)var ), StrNum( value ) );
-}
-
-# ifdef HAVE_INT64
-
-void		
-StrDict::SetVar( const char *var, long value )
-{
-	VSetVar( StrRef( (char*)var ), StrNum( value ) );
-}
-
-void		
-StrDict::SetVar( const char *var, P4INT64 value )
-{
-	VSetVar( StrRef( (char*)var ), StrNum( value ) );
-}
-
-# endif
 
 void		
 StrDict::SetVar( const char *var, const char *value )
@@ -259,6 +219,18 @@ void
 StrDict::VSetVar( const StrPtr &var, const StrPtr &val )
 {
 	// null default implementation
+}
+
+void
+StrDict::VSetVar( const StrPtr& var, int x, const StrPtr& val )
+{
+	VSetVar( StrVarName( var, x ), val );
+}
+
+void
+StrDict::VSetVar( const StrPtr& var, int x, int y, const StrPtr& val )
+{
+	VSetVar( StrVarName( var, x, y ), val );
 }
 
 int

@@ -12,7 +12,7 @@ class P4INT64Tree : public VVarTree
 	        P4INT64Tree() {}
 	virtual ~P4INT64Tree() { Clear(); }
 
-	int Contains( P4INT64 i )
+	int Contains( P4INT64 i ) const
 	{
 	    VarTreeNode *n = Find( ( const void* )i );
 	    return n && ( P4INT64 )n->Value() == i;
@@ -41,7 +41,7 @@ class P4INT64Tree : public VVarTree
 	        P4INT64Tree() {}
 	virtual ~P4INT64Tree() { Clear(); }
 
-	int Contains( P4INT64 i )
+	int Contains( P4INT64 i ) const
 	{
 	    VarTreeNode *n = Find( ( const void* )&i );
 	    return n && *( P4INT64* )n->Value() == i;

@@ -484,6 +484,8 @@ class MultiThreader : public Threader {
 	{
 	    return _P4_NT_ThreadList->GetThreadCount();
 	}
+
+	int IsSingle() { return 0; }
 } ;
 
 # endif
@@ -537,6 +539,8 @@ class MultiThreader : public Threader {
 	}
 
 	int GetThreadCount() { return -1; } // not implemented on BEOS
+
+	int IsSingle() { return 0; }
 } ;
 
 # endif /* OS_BEOS */
@@ -578,61 +582,8 @@ extern "C" void HandleSigHup( int flag );
 extern "C" void HandleSigValgrind( int flag );
 # endif
 
-static int *threadCountPtr = 0;
-
 void
-HandleSigChld( int flag )
-{
-	int status;
-	pid_t pid;
-
-# if defined(OS_CYGWIN) || defined(OS_LINUX26)
-	// Cygwin (2.95.3) doesn't restore errno on return from interrupt.
-	// This leads accept() to return ECHILD rather than EINTR.
-
-	int save_errno = errno;
-# endif
-	/*
-	 * Note: Changed waitpid code below from waiting on all child processes
-	 * (-1) to waiting on processes in process group (0). This change protects
-	 * the child process p4zk which detaches itself from the parent's process
-	 * group. When p4d is restarting we want to kill all child processes but
-	 * keep the p4zk process going. (If invoking shutdown, p4zk will notice
-	 * when connection to p4d closes and will exit)
-	 */
-	while( ( pid = waitpid( (pid_t)0, &status, WNOHANG ) ) > 0 )
-	{
-	    if( threadCountPtr )
-	        --(*threadCountPtr);
-
-	    if( WIFSIGNALED( status ) )
-	    {
-		Error e;
-	        if( WTERMSIG( status ) != SIGTERM )
-	        {
-	            e.Set( E_FATAL,
-	                   "Process %pid% exited on a signal %signal%!" );
-# ifndef OS_NT
-	            Threading::Cleanup( pid );
-# endif
-	        }
-	        else
-		    e.Set( E_INFO,
-	                   "Process %pid% terminated normally during server shutdown." );
-
-		e << pid << WTERMSIG(status);
-		AssertLog.ReportNoHook( &e );
-	    }
-	}
-
-# if defined(OS_CYGWIN) || defined(OS_LINUX26)
-	errno = save_errno;
-# endif
-
-	// Reinstate signal handler. Necessary on some SysV boxes (HP/UX at
-	// least) and does no harm elsewhere.
-	signal( SIGCHLD, HandleSigChld );
-}
+HandleSigChld( int flag );
 
 void
 HandleSigTerm( int flag )
@@ -726,7 +677,7 @@ class MultiThreader : public Threader {
 		    exit( 0 );
 	    }
 
-	    threadCountPtr = &threadCount; // SIGCHLD handler will decrement it
+	    MultiThreader::sharedThreadCount = 0;
 
 	    // become the leader of our process group
 	    // This way we can kill everyone with one stroke.
@@ -737,22 +688,107 @@ class MultiThreader : public Threader {
 
 	    signal( SIGTERM, HandleSigTerm );
 	    signal( SIGHUP, HandleSigHup );
+
+# if !defined ( OS_AIX41 ) && !defined ( OS_AIX43 ) && !defined ( OS_AIX53 )
+	    if( InstallSigChldHandler() == -1 )
+	    {
+	        p4debug.Event();
+	        p4debug.printf(
+	            "MultiThreader(): sigaction(SIGCHLD) failed, errno=%d\n",
+	            errno );
+	    }
+# endif
+	}
+
+	// Installs HandleSigChld via sigaction(), whose disposition (unlike
+	// signal()'s) persists across delivery on every target platform
+	// (job135814 / P4-27887). Called from the constructor and again at the
+	// top of every Launch(), since a forked child resets SIGCHLD to SIG_DFL
+	// below before running.
+	static int InstallSigChldHandler()
+	{
+	    struct sigaction sa;
+	    memset( &sa, 0, sizeof( sa ) );
+	    sa.sa_handler = HandleSigChld;
+	    sigemptyset( &sa.sa_mask );
+	    sa.sa_flags = SA_RESTART;
+	    return sigaction( SIGCHLD, &sa, 0 );
+	}
+
+	// Blocks SIGCHLD around the sharedThreadCount read-modify-write so
+	// HandleSigChld's decrement can't interleave and get lost (job135814 /
+	// P4-27887). Prefers pthread_sigmask() over sigprocmask(), since
+	// Launch() may run in a forked child with a live MicroThread pool.
+	static void AdjustThreadCount( int delta )
+	{
+	    sigset_t chldMask, oldMask;
+	    sigemptyset( &chldMask );
+	    sigaddset( &chldMask, SIGCHLD );
+
+# ifdef HAVE_PTHREAD
+	    int err = pthread_sigmask( SIG_BLOCK, &chldMask, &oldMask );
+	    if( err != 0 )
+	    {
+	        p4debug.Event();
+	        p4debug.printf(
+	            "AdjustThreadCount(): pthread_sigmask(SIG_BLOCK) failed, "
+	            "err=%d\n", err );
+	        sharedThreadCount += delta;
+	        return;
+	    }
+
+	    sharedThreadCount += delta;
+
+	    err = pthread_sigmask( SIG_SETMASK, &oldMask, 0 );
+	    if( err != 0 )
+	    {
+	        p4debug.Event();
+	        p4debug.printf(
+	            "AdjustThreadCount(): pthread_sigmask(SIG_SETMASK) failed, "
+	            "err=%d\n", err );
+	    }
+# else
+	    if( sigprocmask( SIG_BLOCK, &chldMask, &oldMask ) == -1 )
+	    {
+	        p4debug.Event();
+	        p4debug.printf(
+	            "AdjustThreadCount(): sigprocmask(SIG_BLOCK) failed, "
+	            "errno=%d\n", errno );
+	        sharedThreadCount += delta;
+	        return;
+	    }
+
+	    sharedThreadCount += delta;
+
+	    if( sigprocmask( SIG_SETMASK, &oldMask, 0 ) == -1 )
+	    {
+	        p4debug.Event();
+	        p4debug.printf(
+	            "AdjustThreadCount(): sigprocmask(SIG_SETMASK) failed, "
+	            "errno=%d\n", errno );
+	    }
+# endif
 	}
 
 	void Launch( Thread *t )
 	{
-	    // We'll catch this for each child.
-	    // BSD reinstalls this after each signal, but others don't.
 	    // Some OS's allow you to ignore the signal and will reap
 	    // children automatically.  This is good for AIX, because
 	    // manual reaping just doesn't seem to work. Note that due to
 	    // this, AIX doesn't provide a valid GetThreadCount() value.
 
-# if defined ( OS_AIX41 ) || ( OS_AIX43 ) || ( OS_AIX53 )
+# if defined ( OS_AIX41 ) || defined ( OS_AIX43 ) || defined ( OS_AIX53 )
 	    signal( SIGCHLD, SIG_IGN );
 # else
-	    signal( SIGCHLD, HandleSigChld );
-	    threadCount++;
+	    if( InstallSigChldHandler() == -1 )
+	    {
+	        p4debug.Event();
+	        p4debug.printf(
+	            "Launch(): sigaction(SIGCHLD) failed, errno=%d\n",
+	            errno );
+	    }
+
+	    AdjustThreadCount( 1 );
 # endif
 
 # if defined ( OS_LINUX26 )
@@ -780,7 +816,7 @@ class MultiThreader : public Threader {
 	            e << pid << WTERMSIG(status);
 	            AssertLog.Report( &e );
 	        }
-	        threadCount--;
+	        AdjustThreadCount( -1 );
 	    }
 # endif
 
@@ -799,7 +835,7 @@ class MultiThreader : public Threader {
 		}
 
 		t->Run();
-	        threadCount--;
+	        AdjustThreadCount( -1 );
 		delete t;
 		break;
 
@@ -971,11 +1007,65 @@ class MultiThreader : public Threader {
 	    // Since SIGCHLD doesn't work on AIX, thread count is unavailable.
 	    return -1;
 # else
-	    return threadCount;
+	    return sharedThreadCount;
 # endif
 	}
 
-} ;
+	int IsSingle() { return 0; }
+
+	static volatile sig_atomic_t sharedThreadCount;
+} ; 
+
+volatile sig_atomic_t MultiThreader::sharedThreadCount = 0;
+
+void
+HandleSigChld( int flag )
+{
+	int status;
+	pid_t pid;
+
+# if defined(OS_CYGWIN) || defined(OS_LINUX26)
+	// Cygwin (2.95.3) doesn't restore errno on return from interrupt.
+	// This leads accept() to return ECHILD rather than EINTR.
+
+	int save_errno = errno;
+# endif
+	/*
+	 * Note: Changed waitpid code below from waiting on all child processes
+	 * (-1) to waiting on processes in process group (0). This change protects
+	 * the child process p4zk which detaches itself from the parent's process
+	 * group. When p4d is restarting we want to kill all child processes but
+	 * keep the p4zk process going. (If invoking shutdown, p4zk will notice
+	 * when connection to p4d closes and will exit)
+	 */
+	while( ( pid = waitpid( (pid_t)0, &status, WNOHANG ) ) > 0 )
+	{
+	    MultiThreader::sharedThreadCount--;
+
+	    if( WIFSIGNALED( status ) )
+	    {
+		Error e;
+	        if( WTERMSIG( status ) != SIGTERM )
+	        {
+	            e.Set( E_FATAL,
+	                   "Process %pid% exited on a signal %signal%!" );
+# ifndef OS_NT
+	            Threading::Cleanup( pid );
+# endif
+	        }
+	        else
+		    e.Set( E_INFO,
+	                   "Process %pid% terminated normally during server shutdown." );
+
+		e << pid << WTERMSIG(status);
+		AssertLog.ReportNoHook( &e );
+	    }
+	}
+
+# if defined(OS_CYGWIN) || defined(OS_LINUX26)
+	errno = save_errno;
+# endif
+}
 
 # endif /* UNIX */
 
@@ -1018,6 +1108,8 @@ class PosixThreader : public Threader {
 
 		pthread_detach( newthread );
 	}
+
+	int IsSingle() { return 0; }
 
     private:
 

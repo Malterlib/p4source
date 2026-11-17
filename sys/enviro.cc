@@ -231,6 +231,7 @@ Enviro::Enviro()
 	serviceKey = 0;
 	charset = 0;
 	configFiles = new StrArray;
+	gen = 0;
 
 	EnviroItem testRegPath;
 
@@ -740,6 +741,7 @@ Enviro::Enviro()
 {
 	symbolTab = 0;
 	configFiles = new StrArray;
+	gen = 0;
 }
 
 Enviro::~Enviro()
@@ -874,6 +876,7 @@ Enviro::Enviro( const Enviro &rhs )
 	    return;
 
 	symbolTab = 0;
+	gen = rhs.gen;
 
 	if( rhs.symbolTab )
 	    symbolTab = new EnviroTable( *(rhs.symbolTab) );
@@ -959,6 +962,16 @@ Enviro::Get( const char *var )
 	return a->value.Length() ? a->value.Text() : 0;
 }
 
+char *
+Enviro::GetSystemIgnore( const char *var )
+{
+	EnviroItem *a = GetItemSystemIgnore( var );
+
+	// GetItemEnvOnly returns UNSET if it was not set in svc/env/p4enviro but
+	// set somewhere else like p4config so value may still exist
+	return a->type != UNSET && a->value.Length() ? a->value.Text() : 0;
+}
+
 EnviroItem *
 Enviro::GetItem( const char *var )
 {
@@ -1006,6 +1019,31 @@ Enviro::GetItem( const char *var )
 
 	a->type = UNSET;
 
+	return a;
+}
+
+EnviroItem *
+Enviro::GetItemSystemIgnore( const char *var )
+{
+	// Make sure symbol tab is there
+
+	Setup();
+
+	// attempt to return cached value
+	// null string means unset
+
+	EnviroItem *a = symbolTab->PutItem( StrRef( (char *)var ) );
+
+	if( a->type == ENVIRO || a->type == ENV || 
+	    ReadItemPlatform( SVC, var, a ) ||
+	    ReadItemPlatform( ENV, var, a ) ||
+	    a->type == ENVIRO )
+	{
+	    a->checked = 1;
+	    return a;
+	}
+
+	a->type = UNSET;
 	return a;
 }
 
@@ -1193,12 +1231,12 @@ Enviro::Config( const StrPtr &cwd )
 void
 Enviro::LoadConfig( const StrPtr &cwd, int checkSyntax )
 {
-	// We don't care about errors
+	gen++;
 
+	// We don't care about errors
 	Error e;
 
 	// Only load P4CONFIG file if it is set.
-
 	StrBuf setFile;
 	char *s;
 	if( ( s = Get( "P4CONFIG" ) ) )

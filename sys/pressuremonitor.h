@@ -8,6 +8,7 @@
 
 # include <memory>
 # include <vector>
+# include <cstdint>
 
 // This class monitors the specified OS resource for a particular state,
 // E.g. high CPU usage or low RAM pressure.  It exists to compliment the

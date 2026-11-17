@@ -37,7 +37,7 @@ RpcDispatcher::Add( const RpcDispatch *dispatch )
 }
 
 const RpcDispatch *
-RpcDispatcher::Find( const char *func )
+RpcDispatcher::Find( const char *func ) const
 {
 	for( int i = dispatches->Count(); i--; )
 	{
@@ -104,7 +104,7 @@ AltDispatcher::Add( const RpcDispatch *disp )
 
 
 const RpcDispatch *
-AltDispatcher::Find( const char *func )
+AltDispatcher::Find( const char *func ) const
 {
 	return (RpcDispatch *) trieNode->trimsearch( func );
 }

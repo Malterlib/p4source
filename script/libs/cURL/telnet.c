@@ -167,7 +167,7 @@ static void printoption(struct Curl_easy *data,
 }
 #endif /* !CURLVERBOSE */
 
-static void telnet_easy_dtor(const void *key, size_t klen, void *entry)
+static void telnet_easy_dtor(void *key, size_t klen, void *entry)
 {
   struct TELNET *tn = entry;
   (void)key;
@@ -225,16 +225,16 @@ static CURLcode init_telnet(struct Curl_easy *data)
 static void send_negotiation(struct Curl_easy *data, int cmd, int option)
 {
   unsigned char buf[3];
-  size_t nwritten;
-  CURLcode result;
+  ssize_t bytes_written;
+  struct connectdata *conn = data->conn;
 
   buf[0] = CURL_IAC;
   buf[1] = (unsigned char)cmd;
   buf[2] = (unsigned char)option;
 
-  result = Curl_xfer_send(data, buf, 3, FALSE, &nwritten);
-  if(result)
-    failf(data, "Sending data failed: %s", curl_easy_strerror(result));
+  bytes_written = swrite(conn->sock[FIRSTSOCKET], buf, 3);
+  if(bytes_written < 0)
+    failf(data, "Sending data failed (%d)", SOCKERRNO);
 
   printoption(data, "SENT", cmd, option);
 }
@@ -671,10 +671,10 @@ static CURLcode send_telnet_data(struct Curl_easy *data,
 static void sendsuboption(struct Curl_easy *data,
                           struct TELNET *tn, int option)
 {
-  size_t nwritten;
+  ssize_t bytes_written;
   unsigned short x, y;
   const unsigned char *uc1, *uc2;
-  CURLcode result;
+  struct connectdata *conn = data->conn;
 
   switch(option) {
   case CURL_TELOPT_NAWS:
@@ -703,16 +703,16 @@ static void sendsuboption(struct Curl_easy *data,
              CURL_SB_LEN(tn) - 2);
 
     /* we send the header of the suboption... */
-    result = Curl_xfer_send(data, tn->subbuffer, 3, FALSE, &nwritten);
-    if(result)
-      failf(data, "Sending data failed: %s", curl_easy_strerror(result));
+    bytes_written = swrite(conn->sock[FIRSTSOCKET], tn->subbuffer, 3);
+    if(bytes_written < 0)
+      failf(data, "Sending data failed (%d)", SOCKERRNO);
     /* ... then the window size with the send_telnet_data() function
        to deal with 0xFF cases ... */
     send_telnet_data(data, tn, (const char *)tn->subbuffer + 3, 4);
     /* ... and the footer */
-    result = Curl_xfer_send(data, tn->subbuffer + 7, 2, FALSE, &nwritten);
-    if(result)
-      failf(data, "Sending data failed: %s", curl_easy_strerror(result));
+    bytes_written = swrite(conn->sock[FIRSTSOCKET], tn->subbuffer + 7, 2);
+    if(bytes_written < 0)
+      failf(data, "Sending data failed (%d)", SOCKERRNO);
     break;
   }
 }
@@ -972,9 +972,9 @@ static CURLcode suboption(struct Curl_easy *data, struct TELNET *tn)
 {
   struct curl_slist *v;
   unsigned char temp[2048];
-  size_t nwritten;
+  ssize_t bytes_written;
   size_t len;
-  CURLcode result = CURLE_OK;
+  struct connectdata *conn = data->conn;
 
   if(!CURL_SB_LEN(tn)) /* ignore empty suboption */
     return CURLE_OK;
@@ -993,10 +993,11 @@ static CURLcode suboption(struct Curl_easy *data, struct TELNET *tn)
                          CURL_IAC, CURL_SB, CURL_TELOPT_TTYPE,
                          CURL_TELQUAL_IS, tn->subopt_ttype, CURL_IAC,
                          CURL_SE);
-    result = Curl_xfer_send(data, temp, len, FALSE, &nwritten);
-    if(result) {
-      failf(data, "Sending data failed: %s", curl_easy_strerror(result));
-      return result;
+    bytes_written = swrite(conn->sock[FIRSTSOCKET], temp, len);
+
+    if(bytes_written < 0) {
+      failf(data, "Sending data failed (%d)", SOCKERRNO);
+      return CURLE_SEND_ERROR;
     }
     printsub(data, '>', &temp[2], len-2);
     break;
@@ -1011,10 +1012,10 @@ static CURLcode suboption(struct Curl_easy *data, struct TELNET *tn)
                          CURL_IAC, CURL_SB, CURL_TELOPT_XDISPLOC,
                          CURL_TELQUAL_IS, tn->subopt_xdisploc, CURL_IAC,
                          CURL_SE);
-    result = Curl_xfer_send(data, temp, len, FALSE, &nwritten);
-    if(result) {
-      failf(data, "Sending data failed: %s", curl_easy_strerror(result));
-      return result;
+    bytes_written = swrite(conn->sock[FIRSTSOCKET], temp, len);
+    if(bytes_written < 0) {
+      failf(data, "Sending data failed (%d)", SOCKERRNO);
+      return CURLE_SEND_ERROR;
     }
     printsub(data, '>', &temp[2], len - 2);
     break;
@@ -1043,11 +1044,9 @@ static CURLcode suboption(struct Curl_easy *data, struct TELNET *tn)
     curl_msnprintf((char *)&temp[len], sizeof(temp) - len,
                    "%c%c", CURL_IAC, CURL_SE);
     len += 2;
-    result = Curl_xfer_send(data, temp, len, FALSE, &nwritten);
-    if(result) {
-      failf(data, "Sending data failed: %s", curl_easy_strerror(result));
-      return result;
-    }
+    bytes_written = swrite(conn->sock[FIRSTSOCKET], temp, len);
+    if(bytes_written < 0)
+      failf(data, "Sending data failed (%d)", SOCKERRNO);
     printsub(data, '>', &temp[2], len - 2);
     break;
   }
@@ -1415,10 +1414,13 @@ static CURLcode telnet_do(struct Curl_easy *data, bool *done)
     }
     } /* switch */
 
-    if(Curl_timeleft_ms(data) < 0) {
-      failf(data, "Time-out");
-      result = CURLE_OPERATION_TIMEDOUT;
-      keepon = FALSE;
+    if(data->set.timeout) {
+      if(curlx_ptimediff_ms(Curl_pgrs_now(data), &conn->created) >=
+         data->set.timeout) {
+        failf(data, "Time-out");
+        result = CURLE_OPERATION_TIMEDOUT;
+        keepon = FALSE;
+      }
     }
   }
 
@@ -1531,10 +1533,13 @@ static CURLcode telnet_do(struct Curl_easy *data, bool *done)
       break;
     } /* poll switch statement */
 
-    if(Curl_timeleft_ms(data) < 0) {
-      failf(data, "Time-out");
-      result = CURLE_OPERATION_TIMEDOUT;
-      keepon = FALSE;
+    if(data->set.timeout) {
+      if(curlx_ptimediff_ms(Curl_pgrs_now(data), &conn->created) >=
+         data->set.timeout) {
+        failf(data, "Time-out");
+        result = CURLE_OPERATION_TIMEDOUT;
+        keepon = FALSE;
+      }
     }
 
     if(!result) {

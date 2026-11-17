@@ -162,7 +162,10 @@ void p4script::SetRealError( void* Lv, const Error* e )
 	}
 }
 
-p4script::~p4script() {}
+p4script::~p4script()
+{
+	pimpl.reset();
+}
 
 p4script::p4script( const SCR_VERSION v, const int apiVersion, Error *e )
   : apiVersion( apiVersion ), scriptType( v )

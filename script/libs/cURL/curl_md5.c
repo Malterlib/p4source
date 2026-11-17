@@ -72,39 +72,29 @@ static void my_md5_final(unsigned char *digest, void *ctx)
 #endif
 }
 
-#elif defined(USE_OPENSSL) && !defined(OPENSSL_NO_MD5)
-#include <openssl/evp.h>
+#elif defined(USE_OPENSSL) && \
+  !defined(OPENSSL_NO_MD5) && !defined(OPENSSL_NO_DEPRECATED_3_0)
+#include <openssl/md5.h>
 
-typedef EVP_MD_CTX *my_md5_ctx;
+typedef MD5_CTX my_md5_ctx;
 
-static CURLcode my_md5_init(void *in)
+static CURLcode my_md5_init(void *ctx)
 {
-  EVP_MD_CTX **ctx = (EVP_MD_CTX **)in;
-  *ctx = EVP_MD_CTX_new();
-  if(!*ctx)
+  if(!MD5_Init(ctx))
     return CURLE_OUT_OF_MEMORY;
 
-  if(!EVP_DigestInit_ex(*ctx, EVP_md5(), NULL)) {
-    EVP_MD_CTX_free(*ctx);
-    *ctx = NULL;
-    return CURLE_FAILED_INIT;
-  }
   return CURLE_OK;
 }
 
-static void my_md5_update(void *in,
+static void my_md5_update(void *ctx,
                           const unsigned char *input, unsigned int len)
 {
-  EVP_MD_CTX **ctx = (EVP_MD_CTX **)in;
-  (void)EVP_DigestUpdate(*ctx, input, len);
+  (void)MD5_Update(ctx, input, len);
 }
 
-static void my_md5_final(unsigned char *digest, void *in)
+static void my_md5_final(unsigned char *digest, void *ctx)
 {
-  EVP_MD_CTX **ctx = (EVP_MD_CTX **)in;
-  (void)EVP_DigestFinal_ex(*ctx, digest, NULL);
-  EVP_MD_CTX_free(*ctx);
-  *ctx = NULL;
+  (void)MD5_Final(digest, ctx);
 }
 
 #elif defined(USE_WOLFSSL) && !defined(NO_MD5)
@@ -158,13 +148,13 @@ static void my_md5_final(unsigned char *digest, void *ctx)
 }
 
 #elif (defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && \
-               __MAC_OS_X_VERSION_MAX_ALLOWED >= 1040 && \
+              (__MAC_OS_X_VERSION_MAX_ALLOWED >= 1040) && \
        defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && \
-               __MAC_OS_X_VERSION_MIN_REQUIRED < 101500) || \
+              (__MAC_OS_X_VERSION_MIN_REQUIRED < 101500)) || \
       (defined(__IPHONE_OS_VERSION_MAX_ALLOWED) && \
-               __IPHONE_OS_VERSION_MAX_ALLOWED >= 20000 && \
+              (__IPHONE_OS_VERSION_MAX_ALLOWED >= 20000) && \
        defined(__IPHONE_OS_VERSION_MIN_REQUIRED) && \
-               __IPHONE_OS_VERSION_MIN_REQUIRED < 130000)
+              (__IPHONE_OS_VERSION_MIN_REQUIRED < 130000))
 #include <CommonCrypto/CommonDigest.h>
 
 /* For Apple operating systems: CommonCrypto has the functions we need.
@@ -177,7 +167,9 @@ static void my_md5_final(unsigned char *digest, void *ctx)
 
 static CURLcode my_md5_init(void *ctx)
 {
-  (void)CC_MD5_Init(ctx);  /* always returns 1 */
+  if(!CC_MD5_Init(ctx))
+    return CURLE_OUT_OF_MEMORY;
+
   return CURLE_OK;
 }
 

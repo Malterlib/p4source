@@ -218,6 +218,7 @@ class MsgHelp {
 	static ErrorId HelpUser;
 	static ErrorId HelpUsers;
 	static ErrorId HelpVerify;
+	static ErrorId HelpWebServer;
 	static ErrorId HelpWhere;
 	static ErrorId HelpZip;
 	static ErrorId HelpReplicate;

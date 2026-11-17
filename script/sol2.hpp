@@ -14293,7 +14293,11 @@ namespace sol {
 	// constexpr is fine for not-clang
 
 	namespace detail {
+#ifdef HAS_CPP17
+		template <typename R, typename... Args, typename F, typename = std::invoke_result_t<meta::unqualified_t<F>(Args...)>>
+# else
 		template <typename R, typename... Args, typename F, typename = std::result_of_t<meta::unqualified_t<F>(Args...)>>
+#endif
 		inline constexpr auto resolve_i(types<R(Args...)>, F &&) -> R (meta::unqualified_t<F>::*)(Args...) {
 			using Sig = R(Args...);
 			typedef meta::unqualified_t<F> Fu;
@@ -14317,7 +14321,11 @@ namespace sol {
 			return resolve_f(meta::has_deducible_signature<U>{}, std::forward<F>(f));
 		}
 
+#ifdef HAS_CPP17
+		template <typename... Args, typename F, typename R = std::invoke_result_t<F&(Args...)>>
+#else
 		template <typename... Args, typename F, typename R = std::result_of_t<F&(Args...)>>
+#endif
 		inline constexpr auto resolve_i(types<Args...>, F&& f) -> decltype(resolve_i(types<R(Args...)>(), std::forward<F>(f))) {
 			return resolve_i(types<R(Args...)>(), std::forward<F>(f));
 		}
@@ -14363,7 +14371,11 @@ namespace sol {
 	// so don't use the constexpr versions inside of clang.
 
 	namespace detail {
+#ifdef HAS_CPP17
+		template <typename R, typename... Args, typename F, typename = std::invoke_result_t<meta::unqualified_t<F>(Args...)>>
+#else
 		template <typename R, typename... Args, typename F, typename = std::result_of_t<meta::unqualified_t<F>(Args...)>>
+#endif
 		inline auto resolve_i(types<R(Args...)>, F &&) -> R (meta::unqualified_t<F>::*)(Args...) {
 			using Sig = R(Args...);
 			typedef meta::unqualified_t<F> Fu;
@@ -14387,7 +14399,11 @@ namespace sol {
 			return resolve_f(meta::has_deducible_signature<U>{}, std::forward<F>(f));
 		}
 
+#ifdef HAS_CPP17
+		template <typename... Args, typename F, typename R = std::invoke_result_t<F&(Args...)>>
+#else
 		template <typename... Args, typename F, typename R = std::result_of_t<F&(Args...)>>
+#endif
 		inline auto resolve_i(types<Args...>, F&& f) -> decltype(resolve_i(types<R(Args...)>(), std::forward<F>(f))) {
 			return resolve_i(types<R(Args...)>(), std::forward<F>(f));
 		}
@@ -20481,7 +20497,11 @@ namespace sol {
 		}
 
 	private:
+#ifdef HAS_CPP17
+		template <typename R, typename... Args, typename Fx, typename Key, typename = std::invoke_result_t<Fx(Args...)>>
+#else
 		template <typename R, typename... Args, typename Fx, typename Key, typename = std::result_of_t<Fx(Args...)>>
+#endif
 		void set_fx(types<R(Args...)>, Key&& key, Fx&& fx) {
 			set_resolved_function<R(Args...)>(std::forward<Key>(key), std::forward<Fx>(fx));
 		}

@@ -135,9 +135,15 @@ directoryHasMultipleObjects( StrBuf dir, StrArray *dirContents, Error *e )
 	    delete ua;
 
 	    if( e->Test() )
+	    {
+	        delete f;
+	        delete path;
 	        return 1;
+	    }
 	}
 
+	delete f;
+	delete path;
 	return ret;
 }
 

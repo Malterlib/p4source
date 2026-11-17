@@ -24,8 +24,15 @@
 # include "fileio.h"
 
 FileSysType
-FileSys::CheckTypeStat( int probeOpen )
+FileSys::CheckType( int scan )
 {
+	if( scan < 0 || p4tunable.IsSet( P4TUNE_FILESYS_BINARYSCAN ) )
+	{
+	    // How far to look in a file for binary characters
+
+	    scan = p4tunable.Get( P4TUNE_FILESYS_BINARYSCAN );
+	}
+
 	// Stat & check for missing, special
 
 	int fsf = Stat();
@@ -44,7 +51,7 @@ FileSys::CheckTypeStat( int probeOpen )
 	if( fsf & FSF_EMPTY )
 	{
 	    // !data + resource == apple
-
+	    
 	    FileIOApple f;
 	    f.Set( Name() );
 	    if( f.HasResourceFork() )
@@ -58,62 +65,6 @@ FileSys::CheckTypeStat( int probeOpen )
 	    return FST_EMPTY;
 # endif
 
-	if( probeOpen )
-	{
-	    Error e;
-
-	    Open( FOM_READ, &e );
-
-	    if( e.Test() )
-	        return BestFiletype( FST_CANTTELL );
-
-	    Close( &e );
-
-	    // Nothing was read, so a failed Close() says nothing about the
-	    // content and is deliberately not propagated.
-
-	    if( e.Test() )
-	        e.Clear();
-	}
-
-	return execbits ? FST_XBINARY : FST_BINARY;
-}
-
-int
-FileSys::BinaryScanSize( int scan )
-{
-	// A negative scan means the caller has no opinion, and a locally set
-	// filesys.binaryscan overrides whatever the caller did pass.
-
-	if( scan < 0 || p4tunable.IsSet( P4TUNE_FILESYS_BINARYSCAN ) )
-	    return p4tunable.Get( P4TUNE_FILESYS_BINARYSCAN );
-
-	return scan;
-}
-
-FileSysType
-FileSys::CheckType( int scan )
-{
-	scan = BinaryScanSize( scan );
-
-	// Binary or xbinary back means stat() settled nothing and the content
-	// still has to be read.  No probeOpen: the Open below already detects
-	// an unreadable file.
-
-	FileSysType st = CheckTypeStat();
-
-	if( st != FST_BINARY && st != FST_XBINARY )
-	    return st;
-
-	int execbits = ( st == FST_XBINARY ) ? FST_M_EXEC : 0;
-
-	// No scan asked for, so the type cannot be told from content -- which
-	// is all FST_CANTTELL claims.  A caller that wants to tell this apart
-	// from unreadable asks BinaryScanSize().
-
-	if( scan <= 0 )
-	    return BestFiletype( FST_CANTTELL );
-
 	// otherwise, we need to read the file to test for ubinary
 
 	// Open file to read some
@@ -125,7 +76,7 @@ FileSys::CheckType( int scan )
 	if( e.Test() )
 	    return BestFiletype( FST_CANTTELL );
 
-	// Read some
+	// Read some 
 
 	StrFixed fileBuf( scan );
 	char *buf = fileBuf.Text();

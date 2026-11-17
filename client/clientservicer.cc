@@ -59,60 +59,6 @@
 # include <vector>
 # endif
 
-# include <vararray.h>
-
-// StrArraySortedIndices -- sorts the indices of a given StrArray.
-// Each element points at a slot of an index vector owned by this object;
-// the sort permutes the element pointers, and OriginalIdx( i ) reads back
-// the i'th index in sorted order.
-
-class StrArraySortedIndices : public VVarArray
-{
-    public:
-	StrArraySortedIndices( const StrArray *a )
-	{
-	    int count = a->Count();
-	    array = a;
-	    indices = new int[ count ];
-	    caseFolding = !StrBuf::CaseUsage();
-	    
-	    for( int i = 0; i < count; i++ )
-	    {
-	        indices[ i ] = i;
-	        Put( &indices[ i ] );
-	    }
-
-	    Sort();
-	}
-
-	~StrArraySortedIndices() { delete [] indices; }
-
-	// Index into the StrArray held at position i of the sorted order.
-
-	int OriginalIdx( int i ) const { return *(const int *)Get( i ); }
-
-	// virtuals of VVarArray
-
-	int Compare( const void *a, const void *b ) const
-	{
-	    const int ia = *(const int *)a;
-	    const int ib = *(const int *)b;
-	    const StrBuf *sa = array->Get( ia );
-	    const StrBuf *sb = array->Get( ib );
-
-	    return caseFolding ? sa->XCompare( *sb )
-	                       : sa->CCompare( *sb );
-	}
-
-	void Destroy( void * ) const {}
-
-    private:
-	int *indices;
-	const StrArray *array;
-	int   caseFolding;
-} ;
-
-
 class StrStr
 {
     public:
@@ -1009,13 +955,34 @@ SetDigestOrType( Client *client, FileSys *f, const char *fileName,
 	}
 
 	// When no digest is requested, we may be able to skip the full
-	// Open+Read of the file and use GetSize() (stat-based) for the size.
-	// clientCheckFile asks the same question, so the rule is shared.
+	// Open+Read of the file and use GetSize() (stat-based)
+	// for the size.  Safe only when the on-disk byte count equals
+	// the LF-equivalent byte count the server uses for size-based
+	// move match -- i.e. when no per-byte translation runs on read.
+	// Three sources of byte-changing translation:
+	//   1. server-driven line-end (FST_L_MASK bits)
+	//   2. client charset converter (cvt from XCharset)
+	//   3. type-internal converter installed by FileIOUnicode/UTF8/UTF16
+	//      on Open() (see fileiouni.cc) -- not visible via cvt
+	// Conditions for the GetSize() shortcut:
+	//   - binary types: no translation, always safe.
+	//   - plain text (FST_TEXT, not unicode): safe when LineEnd is
+	//     FST_L_LF, or LineEnd is FST_L_LOCAL on a platform whose
+	//     default is LF (the LineTypeLocal == LineTypeRaw comparison
+	//     resolves at compile time per platform), AND no charset
+	//     conversion is in effect.
+	// For CRLF/CR/share line-ends, any charset translation, or any
+	// unicode type, still call Digest(0, e) to read through the
+	// translators and accumulate the LF-equivalent size.
 
 	StrBuf localDigest;
 	FileSys* fs = f2 ? f2 : f; // In case we failed to resolve the type
-	bool sizeMatchesDepot =
-	    ClientSvc::SizeMatchesDepot( fs->GetType(), cvt );
+	FileSysType lf = (FileSysType)( fs->GetType() & FST_L_MASK );
+	bool sizeMatchesDepot = !fs->IsTextual()
+	    || ( !fs->IsUnicode() &&
+	         !cvt &&
+	         ( lf == FST_L_LF ||
+	           ( lf == FST_L_LOCAL && LineTypeLocal == LineTypeRaw ) ) );
 
 	offL_t fsize;
 	if( digests )
@@ -1049,15 +1016,9 @@ SetDigestOrType( Client *client, FileSys *f, const char *fileName,
 	    // Beware of empty files
 
 	    Error msg;
-
-	    // fs rather than f2: FileSys::Create() has no case for FST_CANTTELL
-	    // and returns null, and a file that was deliberately not read is
-	    // readable enough that the Digest above succeeds and nothing else
-	    // catches the null.  Scan -1 matches the CheckType() above.
-
-	    const char *ntype = clientCheckFileType( fs, t,
+	    const char *ntype = clientCheckFileType( f2, t,
 	                                             client->protocolXfiles,
-	                                             1, -1, 0, 0, 0, &msg );
+	                                             1, 0, 0, 0, &msg );
 	    if( !ntype )
 	        client->SetError();
 
@@ -1426,37 +1387,26 @@ clientReconcileAdd( Client *client, Error *e )
 
 	if( !summary )
 	{
-	    // Walk files in the same order as recHandle->pathArray, but keep
-	    // the traversal order index so sizes/times/digests/types (which
-	    // are index-aligned with files) can still be addressed.
-
-	    StrArraySortedIndices fSort( files );
-
-	    const int fCount = files->Count();
-
 	    int i1 = 0, i2 = 0, i0 = 0, l = 0;
 
-	    while( i1 < fCount )
+	    while( i1 < files->Count() )
 	    {
-	        const int idx1 = fSort.OriginalIdx( i1 );
-
-	        if( i2 >= recHandle->pathArray->Count() )
+	        if( i2 >= recHandle->pathArray->Count())
 	            l = -1;
 	        else
-	            l = files->Get( idx1 )->SCompare(
+	            l = files->Get( i1 )->SCompare( 
 	                *recHandle->pathArray->Get( i2 ) );
+
 	        if( !l )
 	        {
-	            // File on disk (i1) matches depot
 	            ++i1;
 	            ++i2;
 	        }
 	        else if( l < 0 )
 	        {
-	            // File on disk not in depot
-	            client->SetVar( P4Tag::v_file, i0, *files->Get( idx1 ) );
+	            client->SetVar( P4Tag::v_file, i0, *files->Get( i1 ) );
 
-	            if( ( sendFileSize && ( idx1 < sizes->Count() ) ) ||
+	            if( ( sendFileSize && ( i1 < sizes->Count() ) ) ||
 	                ( !sendDigest && recHandle->delCount ) )
 	            {
 	                // 2025.1 server always requests fileSize but older servers
@@ -1465,26 +1415,24 @@ clientReconcileAdd( Client *client, Error *e )
 	                // 2) delCount != 0: need for move match
 
 	                client->SetVar( P4Tag::v_fileSize, 
-	                                i0, *sizes->Get( idx1 ) );
+	                                i0, *sizes->Get( i1 ) );
 	            }
 
 	            if( sendDigest )
-	                client->SetVar( P4Tag::v_digest, i0,
-	                    *digests->Get(idx1) );
+	                client->SetVar( P4Tag::v_digest, i0, *digests->Get(i1) );
 	            if( sendType )
-	                client->SetVar( P4Tag::v_type, i0, *types->Get(idx1) );
+	                client->SetVar( P4Tag::v_type, i0, *types->Get(i1) );
 	            if( sendTime )
-	                client->SetVar( P4Tag::v_time, i0, *times->Get(idx1) );
+	                client->SetVar( P4Tag::v_time, i0, *times->Get(i1) );
 	            ++i0;
 	            ++i1;
 	        }
 	        else
 	        {
-	            // File in depot not found on disk
 	            ++i2;
 	        }
 
-	        if( !( ( i0 + 1 ) % 1000 ) )
+	        if( !( ( i1 + 1 ) % 1000 ) )
 	        {
 	            client->Confirm( confirm );
 	            i0 = 0;

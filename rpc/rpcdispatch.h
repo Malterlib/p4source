@@ -17,7 +17,7 @@ class RpcDispatcher {
 	void			Add( const RpcDispatch *dispatch );
 	void			AddAltDispatcher();
 	void			ClearAltDispatcher();
-	const RpcDispatch 	*Find( const char *func );
+	const RpcDispatch	*Find( const char *func ) const;
 
     private:
 
@@ -36,7 +36,7 @@ class AltDispatcher {
 	~AltDispatcher();
 	void Add( const RpcDispatch *dispatch );
 	void Final();
-	const RpcDispatch *Find( const char *func );
+	const RpcDispatch *Find( const char *func ) const;
     private:
 	Tnode *trieNode;
 	int final;

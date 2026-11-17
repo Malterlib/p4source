@@ -91,6 +91,8 @@ enum P4TunableName {
 	P4TUNE_DM_LOCKS_GLOBAL_BATCH_NET,	// see dmrprobe.cc
 	P4TUNE_DM_LOCKS_GLOBAL_RESULT_BATCH_NET,	// see rmtservice.cc
 	P4TUNE_DM_MAXKEY,			// see dmtypes.cc
+	P4TUNE_DM_OBLITERATE_SKIPHAVE,
+	P4TUNE_DM_OBLITERATE_SKIPLABEL,
 	P4TUNE_DM_OPEN_SHOW_GLOBALLOCKS,
 	P4TUNE_DM_PASSWORD_MINLENGTH,
 	P4TUNE_DM_POPULATE_SKIPKEYED,           // see userpop.cc
@@ -213,6 +215,7 @@ enum P4TunableName {
 	P4TUNE_NET_PARALLEL_THREADS,		// see usersync.cc
 	P4TUNE_NET_PARALLEL_BATCH,		// see usersync.cc
 	P4TUNE_NET_PARALLEL_BATCHSIZE,		// see usersync.cc
+	P4TUNE_NET_PARALLEL_CHECKALIVE,		// see usertransmit.cc
 	P4TUNE_NET_PARALLEL_MIN,		// see usersync.cc
 	P4TUNE_NET_PARALLEL_MINSIZE,		// see usersync.cc
 	P4TUNE_NET_PARALLEL_SHELVE_THREADS,	// see usershelve.cc
@@ -255,6 +258,12 @@ enum P4TunableName {
 	P4TUNE_RPL_COMPRESS,			// See server / rpl.cc
 	P4TUNE_RPL_COUNTER_HOOK,		// See server / userpull.cc
 	P4TUNE_RPL_DEFERRED_SENDS,		// See server / usersync.cc
+	P4TUNE_RPL_FILTER_EXPAND,		// See server / userpull.cc
+	P4TUNE_RPL_FILTER_EXPAND_BATCH,		// See server / useradmin.cc
+	P4TUNE_RPL_FILTER_EXPAND_THREADS,	// See server / useradmin.cc
+	P4TUNE_RPL_FILTER_RESTRICT,		// See server / userpull.cc
+	P4TUNE_RPL_FILTER_RESTRICT_BATCH,	// See server / useradmin.cc
+	P4TUNE_RPL_FILTER_RESTRICT_THREADS,	// See server / useradmin.cc
 	P4TUNE_RPL_JNL_BATCH_SIZE,		// See server / rpl.cc
 	P4TUNE_RPL_JNLWAIT_ADJUST,		// See server / rhservice.cc
 	P4TUNE_RPL_JNLWAIT_INTERVAL,		// See server / rhservice.cc

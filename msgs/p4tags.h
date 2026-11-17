@@ -123,6 +123,7 @@ struct P4Tag {
 	static const char v_bits[];
 	static const char v_blob[];
 	static const char v_blockCount[];
+	static const char v_blockFinal[];
 	static const char v_branch[];
 	static const char v_broker[];
 	static const char v_bytesBehind[];
@@ -236,7 +237,6 @@ struct P4Tag {
 	static const char v_flushHard[];
 	static const char v_fmt[];
 	static const char v_forceType[];
-	static const char v_forceTypeBits[];
 	static const char v_fromFile[];
 	static const char v_fromLbrFile[];
 	static const char v_fromLbrPath[];
@@ -278,6 +278,8 @@ struct P4Tag {
 	static const char v_jobstat[];
 	static const char v_jnlBatchSize[];
 	static const char v_journal[];
+	static const char v_json[];
+	static const char v_jsonData[];
 	static const char v_key[];
 	static const char v_keywords[];
 	static const char v_language[];
@@ -470,6 +472,7 @@ struct P4Tag {
 	static const char v_specstring[];
 	static const char v_speccomment[];
 	static const char v_specFormatted[];
+	static const char v_specFormattedJson[];
 	static const char v_spectype[];
 	static const char v_srev[];
 	static const char v_sso[];
@@ -513,6 +516,7 @@ struct P4Tag {
 	static const char v_type3[];
 	static const char v_type4[];
 	static const char v_unicode[];
+	static const char v_unicodeRelax[];
 	static const char v_unmap[];
 	static const char v_unresolved[];
 	static const char v_upper[];
@@ -561,6 +565,7 @@ struct P4Tag {
 	static const char v_do[];		// p4 diff
 	static const char v_doForce[];		// p4 shelve
 	static const char v_doPromote[];	// p4 shelve
+	static const char v_dumpVersion[];
 	static const char v_fixStatus[];	// p4 change
 	static const char v_force[];		// p4 submit
 	static const char v_getFlag[];
@@ -621,6 +626,7 @@ struct P4Tag {
 	static const char v_streamViewChange[]; // stream view change used
 	static const char v_submitted[];
 	static const char v_table[];		// remote depot
+	static const char v_tableVersion[];
 	static const char v_traitCount[];	// submit
 	static const char v_tzoffset[];		// server tz offset for proxy
 	static const char v_output[];		// proxy print kind

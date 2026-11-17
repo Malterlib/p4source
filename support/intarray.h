@@ -57,6 +57,8 @@ class IntArray {
 		}
 	void	Sort();
 
+	int	Count() { return count; }
+
     private:
 
 	void	ReAlloc( int nInts )
@@ -94,7 +96,11 @@ class P4INT64Array {
 		}
 
 	P4INT64& operator []( int x ) 
-		{ 
+		{
+		    // keep track of count
+		    if( ( x + 1 ) > count )
+		        count = x + 1;
+
 		    // geometric growth
 		    if( x >= lInts ) ReAlloc( x * 3 / 2 );
 		    return ints[x];
@@ -112,6 +118,8 @@ class P4INT64Array {
 		{
 		    for( int i = 0; i < lInts; i++ ) ints[i] = def;
 		}
+
+	int	Count() { return count; }
 
     private:
 

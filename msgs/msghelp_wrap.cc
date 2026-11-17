@@ -172,6 +172,7 @@ ErrorId MsgHelp::HelpUnshelve = { ErrorOf( ES_HELP, 120, E_INFO, EV_NONE, 0  ), 
 ErrorId MsgHelp::HelpUser = { ErrorOf( ES_HELP, 83, E_INFO, EV_NONE, 0 ), "MsgHelp::HelpUser placeholder." };
 ErrorId MsgHelp::HelpUsers = { ErrorOf( ES_HELP, 84, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpUsers placeholder." };
 ErrorId MsgHelp::HelpVerify = { ErrorOf( ES_HELP, 85, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpVerify placeholder." };
+ErrorId MsgHelp::HelpWebServer = { ErrorOf( ES_HELP, 281, E_INFO, EV_NONE, 0 ), "MsgHelp::HelpWebServer placeholder." };
 ErrorId MsgHelp::HelpWhere = { ErrorOf( ES_HELP, 86, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpWhere placeholder." };
 ErrorId MsgHelp::HelpTunables = { ErrorOf( ES_HELP, 106, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpTunables placeholder." };
 ErrorId MsgHelp::HelpDbschema = { ErrorOf( ES_HELP, 109, E_INFO, EV_NONE, 0  ), "MsgHelp::HelpDbschema placeholder." };

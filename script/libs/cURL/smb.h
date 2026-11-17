@@ -1,5 +1,5 @@
-#ifndef HEADER_CURL_PTRARRAY_H
-#define HEADER_CURL_PTRARRAY_H
+#ifndef HEADER_CURL_SMB_H
+#define HEADER_CURL_SMB_H
 /***************************************************************************
  *                                  _   _ ____  _
  *  Project                     ___| | | |  _ \| |
@@ -7,6 +7,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
+ * Copyright (C) Bill Nagel <wnagel@tycoint.com>, Exacq Technologies
  * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
@@ -23,28 +24,8 @@
  * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
-#include "curl_setup.h"
+#if defined(CURL_ENABLE_SMB) && defined(USE_CURL_NTLM_CORE)
+extern const struct Curl_protocol Curl_protocol_smb;
+#endif
 
-/* An array of pointers with up to UINT32_MAX entries */
-struct ptrarray {
-  void **data; /* #capacity array of pointers */
-  uint32_t n;
-  uint32_t capacity;
-};
-
-void Curl_ptrarray_init(struct ptrarray *pa);
-
-void Curl_ptrarray_clear(struct ptrarray *pa);
-
-uint32_t Curl_ptrarray_count(struct ptrarray *pa);
-
-CURLcode Curl_ptrarray_add(struct ptrarray *pa, void *ptr);
-
-void *Curl_ptrarray_remove(struct ptrarray *pa, uint32_t idx);
-
-void *Curl_ptrarray_get(struct ptrarray *pa, uint32_t idx);
-
-#define CURL_PTRARRAY_COUNT(a)    ((a)->n)
-#define CURL_PTRARRAY_GET(a, i)   (((i) < ((a)->n)) ? (a)->data[(i)] : NULL)
-
-#endif /* HEADER_CURL_PTRARRAY_H */
+#endif /* HEADER_CURL_SMB_H */

@@ -69,6 +69,13 @@ if $(BUILD) = "valgrind"
 	CCFLAGS += -DHAS_VALGRIND ;
 }
 
+BUILD_RESTLIB ?= 0 ;
+
+if $(BUILD_RESTLIB) = 1
+{
+	DEFINES += HAS_RUST ;
+}
+
 if $(OS) = NT
 {
 	C++FLAGS += /EHsc ;
@@ -218,6 +225,7 @@ SubInclude P4 net ;
 SubInclude P4 script ;
 SubInclude P4 proxy ;
 SubInclude P4 rcs ;
+SubInclude P4 rest ;
 SubInclude P4 rpc ;
 SubInclude P4 server ;
 SubInclude P4 sslstub ;

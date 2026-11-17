@@ -272,6 +272,11 @@ R"(Enables display of performance stats.
 )"
 };
 
+ErrorId MsgConfig::WebSrv = { ErrorOf( ES_CONFIG, 512, E_INFO, EV_NONE, 0 ),
+R"(Enables debug logging of the webserver subsystem.
+)"
+};
+
 //
 // Numeric Tunables
 //
@@ -626,15 +631,16 @@ This makes the '%'--preserve-change-numbers'%' flag implicit.
 };
 
 ErrorId MsgConfig::DmFlushforce = { ErrorOf( ES_CONFIG, 54, E_INFO, EV_NONE, 0 ),
-R"(Maximum batch size of files being opened/reverted before waiting for a lock to
-persist.
+R"(Maximum batch size of files being synced/opened/reverted before waiting for a
+lock to persist.
 )"
 };
 
 ErrorId MsgConfig::DmFlushtry = { ErrorOf( ES_CONFIG, 55, E_INFO, EV_NONE, 0 ),
-R"(Batch size interval of files being opened/reverted before trying to take a lock
-to persist; if the lock could be taken, the batch will grow to the next multiple
-of this interval before trying again, unless the size reaches '%'dm.flush.force'%'.
+R"(Batch size interval of files being synced/opened/reverted before trying to
+take a lock to persist; if the lock could be taken, the batch will grow to the
+next multiple of this interval before trying again, unless the size reaches
+'%'dm.flush.force'%'.
 )"
 };
 
@@ -803,6 +809,18 @@ to be sent back to the edge server from the commit server.
 
 ErrorId MsgConfig::DmMaxkey = { ErrorOf( ES_CONFIG, 76, E_INFO, EV_NONE, 0 ),
 R"(Maximum length of a database key value.
+)"
+};
+
+ErrorId MsgConfig::DmObliterateSkiphave = { ErrorOf( ES_CONFIG, 527, E_INFO, EV_NONE, 0 ),
+R"(Skip the removal of have records by default when obliterating files. This can
+be overridden with the '%'-H'%' flag.
+)"
+};
+
+ErrorId MsgConfig::DmObliterateSkiplabel = { ErrorOf( ES_CONFIG, 528, E_INFO, EV_NONE, 0 ),
+R"(Skip the removal of label records by default when obliterating files. This can
+be overridden with the '%'-L'%' flag.
 )"
 };
 
@@ -1483,7 +1501,7 @@ determine that the target is dead.
 };
 
 ErrorId MsgConfig::NetMaxFaultPub = { ErrorOf( ES_CONFIG, 176, E_INFO, EV_NONE, 0 ),
-R"(A value in megabytes that controls the proxy’s cache faulting behavior.
+R"(A value in megabytes that controls the proxy's cache faulting behavior.
 A single '%'p4 sync'%' will not publish more than '%'net.maxfaultpub'%'
 megabytes of faults into '%'pdb.lbr'%'.
 )"
@@ -1527,6 +1545,12 @@ R"(The number of bytes in a parallel thread batch.
 )"
 };
 
+ErrorId MsgConfig::NetParallelCheckAlive = { ErrorOf( ES_CONFIG, 532, E_INFO, EV_NONE, 0 ),
+R"(Verify the controlling sync or submit operation behind a parallel transfer
+has not exited.
+)"
+};
+
 ErrorId MsgConfig::NetParallelMin = { ErrorOf( ES_CONFIG, 183, E_INFO, EV_NONE, 0 ),
 R"(The minimum number of files in a parallel sync. A sync of fewer files
 does not initiate parallel file transfers.
@@ -1538,7 +1562,6 @@ R"(The minimum number of bytes in a parallel sync. A sync that is too small
 does not initiate parallel file transfers.
 )"
 };
-
 
 ErrorId MsgConfig::NetParallelShelveThreads = { ErrorOf( ES_CONFIG, 185, E_INFO, EV_NONE, 0 ),
 R"(Enables automatic parallel file transfer for '%'p4 shelve'%' and sets the
@@ -1776,6 +1799,39 @@ ErrorId MsgConfig::RplDeferredSends = { ErrorOf( ES_CONFIG, 221, E_INFO, EV_NONE
 R"(Allow '%'pull -u'%' to fetch missing archives on edge and build servers scheduled
 by '%'p4 sync'%'. If disabled, the archives will be fetched synchronously by the
 sync command itself.
+)"
+};
+
+ErrorId MsgConfig::RplFilterExpandBatch = { ErrorOf( ES_CONFIG, 523, E_INFO, EV_NONE, 0 ),
+R"(Block size used for the '%'admin replica-filter-reconcile'%' expand operation.
+)"
+};
+
+ErrorId MsgConfig::RplFilterExpand = { ErrorOf( ES_CONFIG, 524, E_INFO, EV_NONE, 0 ),
+R"(Allow '%'pull'%' to automatically run the '%'admin replica-filter-reconcile'%'
+expand operation when a server filter change is detected.
+)"
+};
+
+ErrorId MsgConfig::RplFilterExpandThreads = { ErrorOf( ES_CONFIG, 525, E_INFO, EV_NONE, 0 ),
+R"(The number of threads to use in the replica filter expand operation.
+)"
+};
+
+ErrorId MsgConfig::RplFilterRestrictBatch = { ErrorOf( ES_CONFIG, 515, E_INFO, EV_NONE, 0 ),
+R"(Number of records to batch process per database table in the
+'%'admin replica-filter-reconcile'%' restrict operation.
+)"
+};
+
+ErrorId MsgConfig::RplFilterRestrict = { ErrorOf( ES_CONFIG, 516, E_INFO, EV_NONE, 0 ),
+R"(Allow '%'pull'%' to automatically run the '%'admin replica-filter-reconcile'%'
+restrict operation when a server filter change is detected.
+)"
+};
+
+ErrorId MsgConfig::RplFilterRestrictThreads = { ErrorOf( ES_CONFIG, 517, E_INFO, EV_NONE, 0 ),
+R"(The number of threads to use in the replica filter restrict operation.
 )"
 };
 
@@ -3423,7 +3479,6 @@ a storage scan with the --nonlbr flag specified. Any filename that matcheds
 any one of the patterns in this list will not be removed or moved.
 )"
 };
-
 
 static const char shared_retry[] = 
 R"(A JSON format array of http status codes and AWS error code strings.

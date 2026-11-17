@@ -18,7 +18,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgClient error code is: 107
+ * Current high value for a MsgClient error code is: 106
  */
 # include <stdhdrs.h>
 # include <error.h>
@@ -56,7 +56,6 @@ ErrorId MsgClient::ConfirmEdit         = { ErrorOf( ES_CLIENT, 24, E_INFO, EV_CL
 ErrorId MsgClient::Confirm             = { ErrorOf( ES_CLIENT, 25, E_INFO, EV_CLIENT, 0 ), "This overrides your changes: confirm accept (y/n)? " };
 ErrorId MsgClient::CheckFileAssume     = { ErrorOf( ES_CLIENT, 30, E_INFO, EV_CLIENT, 3 ), "%file% - %type%, assuming %type2%." };
 ErrorId MsgClient::CheckFileAssumeWild = { ErrorOf( ES_CLIENT, 41, E_INFO, EV_CLIENT, 4 ), "%file% - %type%, assuming %type2% (%modified%)." };
-ErrorId MsgClient::CheckFileNoScan     = { ErrorOf( ES_CLIENT, 107, E_INFO, EV_CLIENT, 2 ), "%file% - content scan disabled, assuming %type%." };
 ErrorId MsgClient::CheckFileSubst      = { ErrorOf( ES_CLIENT, 31, E_INFO, EV_CLIENT, 3 ), "%file% - using %type% instead of %type2%" };
 ErrorId MsgClient::CheckFileCant       = { ErrorOf( ES_CLIENT, 32, E_INFO, EV_CLIENT, 2 ), "%file% - %type% file can't be added." };
 ErrorId MsgClient::FileExists          = { ErrorOf( ES_CLIENT, 34, E_FAILED, EV_CLIENT, 1 ), "%file% - can't overwrite existing file." };
@@ -64,6 +63,7 @@ ErrorId MsgClient::NoSuchFile          = { ErrorOf( ES_CLIENT, 35, E_FAILED, EV_
 ErrorId MsgClient::LoginPrintTicket    = { ErrorOf( ES_CLIENT, 36, E_INFO, EV_NONE, 1 ), "%ticket%" } ;
 ErrorId MsgClient::DigestMisMatch      = { ErrorOf( ES_CLIENT, 37, E_FAILED, EV_CLIENT, 3 ), "%clientFile% corrupted during transfer (or bad on the server) %clientDigest% vs %serverDigest%" } ;
 ErrorId MsgClient::NotUnderPath        = { ErrorOf( ES_CLIENT, 38, E_FAILED, EV_CLIENT, 2 ), "File %clientFile% is not inside permitted filesystem path %clientPath%" } ;
+ErrorId MsgClient::PathProtected       = { ErrorOf( ES_CLIENT, 106, E_FAILED, EV_CLIENT, 1 ), "File %clientFile% is protected by 'P4_SYSTEMIGNORE'" } ;
 ErrorId MsgClient::LineTooLong         = { ErrorOf( ES_CLIENT, 39, E_FAILED, EV_CLIENT, 1 ), "Command line too long. Maximum length is %maxLineLen%. This length can be increased by setting filesys.bufsize in P4CONFIG or using -v." };
 ErrorId MsgClient::UnknownCharset      = { ErrorOf( ES_CLIENT, 42, E_FATAL, EV_CLIENT, 1 ), "Unknown P4CHARSET %charset%." };
 ErrorId MsgClient::FileKept            = { ErrorOf( ES_CLIENT, 43, E_FAILED, EV_CLIENT, 1 ), "Edited File %file% kept due to errors." } ;

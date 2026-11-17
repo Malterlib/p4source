@@ -50,30 +50,18 @@
 
 #include <Security/Security.h>
 
-#if (defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && \
-             __MAC_OS_X_VERSION_MAX_ALLOWED >= 101400) || \
-    (defined(__IPHONE_OS_VERSION_MAX_ALLOWED) && \
-             __IPHONE_OS_VERSION_MAX_ALLOWED >= 120000) || \
-    (defined(__TV_OS_VERSION_MAX_ALLOWED) && \
-             __TV_OS_VERSION_MAX_ALLOWED >= 120000) || \
-    (defined(__WATCH_OS_VERSION_MAX_ALLOWED) && \
-             __WATCH_OS_VERSION_MAX_ALLOWED >= 50000) || \
-    (defined(__VISION_OS_VERSION_MAX_ALLOWED) && \
-             __VISION_OS_VERSION_MAX_ALLOWED >= 10000)
+#if (defined(MAC_OS_X_VERSION_MAX_ALLOWED) &&   \
+     MAC_OS_X_VERSION_MAX_ALLOWED >= 101400) || \
+  (defined(__IPHONE_OS_VERSION_MAX_ALLOWED) &&  \
+   __IPHONE_OS_VERSION_MAX_ALLOWED >= 120000)
 #define SUPPORTS_SecTrustEvaluateWithError 1
 #endif
 
 #if defined(SUPPORTS_SecTrustEvaluateWithError) && \
-  ((defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && \
-            __MAC_OS_X_VERSION_MIN_REQUIRED >= 101400) || \
-   (defined(__IPHONE_OS_VERSION_MIN_REQUIRED) && \
-            __IPHONE_OS_VERSION_MIN_REQUIRED >= 120000) || \
-   (defined(__TV_OS_VERSION_MIN_REQUIRED) && \
-            __TV_OS_VERSION_MIN_REQUIRED >= 120000) || \
-   (defined(__WATCH_OS_VERSION_MIN_REQUIRED) && \
-            __WATCH_OS_VERSION_MIN_REQUIRED >= 50000) || \
-   (defined(__VISION_OS_VERSION_MIN_REQUIRED) && \
-            __VISION_OS_VERSION_MIN_REQUIRED >= 10000))
+  ((defined(MAC_OS_X_VERSION_MIN_REQUIRED) &&      \
+    MAC_OS_X_VERSION_MIN_REQUIRED >= 101400) ||    \
+   (defined(__IPHONE_OS_VERSION_MIN_REQUIRED) &&   \
+    __IPHONE_OS_VERSION_MIN_REQUIRED >= 120000))
 #define REQUIRES_SecTrustEvaluateWithError 1
 #endif
 
@@ -83,16 +71,10 @@
 #undef SUPPORTS_SecTrustEvaluateWithError
 #endif
 
-#if (defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && \
-             __MAC_OS_X_VERSION_MAX_ALLOWED >= 100900) || \
-    (defined(__IPHONE_OS_VERSION_MAX_ALLOWED) && \
-             __IPHONE_OS_VERSION_MAX_ALLOWED >= 70000) || \
-    (defined(__TV_OS_VERSION_MAX_ALLOWED) && \
-             __TV_OS_VERSION_MAX_ALLOWED >= 90000) || \
-    (defined(__WATCH_OS_VERSION_MAX_ALLOWED) && \
-             __WATCH_OS_VERSION_MAX_ALLOWED >= 20000) || \
-    (defined(__VISION_OS_VERSION_MAX_ALLOWED) && \
-             __VISION_OS_VERSION_MAX_ALLOWED >= 10000)
+#if (defined(MAC_OS_X_VERSION_MAX_ALLOWED) &&   \
+     MAC_OS_X_VERSION_MAX_ALLOWED >= 100900) || \
+  (defined(__IPHONE_OS_VERSION_MAX_ALLOWED) &&  \
+   __IPHONE_OS_VERSION_MAX_ALLOWED >= 70000)
 #define SUPPORTS_SecOCSP 1
 #endif
 
@@ -105,7 +87,7 @@ CURLcode Curl_vtls_apple_verify(struct Curl_cfilter *cf,
                                 const unsigned char *ocsp_buf,
                                 size_t ocsp_len)
 {
-  struct ssl_filter_config *conn_config = Curl_ssl_cf_get_filter_config(cf);
+  struct ssl_primary_config *conn_config = Curl_ssl_cf_get_primary_config(cf);
   CURLcode result = CURLE_OK;
   SecTrustRef trust = NULL;
   SecPolicyRef policy = NULL;
@@ -145,7 +127,8 @@ CURLcode Curl_vtls_apple_verify(struct Curl_cfilter *cf,
 
 #if defined(HAVE_BUILTIN_AVAILABLE) && defined(SUPPORTS_SecOCSP)
   {
-    if(!conn_config->no_revoke) {
+    struct ssl_config_data *ssl_config = Curl_ssl_cf_get_config(cf, data);
+    if(!ssl_config->no_revoke) {
       if(__builtin_available(macOS 10.9, iOS 7, tvOS 9, watchOS 2, *)) {
         /* Even without this set, validation seemingly-unavoidably fails
          * for certificates that trustd already knows to be revoked.
@@ -161,7 +144,7 @@ CURLcode Curl_vtls_apple_verify(struct Curl_cfilter *cf,
          * It seems that applications using this policy are expected to PIN
          * their certificate public keys or verification fails.
          * This does not seem to be what we want here. */
-        if(!conn_config->revoke_best_effort) {
+        if(!ssl_config->revoke_best_effort) {
           revocation_flags |= kSecRevocationRequirePositiveResponse;
         }
 #endif
@@ -222,10 +205,7 @@ CURLcode Curl_vtls_apple_verify(struct Curl_cfilter *cf,
 #if defined(HAVE_BUILTIN_AVAILABLE) && defined(SUPPORTS_SecOCSP)
     if(__builtin_available(macOS 10.9, iOS 7, tvOS 9, watchOS 2, *)) {
       CFDataRef ocspdata = CFDataCreate(NULL, ocsp_buf, (CFIndex)ocsp_len);
-      if(!ocspdata) {
-        result = CURLE_OUT_OF_MEMORY;
-        goto out;
-      }
+
       status = SecTrustSetOCSPResponse(trust, ocspdata);
       CFRelease(ocspdata);
       if(status != noErr) {

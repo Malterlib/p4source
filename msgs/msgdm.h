@@ -817,8 +817,8 @@ class MsgDm {
 	static ErrorId UserSave;
 	static ErrorId UserNoChange;
 	static ErrorId UserNotExist;
-	static ErrorId UserNotExistInfo;
-	static ErrorId GroupNotExistInfo;
+	static ErrorId UserNotExistError;
+	static ErrorId GroupNotExistError;
 	static ErrorId UserCantDelete;
 	static ErrorId UserDelete;
 

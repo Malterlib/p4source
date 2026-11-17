@@ -804,8 +804,15 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionClientCaseInsensitive },
 	{ "nonlbr",             Options::NonLbr, 0, 0, &MsgSupp::OptionNonLbr },
 	{ "pull-from-verify",   Options::PullFromVerify, 0, 0, 0 },
-	{ "strace-runtime", Options::StraceRuntime, 0, '#', &MsgSupp::OptionStraceRuntime },
-	{ "sync-time",      Options::SyncTime, 0, ':', &MsgSupp::OptionSyncTime },
+	{ "strace-runtime",     Options::StraceRuntime, 0, '#',
+	                      &MsgSupp::OptionStraceRuntime },
+	{ "sync-time",          Options::SyncTime, 0, ':',
+	                      &MsgSupp::OptionSyncTime },
+	{ "server-size-rcs",    Options::ServerSizeRCS, 0, 0,
+	                      &MsgSupp::OptionServerSizeRCS },
+	{ "restrict-only",      Options::RestrictOnly, 0, 0, 0 },
+	{ "expand-only",        Options::ExpandOnly, 0, 0, 0 },
+
 
 #ifdef _DEBUG
 	{ "debugbreak",         Options::DebugBreak,  0, 0,

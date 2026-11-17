@@ -59,7 +59,7 @@
 #include "transfer.h"
 #include "url.h"
 #include "parsedate.h" /* for the week day and month names */
-#include "curlx/win32-fopen.h"
+#include "curlx/fopen.h"
 #include "curl_range.h"
 
 #if defined(_WIN32) || defined(MSDOS)
@@ -90,7 +90,7 @@ static void file_cleanup(struct FILEPROTO *file)
   }
 }
 
-static void file_easy_dtor(const void *key, size_t klen, void *entry)
+static void file_easy_dtor(void *key, size_t klen, void *entry)
 {
   struct FILEPROTO *file = entry;
   (void)key;
@@ -331,13 +331,15 @@ static CURLcode file_upload(struct Curl_easy *data,
   else
     mode |= O_TRUNC;
 
-  fd = curlx_open(file->path, mode,
 #ifdef _WIN32
-                  data->set.new_file_perms & (_S_IREAD | _S_IWRITE)
+  fd = curlx_open(file->path, mode,
+                  data->set.new_file_perms & (_S_IREAD | _S_IWRITE));
+#elif (defined(ANDROID) || defined(__ANDROID__)) && \
+  (defined(__i386__) || defined(__arm__))
+  fd = curlx_open(file->path, mode, (mode_t)data->set.new_file_perms);
 #else
-                  (mode_t)data->set.new_file_perms
+  fd = curlx_open(file->path, mode, data->set.new_file_perms);
 #endif
-                  );
   if(fd < 0) {
     failf(data, "cannot open %s for writing", file->path);
     return CURLE_WRITE_ERROR;

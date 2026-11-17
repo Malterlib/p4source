@@ -18,6 +18,11 @@ if $(CLANGVER)
 	}
 }
 
+if $(GCCVER) && [ FVersionCmp $(GCCVER) : 15.1.0 ] >= 0
+{
+	CCFLAGS += -Wno-old-style-definition ;
+}
+
 P4APILibrary $(SUPPORTLIB) : 
 	adler32.c
 	crc32.c

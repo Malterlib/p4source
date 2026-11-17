@@ -46,15 +46,17 @@ class StrPtrArray {
 
     public:
 			StrPtrArray();
+			StrPtrArray( int size );
 			~StrPtrArray();
 
-	void		Put( const StrPtr &val );
+	bool		Put( const StrPtr &val );
 	const StrPtr *	Get( int i ) const { return &tabVal[i]; }
 	void		Clear() { tabLength = 0; }
 	int		Count() const { return tabLength; }
 	StrPtr *	Table() const { return tabVal; }
 
     private:
+	bool		Extend( int newSize );
 
 	// our own VarArray-like implementation
 	

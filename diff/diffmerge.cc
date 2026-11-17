@@ -221,7 +221,8 @@ DiffMerge::DiffMerge(
 	df1 = df2 = df3 = 0;
 	diff3behavior = 0;
 	oldMode = 0;
-	
+	gridType = GRT_OPTIMAL;
+
 	switch( flags.grid )
 	{
 	case DiffFlags::Optimal:

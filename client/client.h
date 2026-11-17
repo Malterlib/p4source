@@ -122,6 +122,7 @@ class CharSetCvtCache;
 class Ignore;
 class Enviro;
 class StrBufDict;
+class MapTable;
 
 enum EnvVarType
 {
@@ -269,6 +270,7 @@ class Client : public Rpc {
 	const StrPtr	&GetBuild() { return buildInfo; }
 	const StrPtr	&GetExecutable() { return exeName; }
 	const int	&GetAPI() { return apiVer; }
+	int		CheckSystemIgnore( const char *p );
 
 	void		SetIgnorePassword() 
 			{ ignoreList |= VAR_P4PASSWD; }
@@ -448,4 +450,7 @@ class Client : public Rpc {
 	bool		extsDebugHooksEnabled;
 	ClientScript	*exts;
 	bool		ownExts;
+
+	MapTable	*systemIgnoreMap;
+	P4INT64		enviroGen;
 } ;

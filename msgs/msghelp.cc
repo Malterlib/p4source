@@ -18,7 +18,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgHelp error code is: 280
+ * Current high value for a MsgHelp error code is: 281
  */
 
 ErrorId MsgHelp::NoHelp = { ErrorOf( ES_HELP, 1, E_FAILED, EV_USAGE, 1 ),
@@ -517,6 +517,12 @@ R"(
 	Add words to the jobs index.
 	See 'p4 help index'.
 
+    p4 info -w
+	In tagged (-ztag) output, adds a 'threadCount' field carrying the
+	server's current internal thread count as seen by the process handling
+	the command. In a forked child the value reflects the count at fork
+	time, not the live count. Has no effect in non-tagged output.
+
     p4 integrate -1 -2 -C changelist# -Rlou -Znnn
 	The flag '-1' can be supplied to the 'p4 integrate' command to
 	force consideration of direct integration history only.  Note that -1
@@ -878,6 +884,11 @@ R"(
 	algorithm to generate identities for changes that may have touched
 	the specified files and have not yet been assigned an identity.
 
+    p4d -xf disable.extension uuid
+	Disables the specified extension and all its configurations, this is
+	primarily used if a broken extension has taken control of 'pre-user-*'
+	preventing the use of 'p4 extension --delete'.
+
     p4d -xU upgrade
 	Re-runs the named upgrade step that is normally done automatically by
 	p4d -xu.  To display a list of steps, issue the 'p4d -xU help' command.
@@ -990,8 +1001,6 @@ R"(
 	dm.changeview.openable   0 Legacy (pre-16.1) readonly behavior
 	dm.copy.movewarn         0 verbose 'p4 copy' warnings for moved files
 	dm.dvcs.allowcasemismatch 0 Allow case-handling mismatch for push/fetch
-	dm.flushforce          10K Flushtry can expand until forced
-	dm.flushtry            100 Update buffer for sync, resolve, edit
 	dm.fstat.outputthreshold
 	                       10K Output threshold for fstat
 	dm.fstat.maxcontent     4M Maximum number of bytes of an file revision
@@ -1772,6 +1781,8 @@ R"(
     p4 admin end-journal
     p4 admin sysinfo
     p4 admin resource-monitor
+    p4 admin replica-filter-reconcile [--restrict-only|--expand-only]
+                                      [table ...]
 
 	'p4 admin updatespecdepot', 'p4 admin resetpassword', and
 	'p4 admin end-journal' require 'super' access.  The others
@@ -1842,6 +1853,10 @@ R"(
 	running in.
 
 	'p4 admin resource-monitor' - see 'p4 help admin-resource-monitor'
+
+	'p4 admin replica-filter-reconcile' purge database records that should
+	be excluded due to replica filter changes, and fetch database records
+	that were previously excluded.
 )"
 };
 
@@ -2629,6 +2644,21 @@ R"(
 	             the point in time specified by the 'Revision' field; any
 	             other files matching the ChangeView path may sync to
 	             #head, but cannot be submitted.
+
+	LimitView:   Restricts the paths mapped by the View. This is helpful
+	             for streams clients where the View cannot be modified in
+	             the client spec.
+	             The mappings may be specified in either client or depot
+	             syntax, but not a combination of both.
+	             Example:
+	                 View:
+	                     //depot1/... //ws/depot1/...
+	                     //depot2/... //ws/depot2/...
+	                 LimitView:
+	                     //ws/depot1/path/...
+	                     -//ws/....exe
+	             Will limit the client's view to just files under
+	             //depot1/path excluding files with the .exe extension.
 
 	Stream:      The stream to which this client's view will be dedicated.
 		     (Files in stream paths can be submitted only by dedicated
@@ -4842,8 +4872,10 @@ R"(
 	prior to installation.  If signing enforcement is enabled on the
 	server (via the 'server.extensions.allow.unsigned' configurable), the
 	signing certificate must be installed prior to the extension, via the
-	'--install --cert' options.  The --comment flag goes with --cert to
-	provide a short piece of text describing the certificate.
+	'--install --cert' options; alternatively use the --allow-unsigned
+	option to allow unsigned extensions on the server.  The --comment
+	flag goes with --cert to provide a short piece of text describing
+	the certificate.
 
 	The --configure flag is used to supply details about an extension's
 	configuration.  There are two parts to configuring an extension - the
@@ -5878,7 +5910,7 @@ R"(
     p4 groups [-m max] [-g | -u | -o] name
 
 	The first form lists all user groups defined in the server, or just
-	the specified group.
+	the groups for which the specified group is a subgroup.
 
 	The second form displays subgroup relationships. If a user argument is
 	specified, only groups containing that user are displayed. If a group
@@ -6326,7 +6358,7 @@ R"(
 	stream spec are discovered, even if the requested report is only for
 	files or only for the stream spec.
 	
-	See 'p4 help streamspecintg' for more details.
+	See 'p4 help streamspecinteg' for more details.
 
 )"
 };
@@ -9806,7 +9838,7 @@ ErrorId MsgHelp::HelpObliterate = { ErrorOf( ES_HELP, 64, E_INFO, EV_NONE, 0 ),
 R"(
     obliterate -- Remove files and their history from the depot
 
-    p4 obliterate [-y -A -b -a -h -l -T] [-r alg]
+    p4 obliterate [-y -A -b -a -T] [-h | -H] [-l | -L] [-r alg]
 	    [-p | --purged-only] [ -q ] file[revRange] ...
 
 	Obliterate permanently removes files and their history from the server.
@@ -9840,18 +9872,24 @@ R"(
 	content is not removed. This option is safe to use with the '-b'
 	option.
 
-	The '-h' flag instructs obliterate not to search db.have for all
-	possible matching records to delete.  Usually, db.have is one of the
-	largest tables in a repository and consequently this search takes
-	a long time.  Do not use this flag when obliterating branches or
-	namespaces for reuse,  because the old content on any client
-	will not match the newly-added repository files.  Note that use of
-	the -h flag has the side-effect of cleaning the obliterated files
-	from client workspaces when they are synced.
+	The '-H' flag instructs obliterate to search db.have for all matching
+	records to delete.  This is most useful when obliterating branches or
+	namespaces for reuse, because the old content on any client will not
+	match the newly-added repository files.  Usually, db.have is one of the
+	largest tables in a repository and consequently this search takes a
+	long time (this impacts edge servers' replication too).
+	Note that without the '-H' flag any sync'ed obliterated files will be
+	removed from client workspaces when they are next synced.
+	Prior to 2026.1, the behavior of '-H' was the default, and the '-h'
+	flag was required to skip the db.have search; this behavior can be
+	restored by setting the 'dm.obliterate.skiphave' configurable to '0'.
 
-	The '-l' flag works similar to '-h' but for db.label. It instructs
-	obliterate not to search db.label for all possible matching records
-	to delete.
+	The '-L' flag works similar to '-H' but for db.label. It instructs
+	obliterate to search db.label for all possible matching records to
+	delete.  Prior to 2026.1, the behavior of '-L' was the default, and
+	the '-l' flag was required to skip the db.label search; this behavior
+	can be restored by setting the 'dm.obliterate.skiplabel' configurable
+	to '0'.
 
 	The '-p' flag instructs obliterate to mark the revision as purged
 	and leave the integration history intact rather than removing
@@ -13163,6 +13201,22 @@ R"(
 )"
 };
 
+ErrorId MsgHelp::HelpWebServer = { ErrorOf( ES_HELP, 281, E_INFO, EV_NONE, 0 ),
+R"(
+    webserver -- Control the P4 Web Server
+
+    p4 webserver start -p [ip:]port
+    p4 webserver stop -p [ip:]port
+
+	'p4 webserver start' starts the P4 web server. The '-p' parameter
+	specifies the ip address and port the web server will listen on.
+
+	'p4 webserver stop' stops the running P4 web server. The '-p' parameter
+	specifies the ip address and port the web server to stop is listening
+	on.
+)"
+};
+
 ErrorId MsgHelp::HelpWhere = { ErrorOf( ES_HELP, 86, E_INFO, EV_NONE, 0 ),
 R"(
     where -- Show how file names are mapped by the client view
@@ -13985,6 +14039,9 @@ R"(
 	dm.domain.accessforce      Time interval to force domain access time
 	dm.fetch.preservechangenumbers Preserve change numbers on 'p4 fetch'
 	                               or 'p4 push' to this server
+	dm.flushforce              Max record count for a batch; waits on locks
+	dm.flushtry                Record count interval for trying to take
+	                           locks to flush a batch.
 	dm.info.hide               Suppress output of sensitive info fields
 	dm.integ.streamspec        Default stream spec integration value
 	                           0: Stream spec integration is not allowed
@@ -14001,6 +14058,8 @@ R"(
 	dm.locks.global.result.batch.net Batch size for globally (un)locked
 	                                 files returned from a commit
 	                                 server to an edge server
+	dm.obliterate.skiphave     Obliterate uses -h by default
+	dm.obliterate.skiplabel    Obliterate uses -l by default
 	dm.open.show.globallocks   Report global locks on file open from edge
 	dm.password.minlength      Minimum password length (when enabled)
 	dm.populate.skipkeyed      Disable generation of digest for ktext
@@ -14175,6 +14234,7 @@ R"(	dm.topology.lastseenupdate Time interval to update topology record.
 	net.parallel.threads       Auto parallel sync w/#threads
 	net.parallel.batch         Files in batch for auto parallel sync
 	net.parallel.batchsize     Size of batch for auto parallel sync
+	net.parallel.checkalive    Files transferred between checks
 	net.parallel.min           Minimum # files for auto parallel sync
 	net.parallel.minsize       Minimum size for auto parallel sync
 	net.parallel.shelve.threads Auto parallel shelve w/#threads
@@ -14212,6 +14272,25 @@ R"(	dm.topology.lastseenupdate Time interval to update topology record.
 	                           4: Compress only metadata transfers
 	rpl.deferred.sends         Allow 'pull -u' to fetch missing archives
 	                           during sync on edge and build servers
+	rpl.filter.expand          Allow 'pull' to automatically run the
+	                           'admin replica-filter-reconcile' expand
+	                           operation when a server filter change is
+	                           detected.
+	rpl.filter.expand.batch    Block size used for the
+	                           'admin replica-filter-reconcile' expand
+	                           operation.
+	rpl.filter.expand.threads  The number of threads to use in the replica
+	                           filter expand operation.
+	rpl.filter.restrict        Allow 'pull' to automatically run the
+	                           'admin replica-filter-reconcile' restrict
+	                           operation when a server filter change is
+	                           detected.
+	rpl.filter.restrict.batch  Number of records to batch process per
+	                           database table in the
+	                           'admin replica-filter-reconcile' restrict
+	                           operation.
+	rpl.filter.restrict.threads The number of threads to use in the
+	                            replica filter restrict operation.
 	rpl.forward.all            Enable replica update command forwarding
 	rpl.forward.login          Enable replica login command forwarding
 	rpl.jnl.batch.size         Max size of a single journal transfer
@@ -14727,7 +14806,7 @@ R"(
     p4 storage -u [-c change] [-T tags -F filters] [-m max] archive ...
     p4 storage -d [-c change] [-y] [-D secs] [ -t target ] [-q] archive ...
     p4 storage -w
-    p4 storage -U [-q] [-n threads] archive ...
+    p4 storage -U [-q] [-n threads] [--server-size-rcs] archive ...
     p4 storage -l start [--nonlbr [-D secs] [-y] [-t target]]
 	|pause|restart|wait|status [--nonlbr] |cancel  //depotdirectory/...
 
@@ -14813,8 +14892,8 @@ R"(
 	storage upgrade is finished.
 
 	The -U flag reads all the storage records looking for an unset
-	digest field. When it detects an unset digest it recomputes
-	the digest and size fields and updates the record. This is
+	digest or serverSize field. When it detects either it
+	recomputes the unset field(s) and updates the record. This is
 	intended to be used after a storage upgrade has been performed
 	with lbr.storage.skipkeyed set to avoid the delay incurred by
 	calculating the digest during the upgrade. The -q flag can be
@@ -14822,7 +14901,10 @@ R"(
 	messages produced. The -n threads flag specifies the number of
 	threads to use. 0 = no threads; n = use n threads. When the n
 	flags is not specified, the command uses the lbr.storage.threads
-	configuration variable. The -U flag requires 'super' access.
+	configuration variable. Calculating the serverSize field for
+	RCS file types can be expensive and so must be explictly requested
+	by giving the --server-size-rcs flag.
+	The -U flag requires 'super' access.
 
 	The -l flag controls a background process that scans the server root
 	looking for orphaned files that are no longer referenced by the server,
@@ -15149,18 +15231,21 @@ R"(
 	                   and the file will be retrieved from the target if
 	                   it is missing from the replica.
 
-	shared, or         Replica allows commands which reference file
-	ondemand:          content, but does not automatically transfer new
-	(synonyms)         files nor remove purged files. If a file is not
-	                   present in the archives, commands which reference
-	                   that file will fail. Important: This mode MUST
-	                   be used when a replica directly shares the same
-	                   physical archives as its P4TARGET (whether by
-	                   running on the same machine or via a network
-	                   share), and the replica's P4TARGET MUST be a commit
-	                   or master server. This mode can also be used when
-	                   an external archive synchronization technique such
-	                   as 'rsync' is used for archives.
+	shared:            The same physical archives are shared between the
+	                   replica and the commit or master server either by
+	                   running on the same machine or via a network share.
+	                   The sharing of the archives is checked for as the
+	                   replica starts.
+
+	ondemand:          Transfer of archive files only happens if those
+	                   files are referenced by a command and do not already
+	                   exist on the replica.
+	                   The physical archives may be shared between the
+	                   replica and the commit or master server but no
+	                   checks are made to determine this.
+	                   This mode can also be used when an external archive
+	                   synchronization technique such as 'rsync' is used
+	                   for archives.
 
 	cache:             Replica allows commands which reference file
 	                   content, but does not automatically transfer new
@@ -16062,6 +16147,12 @@ R"(
 
 	ArchiveLimits:
 	           Limits on the number of files fetched (optional).
+
+	RemoteCharset:
+	           Sets charset to be used when fetching from a
+	           non unicode mode server to a unicode mode server.
+	           This charset will be used to convert the non unicode
+	           mode server's text data into UTF8 (optional).
 
 	The filenames in the depot map must always be in depot syntax, but
 	the local server's depot syntax may differ from the remote server's
@@ -18575,6 +18666,8 @@ R"(
 	diags - basic configuration details, configuration,
 	        configuration history, server setting,
 	        and checkpoint history;
+	info  - tagged output from the 'p4 info' and 'p4 servers -J'
+	        commands and a list of all non default configurables;
 	monitor - the monitor records, if monitoring is enabled;
 	topology - a textual description of network that contains
 	           this server. Servers that do not have a serverID

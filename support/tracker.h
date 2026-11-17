@@ -127,3 +127,17 @@ class TrackReportCallback
 
 	virtual void		Report( const char * ) const = 0;
 } ;
+
+class RhEntityLockTracker : public TrackReportCallback
+{
+    public:
+			RhEntityLockTracker( class Rh *theRh ) : rh( theRh ) { }
+	
+	int		Level() const;
+
+	void		Report( const char *msg ) const;
+
+    private:
+
+	Rh		*rh;
+} ;

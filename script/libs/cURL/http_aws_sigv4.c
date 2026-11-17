@@ -186,8 +186,10 @@ static CURLcode split_to_dyn_array(const char *source,
   if(segment_length) {
     curlx_dyn_init(&db[index], segment_length + 1);
     result = curlx_dyn_addn(&db[index], &source[start], segment_length);
-    if(!result && ++num_splits == MAX_QUERY_COMPONENTS)
-      result = CURLE_TOO_LARGE;
+    if(!result) {
+      if(++num_splits == MAX_QUERY_COMPONENTS)
+        result = CURLE_TOO_LARGE;
+    }
   }
 fail:
   *num_splits_out = num_splits;
@@ -264,14 +266,13 @@ static bool should_urlencode(struct Curl_str *service_name)
 {
   /*
    * These services require unmodified (not additionally URL-encoded) URL
-   * paths. They are the S3 signing names, which have disableDoubleEncoding
-   * set in the AWS S3 endpoint rules. Urls are already normalized by the curl
-   * URL parser
+   * paths.
+   * should_urlencode == true is equivalent to should_urlencode_uri_path
+   * from the AWS SDK. Urls are already normalized by the curl URL parser
    */
   if(curlx_str_cmp(service_name, "s3") ||
-     curlx_str_cmp(service_name, "s3express") ||
-     curlx_str_cmp(service_name, "s3-outposts") ||
-     curlx_str_cmp(service_name, "s3-object-lambda")) {
+     curlx_str_cmp(service_name, "s3-express") ||
+     curlx_str_cmp(service_name, "s3-outposts")) {
     return FALSE;
   }
   return TRUE;
@@ -522,8 +523,10 @@ static CURLcode make_headers(struct Curl_easy *data,
     if(tmp)
       *tmp = 0;
 
-    if(l != head && curlx_dyn_add(signed_headers, ";"))
-      goto fail;
+    if(l != head) {
+      if(curlx_dyn_add(signed_headers, ";"))
+        goto fail;
+    }
     if(curlx_dyn_add(signed_headers, l->data))
       goto fail;
   }
@@ -689,8 +692,10 @@ UNITTEST CURLcode canon_path(const char *q, size_t len,
   else
     result = curlx_dyn_addn(new_path, q, len);
 
-  if(!result && curlx_dyn_len(new_path) == 0)
-    result = curlx_dyn_add(new_path, "/");
+  if(!result) {
+    if(curlx_dyn_len(new_path) == 0)
+      result = curlx_dyn_add(new_path, "/");
+  }
 
   return result;
 }

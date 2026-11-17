@@ -150,6 +150,7 @@ ErrorId MsgDm2::StreamViewGenAtChangeSkip        = { ErrorOf( ES_DM2, 117, E_WAR
 ErrorId MsgDm2::StreamFieldValueError            = { ErrorOf( ES_DM2, 120, E_FAILED, EV_FAULT, 3 ), "A stream of type '%streamType%' cannot have a %fieldName% of '%fieldValue%'." };
 ErrorId MsgDm2::DepotTraitDup                    = { ErrorOf( ES_DM2, 121, E_FAILED, EV_CONTEXT, 1 ), "There is already a %'trait'% depot called '%depot%'." };
 ErrorId MsgDm2::NoTraitDepot                     = { ErrorOf( ES_DM2, 129, E_FAILED, EV_CONTEXT, 0 ), "No trait depot was found on this server." };
+ErrorId MsgDm2::NoTraitName                      = { ErrorOf( ES_DM2, 163, E_FAILED, EV_USAGE, 1 ), "Attribute '%trait%' does not exist: attributes were not cleared." };
 
 ErrorId MsgDm2::ComponentStreamInvalidSparse     = { ErrorOf( ES_DM2, 107, E_FAILED, EV_NONE, 2 ), "The stream '%stream%' is a sparse stream of type '%type%' and cannot be defined as a component." } ;
 ErrorId MsgDm2::NoReparentSparse                 = { ErrorOf( ES_DM2, 105, E_FAILED, EV_USAGE, 1 ), "Cannot change parent of stream '%stream%' because it is a sparse stream." } ;
@@ -158,7 +159,7 @@ ErrorId MsgDm2::NoStreamTypeChangeToNonSparse    = { ErrorOf( ES_DM2, 104, E_FAI
 ErrorId MsgDm2::NoStreamTypeChangeToSparse       = { ErrorOf( ES_DM2, 103, E_FAILED, EV_NOTYET, 2 ), "Failed to change non-sparse stream '%stream%' to sparse type '%streamType%'." } ;
 ErrorId MsgDm2::NoVirtualParentSparseChild       = { ErrorOf( ES_DM2, 136, E_FAILED, EV_USAGE, 2 ), "Stream '%parent%' is virtual and stream '%stream%' sparse. Virtual streams may not parent sparse streams." } ;
 ErrorId MsgDm2::SparseStreamCmdChangeSpecifierOnly = { ErrorOf( ES_DM2, 124, E_FAILED, EV_USAGE, 2 ), "Source revision for %cmd% into sparse stream %stream% must be a changelist." };
-ErrorId MsgDm2::SparseStreamCmdMustIncludeAll    = { ErrorOf( ES_DM2, 123, E_FAILED, EV_USAGE, 2 ), "Must include all files for %cmd% into sparse stream %stream%." };
+ErrorId MsgDm2::SparseStreamCmdMustIncludeAll    = { ErrorOf( ES_DM2, 123, E_FAILED, EV_USAGE, 3 ), "Must include all files for %cmd% into sparse stream %stream%[ (view is limited by %map%)]." };
 ErrorId MsgDm2::SparseStreamCmdMustIncludeAll2   = { ErrorOf( ES_DM2, 128, E_FAILED, EV_USAGE, 2 ), "Must include files along with stream spec for %cmd% into sparse stream %stream%." };
 ErrorId MsgDm2::SparseStreamCmdNoRevRange        = { ErrorOf( ES_DM2, 127, E_FAILED, EV_USAGE, 1 ), "Revision range not allowed for %cmd% into sparse stream." } ;
 ErrorId MsgDm2::SparseStreamCmdWrongStream       = { ErrorOf( ES_DM2, 145, E_FAILED, EV_USAGE, 3 ), "Not able to use view of %otherStream% to %cmd% into sparse stream %yourStream%." };
@@ -195,16 +196,22 @@ ErrorId MsgDm2::DbBodTextCxEntryMissing          = { ErrorOf( ES_DM2, 153, E_FAI
 ErrorId MsgDm2::StreamSpecIntegrationNoFrmChange = { ErrorOf( ES_DM2, 154, E_FAILED, EV_FAULT, 2 ), "Can't find stream spec rev for stream '%fromstream%' at change '%change%'." };
 
 ErrorId MsgDm2::ExVIEWC                          = { ErrorOf( ES_DM2, 155, E_WARN, EV_EMPTY, 1 ), "[%argc% - file(s)|File(s)] not in command limit view." } ;
+ErrorId MsgDm2::ExLIMITVIEW                      = { ErrorOf( ES_DM2, 162, E_WARN, EV_EMPTY, 0 ), "No paths mapped after applying client limit view." } ;
+ErrorId MsgDm2::LimitViewMixed                   = { ErrorOf( ES_DM2, 170, E_FAILED, EV_EMPTY, 0 ), "LimitView must be either depot syntax or client syntax, not a mix of both." } ;
 
 ErrorId MsgDm2::SaltFail                          = { ErrorOf( ES_DM2, 156, E_FAILED, EV_EMPTY, 0 ), "Failed to generate random salt." } ;
 ErrorId MsgDm2::HashFail                          = { ErrorOf( ES_DM2, 157, E_FAILED, EV_FAULT, 0 ), "Failed to generate password hash." } ;
 ErrorId MsgDm2::NoMatchingMoves                   = { ErrorOf( ES_DM2, 161, E_INFO, EV_EMPTY, 0 ), "No matching moves found." } ;
+ErrorId MsgDm2::Translate2Utf8                    = { ErrorOf( ES_DM2, 164, E_FAILED, EV_FAULT, 2 ), "Unable to convert to UTF8: '%input%' from '%message%'." } ;
 ErrorId MsgDm2::TopologyNoRoot                    = { ErrorOf( ES_DM2, 165, E_INFO, EV_EMPTY, 0 ), "No root node in the topology records." } ;
 ErrorId MsgDm2::TopologyCycle                     = { ErrorOf( ES_DM2, 166, E_INFO, EV_EMPTY, 1 ), "Cycle in topology graph for %serverid%." } ;
 ErrorId MsgDm2::TopologyBadTerm                   = { ErrorOf( ES_DM2, 167, E_INFO, EV_EMPTY, 2 ), "Topology record: %serverid% not terminated by the root node: %root%." } ;
 ErrorId MsgDm2::TopologyNoTerm                    = { ErrorOf( ES_DM2, 168, E_INFO, EV_EMPTY, 1 ), "Unable to build terminated topology graph for %serverid%." } ;
+
+ErrorId MsgDm2::UserNotExistInfo                  = { ErrorOf( ES_DM2, 169, E_INFO, EV_UNKNOWN, 2 ), "User %user% doesn't exist (Extension owner:%owner%)." } ;
 ErrorId MsgDm2::MultiplePartitionedRevSpec        = { ErrorOf( ES_DM2, 175, E_FAILED, EV_USAGE, 1 ), "Client %clientName% cannot be used as a revision specifier together with another partitioned client." } ;
 
-// ErrorId graveyard: retired/deprecated ErrorIds.
+
+// ErrorId graveyard: retired/deprecated ErrorIds. 
 
 ErrorId MsgDm2::NoPartitionedToReadonly    = { ErrorOf( ES_DM2, 54, E_FAILED, EV_USAGE, 1 ), "Cannot change client type from '[%from%|partitioned]' to 'readonly'." } ; //NOTRANS

@@ -68,6 +68,7 @@ P4APILibrary $(SUPPORTLIB) :
 	spec.cc
 	specchar.cc
 	specdata.cc
+	specdatajson.cc
 	specdef.cc
 	specparse.cc
 	splr.cc

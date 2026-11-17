@@ -35,8 +35,17 @@ MakeLocateWithSubDirectory $(one_luac_obj) : [ FDirName $(LOCATE_SOURCE[1]) obje
 LinkPthread lua ;
 LinkPthread luac ;
 
-LINKLIBS on lua += $(LINKLIBS) ;
-LINKLIBS on luac += $(LINKLIBS) ;
+LINKLIBS on lua$(SUFEXE) += $(LINKLIBS) ;
+if ! $(GLOBLINKOBJ) in $(LINKLIBS) && $(OS) = NT
+{
+	LINKLIBS on lua$(SUFEXE) += $(GLOBLINKOBJ) ;
+}
+
+LINKLIBS on luac$(SUFEXE) += $(LINKLIBS) ;
+if ! $(GLOBLINKOBJ) in $(LINKLIBS) && $(OS) = NT
+{
+	LINKLIBS on luac$(SUFEXE) += $(GLOBLINKOBJ) ;
+}
 
 if $(CLANGVER)
 {

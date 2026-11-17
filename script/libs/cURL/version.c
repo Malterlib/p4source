@@ -186,9 +186,8 @@ char *curl_version(void)
   int j;
 
 #ifdef DEBUGBUILD
-  /* Override version string when environment variable CURL_DEBUG_VERSION is
-     set */
-  const char *debugversion = getenv("CURL_DEBUG_VERSION");
+  /* Override version string when environment variable CURL_VERSION is set */
+  const char *debugversion = getenv("CURL_VERSION");
   if(debugversion) {
     curl_msnprintf(out, sizeof(out), "%s", debugversion);
     return out;
@@ -345,6 +344,12 @@ static const char * const supported_protocols[] = {
 #ifdef USE_SSH
   "scp",
   "sftp",
+#endif
+#if defined(CURL_ENABLE_SMB) && defined(USE_CURL_NTLM_CORE)
+  "smb",
+#  ifdef USE_SSL
+  "smbs",
+#  endif
 #endif
 #ifndef CURL_DISABLE_SMTP
   "smtp",

@@ -58,6 +58,7 @@ class MsgConfig {
 	static ErrorId Elog;
 	static ErrorId Dltxfer;
 	static ErrorId Perf;
+	static ErrorId WebSrv;
 
 	// Numeric tunables
 	static ErrorId ClusterJournalShared;
@@ -145,6 +146,8 @@ class MsgConfig {
 	static ErrorId DmLocksGlobalBatchNet;
 	static ErrorId DmLocksGlobalResultBatchNet;
 	static ErrorId DmMaxkey;
+	static ErrorId DmObliterateSkiphave;
+	static ErrorId DmObliterateSkiplabel;
 	static ErrorId DmOpenShowGloballocks;
 	static ErrorId DmPasswordMinlength;
 	static ErrorId DmPopulateSkipkeyed;
@@ -264,6 +267,7 @@ class MsgConfig {
 	static ErrorId NetParallelThreads;
 	static ErrorId NetParallelBatch;
 	static ErrorId NetParallelBatchsize;
+	static ErrorId NetParallelCheckAlive;
 	static ErrorId NetParallelMin;
 	static ErrorId NetParallelMinsize;
 	static ErrorId NetParallelShelveThreads;
@@ -306,6 +310,12 @@ class MsgConfig {
 	static ErrorId RplCompress;
 	static ErrorId RplCounterHook;
 	static ErrorId RplDeferredSends;
+	static ErrorId RplFilterExpand;
+	static ErrorId RplFilterExpandBatch;
+	static ErrorId RplFilterExpandThreads;
+	static ErrorId RplFilterRestrict;
+	static ErrorId RplFilterRestrictBatch;
+	static ErrorId RplFilterRestrictThreads;
 	static ErrorId RplJnlBatchSize;
 	static ErrorId RplJnlwaitAdjust;
 	static ErrorId RplJnlwaitInterval;

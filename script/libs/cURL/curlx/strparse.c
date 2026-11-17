@@ -191,17 +191,12 @@ static int str_num_base(const char **linep, curl_off_t *nump, curl_off_t max,
     } while(valid_digit(*p, m));
   }
   else {
-    curl_off_t cutoff = (max - (base - 1)) / base;
-    while(valid_digit(*p, m)) {
-      if(num <= cutoff)
-        num = (num * base) + curlx_hexval(*p++);
-      else {
-        int n = curlx_hexval(*p++);
-        if(num > ((max - n) / base))
-          return STRE_OVERFLOW;
-        num = (num * base) + n;
-      }
-    }
+    do {
+      int n = curlx_hexval(*p++);
+      if(num > ((max - n) / base))
+        return STRE_OVERFLOW;
+      num = (num * base) + n;
+    } while(valid_digit(*p, m));
   }
   *nump = num;
   *linep = p;

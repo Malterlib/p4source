@@ -56,10 +56,15 @@ class StrDict {
 	void	CopyVars( StrDict &other );
 
 	void	SetVar( const char *var );
-	void	SetVar( const char *var, int value );
+	void	SetVar( const char *var, int value )
+		{ VSetVar( StrRef( var ), value ); }
+	void	SetVar( const char *var, bool value )
+		{ VSetVar( StrRef( var ), value ); }
 # ifdef HAVE_INT64
-	void	SetVar( const char *var, long value );
-	void	SetVar( const char *var, P4INT64 value );
+	void	SetVar( const char* var, long value )
+		{ VSetVar( StrRef( var ), value ); }
+	void	SetVar( const char *var, P4INT64 value )
+		{ VSetVar( StrRef( var ), value ); }
 # endif
 	void	SetVar( const char *var, const char *value );
 	void	SetVar( const char *var, const StrPtr *value );
@@ -69,9 +74,35 @@ class StrDict {
 
 	void	SetVarV( const char *arg );
 	void	SetArgv( int argc, char *const *argv );
-	void	SetVar( const StrPtr &var, int x, const StrPtr &val );
-	void	SetVar( const char *var, int x, const StrPtr &val );
-	void	SetVar( const char *var, int x, int y, const StrPtr &val );
+	void	SetVar( const StrPtr &var, int x, const StrPtr &val )
+		{ VSetVar( var, x, val ); }
+	void	SetVar( const char *var, int x, const StrPtr &val )
+		{ VSetVar( StrRef( var ), x, val ); }
+	void	SetVar( const char *var, int x, int y, const StrPtr &val )
+		{ VSetVar( StrRef( var ), x, y, val ); }
+
+	// Type specific SetVar(var, x, val)
+	void	SetVar( const char* var, int x, int val )
+		{ VSetVar( StrRef( var ), x, val ); }
+	void	SetVar( const char* var, int x, int y, int val )
+		{ VSetVar( StrRef( var ), x, y, val ); }
+
+	void	SetVar( const char* var, int x, bool val )
+		{ VSetVar( StrRef( var ), x, val ); }
+	void	SetVar( const char* var, int x, int y, bool val )
+		{ VSetVar( StrRef( var ), x, y, val ); }
+
+# ifdef HAVE_INT64
+	void	SetVar( const char* var, int x, long val )
+		{ VSetVar( StrRef( var ), x, val ); }
+	void	SetVar( const char* var, int x, int y, long val )
+		{ VSetVar( StrRef( var ), x, y, val ); }
+
+	void	SetVar( const char* var, int x, P4INT64 val )
+		{ VSetVar( StrRef( var ), x, val ); }
+	void	SetVar( const char* var, int x, int y, P4INT64 val )
+		{ VSetVar( StrRef( var ), x, y, val ); }
+# endif
 
 	StrPtr *GetVar( const char *var );
 	StrPtr *GetVar( const char *var, Error *e );
@@ -108,7 +139,44 @@ class StrDict {
 	// Get/Set vars, provided by subclass
 
 	virtual StrPtr *VGetVar( const StrPtr &var ) = 0;
-	virtual void	VSetVar( const StrPtr &var, const StrPtr &val );
+	virtual void	VSetVar( const StrPtr& var, const StrPtr& val );
+	virtual void	VSetVar( const StrPtr& var, int val )
+			    { VSetVar( var, StrNum( val ) ); }
+	virtual void	VSetVar( const StrPtr& var, bool val )
+			    { VSetVar( var, StrNum( val ) ); }
+# ifdef HAVE_INT64
+	virtual void	VSetVar( const StrPtr& var, long val )
+			    { VSetVar( var, StrNum( val ) ); }
+	virtual void	VSetVar( const StrPtr& var, P4INT64 val )
+			    { VSetVar( var, StrNum( val ) ); }
+# endif
+
+	virtual void	VSetVar( const StrPtr& var, int x, const StrPtr& val );
+	virtual void	VSetVar( const StrPtr& var, int x, int y, const StrPtr& val );
+
+	virtual void	VSetVar( const StrPtr& var, int x, int val )
+			    { VSetVar( var, x, StrNum( val ) ); }
+	virtual void	VSetVar( const StrPtr& var, int x, int y, int val )
+			    { VSetVar( var, x, y, StrNum( val ) ); }
+
+	virtual void	VSetVar( const StrPtr& var, int x, bool val )
+			    { VSetVar( var, x, StrNum( val ) ); }
+	virtual void	VSetVar( const StrPtr& var, int x, int y, bool val )
+			    { VSetVar( var, x, y, StrNum( val ) ); }
+
+# ifdef HAVE_INT64
+	virtual void	VSetVar( const StrPtr& var, int x, long val )
+			    { VSetVar( var, x, StrNum( val ) ); }
+	virtual void	VSetVar( const StrPtr& var, int x, int y, long val )
+			    { VSetVar( var, x, y, StrNum( val ) ); }
+
+	virtual void	VSetVar( const StrPtr& var, int x, P4INT64 val )
+			    { VSetVar( var, x, StrNum( val ) ); }
+	virtual void	VSetVar( const StrPtr& var, int x, int y, P4INT64 val )
+			    { VSetVar( var, x, y, StrNum( val ) ); }
+# endif
+
+
 	virtual void	VRemoveVar( const StrPtr &var );
 	virtual int	VGetVarX( int x, StrRef &var, StrRef &val );
 	virtual void	VSetError( const StrPtr &var, Error *e );

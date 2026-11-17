@@ -67,7 +67,6 @@ static void cw_pause_buf_free(struct cw_pause_buf *cwbuf)
 struct cw_pause_ctx {
   struct Curl_cwriter super;
   struct cw_pause_buf *buf;
-  struct cw_pause_buf *tail;
   size_t buf_total;
 };
 
@@ -77,7 +76,6 @@ static CURLcode cw_pause_init(struct Curl_easy *data,
   struct cw_pause_ctx *ctx = writer->ctx;
   (void)data;
   ctx->buf = NULL;
-  ctx->tail = NULL;
   return CURLE_OK;
 }
 
@@ -88,7 +86,6 @@ static void cw_pause_bufs_free(struct cw_pause_ctx *ctx)
     cw_pause_buf_free(ctx->buf);
     ctx->buf = next;
   }
-  ctx->tail = NULL;
 }
 
 static void cw_pause_close(struct Curl_easy *data, struct Curl_cwriter *writer)
@@ -105,39 +102,39 @@ static CURLcode cw_pause_flush(struct Curl_easy *data,
   struct cw_pause_ctx *ctx = (struct cw_pause_ctx *)cw_pause;
   CURLcode result = CURLE_OK;
 
-  /* write the front of the chain until it blocks or gets empty */
+  /* write the end of the chain until it blocks or gets empty */
   while(ctx->buf && !Curl_cwriter_is_paused(data)) {
-    struct cw_pause_buf *first = ctx->buf;
+    struct cw_pause_buf **plast = &ctx->buf;
     size_t blen, wlen = 0;
     const unsigned char *buf = NULL;
 
-    if(Curl_bufq_peek(&first->b, &buf, &blen)) {
-      wlen = (first->type & CLIENTWRITE_BODY) ?
+    while((*plast)->next) /* got to last in list */
+      plast = &(*plast)->next;
+    if(Curl_bufq_peek(&(*plast)->b, &buf, &blen)) {
+      wlen = ((*plast)->type & CLIENTWRITE_BODY) ?
              CURLMIN(blen, CW_PAUSE_DEC_WRITE_CHUNK) : blen;
-      result = Curl_cwriter_write(data, cw_pause->next, first->type,
+      result = Curl_cwriter_write(data, cw_pause->next, (*plast)->type,
                                   (const char *)buf, wlen);
       CURL_TRC_WRITE(data, "[PAUSE] flushed %zu/%zu bytes, type=%x -> %d",
-                     wlen, ctx->buf_total, (unsigned int)first->type,
+                     wlen, ctx->buf_total, (unsigned int)(*plast)->type,
                      (int)result);
-      Curl_bufq_skip(&first->b, wlen);
+      Curl_bufq_skip(&(*plast)->b, wlen);
       DEBUGASSERT(ctx->buf_total >= wlen);
       ctx->buf_total -= wlen;
       if(result)
         return result;
     }
-    else if(first->type & CLIENTWRITE_EOS) {
-      result = Curl_cwriter_write(data, cw_pause->next, first->type,
+    else if((*plast)->type & CLIENTWRITE_EOS) {
+      result = Curl_cwriter_write(data, cw_pause->next, (*plast)->type,
                                   (const char *)buf, 0);
       CURL_TRC_WRITE(data, "[PAUSE] flushed 0/%zu bytes, type=%x -> %d",
-                     ctx->buf_total, (unsigned int)first->type,
+                     ctx->buf_total, (unsigned int)(*plast)->type,
                      (int)result);
     }
 
-    if(Curl_bufq_is_empty(&first->b)) {
-      ctx->buf = first->next;
-      if(!ctx->buf)
-        ctx->tail = NULL;
-      cw_pause_buf_free(first);
+    if(Curl_bufq_is_empty(&(*plast)->b)) {
+      cw_pause_buf_free(*plast);
+      *plast = NULL;
     }
   }
 
@@ -180,22 +177,19 @@ static CURLcode cw_pause_write(struct Curl_easy *data,
 
   do {
     size_t nwritten = 0;
-    if(ctx->tail && (ctx->tail->type == type) && (type & CLIENTWRITE_BODY)) {
-      /* same type and body, append to tail buffer which has a soft
+    if(ctx->buf && (ctx->buf->type == type) && (type & CLIENTWRITE_BODY)) {
+      /* same type and body, append to current buffer which has a soft
        * limit and should take everything up to OOM. */
-      result = Curl_bufq_cwrite(&ctx->tail->b, buf, blen, &nwritten);
+      result = Curl_bufq_cwrite(&ctx->buf->b, buf, blen, &nwritten);
     }
     else {
       /* Need a new buf, type changed */
       struct cw_pause_buf *cwbuf = cw_pause_buf_create(type, blen);
       if(!cwbuf)
         return CURLE_OUT_OF_MEMORY;
-      if(ctx->tail)
-        ctx->tail->next = cwbuf;
-      else
-        ctx->buf = cwbuf;
-      ctx->tail = cwbuf;
-      result = Curl_bufq_cwrite(&ctx->tail->b, buf, blen, &nwritten);
+      cwbuf->next = ctx->buf;
+      ctx->buf = cwbuf;
+      result = Curl_bufq_cwrite(&ctx->buf->b, buf, blen, &nwritten);
     }
     CURL_TRC_WRITE(data, "[PAUSE] buffer %zu more bytes of type %x, "
                    "total=%zu -> %d", nwritten, (unsigned int)type,

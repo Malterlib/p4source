@@ -1875,5 +1875,27 @@ void NetSslCredentials::SetSslDir( StrPtr *sslDir )
 }
 
 
+void
+NetSslCredentials::GetModTimes( P4INT64 *keyFile, P4INT64 *certFile, Error *e )
+{
+	PathSys *cert = PathSys::Create();
+	PathSys *key = PathSys::Create();
+	FileSys *f = FileSys::Create( FST_BINARY );
+	GetCredentialFilepaths( key, cert, e );
+	if( !e->Test() && keyFile )
+	{
+	    f->Set( key->Text() );
+	    *keyFile = f->StatModTime();
+	}
+	if( !e->Test() && certFile )
+	{
+	    f->Set( cert->Text() );
+	    *certFile = f->StatModTime();
+	}
+	delete cert;
+	delete key;
+	delete f;
+}
+
 # endif // USE_SSL
 

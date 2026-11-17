@@ -151,6 +151,9 @@
 /* disabled shuffle DNS feature */
 /* #undef CURL_DISABLE_SHUFFLE_DNS */
 
+/* disables SMB */
+/* #undef CURL_ENABLE_SMB */
+
 /* disables SMTP */
 /* #undef CURL_DISABLE_SMTP */
 
@@ -236,9 +239,6 @@
 
 /* Define to 1 if you have the `opendir' function. */
 #define HAVE_OPENDIR 1
-
-/* Define to 1 if you have the `fchmod' function. */
-#define HAVE_FCHMOD 1
 
 /* Define to 1 if you have the fcntl function. */
 #define HAVE_FCNTL 1

@@ -55,9 +55,6 @@
 /* if you have <dirent.h> */
 #define HAVE_DIRENT_H
 
-/* Define to 1 if you have the 'fchmod' function. */
-#define HAVE_FCHMOD 1
-
 /* Define to 1 if you have the fcntl function. */
 #define HAVE_FCNTL              1
 

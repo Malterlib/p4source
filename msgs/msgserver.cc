@@ -270,10 +270,8 @@ ErrorId MsgServer::InfoClientAddress   = { ErrorOf( ES_SERVER, 115, E_INFO, EV_N
 ErrorId MsgServer::InfoPeerAddress     = { ErrorOf( ES_SERVER, 584, E_INFO, EV_NONE, 1 ), "Peer address: %peerAddr%" } ;
 ErrorId MsgServer::InfoServerAddress   = { ErrorOf( ES_SERVER, 116, E_INFO, EV_NONE, 1 ), "Server address: %serverAddr%" } ;
 ErrorId MsgServer::InfoServerEncryption = { ErrorOf( ES_SERVER, 585, E_INFO, EV_NONE, 1 ), "Server encryption: %serverEncryption%" } ;
-ErrorId MsgServer::InfoServerCertExpire = { ErrorOf( ES_SERVER, 585, E_INFO, EV_NONE, 1 ), "Server cert expires: %serverCertExpire%" } ;
 ErrorId MsgServer::InfoProxyAddress    = { ErrorOf( ES_SERVER, 499, E_INFO, EV_NONE, 1 ), "Proxy address: %clientAddr%" } ;
 ErrorId MsgServer::InfoProxyEncryption = { ErrorOf( ES_SERVER, 586, E_INFO, EV_NONE, 1 ), "Proxy encryption: %proxyEncryption%" } ;
-ErrorId MsgServer::InfoProxyCertExpire = { ErrorOf( ES_SERVER, 585, E_INFO, EV_NONE, 1 ), "Proxy cert expires: %proxyCertExpire%" } ;
 ErrorId MsgServer::InfoServerRoot      = { ErrorOf( ES_SERVER, 117, E_INFO, EV_NONE, 1 ), "Server root: %serverRoot%" } ;
 ErrorId MsgServer::InfoServerDate      = { ErrorOf( ES_SERVER, 118, E_INFO, EV_NONE, 2 ), "Server date: %serverDate% %serverTimeZone%" } ;
 ErrorId MsgServer::InfoServerVersion   = { ErrorOf( ES_SERVER, 119, E_INFO, EV_NONE, 2 ), "Server version: %id% (%idDate%)" } ;
@@ -380,7 +378,7 @@ ErrorId MsgServer::WrongConfigServer   = { ErrorOf( ES_SERVER, 1020, E_FAILED, E
 ErrorId MsgServer::IstatInvalid        = { ErrorOf( ES_SERVER, 460, E_FAILED, EV_USAGE, 1 ), "Stream '%stream%' is invalid, use -f to force check."} ;
 
 // Cal add delimiters below
-ErrorId MsgServer::UseAdmin            = { ErrorOf( ES_SERVER, 200, E_FAILED, EV_USAGE, 0 ), "Usage: %'admin { checkpoint | journal | resetpassword | restart | stop | updatespecdepot | setldapusers | end-journal | sysinfo | resource-monitor }'%" } ;
+ErrorId MsgServer::UseAdmin            = { ErrorOf( ES_SERVER, 200, E_FAILED, EV_USAGE, 0 ), "Usage: %'admin { checkpoint | journal | resetpassword | restart | stop | updatespecdepot | setldapusers | end-journal | sysinfo | resource-monitor | replica-filter-reconcile }'%" } ;
 ErrorId MsgServer::UseAdminCheckpoint  = { ErrorOf( ES_SERVER, 203, E_FAILED, EV_USAGE, 0 ), "Usage: %'admin checkpoint [ -z | -Z ] [ -p [-N threads] ] [ prefix ]'%" } ;
 ErrorId MsgServer::UseAdminJournal     = { ErrorOf( ES_SERVER, 204, E_FAILED, EV_USAGE, 0 ), "Usage: %'admin journal [ -z ] [ prefix ]'%" } ;
 ErrorId MsgServer::UseAdminSeed        = { ErrorOf( ES_SERVER, 1015, E_FAILED, EV_USAGE, 0 ), "Usage: %'admin seed [ -o localFile ] serverID'%" } ;
@@ -543,7 +541,7 @@ ErrorId MsgServer::UseProtects         = { ErrorOf( ES_SERVER, 339, E_FAILED, EV
 ErrorId MsgServer::UseProtectsM        = { ErrorOf( ES_SERVER, 477, E_FAILED, EV_USAGE, 0 ), "Usage: %'protects -M [ -g group | -u user ] [ -h host | -H ] [ file ... ]'%" } ;
 ErrorId MsgServer::UsePrune            = { ErrorOf( ES_SERVER, 738, E_FAILED, EV_USAGE, 0 ), "Usage: %'prune -d [ -y ] -S stream'%" } ;
 ErrorId MsgServer::UsePull             = { ErrorOf( ES_SERVER, 441, E_FAILED, EV_USAGE, 0 ), "Usage: %'pull [ -u [ --min-size=n ] [ --max-size=n ] [ --trigger ] [ -t target ] | -l [ [ --filter=failed|active|retry ] [ -C ] [ -s ] [ -v ] [ -h ] | -j [ -v ] ] | -d -f file -r rev | -R [ file ] ] [ -J prefix -P filterpattern -T tableexcludelist ] [ -i <N> ] [ -b <N> ] [ --batch=n ] [ -L ]'%" } ;
-ErrorId MsgServer::UsePurge            = { ErrorOf( ES_SERVER, 267, E_FAILED, EV_USAGE, 0 ), "Usage: %'obliterate [-y -A -b -a -h -l -T] [-r alg] [-p | --purged-only] [ -q ] files...'%" } ;
+ErrorId MsgServer::UsePurge            = { ErrorOf( ES_SERVER, 267, E_FAILED, EV_USAGE, 0 ), "Usage: %'obliterate [-y -A -b -a -T] [-h | -H] [-l | -L] [-r alg] [-p | --purged-only] [ -q ] files...'%" } ;
 ErrorId MsgServer::UsePush             = { ErrorOf( ES_SERVER, 745, E_FAILED, EV_USAGE, 0 ), "Usage: %'push [ -n -r remotespec -v -O flags ] [ -S stream | files | -s shelf ]'%" } ;
 ErrorId MsgServer::UseRelease          = { ErrorOf( ES_SERVER, 268, E_FAILED, EV_USAGE, 0 ), "Usage: %'revert [ -a -n -k -K -w -c changelist# -C client ] [ -Si | -So ] [--remote=rmt] files...'%" } ;
 ErrorId MsgServer::UseRelease2         = { ErrorOf( ES_SERVER, 1018, E_FAILED, EV_USAGE, 0 ), "Usage: %'revert [-c changelist#] -So'%" } ;
@@ -583,7 +581,7 @@ ErrorId MsgServer::UseShelver          = { ErrorOf( ES_SERVER, 415, E_FAILED, EV
 ErrorId MsgServer::UseShelveNoOpts     = { ErrorOf( ES_SERVER, 416, E_FAILED, EV_USAGE, 0 ), "Usage: %'shelve [ files ]'%" } ;
 ErrorId MsgServer::UseSnap             = { ErrorOf( ES_SERVER, 345, E_FAILED, EV_USAGE, 0 ), "Usage: %'snap [ -n ] source target'%" } ;
 ErrorId MsgServer::UseSpec             = { ErrorOf( ES_SERVER, 302, E_FAILED, EV_USAGE, 0 ), "Usage: %'spec [ -d | -i | -o ] [ --repair ] type'%" } ;
-ErrorId MsgServer::UseStorage          = { ErrorOf( ES_SERVER, 1009, E_FAILED, EV_USAGE, 0 ), "Usage: %'storage [ -w ] | [ -v [ -q ] | -U [ -q ] [ -n threads ] | -u [ -f ] | -d [ -q ] [ -y ] [ -D secs ] [ -t target ] ] [ -F filter -T fields -m max ] [ -c change ] archives ... | -l start [--nonlbr [-D secs] [-y] [-t target] ] |pause|restart|wait|status [--report] |cancel //depotdirectory/...'%" } ;
+ErrorId MsgServer::UseStorage          = { ErrorOf( ES_SERVER, 1009, E_FAILED, EV_USAGE, 0 ), "Usage: %'storage [ -w ] | [ -v [ -q ] | -U [ -q ] [ -n threads ] [ --server-size-rcs ] | -u [ -f ] | -d [ -q ] [ -y ] [ -D secs ] [ -t target ] ] [ -F filter -T fields -m max ] [ -c change ] archives ... | -l start [--nonlbr [-D secs] [-y] [-t target] ] |pause|restart|wait|status [--report] |cancel //depotdirectory/...'%" } ;
 ErrorId MsgServer::UseStream           = { ErrorOf( ES_SERVER, 383, E_FAILED, EV_USAGE, 0 ), "Usage: %'stream [ -i -o -P parent -t type -v ] [ -d | --obliterate [ -y ] ] [ -f ] [ streamname ]'%" } ;
 ErrorId MsgServer::UseStreamc          = { ErrorOf( ES_SERVER, 540, E_FAILED, EV_USAGE, 0 ), "Usage: %'stream [ -P parent ] -t type streamname'%" } ;
 ErrorId MsgServer::UseStreamd          = { ErrorOf( ES_SERVER, 384, E_FAILED, EV_USAGE, 0 ), "Usage: %'stream -d | --obliterate [ -y ]  [ -f ] streamname'%" } ;

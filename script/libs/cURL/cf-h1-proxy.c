@@ -72,13 +72,12 @@ struct h1_tunnel_state {
   BIT(close_connection);
   BIT(maybe_folded);
   BIT(leading_unfold);
-  BIT(udp_tunnel);
 };
 
 /* Persistent context for the H1-PROXY filter */
 struct cf_h1_proxy_ctx {
-  struct Curl_peer *peer;
   struct h1_tunnel_state *ts;
+  BIT(udp_tunnel);
 };
 
 static bool tunnel_is_established(struct h1_tunnel_state *ts)
@@ -94,7 +93,7 @@ static bool tunnel_is_failed(struct h1_tunnel_state *ts)
 static bool h1_proxy_is_udp(struct Curl_cfilter *cf)
 {
   struct cf_h1_proxy_ctx *pctx = cf->ctx;
-  return (bool)(pctx->ts && pctx->ts->udp_tunnel);
+  return (pctx->udp_tunnel ? TRUE : FALSE);
 }
 
 static CURLcode tunnel_reinit(struct Curl_cfilter *cf,
@@ -112,7 +111,6 @@ static CURLcode tunnel_reinit(struct Curl_cfilter *cf,
   ts->close_connection = FALSE;
   ts->maybe_folded = FALSE;
   ts->leading_unfold = FALSE;
-  ts->chunked_encoding = FALSE;
   ts->nsent = 0;
   ts->headerlines = 0;
   return CURLE_OK;
@@ -234,7 +232,6 @@ static CURLcode start_CONNECT(struct Curl_cfilter *cf,
                               struct Curl_easy *data,
                               struct h1_tunnel_state *ts)
 {
-  struct cf_h1_proxy_ctx *pctx = cf->ctx;
   struct httpreq *req = NULL;
   int http_minor;
   CURLcode result;
@@ -244,10 +241,9 @@ static CURLcode start_CONNECT(struct Curl_cfilter *cf,
      and we do not really use the newly cloned URL here then. Free it. */
   curlx_safefree(data->req.newurl);
 
-  result = Curl_http_proxy_create_tunnel_request(&req, cf, data,
-                                                 pctx->peer, ts->dest,
-                                                 PROXY_HTTP_V1,
-                                                 h1_proxy_is_udp(cf));
+  result = Curl_http_proxy_create_tunnel_request(&req, cf, data, ts->dest,
+                                                  PROXY_HTTP_V1,
+                                                  h1_proxy_is_udp(cf));
   if(result)
     goto out;
 
@@ -303,28 +299,90 @@ out:
   return result;
 }
 
-static CURLcode on_resp_status(struct Curl_cfilter *cf,
-                               struct Curl_easy *data,
-                               struct h1_tunnel_state *ts,
-                               const char *header)
+static CURLcode on_resp_header_udp(struct Curl_cfilter *cf,
+                                   struct Curl_easy *data,
+                                   struct h1_tunnel_state *ts,
+                                   const char *header)
 {
+  CURLcode result = CURLE_OK;
   struct SingleRequest *k = &data->req;
 
-  (void)ts;
-  if(!strncmp(header, "HTTP/1.", 7) &&
-          ((header[7] == '0') || (header[7] == '1')) &&
-          (header[8] == ' ') &&
-          ISDIGIT(header[9]) && ISDIGIT(header[10]) && ISDIGIT(header[11]) &&
-          !ISDIGIT(header[12])) {
-    /* store the HTTP code from the proxy */
-    data->info.httpproxycode = k->httpcode = ((header[9] - '0') * 100) +
-      ((header[10] - '0') * 10) + (header[11] - '0');
-    CURL_TRC_CF(data, cf, "CONNECT%s HTTP status %d",
-                h1_proxy_is_udp(cf) ? "-UDP" : "", k->httpcode);
-    return CURLE_OK;
+  if((checkprefix("WWW-Authenticate:", header) && (401 == k->httpcode)) ||
+     (checkprefix("Proxy-authenticate:", header) && (407 == k->httpcode))) {
+
+    bool proxy = (k->httpcode == 407);
+    char *auth = Curl_copy_header_value(header);
+    if(!auth)
+      return CURLE_OUT_OF_MEMORY;
+
+    CURL_TRC_CF(data, cf, "CONNECT-UDP: fwd auth header '%s'", header);
+    result = Curl_http_input_auth(data, proxy, auth);
+
+    curlx_free(auth);
+
+    if(result)
+      return result;
   }
-  failf(data, "Invalid response header");
-  return CURLE_WEIRD_SERVER_REPLY;
+  else if(checkprefix("Content-Length:", header)) {
+    if(k->httpcode / 100 == 2 || k->httpcode == 101) {
+      infof(data, "Ignoring Content-Length in CONNECT-UDP %03d response",
+            k->httpcode);
+    }
+    else {
+      const char *p = header + CURL_CSTRLEN("Content-Length:");
+      if(curlx_str_numblanks(&p, &ts->cl)) {
+        failf(data, "Unsupported Content-Length value");
+        return CURLE_WEIRD_SERVER_REPLY;
+      }
+    }
+  }
+  else if(checkprefix("Transfer-Encoding:", header)) {
+    if(k->httpcode / 100 == 2 || k->httpcode == 101) {
+      infof(data, "Ignoring Transfer-Encoding in "
+            "CONNECT-UDP %03d response", k->httpcode);
+    }
+    else if(Curl_compareheader(header,
+                               STRCONST("Transfer-Encoding:"),
+                               STRCONST("chunked"))) {
+      CURL_TRC_CF(data, cf, "CONNECT-UDP Response --> "
+                  "Transfer-Encoding: chunked");
+      ts->chunked_encoding = TRUE;
+      /* reset our chunky engine */
+      Curl_httpchunk_reset(data, &ts->ch, TRUE);
+    }
+  }
+  else if(checkprefix("Capsule-protocol:", header)) {
+    if(Curl_compareheader(header,
+                           STRCONST("Capsule-protocol:"),
+                           STRCONST("?1"))) {
+      CURL_TRC_CF(data, cf, "CONNECT-UDP Response --> Capsule-protocol: ?1");
+    }
+  }
+  else if(Curl_compareheader(header,
+                              STRCONST("Connection:"), STRCONST("close"))) {
+    ts->close_connection = TRUE;
+    CURL_TRC_CF(data, cf, "CONNECT-UDP Response --> Connection: close");
+  }
+  else if(Curl_compareheader(header,
+                             STRCONST("Proxy-Connection:"),
+                             STRCONST("close"))) {
+    ts->close_connection = TRUE;
+    CURL_TRC_CF(data, cf,
+                "CONNECT-UDP Response --> Proxy-Connection: close");
+  }
+  else if(!strncmp(header, "HTTP/1.", 7) &&
+           ((header[7] == '0') || (header[7] == '1')) &&
+           (header[8] == ' ') &&
+           ISDIGIT(header[9]) && ISDIGIT(header[10]) && ISDIGIT(header[11]) &&
+           !ISDIGIT(header[12])) {
+    /* store the HTTP code from the proxy */
+    data->info.httpproxycode = k->httpcode =
+      ((header[9] - '0') * 100) +
+      ((header[10] - '0') * 10) +
+      (header[11] - '0');
+    CURL_TRC_CF(data, cf, "CONNECT-UDP Response --> %d", k->httpcode);
+  }
+  return result;
 }
 
 static CURLcode on_resp_header(struct Curl_cfilter *cf,
@@ -334,17 +392,17 @@ static CURLcode on_resp_header(struct Curl_cfilter *cf,
 {
   CURLcode result = CURLE_OK;
   struct SingleRequest *k = &data->req;
-  bool is_udp = h1_proxy_is_udp(cf);
+  (void)cf;
 
-  if(checkprefix("Proxy-authenticate:", header) && (407 == k->httpcode)) {
+  if((checkprefix("WWW-Authenticate:", header) && (401 == k->httpcode)) ||
+     (checkprefix("Proxy-authenticate:", header) && (407 == k->httpcode))) {
 
     bool proxy = (k->httpcode == 407);
     char *auth = Curl_copy_header_value(header);
     if(!auth)
       return CURLE_OUT_OF_MEMORY;
 
-    CURL_TRC_CF(data, cf, "CONNECT%s: fwd auth header '%s'",
-                is_udp ? "-UDP" : "", header);
+    CURL_TRC_CF(data, cf, "CONNECT: fwd auth header '%s'", header);
     result = Curl_http_input_auth(data, proxy, auth);
 
     curlx_free(auth);
@@ -353,17 +411,12 @@ static CURLcode on_resp_header(struct Curl_cfilter *cf,
       return result;
   }
   else if(checkprefix("Content-Length:", header)) {
-    if(k->httpcode < 300) {
-      if(k->httpcode < 200) {
-        /* Informational 1xx responses cannot carry a body. RFC 9110 15.2 */
-        failf(data, "Invalid Content-Length: in %03d response", k->httpcode);
-        return CURLE_WEIRD_SERVER_REPLY;
-      }
+    if(k->httpcode / 100 == 2) {
       /* A client MUST ignore any Content-Length or Transfer-Encoding
          header fields received in a successful response to CONNECT.
          "Successful" described as: 2xx (Successful). RFC 7231 4.3.6 */
-      infof(data, "Ignoring Content-Length in CONNECT%s %03d response",
-            is_udp ? "-UDP" : "", k->httpcode);
+      infof(data, "Ignoring Content-Length in CONNECT %03d response",
+            k->httpcode);
     }
     else {
       const char *p = header + CURL_CSTRLEN("Content-Length:");
@@ -374,46 +427,37 @@ static CURLcode on_resp_header(struct Curl_cfilter *cf,
     }
   }
   else if(Curl_compareheader(header,
-                             STRCONST("Connection:"), STRCONST("close"))) {
-    CURL_TRC_CF(data, cf, "CONNECT%s Connection: close", is_udp ? "-UDP" : "");
+                             STRCONST("Connection:"), STRCONST("close")))
     ts->close_connection = TRUE;
-  }
   else if(checkprefix("Transfer-Encoding:", header)) {
-    if(k->httpcode < 300) {
-      if(k->httpcode < 200) {
-        /* Informational 1xx responses cannot carry a body. RFC 9110 15.2 */
-        failf(data, "Invalid Transfer-Encoding: in %03d response",
-              k->httpcode);
-        return CURLE_WEIRD_SERVER_REPLY;
-      }
+    if(k->httpcode / 100 == 2) {
       /* A client MUST ignore any Content-Length or Transfer-Encoding
          header fields received in a successful response to CONNECT.
          "Successful" described as: 2xx (Successful). RFC 7231 4.3.6 */
       infof(data, "Ignoring Transfer-Encoding in "
-            "CONNECT%s %03d response", is_udp ? "-UDP" : "", k->httpcode);
+            "CONNECT %03d response", k->httpcode);
     }
     else if(Curl_compareheader(header,
                                STRCONST("Transfer-Encoding:"),
                                STRCONST("chunked"))) {
-      CURL_TRC_CF(data, cf, "CONNECT%s response chunked",
-                  is_udp ? "-UDP" : "");
+      infof(data, "CONNECT responded chunked");
       ts->chunked_encoding = TRUE;
+      /* reset our chunky engine */
       Curl_httpchunk_reset(data, &ts->ch, TRUE);
-    }
-  }
-  else if(is_udp && checkprefix("Capsule-protocol:", header)) {
-    if(Curl_compareheader(header,
-                           STRCONST("Capsule-protocol:"),
-                           STRCONST("?1"))) {
-      CURL_TRC_CF(data, cf, "CONNECT-UDP Response --> Capsule-protocol: ?1");
     }
   }
   else if(Curl_compareheader(header,
                              STRCONST("Proxy-Connection:"),
-                             STRCONST("close"))) {
-    CURL_TRC_CF(data, cf, "CONNECT%s Proxy-Connection: close",
-                is_udp ? "-UDP" : "");
+                             STRCONST("close")))
     ts->close_connection = TRUE;
+  else if(!strncmp(header, "HTTP/1.", 7) &&
+          ((header[7] == '0') || (header[7] == '1')) &&
+          (header[8] == ' ') &&
+          ISDIGIT(header[9]) && ISDIGIT(header[10]) && ISDIGIT(header[11]) &&
+          !ISDIGIT(header[12])) {
+    /* store the HTTP code from the proxy */
+    data->info.httpproxycode = k->httpcode = ((header[9] - '0') * 100) +
+      ((header[10] - '0') * 10) + (header[11] - '0');
   }
   return result;
 }
@@ -455,11 +499,8 @@ static CURLcode single_header(struct Curl_cfilter *cf,
 
   if(ISNEWLINE(linep[0])) {
     /* end of response-headers from the proxy */
-    if(ts->headerlines == 1) {
-      ts->keepon = KEEPON_DONE;
-      result = CURLE_WEIRD_SERVER_REPLY;
-    }
-    else if((407 == k->httpcode) && !data->state.authproblem) {
+
+    if((407 == k->httpcode) && !data->state.authproblem) {
       /* If we get a 407 response code with content length
          when we have no auth problem, we must ignore the
          whole response-body */
@@ -488,10 +529,13 @@ static CURLcode single_header(struct Curl_cfilter *cf,
     return result;
   }
 
-  if(ts->headerlines == 1)
-    result = on_resp_status(cf, data, ts, linep);
-  else
+  if(h1_proxy_is_udp(cf)) {
+    result = on_resp_header_udp(cf, data, ts, linep);
+  }
+  else {
     result = on_resp_header(cf, data, ts, linep);
+  }
+
   if(result)
     return result;
 
@@ -760,8 +804,12 @@ static CURLcode H1_CONNECT(struct Curl_cfilter *cf,
   /* 2xx response, SUCCESS! */
   /* 101 Switching Protocol for CONNECT-UDP */
   h1_tunnel_go_state(cf, ts, H1_TUNNEL_ESTABLISHED, data);
-  infof(data, "CONNECT%s tunnel established, response %d",
-        h1_proxy_is_udp(cf) ? "-UDP" : "", data->info.httpproxycode);
+  if(h1_proxy_is_udp(cf))
+    infof(data, "CONNECT-UDP tunnel established, response %d",
+                                    data->info.httpproxycode);
+  else
+    infof(data, "CONNECT tunnel established, response %d",
+                                    data->info.httpproxycode);
   result = CURLE_OK;
 
 out:
@@ -857,14 +905,9 @@ static bool cf_h1_proxy_data_pending(struct Curl_cfilter *cf,
 static void cf_h1_proxy_destroy(struct Curl_cfilter *cf,
                                 struct Curl_easy *data)
 {
-  struct cf_h1_proxy_ctx *pctx = cf->ctx;
-
   CURL_TRC_CF(data, cf, "destroy");
-  if(pctx) {
-    cf_tunnel_free(cf, data);
-    Curl_peer_unlink(&pctx->peer);
-    curlx_safefree(cf->ctx);
-  }
+  cf_tunnel_free(cf, data);
+  curlx_safefree(cf->ctx);
 }
 
 static CURLcode cf_h1_proxy_query(struct Curl_cfilter *cf,
@@ -913,7 +956,6 @@ struct Curl_cftype Curl_cft_h1_proxy = {
 
 CURLcode Curl_cf_h1_proxy_insert_after(struct Curl_cfilter *cf_at,
                                        struct Curl_easy *data,
-                                       struct Curl_peer *peer,
                                        struct Curl_peer *dest,
                                        int httpversion,
                                        bool udp_tunnel)
@@ -935,7 +977,6 @@ CURLcode Curl_cf_h1_proxy_insert_after(struct Curl_cfilter *cf_at,
     goto out;
   }
   Curl_peer_link(&ts->dest, dest);
-  ts->udp_tunnel = udp_tunnel;
   ts->httpversion = httpversion;
   curlx_dyn_init(&ts->rcvbuf, DYN_PROXY_CONNECT_HEADERS);
   curlx_dyn_init(&ts->request_data, DYN_HTTP_REQUEST);
@@ -946,11 +987,10 @@ CURLcode Curl_cf_h1_proxy_insert_after(struct Curl_cfilter *cf_at,
     result = CURLE_OUT_OF_MEMORY;
     goto out;
   }
-  Curl_peer_link(&pctx->peer, peer);
+  pctx->udp_tunnel = udp_tunnel;
   pctx->ts = ts;
   result = Curl_cf_create(&cf, &Curl_cft_h1_proxy, pctx);
   if(result) {
-    Curl_peer_unlink(&pctx->peer);
     curlx_free(pctx);
     goto out;
   }

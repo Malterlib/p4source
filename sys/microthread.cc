@@ -10,6 +10,8 @@
 
 // NOTE if we don't have threads, this code is not tested
 # define NEED_THREAD
+# define NEED_SIGNAL
+# define NEED_THREADS
 # include <stdhdrs.h>
 # include <error.h>
 # include <debug.h>
@@ -159,6 +161,16 @@ MicroThread::WorkLaunch( void * w )
 
 	MicroThread *t = (MicroThread *)w;
 
+# if defined( HAVE_PTHREAD ) && defined( SIGCHLD )
+	// Block SIGCHLD for the life of every pool worker (job135814 /
+	// P4-27887), so it can only land on the thread that adjusts
+	// sharedThreadCount.
+	sigset_t chldMask;
+	sigemptyset( &chldMask );
+	sigaddset( &chldMask, SIGCHLD );
+	pthread_sigmask( SIG_BLOCK, &chldMask, 0 );
+# endif
+
 # ifdef THREAD_CPP_DEBUG
 	t->mymutex.lock();
 	// make sure that t->mythread is valid for debug output.
@@ -178,14 +190,6 @@ MicroThread::WorkLaunch( void * w )
 	int skiponerror = t->pool->IsSkipOnError();
 
 	do {
-# ifdef HAVE_THREAD
-	    t->mymutex.lock();
-# endif
-	    if( !t->started)
-	        t->started = true;
-# ifdef HAVE_THREAD
-	    t->mymutex.unlock();
-# endif
 	    // If we have an error and we are skipping on errors
 	    // don't call the Work() function.
 	    if( ! ( haveerr && skiponerror ) )
@@ -391,6 +395,16 @@ MicroThreadPool::Reap( Error *e )
 	DEBUGPRINT( DEBUG_POOL, "out reap" );
 }
 
+bool
+MicroThreadPool::AnyActive()
+{
+	DEBUGPRINT(DEBUG_POOL, "in any active");
+	poolMutex.GetMutex();
+	bool any = waiting.Count() > 0 || active.Count() > 0;
+	poolMutex.ReleaseMutex();
+	return any;
+}
+
 void
 MicroThreadPool::StartWaiting()
 {
@@ -419,6 +433,9 @@ MicroThreadPool::NextWork()
 	    next = (MicroThread *)waiting.Get( 0 );
 	    waiting.Remove( 0 );
 	    active.Put( (void *)next );
+
+	    next->started = true;
+	    next->running = true;
 	}
 	poolMutex.ReleaseMutex();
 	return next;

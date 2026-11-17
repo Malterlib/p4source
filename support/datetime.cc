@@ -220,6 +220,17 @@ DateTime::FmtElapsed( char *buf,  const DateTime &t2 )
 }
 
 void
+DateTime::FmtElapsedISO8601( char *buf, const DateTime &t2 )
+{
+	P4INT64 elapsed = t2.tval - tval;
+	P4INT64 hours = elapsed / 3600;
+	P4INT64 minutes = ( elapsed - ( hours * 3600 ) ) / 60;
+	P4INT64 seconds = elapsed - ( hours * 3600 ) - ( minutes * 60 );
+
+	sprintf( buf, "PT%02lldH%02lldM%02lldS", hours, minutes, seconds );
+}
+
+void
 DateTime::Fmt( char *buf ) const
 {
 	time_t tempt = tval;

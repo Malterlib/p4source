@@ -26,6 +26,7 @@
 # include <ignore.h>
 # include <filesys.h>
 # include <signaler.h>
+# include <maptable.h>
 
 # include <msgclient.h>
 # include <msgserver.h>
@@ -137,6 +138,9 @@ Client::Client( Enviro *e ) : Rpc( &service )
 	recvClientTotal = 0;
 	sendClientBytes = 0;
 	recvClientBytes = 0;
+
+	systemIgnoreMap = 0;
+	enviroGen = 0;
 }
 
 Client::~Client()
@@ -151,6 +155,7 @@ Client::~Client()
 	delete argv;
 	if( ownExts )
 	    delete exts;
+	delete systemIgnoreMap;
 }
 
 void

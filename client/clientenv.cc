@@ -21,7 +21,9 @@
 # include <i18napi.h>
 # include <charcvt.h>
 # include <rpc.h>
-
+# include <maptable.h>
+# include <debug.h>
+# include <filesys.h>
 # include <pathsys.h>
 
 # include "client.h"
@@ -568,6 +570,187 @@ const StrPtr &
 Client::GetVersion()
 {
 	return programVersion;
+}
+
+int
+Client::CheckSystemIgnore( const char *p )
+{
+	if( enviro->GetGen() > enviroGen )
+	{
+	    delete systemIgnoreMap;
+	    systemIgnoreMap = 0;
+	}
+
+	if( !systemIgnoreMap )
+	{
+	    MapTable *def = new MapTable();
+	    def->Insert( StrRef( ".../.p4enviro" ), StrRef::Null(), MfMap );
+	    def->Insert( StrRef( ".../p4enviro.txt" ), StrRef::Null(), MfMap );
+	    def->Insert( StrRef( ".../.p4config" ), StrRef::Null(), MfMap );
+	    def->Insert( StrRef( ".../p4config.txt" ), StrRef::Null(), MfMap );
+
+	    const StrPtr *envf = GetEnviroFile();
+	    StrBuf enviroBuf;
+	    if( envf )
+	    {
+	        enviroBuf = *envf;
+	        StrOps::Sub( enviroBuf, '\\', '/' );
+	        def->Insert( enviroBuf, StrRef::Null(), MfMap );
+	    }
+
+	    StrBuf configBuf = GetConfig();
+	    StrOps::Sub( configBuf, '\\', '/' );
+	    def->Insert( configBuf, StrRef::Null(), MfMap );
+
+	    StrBuf systemIgnoreVar;
+	    systemIgnoreVar.Set( "P4_" );
+
+	    const StrPtr *p = &GetPort();
+	    if( strchr( p->Text(), '=' ) )
+	    {
+	        // If the port contains an equals we replace it
+	        // since environment names can not have an equals
+	        StrBuf tmp( *p );
+	        StrOps::Sub( tmp, '=', '@' );
+	        tmp.Append( &tmp );
+	    }
+	    else
+	        systemIgnoreVar.Append( p );
+	    systemIgnoreVar.Append( "_SYSTEMIGNORE" );
+
+	    char *buf;
+	    if( ( buf = enviro->GetSystemIgnore( systemIgnoreVar.Text() ) ) )
+	    {
+	        systemIgnoreMap = new MapTable();
+
+	        StrBuf home;
+	        GetEnviro()->GetHome( home );
+	        StrOps::Sub( home, '\\', '/' );
+
+	        for( ;; )
+	        {
+	            while( *buf == ';' )
+	                buf++;
+	            if( !*buf )
+	                break;
+
+	            MapFlag flag = MfMap;
+	            if( *buf == '!' )
+	            {
+	                buf++;
+	                flag = MfUnmap;
+	            }
+
+	            StrBuf tmp;
+	            int append = 0;
+	            if( *buf == '$' )
+	            {
+	                // check $home
+	                if( strncmp( buf, "$home", 5 ) == 0 )
+	                {
+	                    tmp.Append( &home );
+
+	                    buf += 5;
+	                    append = 1;
+	                }
+	                // check $P4ENVIRO
+	                else if( envf && strncmp(buf, "$P4ENVIRO", 9 ) == 0 )
+	                {
+	                    systemIgnoreMap->Insert( enviroBuf, StrRef::Null(), flag );
+	                }
+	                // check $P4CONFIG
+	                else if( strncmp(buf, "$P4CONFIG", 9 ) == 0 )
+	                {
+	                    systemIgnoreMap->Insert( configBuf, StrRef::Null(), flag );
+	                }
+	                else if( strncmp( buf, "$defaults", 9 ) == 0 )
+	                {
+	                    systemIgnoreMap->Insert( def );
+	                }
+	                else if( strncmp( buf, "$none", 5 ) == 0 )
+	                {
+	                    systemIgnoreMap->Clear();
+	                }
+	            }
+	            else if( *buf == '~' )
+	            {
+	                tmp.Append( &home );
+
+	                buf++;
+	                append = 1;
+	            }
+	            else if( *buf == '*' )
+	            {
+	                // * is filename only, not wildcard
+	                tmp.Append( ".../" );
+	                while( *buf && *buf != '/' && *buf != '\\' )
+	                    buf++;
+
+	                append = 1;
+	                if( *buf == '/' || *buf == '\\' )
+	                    buf++;
+	            }
+	            else
+	            {
+	                append = 1;
+	            }
+
+	            const char* start = buf;
+	            while( *buf && *buf != ';' )
+	            {
+	                if( *buf == '\\' )
+	                    *buf = '/';
+	                buf++;
+	            }
+
+	            if( append && buf - start > 0 )
+	            {
+	                tmp.Append( start, buf - start );
+	                systemIgnoreMap->Insert( tmp, StrRef::Null(), flag );
+	            }
+	        }
+
+	        delete def;
+	    }
+	    else
+	    {
+	        systemIgnoreMap = def;
+	    }
+
+	    // P4TRUST/P4TICKET always blocked
+	    StrBuf trust = GetTrustFile();
+	    StrOps::Sub( trust, '\\', '/' );
+	    systemIgnoreMap->Insert( trust, StrRef::Null(), MfMap );
+
+	    StrBuf ticket = GetTicketFile();
+	    if( FileSys::IsRelative( ticket ) )
+	    {
+	        const char *t1 = strrchr( ticket.Text(), '/' );
+	        const char *t2 = strrchr( ticket.Text(), '\\' );
+
+	        StrBuf tmp;
+	        if( t1 || t2 )
+	            tmp = ( t1 > t2 ? t1 : t2 ) + 1;
+	        else
+	            tmp = ticket;
+
+	        ticket = ".../";
+	        ticket << tmp;
+	    }
+	    else
+	        StrOps::Sub( ticket, '\\', '/' );
+	    systemIgnoreMap->Insert( ticket, StrRef::Null(), MfMap );
+
+	    if( p4debug.GetLevel( DT_MAP ) >= 5 )
+	        systemIgnoreMap->Dump( "systemIgnore" );
+
+	    enviroGen = enviro->GetGen();
+	}
+
+	StrBuf path = p;
+	StrOps::Sub( path, '\\', '/' );
+
+	return systemIgnoreMap->Check( LHS, path ) != 0;
 }
 
 /*
