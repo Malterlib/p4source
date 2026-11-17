@@ -1044,7 +1044,7 @@ HandleSigChld( int flag )
 	 */
 	while( ( pid = waitpid( (pid_t)0, &status, WNOHANG ) ) > 0 )
 	{
-	    MultiThreader::sharedThreadCount--;
+	    MultiThreader::sharedThreadCount = MultiThreader::sharedThreadCount - 1;
 
 	    if( WIFSIGNALED( status ) )
 	    {

@@ -93,7 +93,7 @@ MicroThread::RunWork()
 	    std::thread t( &MicroThread::WorkLaunch, this );
 	    mythread = std::move( t );
 	}
-	catch( const std::system_error &ex )
+	catch( const std::system_error & )
 	{
 	    ret = 1;
 	    p4debug.printf( "Failed to create new thread\n");

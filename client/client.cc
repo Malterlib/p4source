@@ -283,13 +283,13 @@ Client::Run( const char *func, ClientUser *u )
 	if( func && strcmp( func, "sync" ) == 0 )
 	{
 	    mask++;
-	    signaler.Mask();
+	    (*signaler).Mask();
 	}
 
 	RunTag( func, u );
 
 	if( mask )
-	    signaler.Unmask();
+	    (*signaler).Unmask();
 
 	WaitTag();
 }
