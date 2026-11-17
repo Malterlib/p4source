@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgSupp error code is: 471
+ * Current high value for a MsgSupp error code is: 485
  */
 # include <stdhdrs.h>
 # include <error.h>
@@ -68,6 +68,7 @@ ErrorId MsgSupp::Deflate               = { ErrorOf( ES_SUPP, 16, E_FATAL, EV_FAU
 ErrorId MsgSupp::DeflateEnd            = { ErrorOf( ES_SUPP, 17, E_FATAL, EV_FAULT, 0 ), "DeflateEnd failed!" } ; //NOTRANS
 ErrorId MsgSupp::DeflateInit           = { ErrorOf( ES_SUPP, 18, E_FATAL, EV_FAULT, 0 ), "DeflateInit failed!" } ; //NOTRANS
 ErrorId MsgSupp::Inflate               = { ErrorOf( ES_SUPP, 19, E_FATAL, EV_FAULT, 0 ), "Inflate failed!" } ; //NOTRANS
+ErrorId MsgSupp::InflateBadState       = { ErrorOf( ES_SUPP, 485, E_FATAL, EV_FAULT, 2 ), "Inflate flush aborted: buffer offset %offset% outside valid range [0, %length%]!" } ; //NOTRANS
 ErrorId MsgSupp::InflateInit           = { ErrorOf( ES_SUPP, 20, E_FATAL, EV_FAULT, 0 ), "InflateInit failed!" } ; //NOTRANS
 ErrorId MsgSupp::MagicHeader           = { ErrorOf( ES_SUPP, 21, E_FATAL, EV_FAULT, 0 ), "Gzip magic header wrong!" } ; //NOTRANS
 ErrorId MsgSupp::DigestInitFailed      = { ErrorOf( ES_SUPP, 442, E_FATAL, EV_FAULT, 1 ), "Failed to initialise %algo% digester!" } ;
@@ -85,6 +86,7 @@ ErrorId MsgSupp::TunableValueTooHigh   = { ErrorOf( ES_SUPP, 321, E_FAILED, EV_U
 
 ErrorId MsgSupp::JsonNotEnabled        = { ErrorOf( ES_SUPP, 469, E_FAILED, EV_UPGRADE, 0 ), "Reading and writing JSON is not supported by this server." };
 ErrorId MsgSupp::JsonSerializationFailed = { ErrorOf( ES_SUPP, 470, E_FATAL, EV_FAULT, 1 ), "Error serializing specification to JSON: %jsonError%" };
+ErrorId MsgSupp::NoJsonKeyTranslation  = { ErrorOf( ES_SUPP, 479, E_WARN, EV_NONE, 1 ), "No json key defined for %keyName%, result may not match REST API standards." };
 
 ErrorId MsgSupp::OptionChange          = { ErrorOf( ES_SUPP, 37, E_INFO, EV_NONE, 0 ), "%'--change (-c)'%: specifies the changelist to use for the command." } ;
 ErrorId MsgSupp::OptionPort            = { ErrorOf( ES_SUPP, 38, E_INFO, EV_NONE, 0 ), "%'--port (-p)'%: specifies the network address of the server." } ;
@@ -409,10 +411,10 @@ ErrorId MsgSupp::JsmnBadSyn               = { ErrorOf( ES_SUPP, 315, E_FAILED, E
 ErrorId MsgSupp::JsmnTooFew               = { ErrorOf( ES_SUPP, 316, E_FAILED, EV_CONFIG, 0 ), "JSON error: parse failed, missing tokens." } ;
 ErrorId MsgSupp::JsmnKeyNotFound          = { ErrorOf( ES_SUPP, 317, E_FAILED, EV_CONFIG, 2 ), "JSON error: not found key name \"%tname%\" in token at index %index%." } ;
 
-ErrorId MsgSupp::ManifestKeyNotFound      = { ErrorOf( ES_SUPP, 339, E_FAILED, EV_CONFIG, 1 ), "The \"%tname%\" key is required in the extension manifest." } ;
+ErrorId MsgSupp::ManifestKeyNotFound      = { ErrorOf( ES_SUPP, 339, E_FAILED, EV_CONFIG, 2 ), "The \"%tname%\" key is required in the extension manifest; %error%" } ;
 ErrorId MsgSupp::ManifestValueEmpty       = { ErrorOf( ES_SUPP, 340, E_FAILED, EV_CONFIG, 1 ), "The \"%tname%\" value is empty. It is required in the extension manifest." } ;
 ErrorId MsgSupp::ManifestValueTypeInvalid = { ErrorOf( ES_SUPP, 341, E_FAILED, EV_CONFIG, 1 ), "The key \"%tname%\" was expected to have a value with the type of \"%expected%\", but was \"%observed%\"." } ;
-ErrorId MsgSupp::ManifestParseError       = { ErrorOf( ES_SUPP, 357, E_FAILED, EV_CONFIG, 1 ), "Manifest file failed to parse:  %error%" } ;
+ErrorId MsgSupp::ManifestParseError       = { ErrorOf( ES_SUPP, 357, E_FAILED, EV_CONFIG, 1 ), "Manifest file failed to parse: %error%" } ;
 ErrorId MsgSupp::InvalidIntegerRange      = { ErrorOf( ES_SUPP, 351, E_FAILED, EV_USAGE, 3 ), "Invalid range for '%value%'. Must be between '%min%' and '%max%'." } ;
 
 ErrorId MsgSupp::CurlPerformFailed        = { ErrorOf( ES_SUPP, 437, E_FAILED, EV_COMM, 1 ), "curl_easy_perform() failed: %curlerr%" } ;
@@ -501,6 +503,7 @@ ErrorId MsgSupp::DigestAlgWeak            = { ErrorOf( ES_SUPP, 451, E_INFO, EV_
 ErrorId MsgSupp::OptionFileSizeLimit      = { ErrorOf( ES_SUPP, 452, E_INFO, EV_NONE, 0 ), "%'--file-size-limit (-L)'%: limit the size of the downloaded diagnostic files" } ;
 ErrorId MsgSupp::OptionLsof               = { ErrorOf( ES_SUPP, 453, E_INFO, EV_NONE, 0 ), "%'--lsof (-l)'%: manually request lock information" } ;
 ErrorId MsgSupp::OptionStrace             = { ErrorOf( ES_SUPP, 454, E_INFO, EV_NONE, 0 ), "%'--strace (-s)'%: request a diagnostic trace of the server" } ;
+ErrorId MsgSupp::OptionCkpHist            = { ErrorOf( ES_SUPP, 477, E_INFO, EV_NONE, 0 ), "%'--ckphist (-h)'%: dump the checkpoint history records." } ;
 ErrorId MsgSupp::OptionUserCaseInsensitive = { ErrorOf( ES_SUPP, 456, E_INFO, EV_NONE, 0 ), "%'--user-case-insensitive'%: causes pattern-matching for user to be case-insensitive" } ;
 ErrorId MsgSupp::OptionClientCaseInsensitive = { ErrorOf( ES_SUPP, 457, E_INFO, EV_NONE, 0 ), "%'--client-case-insensitive'%: causes pattern-matching for client to be case-insensitive" } ;
 ErrorId MsgSupp::OptionNonLbr             = { ErrorOf( ES_SUPP, 460, E_INFO, EV_NONE, 0 ), "%'--nonlbr'%: also remove any non archive files during scan" } ;
@@ -509,6 +512,14 @@ ErrorId MsgSupp::OptionSyncTime           = { ErrorOf( ES_SUPP, 467, E_INFO, EV_
 ErrorId MsgSupp::OptionServerSizeRCS      = { ErrorOf( ES_SUPP, 468, E_INFO, EV_NONE, 0 ), "%'--server-size-rcs'%: update the serverSize field in the storage record for RCS based revisions" } ;
 ErrorId MsgSupp::OptionRestrictOnly       = { ErrorOf( ES_SUPP, 470, E_INFO, EV_NONE, 0 ), "%'--restrict-only'%: purge records excluded by replica filter." } ;
 ErrorId MsgSupp::OptionExpandOnly         = { ErrorOf( ES_SUPP, 471, E_INFO, EV_NONE, 0 ), "%'--expand-only'%: reconcile records that were previously excluded by replica filter." } ;
+ErrorId MsgSupp::OptionDiagDir            = { ErrorOf( ES_SUPP, 472, E_INFO, EV_NONE, 0 ), "%'--diagdir (-D)'%: create a directory to contain the diagnostic files." } ;
+ErrorId MsgSupp::OptionJournal_Logs       = { ErrorOf( ES_SUPP, 473, E_INFO, EV_NONE, 0 ), "%'--journal_logs (-J)'%: request the journal and log files." } ;
+ErrorId MsgSupp::OptionJsonFormat         = { ErrorOf( ES_SUPP, 474, E_INFO, EV_NONE, 0 ), "%'--json (-j)'%: format the output in JSON where possible." } ;
+ErrorId MsgSupp::OptionTopOut             = { ErrorOf( ES_SUPP, 475, E_INFO, EV_NONE, 0 ), "%'--top (-t)'%: request the output from the top program." } ;
+ErrorId MsgSupp::OptionPsOut              = { ErrorOf( ES_SUPP, 476, E_INFO, EV_NONE, 0 ), "%'--ps (-p)'%: request the output from the ps program." } ;
+ErrorId MsgSupp::OptionResetPassword      = { ErrorOf( ES_SUPP, 478, E_INFO, EV_NONE, 0 ), "%'--reset-password'%: resets a user's password, optionally changing auth method and/or granting super permissions." } ;
+ErrorId MsgSupp::OptionTar                = { ErrorOf( ES_SUPP, 480, E_INFO, EV_NONE, 0 ), "%'--tar'%: request an uncompressed tar file of requested files." } ;
+ErrorId MsgSupp::OptionTgz                = { ErrorOf( ES_SUPP, 481, E_INFO, EV_NONE, 0 ), "%'--tgz'%: request a compressed tar file of requested files." } ;
 
 
 // ErrorId graveyard'%: retired/deprecated ErrorIds.

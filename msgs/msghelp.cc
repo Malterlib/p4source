@@ -1676,16 +1676,17 @@ ErrorId MsgHelp::HelpCredits = { ErrorOf( ES_HELP, 24, E_INFO, EV_NONE, 0 ),
 R"(
 	P4, The fast versioning engine from Perforce Software.
 	Contributions from Iustin Amihaesei, Jeff Anton, Michael Bishop,
-	Ksenia Burlachenko, Brian Campbell, Phil Champagne, Geri Clucas,
-	Cal Collier, Scott Common, Robert Cowham, Ed Daraki, Jake Dickson,
-	Jonathan Dyer, Gary Gibbons, Jason Gibson, Paul Haffenden, John Halbig,
-	Wendy Heffner, Sven Erik Knop, Joel Kovisto, Peter Kreps, Dave Lewak,
-	Fred Malouf, Mark Mears, Michael Alyn Miller, Adam Morriss,
-	Norman Morse, Alex Neumann, Bryan Pendleton, Nick Poole,
-	Giles Rainy Brown, Mike Schonberg, Christopher Seiwald, Andy Shebanow,
-	Michael Shields, David Sielaff, Lakshmi Sistla, Tony Smith,
-	Sam Stafford, James Strickland, Brett Taylor, Patrycja Tomiak,
-	Alan Teague, Dulan Wettasinghe and Mark Wittenberg.
+	Ksenia Burlachenko, Brian Campbell, Phil Champagne, Isaac Chou,
+	Geri Clucas, Cal Collier, Scott Common, Robert Cowham, Ed Daraki,
+	Jake Dickson, Jonathan Dyer, Gary Gibbons, Jason Gibson,
+	Paul Haffenden, John Halbig, Wendy Heffner, Sven Erik Knop,
+	Joel Kovisto, Peter Kreps, Dave Lewak, Fred Malouf, Mark Mears,
+	Michael Alyn Miller, Adam Morriss, Norman Morse, Alex Neumann,
+	Bryan Pendleton, Nick Poole, Giles Rainy Brown, Mike Schonberg,
+	Christopher Seiwald, Andy Shebanow, Michael Shields, David Sielaff,
+	Lakshmi Sistla, Tony Smith, Sam Stafford, James Strickland,
+	Brett Taylor, Rob Taylor-Davis, Patrycja Tomiak, Alan Teague,
+	Dulan Wettasinghe and Mark Wittenberg.
 )"
 };
 
@@ -3756,9 +3757,9 @@ R"(
 	
 	'p4 diff -As' can be used to diff an opened stream spec against either
 	the head version of the stream spec (the default), or against the
-	specified stream spec at either the head or the specified change number.
-	To diff a shelved version of the specified stream spec, use the
-	revision specification '@=change', where 'change' is the shelf
+	specified stream spec at either the head or the specified change
+	number. To diff a shelved version of the specified stream spec, use
+	the revision specification '@=change', where 'change' is the shelf
 	changelist number. (see 'p4 help diff').
 
 	'p4 diff2 -As' can be used to diff two different stream specifications.
@@ -3781,11 +3782,11 @@ R"(
 	default changelist, use 'p4 reopen -c default -So'. (see 'p4 help
 	reopen').
 
-	'p4 revert -So' can be used with '-c change' to revert the client's open
-	stream spec.  'p4 revert -Si [file ...]' can be used with a file list to
-	include an open stream spec when reverting files.   If a stream spec is
-	open and neither -Si nor -So is specified, the stream spec will be
-	excluded from the reversion. (see 'p4 help revert').
+	'p4 revert -So' can be used with '-c change' to revert the client's
+	open stream spec.  'p4 revert -Si [file ...]' can be used with a file
+	list to include an open stream spec when reverting files.   If a stream
+	spec is open and neither -Si nor -So is specified, the stream spec will
+	be excluded from the reversion. (see 'p4 help revert').
 
 	'p4 shelve -c changelist# -As' specifies that only an opened stream
 	specification should be shelved with the changelist.
@@ -3807,9 +3808,9 @@ R"(
 	stream spec is shelved to a numbered changelist, use
 	'p4 submit -e shelf#' to submit the shelved changelist.
 
-	The 'p4 submit' flags -So and -Sx can be used to control whether an open
-	stream spec in the default changelist will be submitted.  Use -So with
-	no file list to submit only the open stream spec in the default
+	The 'p4 submit' flags -So and -Sx can be used to control whether an
+	open stream spec in the default changelist will be submitted.  Use -So
+	with no file list to submit only the open stream spec in the default
 	changelist.  Use -Sx with a file list to exclude the open stream spec
 	when submitting files in the default changelist.  Use -Sx with no file
 	list to submit all files without submitting the open stream spec.
@@ -3820,8 +3821,8 @@ R"(
 
 	'p4 unshelve -s changelist# -As' specifies that only the stream spec
 	associated with the shelved numbered changelist should be unshelved to
-	the current client. Unshelving a stream spec requires that the client is
-	set to that stream, and will open the stream spec for edit. 
+	the current client. Unshelving a stream spec requires that the client
+	is set to that stream, and will open the stream spec for edit.
 	'p4 unshelve -s changelist# -Af [file ...]' specifies that only files
 	should be unshelved.  By default, the unshelve command acts on both
 	the files (-Af) and the stream spec (-As). (see 'p4 help unshelve').
@@ -3859,14 +3860,17 @@ R"(
 	specification.  See 'p4 help streamspec' for more information about the
 	stream specification properties.
 
-    p4 copy [options] [-As | -Af] -S stream [-r] [-P parent] [file[revRange] ...]
-    p4 integrate [options] [-As | -Af] -S stream [-r] [-P parent] [file[revRange] ...]
-    p4 merge [options] [-As | -Af] -S stream [-r] [-P parent] [file[revRange] ...]
+    p4 copy [options] [-As | -Af] -S stream [-r] [-P parent]
+            [file[revRange] ...]
+    p4 integrate [options] [-As | -Af] -S stream [-r] [-P parent]
+                 [file[revRange] ...]
+    p4 merge [options] [-As | -Af] -S stream [-r] [-P parent]
+             [file[revRange] ...]
 
 	'p4 copy', 'p4 integrate', and 'p4 merge' now have options -Af and -As.
 
 		-Af	Perform copy/integrate/merge with files only.
-		-As	Perform copy/integrate/merge with stream specs only.	
+		-As	Perform copy/integrate/merge with stream specs only.
 
 	If neither -Af nor -As is given, the copy/integrate/merge is done with
 	both files and stream specs, if applicable.
@@ -3889,9 +3893,9 @@ R"(
 	can be shelved with 'p4 shelve -As', unshelved with 'p4 unshelve -As',
 	and abandoned with 'p4 revert -So'.
 
-	When 'p4 integrate -As' schedules a stream specification to be resolved,
-	the specification is read-only.  For other pre-submit changes,
-	'p4 edit -So' must be used to make the specification writable.
+	When 'p4 integrate -As' schedules a stream specification to be
+	resolved, the specification is read-only.  For other pre-submit
+	changes, 'p4 edit -So' must be used to make the specification writable.
 
 	Use the configurable dm.integ.streamspec to enable/disable stream
 	specification integration.  The configurable has 3 possible values:
@@ -3923,15 +3927,15 @@ R"(
 	dm.integ.streamspec configurable:
 
 	    0: Stream spec status is not discovered and not reported.
-	    1: Stream spec status is discovered and reported only if the 
+	    1: Stream spec status is discovered and reported only if the
 	       stream has a noinherit ParentView property.
 	    2: Stream spec status is discovered and reported regardless of
 	       the ParentView property value.
 
     p4 streamlog [ -c  changelist# -h -i -l -L -t -m max ] stream ...
 
-	'p4 streamlog' lists the revision and integration history of the specified
-	stream specs.  See 'p4 help streamlog' for more details.
+	'p4 streamlog' lists the revision and integration history of the
+	specified stream specs.  See 'p4 help streamlog' for more details.
 
 )"
 };
@@ -5958,12 +5962,12 @@ R"(
 
 ErrorId MsgHelp::HelpHeartbeat = { ErrorOf( ES_HELP, 264, E_INFO, EV_NONE, 0 ),
 R"(
-    heartbeat -- monitor responsiveness of a target server 
+    heartbeat -- monitor responsiveness of a target server
 
     p4 heartbeat [-t target] [-i interval] [-w wait] [-m missingInterval]
 	[-r missingWait] [-c count ]
 
-	Heartbeat sends requests to a target server and monitors the 
+	Heartbeat sends requests to a target server and monitors the
 	responses to determine the responsiveness of the target. Based on the
 	responses, it may fire triggers to alert admins about a change
 	in the target server's status. The first missed response will
@@ -6064,7 +6068,8 @@ R"(
 	The -i flag reads the hotfiles table from standard input. The user's
 	editor is not invoked.
 
-	'p4 hotfiles' requires 'admin' access, which is granted by 'p4 protect'.
+	'p4 hotfiles' requires 'admin' access, which is granted by
+	'p4 protect'.
 )"
 };
 
@@ -7161,9 +7166,7 @@ R"(
 };
 
 # include <openssl/opensslv.h>
-
-ErrorId MsgHelp::HelpLegal = { ErrorOf( ES_HELP, 151, E_INFO, EV_NONE, 0 ),
-R"more(
+const char* legalText = R"more(
     p4 help [ -l --local ] legal
 
     The -l flag prints out client-side license info.
@@ -9260,11 +9263,15 @@ R"more(
     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
     DEALINGS IN THE SOFTWARE.
 )more"
+# ifdef HAS_RUST
+//Adding the Rust Legal
+# include "rustlegal.cc"
+# else
+;
+# endif // end HAS_RUST_
 
-///////////////////////////////////////////////////////////////////////////////
-//
-//  /mINI/ v0.9.17
-//  An INI file reader and writer for the modern age.
+ErrorId MsgHelp::HelpLegal = { ErrorOf( ES_HELP, 151, E_INFO, EV_NONE, 0 ),
+	legalText
 };
 
 ErrorId MsgHelp::HelpLicense = { ErrorOf( ES_HELP, 101, E_INFO, EV_NONE, 0 ),
@@ -13203,17 +13210,24 @@ R"(
 
 ErrorId MsgHelp::HelpWebServer = { ErrorOf( ES_HELP, 281, E_INFO, EV_NONE, 0 ),
 R"(
-    webserver -- Control the P4 Web Server
+    webserver -- Control the P4 web server
 
-    p4 webserver start -p [ip:]port
+    p4 webserver start -p [tcp:][ip:]port
     p4 webserver stop -p [ip:]port
+    p4 webserver show
 
-	'p4 webserver start' starts the P4 web server. The '-p' parameter
-	specifies the ip address and port the web server will listen on.
+	Use 'p4 webserver start' to start the P4 web server. Use '-p' to
+	specify the IP address and port that the web server will listen on.
+	By default, the web server detects if an SSL certificate is configured
+	for the P4 Server and if one is configured, the web server starts
+	in HTTPS mode using the same certificate as the P4 Server. To force the
+	web server to start in HTTP mode, Use the 'tcp:' prefix.
 
-	'p4 webserver stop' stops the running P4 web server. The '-p' parameter
-	specifies the ip address and port the web server to stop is listening
-	on.
+	Use 'p4 webserver stop' to stop a running P4 web server. Use '-p' to
+	specifies the ip address and port of the web server to stop.
+
+	'p4 webserver show' displays information about running P4 web
+	servers.
 )"
 };
 
@@ -14013,8 +14027,17 @@ R"(
 	                           1: users can terminate own process
 	                           2: users can also pause/resume own process
 	db.monitor.shared          Pages of shared memory for monitoring use
-	db.partition.dropondelete  Enables deleting the partitioned have table
-	                           upon respective client deletion.
+	db.partition.dropondelete  When this setting is enabled, individual
+	                           records from the table are not deleted.
+	                           Instead, the entire table is dropped, and
+	                           the corresponding journal note 31 is
+	                           logged in the journal file. While this
+	                           approach improves deletion performance,
+	                           since the logging of record by record
+	                           deletion in the journal file is avoided, it
+	                           has a known consequence that the table
+	                           cannot be recovered once it has been
+	                           removed.
 	db.partition.verify        Enables verifying the partitioned have table
 	db.peeking                 Lockless operation
 	                           0: classic locking
@@ -14115,15 +14138,15 @@ R"(	dm.topology.lastseenupdate Time interval to update topology record.
 	                           3: Service type users update too
 	dm.user.loginattempts      Number of password attempts before delay
 	dm.user.allowselfupdate    Users may update their email and fullname
+	dm.user.autoprotections    First user automatically populates protects
 	dm.user.hideinvalid        Hide invalid user error on authentication
 	                           failure
 	dm.user.noautocreate       User autocreation level
 	dm.user.resetpassword      New user requires password reset
 	dm.user.setinitialpasswd   Unset password handling
 	                           0: Only super users whose password is set
-	                              can set/unset initial passwords
+	                              can set/unset initial passwords (default)
 	                           1: Users can set their own initial passwords
-	                              (default)
 	dm.sync.streamchange       Syncing a stream client to a specific
 	                           changelist will also apply the stream's view
 	                           at that change
@@ -14234,7 +14257,7 @@ R"(	dm.topology.lastseenupdate Time interval to update topology record.
 	net.parallel.threads       Auto parallel sync w/#threads
 	net.parallel.batch         Files in batch for auto parallel sync
 	net.parallel.batchsize     Size of batch for auto parallel sync
-	net.parallel.checkalive    Files transferred between checks
+	net.parallel.checkalive    Minutes between parent alive checks
 	net.parallel.min           Minimum # files for auto parallel sync
 	net.parallel.minsize       Minimum size for auto parallel sync
 	net.parallel.shelve.threads Auto parallel shelve w/#threads
@@ -14259,6 +14282,8 @@ R"(	dm.topology.lastseenupdate Time interval to update topology record.
 	rcs.nofsync                Disable fsync of RCS files
 	rmt.allow.remoteuser       Allow remote user for server to server
 	                           connections. (Disabled when security >= 4)
+	rmt.enforce.serviceusertype Enforce service user type for server to
+	                           server connections (see serviceUser).
 	rejectList                 List of server blocked applications
 	rpl.checksum.auto          Level to checksum when rotating journal
 	rpl.checksum.change        Control change-by-change checksum behavior
@@ -14475,6 +14500,16 @@ R"(	run.clientexts.allow       Allow client-side Extensions to run
 	                           >0: Trait value stored in depot when size
 	                               in bytes meets or exceeds this value
 	triggers.io                Method used for server/trigger communication
+	unicode                    When enabled, the server operates in
+	                           Unicode mode. This should only be enabled
+	                           using 'p4d -xi'.
+	webserver.log.path         Set the directory path to store the P4 Web
+	                           Server log files. If not set, log files are
+	                           stored in P4ROOT.
+	webserver.log.retain       Set the maximum number of old log files to
+	                           retain for each P4 Web Server log type on
+	                           each web server process. When the limit is
+	                           reached, the oldest files are removed.
 	zerosyncPrefix             Client prefix for zerosync (-k) namespace
 	zlib.compression.level     Compression level: -1 to 9, -1 is the
 	                           default (6), 0 is lowest, 9 is highest.
@@ -18206,7 +18241,8 @@ ErrorId MsgHelp::HelpGraphCatFile = { ErrorOf( ES_HELP, 250, E_INFO, EV_NONE, 0 
 R"(
     graph cat-file -- Display object contents
 
-    p4 graph cat-file [ commit | [ -o localFile ] -n repo blob | -t ] object-sha
+    p4 graph cat-file [ commit | [ -o localFile ] -n repo blob | -t ]
+	              object-sha
 
 	Display the contents of the specified object.
 
@@ -18657,15 +18693,14 @@ R"(
 
     p4 diagnostics [-D] [-j] [-J [-L limit]]
     p4 diagnostics [-D] [-l] [-s [--strace-runtime secs]] [-p] [-t]
-	[-a [-J [-L limit]] ]
+	[-h] [-a [-J [-L limit]] ]
 
 	The first form of the command generates the basic
 	diagnostic data, downloads it and places it
 	into a compressed tar file (.tgz).
 	Within this tar image are a number of files:
 	diags - basic configuration details, configuration,
-	        configuration history, server setting,
-	        and checkpoint history;
+	        configuration history and server setting;
 	info  - tagged output from the 'p4 info' and 'p4 servers -J'
 	        commands and a list of all non default configurables;
 	monitor - the monitor records, if monitoring is enabled;
@@ -18689,15 +18724,16 @@ R"(
 	a unit multiplier, k or K for kilobytes, m or M for megabytes,
 	g or G for gigabytes and t or T for terabytes.
 
-	The '-j' option requests that the 'diags' and 'monitor' files
-	are encoded in JSON format. These output files are named
-	'diags.json' and 'monitor.json'. Any non-UFT8 sequences
-	in a string are replaced by U+FFFD in the JSON output.
+	The '-j' option requests that the 'diags', ckphist' and
+	'monitor' files	are encoded in JSON format. These output files
+	are named 'diags.json', 'ckphist.json'  and 'monitor.json'. Any
+	non-UFT8 sequences in a string are replaced by U+FFFD in the JSON
+	output.
 
 	The second form of the command attempts to run more costly
 	operations so these are not run by default.
 
-	The '-l' option requests that the '/usr/bin/lsof' be run
+	The '-l' option requests that '/usr/bin/lsof' be run
 	to provide locking details of all files in use by Perforce
 	servers on this system. The data from this operation is
 	downloaded into a file named 'manuallocks' in the current
@@ -18715,8 +18751,11 @@ R"(
 	The '-p' option runs the 'ps' program and returns its
 	output.
 
-	When the '-l', '-t', '-p'  or '-s' options are specified, then the
-	basic diagnostic files are not produced. These can be requested
+	The '-h' option dumps all the checkpoint history records
+	into a 'ckphist' file.
+
+	When the '-l', '-t', '-p', '-h'  or '-s' options are specified, then
+	the basic diagnostic files are not produced. These can be requested
 	by adding the '-a' option to the command.
 
 	This command requires the operator role or 'admin' permission.

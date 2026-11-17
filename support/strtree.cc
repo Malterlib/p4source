@@ -328,6 +328,7 @@ StrBufTreeIdx::VRemoveVar( const StrPtr &var )
 	        // remove all keyArray entries that match:
 	        if( !varVal->varp->Compare( var ) )
 	        {
+	            delete varVal;
 	            keyArray->Remove( i );
 	            i--; // stay at the index that just got removed
 	        }
@@ -340,6 +341,8 @@ StrBufTreeIdx::VRemoveVar( const StrPtr &var )
 void
 StrBufTreeIdx::VClear()
 {
+	for( int i = 0; i < keyArray->Count(); i++ )
+	    delete (VarVal *)keyArray->Get( i );
 	StrBufTree::VClear();
 	keyArray->Clear();
 }

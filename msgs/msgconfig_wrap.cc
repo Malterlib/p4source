@@ -5,7 +5,7 @@
  *
  * Please check that each new entry matches what is in msgconfig.cc:
  *
- * Current high value is: 526
+ * Current high value is: 533
  */
 
 # define NEED_SMARTHEAP
@@ -200,6 +200,7 @@ ErrorId MsgConfig::DmUserAccessupdate = { ErrorOf( ES_CONFIG, 112, E_INFO, EV_NO
 ErrorId MsgConfig::DmUserAccessforce = { ErrorOf( ES_CONFIG, 113, E_INFO, EV_NONE, 0), "MsgConfig::DmUserAccessforce placeholder." };
 ErrorId MsgConfig::DmUserAccessmode = { ErrorOf( ES_CONFIG, 505, E_INFO, EV_NONE, 0), "MsgConfig::DmUserAccessmode placeholder." };
 ErrorId MsgConfig::DmUserAllowselfupdate = { ErrorOf( ES_CONFIG, 114, E_INFO, EV_NONE, 0), "MsgConfig::DmUserAllowselfupdate placeholder." };
+ErrorId MsgConfig::DmUserAutoprotections = { ErrorOf( ES_CONFIG, 533, E_INFO, EV_NONE, 0), "MsgConfig::DmUserAutoprotections placeholder." };
 ErrorId MsgConfig::DmUserHideinvalid = { ErrorOf(ES_CONFIG, 478, E_INFO, EV_NONE, 0), "MsgConfig::DmUserHideinvalid placeholder." };
 ErrorId MsgConfig::DmUserInsecurelogin = { ErrorOf( ES_CONFIG, 115, E_INFO, EV_NONE, 0), "MsgConfig::DmUserInsecurelogin placeholder." };
 ErrorId MsgConfig::DmUserLoginattempts = { ErrorOf( ES_CONFIG, 116, E_INFO, EV_NONE, 0), "MsgConfig::DmUserLoginattempts placeholder." };
@@ -309,6 +310,7 @@ ErrorId MsgConfig::ProxySuppresswarnings = { ErrorOf( ES_CONFIG, 491, E_INFO, EV
 ErrorId MsgConfig::RcsMaxinsert = { ErrorOf( ES_CONFIG, 205, E_INFO, EV_NONE, 0), "MsgConfig::RcsMaxinsert placeholder." };
 ErrorId MsgConfig::RcsNofsync = { ErrorOf( ES_CONFIG, 206, E_INFO, EV_NONE, 0), "MsgConfig::RcsNofsync placeholder." };
 ErrorId MsgConfig::RmtAllowRemoteUser = { ErrorOf( ES_CONFIG, 511, E_INFO, EV_NONE, 0 ), "MsgConfig::RmtAllowRemoteUser placeholder." };
+ErrorId MsgConfig::RmtEnforceServiceusertype = { ErrorOf( ES_CONFIG, 530, E_INFO, EV_NONE, 0 ), "MsgConfig::RmtEnforceServiceusertype placeholder." };
 ErrorId MsgConfig::RpcDelay = { ErrorOf( ES_CONFIG, 207, E_INFO, EV_NONE, 0), "MsgConfig::RpcDelay placeholder." };
 ErrorId MsgConfig::RpcDurablewait = { ErrorOf( ES_CONFIG, 208, E_INFO, EV_NONE, 0), "MsgConfig::RpcDurablewait placeholder." };
 ErrorId MsgConfig::RpcHimark = { ErrorOf( ES_CONFIG, 209, E_INFO, EV_NONE, 0), "MsgConfig::RpcHimark placeholder." };
@@ -557,4 +559,6 @@ ErrorId MsgConfig::RtMonitorfile = { ErrorOf( ES_CONFIG, 429, E_INFO, EV_NONE, 0
 ErrorId MsgConfig::PullTriggerDir = { ErrorOf( ES_CONFIG, 430, E_INFO, EV_NONE, 0 ), "MsgConfig::PullTriggerDir placeholder." };
 ErrorId MsgConfig::SysTypesTextStorageBehavior = { ErrorOf( ES_CONFIG, 496, E_INFO, EV_NONE, 0 ), "MsgConfig::SysTypesTextStorageBehavior placeholder." };
 ErrorId MsgConfig::ServerStartupAutoRestart = { ErrorOf( ES_CONFIG, 504, E_INFO, EV_NONE, 0 ), "MsgConfig::ServerStartupAutoRestart placeholder." };
+ErrorId MsgConfig::WebServerLogPath = { ErrorOf( ES_CONFIG, 529, E_INFO, EV_NONE, 0 ), "MsgConfig::WebServerLogPath placeholder." };
+ErrorId MsgConfig::WebServerLogRetain = { ErrorOf( ES_CONFIG, 531, E_INFO, EV_NONE, 0 ), "MsgConfig::WebServerLogRetain placeholder." };
 # endif

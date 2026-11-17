@@ -17,6 +17,10 @@
 # undef _WIN32_WINNT
 # define _WIN32_WINNT 0xA01
 # endif
+# ifdef WINVER
+# undef WINVER
+# define WINVER 0xA01
+# endif
 
 // Prevent conflict with our rpc.h file.
 //

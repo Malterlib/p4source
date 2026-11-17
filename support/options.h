@@ -338,6 +338,12 @@ class Options
 	                FileSizeLimit  , // diagnostics -L
 	                Lsof           , // diagnostocs -l
 	                Strace         , // diagnostics -s
+                        DiagDir        , // diagnostics -D
+                        Journal_Logs   , // diagnostics -J
+                        JsonFormat     , // diagnostics -j
+                        TopOut         , // diganostics -t
+                        PsOut          , // diagnostics -p
+                        CkpHist        , // diagnostocs -h
 
 	        // options which have only long-form option names go here:
 
@@ -458,6 +464,9 @@ class Options
 			ServerSizeRCS   , // --server-size-rcs
 			RestrictOnly    , // --restrict
 			ExpandOnly      , // --expand
+			ResetPassword   , // --reset-password
+			Tar             , // --tar
+			Tgz             , // --tgz
 
 #ifdef _DEBUG
 			DebugBreak,    // --debugbreak

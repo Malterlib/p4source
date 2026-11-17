@@ -287,7 +287,6 @@ class MsgServer2 {
 	static ErrorId PopulateSparseStreamDesc;
 	static ErrorId NonResidentOpenMustSync;
 	static ErrorId BadJField;
-	static ErrorId NonResidentOpenPending;
 	static ErrorId TooManySparseStreamFiles;
 	static ErrorId TraitDepotNotConfigured;
 	static ErrorId TraitDepotNotForCommit;
@@ -358,6 +357,7 @@ class MsgServer2 {
 	static ErrorId ExtensionConfigExists;
 	static ErrorId RmtOpFailedInconsistent;
 	static ErrorId MustSetPasswordRequireSU;
+	static ErrorId ServiceAuthErr;
 	static ErrorId InfoServerCertExpire;
 	static ErrorId InfoProxyCertExpire;
 	static ErrorId WebServerRuntime;
@@ -371,6 +371,11 @@ class MsgServer2 {
 	static ErrorId StgBadRefCount;
 	static ErrorId StgBadShRefCount;
 	static ErrorId RESTAPISetVarErr;
+	static ErrorId ReplicaFilterNotReplica;
+	static ErrorId UserNotOfType;
+	static ErrorId NotTheAuthServer;
+	static ErrorId InfoStats;
+	static ErrorId WebServerShow;
 	static ErrorId ConfigureReadonlyDirUnsetWarn;
 	static ErrorId ExtPkgPathTraversal;
 } ;

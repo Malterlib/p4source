@@ -230,6 +230,31 @@ DateTime::FmtElapsedISO8601( char *buf, const DateTime &t2 )
 	sprintf( buf, "PT%02lldH%02lldM%02lldS", hours, minutes, seconds );
 }
 
+// Format the diff time nicely. If the uptime is less than a day, give the
+// output in HH:MM:SS format, otherwise in days.
+// If we return HH:MM:SS, then set units to a space, otherwise leave it
+// empty.
+#define SECS_IN_DAY (60 * 60 * 24)
+void
+DateTime::UptimeDisplay( P4INT64 diff, StrBuf &result, StrBuf &units )
+{
+	if( diff > ( SECS_IN_DAY * 2 ) )
+	{
+	    diff /= SECS_IN_DAY;
+	    result << diff;
+	}
+	else
+	{
+	    result.Alloc( 50 );
+	    P4INT64 secs = diff % 60;
+	    P4INT64 mins = (diff / 60 ) % 60;
+	    P4INT64 hours = diff / (60 * 60 );
+	    sprintf( result.Text(), "%02lld:%02lld:%02lld", hours, mins, secs );
+	    result.SetLength();
+	    units << " ";
+	}
+}
+
 void
 DateTime::Fmt( char *buf ) const
 {

@@ -16,6 +16,7 @@
  */
 
 class StrVarArray;
+class Error;
 
 class StrArray {
 	
@@ -49,14 +50,14 @@ class StrPtrArray {
 			StrPtrArray( int size );
 			~StrPtrArray();
 
-	bool		Put( const StrPtr &val );
+	bool		Put( const StrPtr &val, Error *e = 0 );
 	const StrPtr *	Get( int i ) const { return &tabVal[i]; }
 	void		Clear() { tabLength = 0; }
 	int		Count() const { return tabLength; }
 	StrPtr *	Table() const { return tabVal; }
 
     private:
-	bool		Extend( int newSize );
+	bool		Extend( int newSize, Error *e = 0 );
 
 	// our own VarArray-like implementation
 	

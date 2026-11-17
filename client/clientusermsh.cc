@@ -85,6 +85,16 @@ class MarshalDict : public StrBuf
 			{ AddString( StrRef( code ) ); AddInt( value );
 			  AddPair( StrRef( code ), value ); }
 
+    void		Add( const StrPtr &code, int index, int value )
+			{ StrBuf c( code ); c << StrNum( index );
+			  AddString( c ); AddInt( value );
+			  AddPair( c, value ); }
+
+    void		Add( const StrPtr &code, int index, const StrPtr &value )
+			{ StrBuf c( code ); c << StrNum( index );
+			  AddString( c ); AddString( value );
+			  AddPair( c, value ); }
+
 	// Reading dictionary pairs
 
 	virtual int Get( StrBuf &var, StrBuf &val ) = 0;
@@ -921,6 +931,15 @@ ClientUserMarshal::HandleError( Error *err )
 	result->Add( "data", msg );
 	result->Add( "severity", err->GetSeverity() );
 	result->Add( "generic", err->GetGeneric() );
+	result->Add( "severityformat", StrRef( err->FmtSeverity() ) );
+	int cnt = err->GetErrorCount();
+	StrRef cstr( "code" );
+	StrRef fstr( "fmt" );
+	for ( int i = 0; i < cnt; i++ )
+	{
+	    result->Add( cstr, i, err->GetId( i )->code );
+	    result->Add( fstr, i, StrRef( err->GetId( i )->fmt ) );
+	}
 	result->EndWrite();
 	WriteOutput( result );
 }

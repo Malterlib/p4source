@@ -50,7 +50,9 @@
 # include "netdebug.h"
 # include "netsupport.h"
 
+# if defined( SO_REUSEPORT ) || defined( SO_REUSEADDR )
 static int one = 1;
+# endif
 
 #define DO_NET_CLOSE_SOCKET(fd) \
     if ( fd >= 0 ) { \
@@ -132,13 +134,16 @@ NetTcpEndPoint::SetupSocket( int fd, int ai_family, AddrType type, Error *e )
 	// TIME_WAIT period on Windows.
 	// 
 
+# if defined( SO_REUSEPORT) || ( defined( SO_REUSEADDR ) && !defined( OS_NT ) )
 	int sz;
 	TYPE_SOCKLEN rsz = sizeof( sz );
+# endif
 
 # if defined( SO_REUSEADDR ) && !defined( OS_NT )
 	if( (type == AT_LISTEN) || (type == AT_CHECK) )
 	{
-	    do_setsockopt( "NetTcpEndPoint", fd, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<SOCKOPT_T *>(&one), rsz );
+	    do_setsockopt( "NetTcpEndPoint", fd, SOL_SOCKET, SO_REUSEADDR,
+	                   reinterpret_cast<SOCKOPT_T *>(&one), rsz );
 	}
 # endif
 
@@ -146,7 +151,8 @@ NetTcpEndPoint::SetupSocket( int fd, int ai_family, AddrType type, Error *e )
 	const int reuseport = p4tunable.Get( P4TUNE_NET_REUSEPORT );
 	if( ((type == AT_LISTEN) || (type == AT_CHECK)) && reuseport )
 	{
-	    do_setsockopt( "NetTcpEndPoint", fd, SOL_SOCKET, SO_REUSEPORT, reinterpret_cast<SOCKOPT_T *>(&one), rsz );
+	    do_setsockopt( "NetTcpEndPoint", fd, SOL_SOCKET, SO_REUSEPORT,
+	                   reinterpret_cast<SOCKOPT_T *>(&one), rsz );
 	}
 # endif
 

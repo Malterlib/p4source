@@ -159,18 +159,31 @@ nt_wname( StrPtr *fname, int lfn, int *newlen )
 	int fnamelen;
 
 	// We want one of these two long filename forms.
-	//   if lfn&LFN_ENABLED -> \\?\c:\path
-	//   if lfn&LFN_UNCPATH -> \\?\UNC\host\share\path
+	//   non-UNC  -> \\?\c:\path
+	//   UNC      -> \\?\UNC\host\share\path
+	// Derive UNC-ness from the actual path, not from the lfn flags,
+	// because rename ORs the flags of two FileSys objects and a
+	// stale LFN_UNCPATH bit from a UNC peer would corrupt a plain
+	// drive-letter path into "\\?\UNC<drive-path>".
 	//
 	if( lfn & LFN_ENABLED )
 	{
-	    if( lfn & LFN_UNCPATH )
+	    // The caller may pass a device-prefixed path ("\\?\" or
+	    // "\\.\").  Prefixing it again would corrupt it (e.g.
+	    // "\\?\UNC\?\c:\path" for a misclassified drive path), so take
+	    // it as is; the separator normalization below still applies.
+	    int extended = FileSys::IsExtended( *fname );
+	    int isunc = !extended && FileSys::IsUNC( *fname );
+
+	    if( extended )
+		lfname.Set( *fname );
+	    else if( isunc )
 		lfname.Set( "\\\\?\\UNC" );
 	    else
 		lfname.Set( "\\\\?\\" );
 
 	    // LFN requires a full pathname.
-	    if( FileSys::IsRelative( *fname ) )
+	    if( !extended && FileSys::IsRelative( *fname ) )
 	    {
 		int cs = GlobalCharSet::Get();
 		StrBuf cwd;
@@ -182,12 +195,12 @@ nt_wname( StrPtr *fname, int lfn, int *newlen )
 		lfname.Append( p->Text() );
 		delete p;
 	    }
-	    else
+	    else if( !extended )
 	    {
 		// In the UNC case, fname will have two leading back slashes.
 		// Use an offset to remove one leading slash.
 		// \\?\UNC\\host\share\path -> \\?\UNC\host\share\path
-		if( lfn & LFN_UNCPATH )
+		if( isunc )
 		    lfname.Append( &(fname->Text()[1]) );
 		else
 		    lfname.Append( fname->Text() );
@@ -600,12 +613,14 @@ nt_volumechk( char *src, char *dst )
 	//
 	// Yuck, both / and \ work for UNC paths.
 	//
-	if( src[0] && (src[0]=='\\' && src[1]=='\\') ||
-	    (src[0]=='/' && src[1]=='/') )
-	        return 0;
-	if( dst[0] && (dst[0]=='\\' && dst[1]=='\\') ||
-	    (dst[0]=='/' && dst[1]=='/') )
-	        return 0;
+	if( src[0] && (
+	    ( src[0] == '\\' && src[1] == '\\' ) ||
+	    ( src[0] == '/'  && src[1] == '/' ) ) )
+	    return 0;
+	if( dst[0] && (
+	    ( dst[0] == '\\' && dst[1] == '\\' ) ||
+	    ( dst[0] == '/'  && dst[1] == '/' ) ) )
+	    return 0;
 
 	if( src[0] && src[1] == ':' )
 	    src_vol = src[0];
@@ -883,7 +898,6 @@ ntw_open( StrPtr *fname, int flags, int mode, int dounicode, int lfn )
 	DWORD fileshare;                /* OS file sharing mode */
 	DWORD filecreate = 0;           /* OS method of opening/creating */
 	DWORD fileattribflags;          /* OS file attributes and flags */
-	DWORD isdev = 0;                /* device indicator in low byte */
 	SECURITY_ATTRIBUTES SecurityAttributes;
 	int newlen = 0;
 	const wchar_t *wname;
@@ -1451,7 +1465,7 @@ nt_read( FD_TYPE fd, const void *buf, unsigned len )
 	    // \r to a \n and drop the subsequent \n.
 	    // LFCRLF reads CRLF.
 
-	    if( p = (unsigned char *)memccpy( wrk_buf, fd->ptr, '\r', l ) )
+	    if( ( p = (unsigned char *)memccpy( wrk_buf, fd->ptr, '\r', l ) ) )
 	    {
 	       l = p - wrk_buf;
 	       soaknl = 1;
@@ -1974,7 +1988,7 @@ typedef void (NTAPI *RtlInitUnicodeStringPtr)(
 	PUNICODE_STRING         DestinationString,
 	PCWSTR SourceString );
 
-typedef long (NTAPI *NtQueryEaFilePtr) (
+typedef ULONG (NTAPI *NtQueryEaFilePtr) (
 	HANDLE FileHandle,
 	PIO_STATUS_BLOCK IoStatusBlock,
 	PVOID Buffer,
@@ -1985,7 +1999,7 @@ typedef long (NTAPI *NtQueryEaFilePtr) (
 	PULONG EaIndex,
 	BOOLEAN RestartScan );
 
-typedef long (NTAPI *NtOpenFilePtr) (
+typedef ULONG (NTAPI *NtOpenFilePtr) (
 	PHANDLE FileHandle,
 	ACCESS_MASK DesiredAccess,
 	POBJECT_ATTRIBUTES ObjectAttributes,
@@ -1993,15 +2007,15 @@ typedef long (NTAPI *NtOpenFilePtr) (
 	ULONG ShareAccess,
 	ULONG OpenOptions );
 
-typedef long (NTAPI *NtSetEaFilePtr)(
+typedef ULONG (NTAPI *NtSetEaFilePtr)(
 	HANDLE FileHandle,
 	PIO_STATUS_BLOCK IoStatusBlock,
 	PVOID EaBuffer,
 	ULONG EaBufferSize );
 
-typedef long (NTAPI *NtClosePtr)( HANDLE FileHandle );
+typedef ULONG (NTAPI *NtClosePtr)( HANDLE FileHandle );
 
-typedef bool (NTAPI *RtlDosPathNameToNtPathName_UPtr)(
+typedef ULONG (NTAPI *RtlDosPathNameToNtPathName_UPtr)(
 	PWSTR DosFileName,
 	PUNICODE_STRING NtFileName,
 	PWSTR* FilePart,
@@ -2011,7 +2025,7 @@ typedef void (NTAPI *RtlFreeUnicodeStringPtr)(
 	PUNICODE_STRING UnicodeString );
 
 typedef ULONG (NTAPI *RtlNtStatusToDosErrorPtr)(
-	long Status );
+	ULONG Status );
 
 #define NT_SUCCESS(Status) (((long)(Status)) >= 0)
 
@@ -2132,7 +2146,7 @@ ntw_getea( StrPtr *fname,  StrBufDict *eaList, int lfn )
 	IO_STATUS_BLOCK io;
 	HANDLE h;
 
-	long status = NtOpenFile( &h,
+	unsigned long status = NtOpenFile( &h,
 	                          FILE_READ_EA,
 	                          &attr, &io,
 	                          FILE_SHARE_VALID_FLAGS,
@@ -2240,9 +2254,11 @@ ntw_setea( StrPtr *fname, StrDict *vals, int lfn )
 	if( !wname )
 	    return -1;
 
+	/*
 	// Now we need it driver dev style
 	// This means using the NT Object path convention: /??/
 	// See https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-even/c1550f98-a1ce-426a-9991-7509e7c3787c
+	*/
 
 	UNICODE_STRING upath;
 	RtlDosPathNameToNtPathName_U( (wchar_t *)wname, &upath, 0, 0 );
@@ -3400,6 +3416,7 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 	    return;
 
 	// Do we need to preallocate (fragmentation ?)
+	// Never for stdout: it may be a pipe, which cannot be rewound.
 
 	offL_t sizeOffSet = GetSizeHint();
 
@@ -3407,7 +3424,7 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 	{
 	    delegate->SizeHint( sizeOffSet );
 	}
-	else if( sizeOffSet )
+	else if( sizeOffSet && !isStd )
 	{
 	    FileIOBinary::Seek( sizeOffSet - (offL_t)1, e );
 

@@ -133,7 +133,7 @@ void P4Libraries::Initialize( const int libraries, Error* e )
 	        e->Set( MsgClient::DevErr )
 	            << "CRYPTO_set_mem_functions(): Could not set OpenSSL "
 	               "allocation functions.";
-	    OPENSSL_init_ssl( 0, NULL );
+	    OPENSSL_init_ssl( OPENSSL_INIT_NO_ATEXIT, NULL );
 	}
 # endif
 # endif

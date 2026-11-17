@@ -36,6 +36,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 // Linux code:
 
+# ifdef OS_LINUX
+
 static void slurpFile( const StrBuf& path, StrBuf& out, Error* e )
 {
 	FileSysUPtr f = FileSys::CreateUPtr( FST_TEXT );
@@ -245,6 +247,7 @@ parseCgroupV2PressureFile( const StrBuf& fileName, Error* e )
 
 	return psi;
 }
+# endif // !OS_NT
 
 ////////////////////////////////////////////////////////////////////////////////
 // Windows code:
@@ -377,7 +380,7 @@ void SystemInfo::CollectCurrentMemInfoPct( StrBufDict& rs,
 
 # ifdef OS_NT
 	collectCurrentMemInfoWin( rs, e );
-# else
+# elif OS_LINUX
 	collectCurrentMemInfoLinux( rs, e );
 # endif
 
@@ -607,6 +610,7 @@ int SystemInfo::CalculatePauseRateForMemWindowsPSI( Error* e )
 
 int SystemInfo::CalculatePauseRateForMemLinuxPSI( Error* e )
 {
+# ifdef OS_LINUX
 	if( !calc_mem_high_psi )
 	{
 	    calc_mem_high_psi = std::make_unique< PauseCalcLinuxPSI >
@@ -666,6 +670,9 @@ int SystemInfo::CalculatePauseRateForMemLinuxPSI( Error* e )
 	                    info.some.total );
 
 	return pauseRateMemMedmPSI;
+# else
+	return 0;
+# endif
 }
 
 int SystemInfo::CalculatePauseRateForMemByPSI( Error* e )
@@ -711,6 +718,7 @@ int SystemInfo::CalculatePauseRateForCPUByPSI( Error* e )
 
 int SystemInfo::CalculatePauseRateForCPULinuxPSI( Error* e )
 {
+# ifdef OS_LINUX
 	if( !calc_cpu_high_psi )
 	    calc_cpu_high_psi = std::make_unique< PauseCalcLinuxPSI >
 	                       ( &calc_cpu_high_psi_setpoint, "cpu psi" );
@@ -749,6 +757,9 @@ int SystemInfo::CalculatePauseRateForCPULinuxPSI( Error* e )
 	pauseRateCPUPSI = calc_cpu_high_psi->Compute();
 
 	return pauseRateCPUPSI;
+# else
+	return 0;
+# endif
 }
 
 # endif // HAS_CPP11

@@ -23,7 +23,7 @@
  * value and update the following number:
  *
  * Current high value for a MsgDm2 error code is:
- *                                175 (MultiplePartitionedRevSpec)
+ *                                176 (PartitionedClientNameTooLong)
  *                                               Max code is 1023!!!
  */
 # include <stdhdrs.h>
@@ -140,17 +140,19 @@ ErrorId MsgDm2::NoChangeOnDistribution            = { ErrorOf( ES_DM2, 95, E_FAI
 ErrorId MsgDm2::TopologyRecAlreadyMoved           = { ErrorOf( ES_DM2, 96, E_WARN, EV_NONE, 6 ), "The server with address '%addr%', destaddress '%daddr%' and serverid '%svrID%' is already moved to address '%taddr%', destaddress '%tdaddr%' and serverid '%tsvrID%'." } ;
 ErrorId MsgDm2::TopologyMoveRecMarker             = { ErrorOf( ES_DM2, 97, E_INFO, EV_NONE, 0 ), "The server marked as moved." } ;
 ErrorId MsgDm2::TopologyRecMoved                  = { ErrorOf( ES_DM2, 98, E_INFO, EV_NONE, 4 ), "Moved Topology Record: Addr '%address%' DestAddr '%destaddress%' SvrID '%serverID%' Date '%date%'" } ;
-ErrorId MsgDm2::TopologyMoveSame                 = { ErrorOf( ES_DM2, 99, E_FAILED, EV_USAGE, 0 ), "Server cannot be set as moved to itself." } ;
-ErrorId MsgDm2::TopologyFailedToMark             = { ErrorOf( ES_DM2, 100, E_FAILED, EV_NONE, 3 ), "Failed to mark the record : address '%addr%', destaddress '%daddr%', serverid '%svrID%' as 'movedFrom'." } ;
-ErrorId MsgDm2::TopologyMarkedMoveTo             = { ErrorOf( ES_DM2, 101, E_INFO, EV_NONE, 3 ), "Marked the record : address '%addr%', destaddress '%daddr%', serverid '%svrID%' as 'movedTo'." } ;
-ErrorId MsgDm2::NoAltSyncChangeWithHave          = { ErrorOf( ES_DM2, 112, E_FAILED, EV_USAGE, 0 ), "Cannot change client '%'altSync'%' option when have list is not empty." } ;
-ErrorId MsgDm2::MaxMemOS                         = { ErrorOf( ES_DM2, 113, E_FAILED, EV_ADMIN, 0 ), "Not enough OS memory available (past 'sys.pressure.memory.high' threshold)." } ;
-ErrorId MsgDm2::BadLazyPipeCount                 = { ErrorOf( ES_DM2, 115, E_FAILED, EV_USAGE, 2 ), "The search for lazy copies has not found the expected number of revisions. Expect: '%exp%'. Seen: '%seen%'." } ;
-ErrorId MsgDm2::StreamViewGenAtChangeSkip        = { ErrorOf( ES_DM2, 117, E_WARN, EV_NONE, 2 ), "Skipping stream view generation for %stream% at change %change%." } ;
-ErrorId MsgDm2::StreamFieldValueError            = { ErrorOf( ES_DM2, 120, E_FAILED, EV_FAULT, 3 ), "A stream of type '%streamType%' cannot have a %fieldName% of '%fieldValue%'." };
-ErrorId MsgDm2::DepotTraitDup                    = { ErrorOf( ES_DM2, 121, E_FAILED, EV_CONTEXT, 1 ), "There is already a %'trait'% depot called '%depot%'." };
-ErrorId MsgDm2::NoTraitDepot                     = { ErrorOf( ES_DM2, 129, E_FAILED, EV_CONTEXT, 0 ), "No trait depot was found on this server." };
-ErrorId MsgDm2::NoTraitName                      = { ErrorOf( ES_DM2, 163, E_FAILED, EV_USAGE, 1 ), "Attribute '%trait%' does not exist: attributes were not cleared." };
+ErrorId MsgDm2::TopologyMoveSame                  = { ErrorOf( ES_DM2, 99, E_FAILED, EV_USAGE, 0 ), "Server cannot be set as moved to itself." } ;
+ErrorId MsgDm2::TopologyFailedToMark              = { ErrorOf( ES_DM2, 100, E_FAILED, EV_NONE, 3 ), "Failed to mark the record : address '%addr%', destaddress '%daddr%', serverid '%svrID%' as 'movedFrom'." } ;
+ErrorId MsgDm2::TopologyMarkedMoveTo              = { ErrorOf( ES_DM2, 101, E_INFO, EV_NONE, 3 ), "Marked the record : address '%addr%', destaddress '%daddr%', serverid '%svrID%' as 'movedTo'." } ;
+ErrorId MsgDm2::NoAltSyncChangeWithHave           = { ErrorOf( ES_DM2, 112, E_FAILED, EV_USAGE, 0 ), "Cannot change client '%'altSync'%' option when have list is not empty." } ;
+ErrorId MsgDm2::MaxMemOS                          = { ErrorOf( ES_DM2, 113, E_FAILED, EV_ADMIN, 0 ), "Not enough OS memory available (past 'sys.pressure.memory.high' threshold)." } ;
+ErrorId MsgDm2::BadLazyPipeCount                  = { ErrorOf( ES_DM2, 115, E_FAILED, EV_USAGE, 2 ), "The search for lazy copies has not found the expected number of revisions. Expect: '%exp%'. Seen: '%seen%'." } ;
+ErrorId MsgDm2::StreamViewGenAtChangeSkip         = { ErrorOf( ES_DM2, 117, E_WARN, EV_NONE, 2 ), "Skipping stream view generation for %stream% at change %change%." } ;
+ErrorId MsgDm2::StreamFieldValueError             = { ErrorOf( ES_DM2, 120, E_FAILED, EV_FAULT, 3 ), "A stream of type '%streamType%' cannot have a %fieldName% of '%fieldValue%'." } ;
+ErrorId MsgDm2::DepotTraitDup                     = { ErrorOf( ES_DM2, 121, E_FAILED, EV_CONTEXT, 1 ), "There is already a %'trait'% depot called '%depot%'." } ;
+ErrorId MsgDm2::NoTraitDepot                      = { ErrorOf( ES_DM2, 129, E_FAILED, EV_CONTEXT, 0 ), "No trait depot was found on this server." } ;
+ErrorId MsgDm2::NonServiceNotAllowed              = { ErrorOf( ES_DM2, 173, E_FAILED, EV_PROTECT, 2 ), "Non-service user %userName% may not perform operation %funcName%" } ;
+ErrorId MsgDm2::ServiceRmtDistNotAllowed          = { ErrorOf( ES_DM2, 174, E_FAILED, EV_ADMIN, 0 ), "Remote depot access of distribution servers by service users is not allowed." } ;
+ErrorId MsgDm2::NoTraitName                       = { ErrorOf( ES_DM2, 163, E_FAILED, EV_USAGE, 1 ), "Attribute '%trait%' does not exist: attributes were not cleared." } ;
 
 ErrorId MsgDm2::ComponentStreamInvalidSparse     = { ErrorOf( ES_DM2, 107, E_FAILED, EV_NONE, 2 ), "The stream '%stream%' is a sparse stream of type '%type%' and cannot be defined as a component." } ;
 ErrorId MsgDm2::NoReparentSparse                 = { ErrorOf( ES_DM2, 105, E_FAILED, EV_USAGE, 1 ), "Cannot change parent of stream '%stream%' because it is a sparse stream." } ;
@@ -209,7 +211,10 @@ ErrorId MsgDm2::TopologyBadTerm                   = { ErrorOf( ES_DM2, 167, E_IN
 ErrorId MsgDm2::TopologyNoTerm                    = { ErrorOf( ES_DM2, 168, E_INFO, EV_EMPTY, 1 ), "Unable to build terminated topology graph for %serverid%." } ;
 
 ErrorId MsgDm2::UserNotExistInfo                  = { ErrorOf( ES_DM2, 169, E_INFO, EV_UNKNOWN, 2 ), "User %user% doesn't exist (Extension owner:%owner%)." } ;
+ErrorId MsgDm2::SparseStreamResolveMoveErr        = { ErrorOf( ES_DM2, 171, E_FAILED, EV_USAGE, 4 ), "%clientFile% is in a pending resolved state, but %sourceFile% has been moved. Integration cannot occur until %clientFile% has been submitted or reverted. Check changelist %changeList% for similar resolved files with moved sources." };
+ErrorId MsgDm2::No2faWithIdp                      = { ErrorOf( ES_DM2, 172, E_FAILED, EV_CONFIG, 2 ), "2FA cannot be used with IdP authentication." } ;
 ErrorId MsgDm2::MultiplePartitionedRevSpec        = { ErrorOf( ES_DM2, 175, E_FAILED, EV_USAGE, 1 ), "Client %clientName% cannot be used as a revision specifier together with another partitioned client." } ;
+ErrorId MsgDm2::PartitionedClientNameTooLong      = { ErrorOf( ES_DM2, 176, E_FAILED, EV_USAGE, 1 ), "Client name '%clientName%' is too long for a partitioned-style client. Names of '%'partitioned'%', '%'partitioned-jnl'%', and '%'readonly'%' clients must not exceed 246 characters." } ;
 
 
 // ErrorId graveyard: retired/deprecated ErrorIds. 

@@ -70,7 +70,7 @@ HostEnv::GetHost( StrBuf &result )
 # if defined( OS_NT ) || defined( OS_OS2 )
 	char *c;
 
-	if( c = getenv( "COMPUTERNAME" ) )
+	if( ( c = getenv( "COMPUTERNAME" ) ) )
 	{
 	    result.Set( c );
 	    return 1;

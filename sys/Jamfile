@@ -32,6 +32,7 @@ P4APILibrary $(SUPPORTLIB) :
 	filespace.cc
 	filestrbuf.cc
 	filesys.cc
+        filetar.cc
 	filetmp.cc
 	hostcfg.cc
 	hostenv.cc

@@ -1,14 +1,14 @@
-SubDir p4 script libs ;
+SubDir P4 script libs ;
 
 if $(USE_EXTENSIONS) = 1
 {
-	SubInclude p4 script libs cjson ;
-	SubInclude p4 script libs lua-curlv3 ;
-	SubInclude p4 script libs cURL ;
-	SubInclude p4 script libs sqlite3 ;
-	SubInclude p4 script libs LuaSQLite3 ;
-	SubInclude p4 script libs p4api ;
-	SubInclude p4 script libs p4-lua ;
+	SubInclude P4 script libs cjson ;
+	SubInclude P4 script libs lua-curlv3 ;
+	SubInclude P4 script libs cURL ;
+	SubInclude P4 script libs sqlite3 ;
+	SubInclude P4 script libs LuaSQLite3 ;
+	SubInclude P4 script libs p4api ;
+	SubInclude P4 script libs p4-lua ;
 }
 else
 {	

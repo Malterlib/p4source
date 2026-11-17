@@ -50,6 +50,7 @@ class MsgSupp {
 	static ErrorId DeflateEnd;
 	static ErrorId DeflateInit;
 	static ErrorId Inflate;
+	static ErrorId InflateBadState;
 	static ErrorId InflateInit;
 	static ErrorId MagicHeader;
 	static ErrorId DigestInitFailed;
@@ -67,6 +68,7 @@ class MsgSupp {
 
 	static ErrorId JsonNotEnabled;
 	static ErrorId JsonSerializationFailed;
+	static ErrorId NoJsonKeyTranslation;
 
 	static ErrorId OptionChange;
 	static ErrorId OptionPort;
@@ -492,6 +494,15 @@ class MsgSupp {
 	static ErrorId OptionServerSizeRCS;
 	static ErrorId OptionRestrictOnly;
 	static ErrorId OptionExpandOnly;
+	static ErrorId OptionDiagDir;
+	static ErrorId OptionJournal_Logs;
+	static ErrorId OptionJsonFormat;
+	static ErrorId OptionTopOut;
+	static ErrorId OptionPsOut;
+	static ErrorId OptionCkpHist;
+	static ErrorId OptionResetPassword;
+	static ErrorId OptionTar;
+	static ErrorId OptionTgz;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

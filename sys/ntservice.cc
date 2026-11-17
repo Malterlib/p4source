@@ -96,11 +96,12 @@ NtService::~NtService()
  * services per process requires a different approach.
  */
 
+static char empty[] = "";
 void NtService::Start( int (*entryPt)( DWORD, char ** ), char *svc, Error *e )
 {
 	SERVICE_TABLE_ENTRY dispatch_table[] =
 	{
-	    { TEXT(""), (void (__stdcall *)( DWORD, char **) )StaticRun },
+	    { empty, (void (__stdcall *)( DWORD, char **) )StaticRun },
 	    { NULL, NULL }
 	} ;
 
@@ -193,10 +194,7 @@ void NtService::SetStatus(
 	if( ! SetServiceStatus( statusHandle, &status ) )
 	{
 	    StrBuf msg;
-	    DWORD err;
 	    Error e;
-
-	    err = GetLastError( );
 
 	    e.Sys( "SetServiceStatus", svcName );
 	    e.Set( E_FATAL, "Cannot communicate with Service Control Manager" );

@@ -30,7 +30,7 @@ Pid::CheckID( int id )
 	HANDLE threadHandle;
 
 	threadHandle = OpenThread( THREAD_QUERY_INFORMATION | SYNCHRONIZE,
-	                           NULL, threadId );
+	                           0, threadId );
 
 	if( !threadHandle )
 	    return 0;

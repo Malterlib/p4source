@@ -224,7 +224,7 @@ class Error {
 	// 2 is 2002.1 loopback (not used by client)
 
 	void		Marshall0( StrBuf &out ) const;
-	void		Marshall1( StrDict &out, int uniquote = 0 ) const;
+	virtual void	Marshall1( StrDict &out, int uniquote = 0 ) const;
 	void		Marshall2( StrBuf &out ) const;
 
 	void		UnMarshall0( const StrPtr &in );
@@ -237,7 +237,7 @@ class Error {
 
 	void		Dump( const char *trace );
 
-    private:
+    protected:
 
 	// Remainder is the actual error info
 

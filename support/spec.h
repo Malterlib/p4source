@@ -361,7 +361,41 @@ class SpecData {
 	virtual void	Set( SpecElem *sd, int x, char **wv, Error *e );
 	virtual void	Comment( SpecElem *sd, int x, char **wv, int nl, Error *e );
 
-    protected:
+	virtual void	SetExtraTag( StrDict &rh,
+				     const StrRef& name, 
+				     const int index,
+				     const StrRef& type, 
+				     const StrRef& value ) const;
+	virtual void	SetExtraTag( StrDict& rh,
+				     const StrRef& name,
+				     const int index,
+				     const StrRef& type,
+				     const bool value ) const;
+	virtual void	SetExtraTag( StrDict& rh,
+				     const StrRef& name,
+				     const int index,
+				     const StrRef& type,
+				     const int value ) const;
+# ifdef HAVE_INT64
+	virtual void	SetExtraTag( StrDict& rh,
+				     const StrRef& name,
+				     const int index,
+				     const StrRef& type,
+				     const long value ) const;
+	virtual void	SetExtraTag( StrDict& rh,
+				     const StrRef& name,
+				     const int index,
+				     const StrRef& type,
+				     const P4INT64 value ) const;
+# endif
+
+	bool		IsSystemField( const SpecElem& sd ) const;
+protected:
+	void		SetExtraTagCommon( StrDict& rh,
+					   const StrRef& name,
+					   const int index,
+					   const StrRef& type ) const;
+	virtual int	GetMaxSystemSpecCode() const { return 99999; }
 
 	SpecWords	tVal;
 

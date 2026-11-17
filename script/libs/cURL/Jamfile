@@ -168,6 +168,7 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	curl_progress.c
 	psl.c
 	proxy.c
+	ptrarray.c
 	rand.c
 	ratelimit.c
 	request.c
@@ -177,7 +178,6 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	setopt.c
 	curl_sha256.c
 	slist.c
-	smb.c
 	smtp.c
 	socketpair.c
 	socks.c
@@ -187,14 +187,13 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	strcase.c
 	strequal.c
 	strerror.c
-	system_win32.c
 	telnet.c
 	tftp.c
 	thrdpool.c
 	transfer.c
+	u32_ptrset.c
+	u8_strset.c
 	uint-bset.c
-	uint-hash.c
-	uint-hashset.c
 	uint-spbset.c
 	uint-table.c
 	url.c

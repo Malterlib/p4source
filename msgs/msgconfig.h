@@ -190,6 +190,7 @@ class MsgConfig {
 	static ErrorId DmUserAccessforce;
 	static ErrorId DmUserAccessmode;
 	static ErrorId DmUserAllowselfupdate;
+	static ErrorId DmUserAutoprotections;
 	static ErrorId DmUserHideinvalid;
 	static ErrorId DmUserInsecurelogin;
 	static ErrorId DmUserLoginattempts;
@@ -295,6 +296,7 @@ class MsgConfig {
 	static ErrorId RcsMaxinsert;
 	static ErrorId RcsNofsync;
 	static ErrorId RmtAllowRemoteUser;
+	static ErrorId RmtEnforceServiceusertype;
 	static ErrorId RpcDelay;
 	static ErrorId RpcDurablewait;
 	static ErrorId RpcHimark;
@@ -551,4 +553,6 @@ class MsgConfig {
 	static ErrorId S3CredErrorRetry;
 	static ErrorId LbrS3MultiPart;
 	static ErrorId LbrS3MultiPartSz;
+	static ErrorId WebServerLogPath;
+	static ErrorId WebServerLogRetain;
 } ;

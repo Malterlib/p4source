@@ -92,6 +92,12 @@ public:
 	bool
 	MustSSL() const;
 
+	static bool
+	MustNonSSL(const Prefix &prefix);
+
+	bool
+	MustNonSSL() const;
+
 	bool
 	MustIPv4() const;
 
@@ -135,6 +141,12 @@ public:
 	ZoneID() const
 	{
 	    return mZoneID;
+	}
+
+	const Prefix &
+	PrefixRaw() const
+	{
+	    return mPrefixRaw;
 	}
 
 	// construct a StrBuf from the requested pieces
@@ -186,7 +198,8 @@ private:
 	StrBuf    mHostPort;      // parsed host+port string
 	StrBuf    mZoneID;        // parsed "%zoneid", if any
 	bool      mPortColon;     // true iff there was a colon starting the port field
-	Prefix    mPrefix;        // parsed transport prefix
+	Prefix    mPrefixRaw;     // parsed transport prefix
+	Prefix    mPrefix;        // self determined transport prefix
 	const Prefix
 		  *mExtraTransports; // extra user-supplied transport prefixes
 

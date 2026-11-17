@@ -71,6 +71,8 @@ Handlers::Install( const StrPtr *name, LastChance *lastChance, Error *e )
 
 	    table[ i ].anyErrors = 0;
 	}
+	else if( table[ i ].lastChance != lastChance )
+	    delete table[i].lastChance;
 
 	table[ i ].name = *name;
 	table[ i ].lastChance = lastChance;

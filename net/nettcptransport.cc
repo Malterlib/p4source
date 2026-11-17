@@ -167,7 +167,6 @@ NetTcpTransport::SetSockBlocking( int fd, bool blocking )
 	 * Without it, it's just synchronous.
 	 */
 
-	int flags = 0;
 	int rslt = 0;
 
 # ifdef OS_NT
@@ -184,7 +183,7 @@ NetTcpTransport::SetSockBlocking( int fd, bool blocking )
 	        errbuf.Text(), errnum );
 	}
 # else
-	flags = fcntl( fd, F_GETFL, 0 );
+	int flags = fcntl( fd, F_GETFL, 0 );
 	if( flags == -1 )
 	{
 	    int errnum = errno;

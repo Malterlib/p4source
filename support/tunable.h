@@ -135,6 +135,7 @@ enum P4TunableName {
 	P4TUNE_DM_USER_ACCESSFORCE,		// see dmauser.cc dmcaller.cc
 	P4TUNE_DM_USER_ACCESSMODE,		// see dmauser.cc dmcaller.cc
 	P4TUNE_DM_USER_ALLOWSELFUPDATE,		// see dmsuser.cc
+	P4TUNE_DM_USER_AUTOPROTECTIONS,		// see dmaprotect.cc
 	P4TUNE_DM_USER_HIDEINVALID,		// see userlogin.cc
 	P4TUNE_DM_USER_INSECURELOGIN,		// see userlogin.cc
 	P4TUNE_DM_USER_LOGINATTEMPTS,		// see dmauser.cc
@@ -243,6 +244,7 @@ enum P4TunableName {
 	P4TUNE_RCS_MAXINSERT,
 	P4TUNE_RCS_NOFSYNC,			// see rcsvfile.cc
 	P4TUNE_RMT_ALLOW_REMOTEUSER,		// see rmtservice.cc
+	P4TUNE_RMT_ENFORCE_SERVICEUSERTYPE,	// see rhservice.cc
 	P4TUNE_RPC_DELAY,			// see rpc.cc
 	P4TUNE_RPC_DURABLEWAIT,			// see rhservice.cc
 	P4TUNE_RPC_HIMARK,

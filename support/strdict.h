@@ -134,6 +134,8 @@ class StrDict {
 
 	virtual StrDictIterator *GetIterator();
 
+	virtual void StartArrayObject( const char* var ) {}
+	virtual void EndArrayObject() {}
     protected:
 
 	// Get/Set vars, provided by subclass

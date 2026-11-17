@@ -56,7 +56,9 @@ class DateTime {
 	// for stat() and utime() conversion
 
 	static P4INT64 Localize( time_t centralTime );
-	static P4INT64 Centralize( time_t localTime );	
+	static P4INT64 Centralize( time_t localTime );
+	static void UptimeDisplay( P4INT64 diff, StrBuf &result,
+			StrBuf &units );
 	P4INT64    TzOffset( int *isdst = 0 ) const;
 
     protected:

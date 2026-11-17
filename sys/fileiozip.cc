@@ -13,6 +13,7 @@
 # include <error.h>
 # include <strbuf.h>
 # include <gzip.h>
+# include <msgsupp.h>
 
 # include "filesys.h"
 # include "fileio.h"
@@ -194,16 +195,27 @@ FileIOCompress::Close( Error *e )
 	    break;
 
 	case FIOC_GUNZIP:
-	    // Flush & clear gzip 
+	    // Flush & clear gzip
 
-	    if( gzip && mode == FOM_WRITE && gzip->os - gzbuf->Text() )
+	    if( gzip && mode == FOM_WRITE )
 	    {
-	        if( loop )
-	            loop->WriteLoop( gzbuf->Text(),
-	                             gzip->os - gzbuf->Text(), 1, e );
-	        else
-	            FileIOBinary::Write( gzbuf->Text(),
-	                                 gzip->os - gzbuf->Text(), e );
+	        const P4INT64 pending = gzip->os - gzbuf->Text();
+	        if( pending > 0 &&
+	            pending <= (int)gzbuf->Length() )
+	        {
+	            if( loop )
+	                loop->WriteLoop( gzbuf->Text(), (int)pending, 1, e );
+	            else
+	                FileIOBinary::Write( gzbuf->Text(), (int)pending, e );
+	        }
+	        else if( pending != 0 )
+	        {
+	            // Impossible gzip buffer state: fail rather than flush a
+	            // truncated file.
+	            if( !e->Test() )
+	                e->Set( MsgSupp::InflateBadState )
+	                    << (int)pending << gzbuf->Length();
+	        }
 	    }
 	    break;
 

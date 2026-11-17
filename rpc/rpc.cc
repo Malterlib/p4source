@@ -1806,3 +1806,14 @@ RpcUtility::CheckCertsChanged( Error *e )
 
 	return true;
 }
+
+void
+RpcUtility::CheckCertsChanged( RpcService *service, Error *e )
+{
+	// Check if the cert files have been modified (if SSL)
+	if( !service->IsSSL() || !CheckCertsChanged( e ))
+	    return;
+
+	// Trigger cert reload
+	service->NotifyRestarting();
+}

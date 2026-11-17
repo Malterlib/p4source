@@ -140,10 +140,12 @@ class ChunkerTmpl {
       data_ptr += chunk_size;
     }
 
-    // Copy remaining data to the beginning of the array. Using memmove/resize
-    // is not slow when shrinking a vector.
-    memmove(&data_[0], data_ptr, bytes_left);
-    data_.resize(bytes_left);
+    // Drop the bytes consumed by the chunks cut above.  A call that cut no
+    // chunk consumed nothing, so there is nothing to move.
+    if (data_ptr != &data_[0]) {
+      memmove(&data_[0], data_ptr, bytes_left);
+      data_.resize(bytes_left);
+    }
   }
 
   // Slices all remaining buffered data into chunks, where the last chunk might

@@ -182,12 +182,12 @@ static void LoadSystemCACerts( SSL_CTX *ctx )
 	const char* locations[] = { "CA", "ROOT", "MY", 0 };
 	for( int i = 0; locations[i]; i++ )
 	{
-	    hStore = CertOpenSystemStore( NULL, locations[i] );
+	    hStore = CertOpenSystemStore( 0, locations[i] );
 
 	    if( !hStore )
 	       continue;
 
-	    while( pContext = CertEnumCertificatesInStore( hStore, pContext ) )
+	    while((pContext = CertEnumCertificatesInStore( hStore, pContext )))
 	    {
 	        x509 = d2i_X509( NULL,
 	                     (const unsigned char **)&pContext->pbCertEncoded,

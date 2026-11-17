@@ -1078,6 +1078,11 @@ R"(Allowing the Users to update their email and fullname.
 )"
 };
 
+ErrorId MsgConfig::DmUserAutoprotections = { ErrorOf( ES_CONFIG, 533, E_INFO, EV_NONE, 0 ),
+R"(The first user automatically populates the protections table with the defaults.
+)"
+};
+
 ErrorId MsgConfig::DmUserHideinvalid = { ErrorOf(ES_CONFIG, 478, E_INFO, EV_NONE, 0),
 R"(Hide invalid user error on authentication failure.
 )"
@@ -1547,7 +1552,8 @@ R"(The number of bytes in a parallel thread batch.
 
 ErrorId MsgConfig::NetParallelCheckAlive = { ErrorOf( ES_CONFIG, 532, E_INFO, EV_NONE, 0 ),
 R"(Verify the controlling sync or submit operation behind a parallel transfer
-has not exited.
+has not exited. The check is performed at intervals of approximately this
+many minutes. Set to 0 to disable.  With a maximum of 60 minutes.
 )"
 };
 
@@ -1697,6 +1703,12 @@ R"(When set to 1, RCS files will be closed without a call to fsync.
 ErrorId MsgConfig::RmtAllowRemoteUser = { ErrorOf( ES_CONFIG, 511, E_INFO, EV_NONE, 0 ),
 R"(When set to 1 and at security levels below 4, the 'remote' user may be used
 for server to server connections (for example, remote depots).
+)"
+};
+
+ErrorId MsgConfig::RmtEnforceServiceusertype = { ErrorOf( ES_CONFIG, 530, E_INFO, EV_NONE, 0 ),
+R"(When set to 1, server to server commands that are authenticated by the
+'serviceUser' check that the user is of type 'service'.
 )"
 };
 
@@ -3464,7 +3476,8 @@ R"(This configurable has been deprecated and is no longer used.
 
 ErrorId MsgConfig::RtMonitorfile = { ErrorOf( ES_CONFIG, 429, E_INFO, EV_NONE, 0 ),
 R"(Path to the file used to store realtime performance counters, relative to
-P4ROOT. Must be set to enable realtime monitoring features.
+P4ROOT. Must be set to enable realtime monitoring features. Set to 'off'
+to disable.
 )"
 };
 
@@ -3549,5 +3562,18 @@ ErrorId MsgConfig::LbrS3MultiPartSz = { ErrorOf( ES_CONFIG, 522, E_INFO, EV_NONE
 R"(S3 transfers using the MultiPart protocol will split the transfer into
 chunks of this size. This value is specified in megabytes. The default value
 is 1024 (1Gb)
+)"
+};
+
+ErrorId MsgConfig::WebServerLogPath = { ErrorOf( ES_CONFIG, 529, E_INFO, EV_NONE, 0 ),
+R"(Set the directory path to store the P4 Web Server log files. If not set,
+ log files are stored in P4ROOT.
+)"
+};
+
+ErrorId MsgConfig::WebServerLogRetain = { ErrorOf( ES_CONFIG, 531, E_INFO, EV_NONE, 0 ),
+R"(Set the maximum number of old log files to retain for each P4 Web Server log
+type on each web server process. When the limit is reached, the oldest files
+are removed.
 )"
 };

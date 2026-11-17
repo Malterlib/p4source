@@ -323,8 +323,8 @@ Enviro::ReadItemPlatform( ItemType type, const char *var, EnviroItem * a )
 	        {
 	            // from service-specific area of the registry
 
-	            if( isUnicode &&
-	                GetRegValueW( var, &a->value, serviceKey ) ||
+	            if( ( isUnicode &&
+	                  GetRegValueW( var, &a->value, serviceKey ) ) ||
 	                GetRegValue( var, &a->value, serviceKey ) )
 	            {
 	                a->type = SVC;
@@ -334,15 +334,15 @@ Enviro::ReadItemPlatform( ItemType type, const char *var, EnviroItem * a )
 	    break;
         
 	    case ENV:
-	        if( isUnicode && GetEnvW( var, a ) || GetEnv( var, a ) )
+	        if( ( isUnicode && GetEnvW( var, a ) ) || GetEnv( var, a ) )
 	            return true;
 	    break;
 
 	    // from user area of the registry
 
 	    case USER:
-	        if( isUnicode &&
-	            GetRegValueW( var, &a->value, userKey ) ||
+	        if( ( isUnicode &&
+	              GetRegValueW( var, &a->value, userKey ) ) ||
 	            GetRegValue( var, &a->value, userKey ) )
 	        {
 	            a->type = USER;
@@ -395,8 +395,8 @@ Enviro::ReadItemPlatform( ItemType type, const char *var, EnviroItem * a )
                 }
 
                 // not one of our special lookups, so go get it from the registry
-	        if( isUnicode &&
-	            GetRegValueW( var, &a->value, serverKey ) ||
+	        if( ( isUnicode &&
+	              GetRegValueW( var, &a->value, serverKey ) ) ||
 	            GetRegValue( var, &a->value, serverKey ) )
 	        {
 	            a->type = SYS;
@@ -478,9 +478,10 @@ Enviro::Set( const char *var, const char *value, Error *e )
 
 	// warn the user if the env variable is also set.
 
-	if( value && 
-		( CharSetApi::isUnicode( (CharSetApi::CharSet)charset )
-		    && GetEnvW( var ) || GetEnv( var ) ) )
+	if( value && (
+	    ( ( CharSetApi::isUnicode( (CharSetApi::CharSet)charset ) &&
+	      GetEnvW( var ) ) ||
+	    GetEnv( var ) ) ) )
 	    e->Set( MsgSupp::HidesVar ) << var;
 
 	// Make symbol undefined, so next Get resets it
@@ -502,7 +503,6 @@ void
 GetRegKey( void *hKeyEnv, const KeyPair *keyPair, Error *e )
 {
 	DWORD	disp;
-	long 	stat;
 
 	if( RegCreateKeyEx(
 		keyPair->hkey, 
@@ -1570,8 +1570,8 @@ Enviro::GetHome( StrBuf &result )
 	    {
 	        result.Set( buffer );
 	    }
-	    else if( length = GetWindowsDirectoryW( wbuffer,
-				sizeof( wbuffer )/sizeof( WCHAR ) ) )
+	    else if( ( length = GetWindowsDirectoryW( wbuffer,
+	                                 sizeof( wbuffer )/sizeof( WCHAR ) ) ) )
 	    {
 		CharSetCvtUTF168 cvtval;
 		const char *retval = 

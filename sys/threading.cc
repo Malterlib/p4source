@@ -279,8 +279,10 @@ class MultiThreader : public Threader {
 # endif
 
 	    NtThreadProcParam* data = static_cast< NtThreadProcParam* >( param );
-	    MultiThreader* ths = data->ths;
 	    Thread *t = data->thread;
+#ifdef HAS_CPP11
+	    MultiThreader* ths = data->ths;
+#endif
 	    delete data;
 
 #ifdef HAS_CPP11
@@ -318,8 +320,10 @@ class MultiThreader : public Threader {
 #endif
 	    // Since we are running in the same address space as parent
 	    // process we don't want to call DisService.
-
+	    
+#ifdef HAS_CPP11
 	    NtThreadList::ThreadInfo* ti =
+#endif
 	        _P4_NT_ThreadList->AddThread( t, GetCurrentThreadId() );
 #ifdef HAS_CPP11
 	    _P4_NT_ThreadCurrentMemBytes = &ti->mem;

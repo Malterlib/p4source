@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgServer2 error code is: 373
+ * Current high value for a MsgServer2 error code is: 369
  *                                                   Max code is 1023!!!
  *
  * The MsgServer2 class contains overflow messages from MsgServer.
@@ -333,7 +333,7 @@ ErrorId MsgServer2::NoStreamSpecEditStreamAtChangeClient = { ErrorOf( ES_SERVER2
 ErrorId MsgServer2::NoStreamSpecUnshelveStreamAtChangeClient = { ErrorOf( ES_SERVER2, 293, E_FAILED, EV_USAGE, 0 ), "Stream spec cannot be unshelved in StreamAtChange client." } ;
 ErrorId MsgServer2::SparseStreamOperationNotAllowed = { ErrorOf( ES_SERVER2, 298, E_FAILED, EV_USAGE, 0 ), "This operation is not allowed on sparse streams." } ;
 ErrorId MsgServer2::UseHotFiles            = { ErrorOf( ES_SERVER2, 299, E_FAILED, EV_USAGE, 0 ), "Usage: %'hotfiles [ -i | -o ]'%" } ;
-ErrorId MsgServer2::UseDiags               = { ErrorOf( ES_SERVER2, 300, E_FAILED, EV_USAGE, 0 ), "Usage: %'diagnostics [ -D ] [ -j ] [ -J [ -L limit ] ] | [ [ -l ] [ -s [--strace-runtime secs] [ -t ] [ -p ] ] [ -a [ -J [ -L limit ] ] ]'%" } ;
+ErrorId MsgServer2::UseDiags               = { ErrorOf( ES_SERVER2, 300, E_FAILED, EV_USAGE, 0 ), "Usage: %'diagnostics [ -D ] [ -j ] [ -J [ -L limit ] ] | [ [ -l ] [ -s [--strace-runtime secs] [ -t ] [ -p ] [ -h ] ] [ -a [ -J [ -L limit ] ] ]'%" } ;
 ErrorId MsgServer2::FilelimitSuf           = { ErrorOf( ES_SERVER2, 301, E_FAILED, EV_USAGE, 0 ), "The filelimit suffix is invalid, valid suffixes: one of tTgGmMkK." } ;
 ErrorId MsgServer2::Filelimit              = { ErrorOf( ES_SERVER2, 309, E_FAILED, EV_USAGE, 0 ), "The filelimit string is invalid." } ;
 ErrorId MsgServer2::DiagsNotSupported      = { ErrorOf( ES_SERVER2, 302, E_FAILED, EV_USAGE, 1 ), "The %cmd% suboption is not supported on this platform" } ;
@@ -358,8 +358,8 @@ ErrorId MsgServer2::DeltaTransferRplErr    = { ErrorOf( ES_SERVER2, 322, E_INFO,
 ErrorId MsgServer2::ObliterateExtension    = { ErrorOf( ES_SERVER2, 323, E_FAILED, EV_ADMIN, 1 ), "Obliterate cannot delete extension file(s) %file%\nSee '%'p4 help extension'%' to delete extensions." };
 ErrorId MsgServer2::LoginIdled             = { ErrorOf( ES_SERVER2, 324, E_FAILED, EV_ILLEGAL, 0 ), "Your session has expired due to inactivity, please %'login'% again." } ;
 ErrorId MsgServer2::P4authNeeds20251       = { ErrorOf( ES_SERVER2, 327, E_FAILED, EV_NOTYET, 0 ), "The P4AUTH server requires the connecting server to be upgraded to 2025.1 or above." } ;
-ErrorId MsgServer2::UseWebServer           = { ErrorOf( ES_SERVER2, 335, E_FAILED, EV_USAGE, 0 ), "Usage: %'webserver { start | stop }'%" };
-ErrorId MsgServer2::UseWebServerStart      = { ErrorOf( ES_SERVER2, 328, E_FAILED, EV_USAGE, 0 ), "Usage: %'webserver start -p [ip:]port'%" };
+ErrorId MsgServer2::UseWebServer           = { ErrorOf( ES_SERVER2, 335, E_FAILED, EV_USAGE, 0 ), "Usage: %'webserver { start | stop | show }'%" };
+ErrorId MsgServer2::UseWebServerStart      = { ErrorOf( ES_SERVER2, 328, E_FAILED, EV_USAGE, 0 ), "Usage: %'webserver start -p [tcp:][ip:]port'%" };
 ErrorId MsgServer2::UseWebServerStop       = { ErrorOf( ES_SERVER2, 334, E_FAILED, EV_USAGE, 0 ), "Usage: %'webserver stop -p [ip:]port'%" };
 ErrorId MsgServer2::WebServerStarted       = { ErrorOf( ES_SERVER2, 329, E_INFO, EV_NONE, 2 ), "Web server started on [%ip%:]%port%." };
 ErrorId MsgServer2::WebServerStopped       = { ErrorOf( ES_SERVER2, 330, E_INFO, EV_NONE, 0 ), "Web server stopped." };
@@ -372,11 +372,12 @@ ErrorId MsgServer2::RplFilterExpand        = { ErrorOf( ES_SERVER2, 347, E_INFO,
 ErrorId MsgServer2::TooMuchRplFilter       = { ErrorOf( ES_SERVER2, 338, E_FAILED, EV_ADMIN, 1 ), "There is already a '%cmd%' process running." };
 ErrorId MsgServer2::RplFilterReport        = { ErrorOf( ES_SERVER2, 339, E_INFO, EV_NONE, 3 ), "Records scanned: %scan%, records filtered: %filtered% from %db%." };
 ErrorId MsgServer2::ExtensionConfigExists  = { ErrorOf( ES_SERVER2, 341, E_FAILED, EV_ADMIN, 2 ), "Could not create new configuration instance as this extension only allows a single configuration instance.\nConfiguration instance '%instance%' already exists for '%extension%'." };
-ErrorId MsgServer2::RmtOpFailedInconsistent   = { ErrorOf( ES_SERVER2, 342, E_FAILED, EV_FAULT, 0 ), "Operation failed on remote server because of data inconsistency, possibly due to stalled or slow replication." };
+ErrorId MsgServer2::RmtOpFailedInconsistent = { ErrorOf( ES_SERVER2, 342, E_FAILED, EV_FAULT, 0 ), "Operation failed on remote server because of data inconsistency, possibly due to stalled or slow replication." };
 ErrorId MsgServer2::MustSetPasswordRequireSU = { ErrorOf( ES_SERVER2, 343, E_FAILED, EV_USAGE, 0 ), "Password must be set by super user before access can be granted." };
-ErrorId MsgServer2::InfoServerCertExpire = { ErrorOf( ES_SERVER2, 344, E_INFO, EV_NONE, 1 ), "Server cert expires: %serverCertExpire%" } ;
-ErrorId MsgServer2::InfoProxyCertExpire = { ErrorOf( ES_SERVER2, 345, E_INFO, EV_NONE, 1 ), "Proxy cert expires: %proxyCertExpire%" } ;
-ErrorId MsgServer2::WebServerRuntime   = { ErrorOf( ES_SERVER2, 346, E_FAILED, EV_FAULT, 1 ), "Web server runtime startup failed: %message%" };
+ErrorId MsgServer2::ServiceAuthErr         = { ErrorOf( ES_SERVER2, 363, E_FAILED, EV_ADMIN, 2 ), "Service user '%svc%' failed authentication check on server '%server%'" };
+ErrorId MsgServer2::InfoServerCertExpire   = { ErrorOf( ES_SERVER2, 344, E_INFO, EV_NONE, 1 ), "Server cert expires: %serverCertExpire%" } ;
+ErrorId MsgServer2::InfoProxyCertExpire    = { ErrorOf( ES_SERVER2, 345, E_INFO, EV_NONE, 1 ), "Proxy cert expires: %proxyCertExpire%" } ;
+ErrorId MsgServer2::WebServerRuntime       = { ErrorOf( ES_SERVER2, 346, E_FAILED, EV_FAULT, 1 ), "Web server runtime startup failed: %message%" };
 ErrorId MsgServer2::ExtensionNotFound      = { ErrorOf( ES_SERVER2, 348, E_FAILED, EV_NONE, 1 ), "Extension with UUID '%uuid%' not found." };
 ErrorId MsgServer2::ExtensionDisabled      = { ErrorOf( ES_SERVER2, 349, E_INFO, EV_NONE, 1 ), "Extension with UUID '%uuid%' has been disabled." };
 ErrorId MsgServer2::DisableExtensionUsage  = { ErrorOf( ES_SERVER2, 350, E_FAILED, EV_USAGE, 0 ), "Usage: '-xf disable.extension uuid'" };
@@ -387,9 +388,14 @@ ErrorId MsgServer2::StgStorageShMiss       = { ErrorOf( ES_SERVER2, 354, E_INFO,
 ErrorId MsgServer2::StgBadRefCount         = { ErrorOf( ES_SERVER2, 355, E_INFO, EV_NONE, 3 ), "Incorrect db.storage refCount. db.storage count %stg% db.rev count %rev% key %key%." } ;
 ErrorId MsgServer2::StgBadShRefCount       = { ErrorOf( ES_SERVER2, 356, E_INFO, EV_NONE, 3 ), "Incorrect db.storagesh refCount. db.storagesh count %stg% db.revsh count %rev% key %key%." } ;
 ErrorId MsgServer2::RESTAPISetVarErr       = { ErrorOf( ES_SERVER2, 357, E_FATAL, EV_FAULT, 2 ), "Encountered an exception while transferring data to the web server for the variable '%varName%'. %errMsg%'" };
+ErrorId MsgServer2::ReplicaFilterNotReplica = { ErrorOf( ES_SERVER2, 359, E_FAILED, EV_USAGE, 0 ), "Replica-filter-reconcile only allowed on replica servers." } ;
+ErrorId MsgServer2::UserNotOfType          = { ErrorOf( ES_SERVER2, 360, E_FAILED, EV_USAGE, 1 ), "User must be of type %type%." } ;
+ErrorId MsgServer2::NotTheAuthServer       = { ErrorOf( ES_SERVER2, 361, E_FAILED, EV_USAGE, 0 ), "This command must be run on the P4AUTH server." } ;
+ErrorId MsgServer2::InfoStats              = { ErrorOf( ES_SERVER2, 362, E_INFO, EV_NONE, 2 ), "Server Statistics: %stats% encrypted(%statsEnc%)" } ;
+ErrorId MsgServer2::WebServerShow          = { ErrorOf( ES_SERVER2, 364, E_INFO, EV_NONE, 3 ), "Protocol: %proto% Interface: %iface% Port: %port% Uptime %uptime%[%units%HH:MM:SS| Days] User %user%." } ;
 ErrorId MsgServer2::ConfigureReadonlyDirUnsetWarn = { ErrorOf( ES_SERVER2, 365, E_WARN, EV_NONE, 0 ), "When 'client.readonly.dir' is unset, any partitioned clients will be inaccessible until 'client.readonly.dir' is reconfigured." } ;
-ErrorId MsgServer2::NonResidentOpenPending = { ErrorOf( ES_SERVER2, 373, E_FAILED, EV_USAGE, 2 ), "%clientFile% - can't open for %action% in sparse stream; file is visible only through an unsubmitted stream spec change. Submit the stream spec first." };
 ErrorId MsgServer2::ExtPkgPathTraversal    = { ErrorOf( ES_SERVER2, 369, E_FAILED, EV_FAULT, 1 ), "Path traversal in extension archive: '%filename%' resolves outside the extraction sandbox." } ;
+
 
 /* Deprecated */
 ErrorId MsgServer2::StgKeyMiss             = { ErrorOf( ES_SERVER2, 4, E_INFO, EV_NONE, 1 ), "Can't find key %key% in the checkmap." } ;

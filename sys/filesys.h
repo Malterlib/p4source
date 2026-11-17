@@ -73,6 +73,7 @@
  *	FileSys::Fsync() - sync file state to disk
  *
  *	FileSys::CheckType() - look at the file and see if it is binary, etc
+ *	FileSys::CheckTypeStat() - classify from stat() alone, no content read
  *	FileSys::SetAtomicRename() - set atomic rename on this instance
  *	FielSys::CheckForAtomicRename() - Qualify Windows OS atomic support
  */
@@ -282,6 +283,7 @@ class FileSys {
 
 # ifdef OS_NT
 	static bool	IsUNC( const StrPtr &p );
+	static bool	IsExtended( const StrPtr &p );
 # endif
 
 	virtual void	SetBufferSize( size_t ) { }
@@ -442,6 +444,10 @@ class FileSys {
 	static void	CheckForAtomicRename( Error *e );
 
 	FileSysType	CheckType( int scan = -1 );
+
+	FileSysType	CheckTypeStat( int probeOpen = 0 );
+
+	static int	BinaryScanSize( int scan );
 
 # if defined ( OS_MACOSX ) && OS_VER < 1010
 	FileSysType	CheckTypeMac();

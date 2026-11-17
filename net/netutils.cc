@@ -287,7 +287,7 @@ inet_aton(
 	    0x000000FF  //  8 bits (/24)
 	};
 
-	while( ch = *cp )
+	while( ( ch = *cp ) )
 	{
 	    val = 0;	// re-initialize for each chunk
 	    base = 10;	// each field starts as decimal
@@ -311,7 +311,7 @@ inet_aton(
 	            break;
 	    }
 
-	    while( ch = *cp )
+	    while( ( ch = *cp ) )
 	    {
 	        // compute the value of this chunk
 	        if( isdigit(ch) )
@@ -470,8 +470,8 @@ NetUtils::SetQuickAck( int fd, bool mode )
 		fd, freq );
 	}
 
-	int result = WSAIoctl( fd, SIO_TCP_SET_ACK_FREQUENCY, &freq, sizeof(freq), NULL,
-			    0, &bytesReturned, NULL, NULL );
+	WSAIoctl( fd, SIO_TCP_SET_ACK_FREQUENCY, &freq, sizeof(freq), NULL,
+	          0, &bytesReturned, NULL, NULL );
 #   endif
 # else
 #   if defined(TCP_QUICKACK)

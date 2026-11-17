@@ -591,6 +591,19 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionLsof },
 	{ "strace",             Options::Strace, 's', 0,
 	                      &MsgSupp::OptionStrace },
+	{ "diagdir",            Options::DiagDir, 'D', 0,
+	                      &MsgSupp::OptionDiagDir },
+	{ "journal_logs",       Options::Journal_Logs, 'J', 0,
+	                      &MsgSupp::OptionJournal_Logs },
+	{ "json",               Options::JsonFormat, 'j', 0,
+	                      &MsgSupp::OptionJsonFormat },
+	{ "top",                Options::TopOut, 't', 0,
+	                      &MsgSupp::OptionTopOut },
+	{ "ps",                 Options::PsOut, 'p', 0,
+	                      &MsgSupp::OptionPsOut },
+
+	{ "ckphist",             Options::CkpHist, 'h', 0,
+	                      &MsgSupp::OptionCkpHist },
 	// Options below this line have no short-form equivalent:
 
 	{ "no-rejournal",       Options::NoRejournal,  0, 0,
@@ -812,7 +825,11 @@ Options::OptionInfo Options::list[] = {
 	                      &MsgSupp::OptionServerSizeRCS },
 	{ "restrict-only",      Options::RestrictOnly, 0, 0, 0 },
 	{ "expand-only",        Options::ExpandOnly, 0, 0, 0 },
-
+	{ "reset-password",     Options::ResetPassword, 0, 0,
+	                      &MsgSupp::OptionResetPassword },
+	{ "tar",                Options::Tar, 0, 0, &MsgSupp::OptionTar },
+	{ "tgz",                Options::Tgz, 0, 0,
+	                      &MsgSupp::OptionTgz },
 
 #ifdef _DEBUG
 	{ "debugbreak",         Options::DebugBreak,  0, 0,

@@ -217,11 +217,22 @@ FileSys::SetLFN( const StrPtr &name )
 	int lfn_val = p4tunable.Get( P4TUNE_FILESYS_WINDOWS_LFN );
 	if( lfn_val )
 	{
+	    int extended = IsExtended( name );
+
 	    // For LFN nt_wname will convert from ANSI to UNICODE.
 	    //
 	    // Use GetCwdbyCS as it determines UTF8 or ANSI.  It
 	    // also provides a better representation of cwd length.
-	    if( IsRelative( name ) )
+	    if( extended )
+	    {
+		// The caller passed a device-prefixed path ("\\?\" or
+		// "\\.\").  Enable LFN regardless of length so the
+		// MAX_PATH guards accept it, and skip the length/UNC
+		// classification - nt_wname detects the existing prefix
+		// and must not prefix it again.
+		LFN = LFN_ENABLED;
+	    }
+	    else if( IsRelative( name ) )
 	    {
 		StrBuf cwd;
 		HostEnv::GetCwdbyCS( cwd, GlobalCharSet::Get());
@@ -238,7 +249,12 @@ FileSys::SetLFN( const StrPtr &name )
 		    LFN = LFN_ENABLED;
 	    }
 
-	    if( LFN )
+	    // LFN_UNCPATH drives nt_wname's "\\?\UNC" prefix assembly, so
+	    // it must never be set for an already-extended path: rename
+	    // ORs the flags of two FileSys objects and applies them to
+	    // both names, and a leaked UNCPATH bit would corrupt a plain
+	    // peer path into "\\?\UNC<path-minus-one-slash>".
+	    if( LFN && !extended )
 	    {
 		// If UNC path, later we use "\\?\UNC" instead of "\\?\"
 		if( IsUNC( name ) )
@@ -486,6 +502,26 @@ FileSys::IsRelative( const StrPtr &path )
 }
 
 #ifdef OS_NT
+/*
+ * FileSys::IsExtended() - path begins with a Win32 device namespace
+ * prefix, "\\?\" or "\\.\" (separators may be forward slashes; the OS
+ * normalizes those forms).  Such a path must reach the OS as-is: it is
+ * never relative, it is not a UNC host form, and assembling another
+ * prefix in front of it produces a name NtOpenFile rejects (see
+ * SetLFN and nt_wname).
+ */
+
+bool
+FileSys::IsExtended( const StrPtr &path )
+{
+	const char *p = path.Text();
+
+	return ( p[0] == '/' || p[0] == '\\' ) &&
+	       ( p[1] == '/' || p[1] == '\\' ) &&
+	       ( p[2] == '?' || p[2] == '.' ) &&
+	       ( p[3] == '/' || p[3] == '\\' );
+}
+
 bool
 FileSys::IsUNC( const StrPtr &path )
 {
@@ -494,6 +530,12 @@ FileSys::IsUNC( const StrPtr &path )
 	// At a minimum we are looking for "\\host\share".
 	if( (p[0] == '/' || p[0] == '\\') && (p[1] == '/' || p[1] == '\\') )
 	{
+	    // Device prefixes are not UNC hosts.  Only the extended form
+	    // "\\?\UNC\host\share" names a UNC path.
+	    if( IsExtended( path ) )
+		return p[2] == '?' && !strnicmp( &p[4], "UNC", 3 ) &&
+		       ( p[7] == '/' || p[7] == '\\' );
+
 	    if( strchr( &(p[2]), '/' ) || strchr( &(p[2]), '\\' ) )
 		return true;
 	}

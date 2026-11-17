@@ -93,6 +93,8 @@ ClientFile::ClientFile( FileSys *fs )
 
 ClientFile::~ClientFile()
 {
+	if( file )
+	    file->SetDigest( NULL );
 	delete file;
 	delete indirectFile;
 	delete checksum;
@@ -320,6 +322,39 @@ ClientSvc::XCharset( Client *client, XDir d )
 	}
 
 	return 0;
+}
+
+bool
+ClientSvc::SizeMatchesDepot( FileSysType t, CharSetCvt *cvt )
+{
+	// Byte-changing translation comes from three places: the line-end bits,
+	// the charset converter, and the type-internal converter that
+	// FileIOUnicode/UTF8/UTF16 install on Open() (see fileiouni.cc), which
+	// cvt does not show.  LineTypeLocal == LineTypeRaw resolves at compile
+	// time per platform.
+
+	FileSysType base = (FileSysType)( t & FST_MASK );
+	FileSysType lf   = (FileSysType)( t & FST_L_MASK );
+
+	// Apple and resource types read through a fork-combining stream, so
+	// their stored size is not the on-disk count whatever their line-end
+	// bits say, and their base nibble reads as ordinary text or binary.
+
+	if( ( t & FST_M_APPLE ) || base == FST_RESOURCE )
+	    return false;
+
+	// IsUnicode() and IsTextual() are instance methods; asked here of the
+	// bare type.
+
+	int isUnicode = base == FST_UNICODE || base == FST_UTF8 ||
+	                base == FST_UTF16;
+	int isTextual = isUnicode || base == FST_TEXT;
+
+	return !isTextual
+	    || ( !isUnicode &&
+	         !cvt &&
+	         ( lf == FST_L_LF ||
+	           ( lf == FST_L_LOCAL && LineTypeLocal == LineTypeRaw ) ) );
 }
 
 FileSys *
@@ -2160,8 +2195,8 @@ static void clientCheckFileGraph( Client *client, Error *e );
 
 const char *
 clientCheckFileType( FileSys *f, FileSysType t, int clientProtocolFiles,
-	             int checkSize, StrPtr *wildType, StrPtr *forceType,
-	             StrPtr *msgType, Error *e )
+	             int checkSize, int scan, StrPtr *wildType,
+	             StrPtr *forceType, StrPtr *msgType, Error *e )
 {
 	const ctTable *c;
 
@@ -2200,9 +2235,16 @@ clientCheckFileType( FileSys *f, FileSysType t, int clientProtocolFiles,
 	    // Use the altType, saying we're assuming it
 	    ntype = forceType ? forceType->Text() : c->altType;
 
+	    // FST_CANTTELL covers a file we could not read and a file we chose
+	    // not to read, and only the scan size tells them apart.  The second
+	    // gets its own wording rather than being called unreadable.
+
 	    if( wildType )
-	        e->Set( MsgClient::CheckFileAssumeWild ) 
+	        e->Set( MsgClient::CheckFileAssumeWild )
 	                << f->Name() << c->type << ntype << wildType;
+	    else if( t == FST_CANTTELL && FileSys::BinaryScanSize( scan ) <= 0 )
+	        e->Set( MsgClient::CheckFileNoScan ) << f->Name()
+	                << ( msgType ? msgType->Text() : ntype );
 	    else
 	        e->Set( MsgClient::CheckFileAssume ) << f->Name()
 	                << c->type << ( msgType ? msgType->Text() : ntype );
@@ -2235,6 +2277,7 @@ clientCheckFile( Client *client, Error *e )
 	StrPtr *wildType = client->GetVar( P4Tag::v_type2 );
 	StrPtr *msgType = client->GetVar( P4Tag::v_type3 );
 	StrPtr *forceType = client->GetVar( P4Tag::v_forceType );
+	StrPtr *forceTypeBits = client->GetVar( P4Tag::v_forceTypeBits );
 	StrPtr *digest = client->GetVar( P4Tag::v_digest );
 	StrPtr *digestType = client->GetVar( P4Tag::v_digestType );
 	StrPtr *confirm = client->GetVar( P4Tag::v_confirm, e );
@@ -2499,32 +2542,118 @@ clientCheckFile( Client *client, Error *e )
 	    FileSys *f = client->GetUi()->File( FST_BINARY );
 	    f->SetContentCharSetPriv( client->ContentCharset() );
 	    f->Set( *clientPath );
-	    FileSysType t = f->CheckType( scan );
-	    offL_t size = f->GetSize();
-	    if( t != FST_BINARY && sendFileSize )
-	    {
-	        // The file was originally opened as binary.
-	        // Need to reopen the file with the now known
-	        // type if it's not binary to get the correct
-	        // file size. f2 would be 0 if file is missing.
 
-	        FileSys *f2 = client->GetUi()->File( t );
-	        if( f2 )
-	        {
-	            f2->SetContentCharSetPriv( client->ContentCharset() );
-	            f2->Set( *clientPath );
-	            size = f2->Digest( 0, e );
-	            delete f2;
-	        }
-	    }
+	    // Every content-derived row of checkTable resolves to forceType at
+	    // xfiles 7 or better, and what is left -- symlink, directory,
+	    // special, empty, unreadable -- comes from stat(), so there is
+	    // nothing left for the content to decide.  A wildcard type is
+	    // overlaid onto the detected type, so it does not qualify.
+	    //
+	    // 7 is the highest xlevel in checkTable; a new content-derived row
+	    // above it has to raise this too.
+
+	    FileSysType t;
+
+	    if( forceType && forceTypeBits && !wildType &&
+	        client->protocolXfiles >= 7 )
+	        t = f->CheckTypeStat( 1 );
+	    else
+	        t = f->CheckType( scan );
+
+	    offL_t size = f->GetSize();
 
 	    if( sendFileSize )
+	    {
+	        // Size against the type the file will be stored as, which is
+	        // forceTypeBits when the typemap supplied one and the detected
+	        // type otherwise.
+
+	        FileSysType st = t;
+
+	        // A detected symlink keeps its own type unless
+	        // filesys.symlink.typemap lets the typemap win, so sizing has
+	        // to follow the same rule the reported type does.
+
+	        if( forceTypeBits &&
+	            ( t != FST_SYMLINK ||
+	              p4tunable.Get( P4TUNE_FILESYS_SYMLINK_TYPEMAP ) ) )
+	        {
+	            Error te;
+	            FileSysType ft = LookupType( forceTypeBits, &te );
+
+	            if( !te.Test() )
+	                st = ft;
+	        }
+
+	        // These are the stat() verdicts that name something with no
+	        // content to read: no file, a directory or other non-file, no
+	        // bytes, or bytes this client could not or was told not to
+	        // look at.  A translating stored type would otherwise send the
+	        // sizing read at them, where it can only fail, and the failure
+	        // is not the user's: the add proceeds, and
+	        // clientCheckFileType() below reports the condition in its own
+	        // words.  stat()'s count is what a client without
+	        // forceTypeBits sends for these anyway.
+
+	        FileSysType tbase = (FileSysType)( t & FST_MASK );
+
+	        int noContent = tbase == FST_MISSING   ||
+	                        tbase == FST_EMPTY     ||
+	                        tbase == FST_CANTTELL  ||
+	                        tbase == FST_DIRECTORY ||
+	                        tbase == FST_SPECIAL;
+
+	        // Ask before building the FileSys, so the common case costs no
+	        // allocation per file.  A symlink stores its link target rather
+	        // than the bytes it points at, so it always reads.
+
+	        if( !noContent &&
+	            ( ( st & FST_MASK ) == FST_SYMLINK ||
+	              !ClientSvc::SizeMatchesDepot( st,
+	                  ClientSvc::XCharset( client, FromClient ) ) ) )
+	        {
+	            FileSys *f2 = client->GetUi()->File( st );
+
+	            if( f2 )
+	            {
+	                f2->SetContentCharSetPriv( client->ContentCharset() );
+	                f2->Set( *clientPath );
+
+	                // A local Error: Digest() neither clears the one it is
+	                // given nor reads with one already set, and e can
+	                // arrive here already set.
+
+	                Error de;
+
+	                size = f2->Digest( 0, &de );
+
+	                // A typemap type its content does not fit makes the
+	                // read fail where the detected type would not.  That
+	                // is an artifact of the type, so the truncated count
+	                // and the error are both dropped.  Any other failure
+	                // is real and propagates as before.
+
+	                if( de.Test() )
+	                {
+	                    if( de.CheckId( MsgSupp::NoTrans ) ||
+	                        de.CheckId( MsgSupp::PartialChar ) )
+	                        size = f->GetSize();
+	                    else
+	                        e->Merge( de );
+	                }
+
+	                delete f2;
+	            }
+	        }
+
 	        client->SetVar( P4Tag::v_fileSize, StrNum( size ) );
+	    }
 
 	    Error msg;
 	    ntype = clientCheckFileType( f, t, client->protocolXfiles,
 	                                 fileSize && size > checkSize,
-	                                 wildType, forceType, msgType, &msg );
+	                                 scan, wildType, forceType, msgType,
+	                                 &msg );
 	    if( msg.GetSeverity() )
 	        client->GetUi()->Message( &msg );
 	    delete f;
@@ -3364,6 +3493,14 @@ clientSendFileWhole( Client *client, ProgressReport **progress, FileSys *f,
 
 	const int size = FileSys::BufferSize();
 
+# ifdef HAS_EXTENSIONS
+	// Settled before the loop starts and unchanged by it, so the loop
+	// pays one bool test per buffer rather than repeating the lookup.
+
+	const bool debugHooks = client->ExtensionsEnabled() &&
+	                        client->ExtensionsDebugHooksEnabled();
+# endif
+
 	while( !client->Dropped() )
 	{
 		StrBuf *bu = client->MakeVar( P4Tag::v_data );
@@ -3385,6 +3522,17 @@ clientSendFileWhole( Client *client, ProgressReport **progress, FileSys *f,
 # endif
 
 		bu->SetEnd( b + l );
+
+# ifdef HAS_EXTENSIONS
+		// The result is deliberately not acted on.  Leaving this
+		// loop early without an error would send a short file that
+		// the digest and the length reported below both agree with,
+		// so there would be nothing left to notice it was short.
+
+		if( debugHooks )
+		    chunkSendDebugHook( client, "ClientSendFileWholeLoop",
+		                        "clientSendFileWhole", e );
+# endif
 
 		len += l;
 
@@ -3426,7 +3574,9 @@ clientSendFile( Client *client, Error *e )
 	StrPtr *handle = client->GetVar( P4Tag::v_handle, e );
 	StrPtr *open = client->GetVar( P4Tag::v_open, e );
 	StrPtr *write = client->GetVar( P4Tag::v_write, e );
+# ifdef USE_CDC
 	StrPtr *chunkWrite = client->GetVar( P4Tag::v_chunkWrite );
+# endif
 	StrPtr *chunkMapWrite = client->GetVar( P4Tag::v_chunkMapWrite );
 	StrPtr *confirm = client->GetVar( P4Tag::v_confirm, e );
 	StrPtr *decline = client->GetVar( P4Tag::v_decline, e );

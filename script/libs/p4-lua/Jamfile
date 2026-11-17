@@ -25,3 +25,9 @@ if $(GCCVER) && [ FVersionCmp $(GCCVER) : 8 ] < 0 ||
 {
 	ObjectC++Flags p4lua.cc : -ftemplate-depth=2048 ;
 }
+
+if $(CLANGVER) && [ FVersionCmp $(CLANGVER) : 21 ] >= 0
+{
+	# job131870.
+	ObjectC++Flags p4mergedata.cc : -Wno-nonnull ;
+}

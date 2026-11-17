@@ -23,6 +23,10 @@
 # include <msgdb.h>
 # include <msgdm2.h>
 # include "specparse.h"
+
+# include "p4tags.h"
+# include "datetime.h"
+
 # include "spec.h"
 
 /*
@@ -549,4 +553,142 @@ Spec::Format( SpecData *data, StrDict *dict )
 	            dict->SetVar( d->tag, *v );
 	    }
 	}
+}
+
+/**
+ * SpecData::SetExtraTag -
+ * Records an extra (non-schema) tag and its string value in the output
+ * dictionary 'rh'. 
+ *
+ * @param[out] rh    - Output string dictionary to write the tag into.
+ * @param[in]  name  - Name (key) of the extra tag field.
+ * @param[in]  index - Zero-based position in the extraTag index arrays;
+ *                     -1 to exclude extraTag# and extraTagType# from output.
+ * @param[in]  type  - Type hint string for the field (e.g. "word", "date").
+ * @param[in]  value - String value to associate with the tag.
+ */
+void
+SpecData::SetExtraTag( StrDict& rh, const StrRef& name, const int index, 
+	               const StrRef& type, const StrRef& value ) const
+{
+	SetExtraTagCommon( rh, name, index, type );
+	rh.SetVar( name, value );
+}
+
+/**
+ * SpecData::SetExtraTag -
+ * Bool overload.  Records an extra (non-schema) tag and its boolean value
+ * in the output dictionary 'rh'.
+ *
+ * @param[out] rh    - Output string dictionary to write the tag into.
+ * @param[in]  name  - Name (key) of the extra tag field.
+ * @param[in]  index - Zero-based position in the extraTag index arrays;
+ *                     -1 to exclude extraTag# and extraTagType# from output.
+ * @param[in]  type  - Type hint string for the field.
+ * @param[in]  value - Boolean value to associate with the tag.
+ */
+void
+SpecData::SetExtraTag( StrDict& rh, const StrRef& name, const int index, 
+	               const StrRef& type, const bool value ) const
+{
+	SetExtraTagCommon( rh, name, index, type );
+	rh.SetVar( name.Text(), value );
+}
+
+/**
+ * SpecData::SetExtraTag -
+ * Integer overload.  Records an extra (non-schema) tag and its int value
+ * in the output dictionary 'rh'.
+ *
+ * @param[out] rh    - Output string dictionary to write the tag into.
+ * @param[in]  name  - Name (key) of the extra tag field.
+ * @param[in]  index - Zero-based position in the extraTag index arrays;
+ *                     -1 to exclude extraTag# and extraTagType# from output.
+ * @param[in]  type  - Type hint string for the field.
+ * @param[in]  value - Integer value to associate with the tag.
+ */
+void
+SpecData::SetExtraTag( StrDict& rh, const StrRef& name, const int index, 
+	               const StrRef& type, const int value ) const
+{
+	SetExtraTagCommon( rh, name, index, type );
+	rh.SetVar( name.Text(), value );
+}
+
+# ifdef HAVE_INT64
+/**
+ * SpecData::SetExtraTag -
+ * Long integer overload.  Records an extra (non-schema) tag and its long
+ * value in the output dictionary 'rh'.
+ *
+ * @param[out] rh    - Output string dictionary to write the tag into.
+ * @param[in]  name  - Name (key) of the extra tag field.
+ * @param[in]  index - Zero-based position in the extraTag index arrays;
+ *                     -1 to exclude extraTag# and extraTagType# from output.
+ * @param[in]  type  - Type hint string for the field.
+ * @param[in]  value - Long integer value to associate with the tag.
+ */
+void
+SpecData::SetExtraTag( StrDict& rh, const StrRef& name, const int index, 
+	               const StrRef& type, const long value ) const
+{
+	SetExtraTagCommon( rh, name, index, type );
+	rh.SetVar( name.Text(), value );
+}
+
+/**
+ * SpecData::SetExtraTag -
+ * P4INT64 overload.  Records an extra (non-schema) tag and its 64-bit
+ * integer value in the output dictionary 'rh'.
+ *
+ * @param[out] rh    - Output string dictionary to write the tag into.
+ * @param[in]  name  - Name (key) of the extra tag field.
+ * @param[in]  index - Zero-based position in the extraTag index arrays;
+ *                     -1 to exclude extraTag# and extraTagType# from output.
+ * @param[in]  type  - Type hint string for the field.
+ * @param[in]  value - 64-bit integer value to associate with the tag.
+ */
+void
+SpecData::SetExtraTag( StrDict& rh, const StrRef& name, const int index, 
+	               const StrRef& type, const P4INT64 value ) const
+{
+	SetExtraTagCommon( rh, name, index, type );
+	rh.SetVar( name.Text(), value );
+}
+# endif
+
+/**
+ * SpecData::SetExtraTagCommon -
+ * Shared helper used by all SetExtraTag overloads.  Consolidates handling
+ * of extraTag# and extraTagType#.
+ *
+ * @param[out] rh    - Output string dictionary to write the metadata into.
+ * @param[in]  name  - Name of the extra tag to register.
+ * @param[in]  index - Zero-based slot in the extraTag index arrays;
+ *                     -1 to exclude extraTag# and extraTagType# from output.
+ * @param[in]  type  - Type hint string for the tag (e.g. "word", "date").
+ */
+void
+SpecData::SetExtraTagCommon( StrDict& rh, const StrRef& name, 
+	                     const int index, const StrRef& type ) const
+{
+	if( index >= 0 )
+	{
+	    rh.SetVar( P4Tag::v_extraTag, index, name );
+	    rh.SetVar( P4Tag::v_extraTagType, index, type );
+	}
+}
+
+/**
+ * SpecData::IsSystemField -
+ * Returns true when the given spec element should be treated as a system
+ * field.
+ *
+ * @param[in] sd - Spec element to test.
+ * @return bool  - true if 'sd' is a system field; false otherwise.
+ */
+bool
+SpecData::IsSystemField( const SpecElem& sd ) const
+{
+	return sd.code <= GetMaxSystemSpecCode() || sd.fixed.Length() > 0;
 }

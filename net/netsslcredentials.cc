@@ -67,7 +67,7 @@ extern "C"
 # define SSL_CERTFILE          (const char*)"certificate.txt"
 
 # define SSL_X509_NUMBITS      4096
-# define SSL_X509_VERSION      3
+# define SSL_X509_VERSION      2
 # define SSL_X509_SERIALNUM    01
 # define SSL_X509_NOTBEFORE    0
 # define SSL_X509_NOTAFTER     ((long) 730 )  // expires in two years

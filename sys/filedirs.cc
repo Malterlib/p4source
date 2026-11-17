@@ -58,9 +58,11 @@ FileSys::ScanDir( Error *e )
 
 		    // Explicitly exclude ., ..
 
-		    if( n[0] != '.' || n[1] != 0 && ( n[1] != '.' || n[2] != 0 ) )
+		    if( n[0] != '.' ||
+		        ( n[1] != 0 && ( n[1] != '.' || n[2] != 0 ) ) )
 		    {
-			const char *rname = rcvt.FastCvt( (const char *)n, 2 * wcslen( n ) );
+			const char *rname = rcvt.FastCvt( (const char *)n,
+			                                  2 * wcslen( n ) );
 			if( rcvt.LastErr() == CharSetCvt::NONE )
 			    r->Put()->Set( rname );
 		    }
@@ -78,7 +80,8 @@ FileSys::ScanDir( Error *e )
 
 		// Explicitly exclude ., ..
 
-		if( n[0] != '.' || n[1] != 0 && ( n[1] != '.' || n[2] != 0 ) )
+		if( n[0] != '.' ||
+		    ( n[1] != 0 && ( n[1] != '.' || n[2] != 0 ) ) )
 		    r->Put()->Set( n );
 
 	    } while( !_findnext( handle, &finfo ) );

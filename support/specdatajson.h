@@ -10,8 +10,33 @@
 using json = nlohmann::json;
 # endif
 
+class JsonSpecElemNameLookup {
+public:
+    virtual ~JsonSpecElemNameLookup() {}
+
+    /**
+     * JsonSpecElemNameLookup::GetElemNameByCode -
+     *	Maps an integer field code to its JSON name.
+     *
+     * @param[in] code       - Integer field code to look up.
+     * @return const StrPtr& - JSON name, or StrRef::Null() if not found.
+     */
+    virtual const StrPtr& GetElemNameByCode( int code ) const = 0;
+
+    /**
+     * JsonSpecElemNameLookup::TranslateElemName -
+     *	Maps a spec field name string to its JSON equivalent.
+     *
+     * @param[in] srcName    - Spec field name to translate.
+     * @return const StrPtr& - JSON name, or srcName if no mapping exists.
+     */
+    virtual const StrPtr& TranslateElemName( const StrPtr& srcName ) = 0;
+};
+
 class JsonSpecHandling {
 public:
+    virtual ~JsonSpecHandling() {}
+
 #ifdef HAS_JSON
     /**
      * JsonSpecHandling::SetJsonField -
@@ -32,6 +57,27 @@ public:
     virtual bool        SetJsonField( SpecElem* sd, int x, const char** wv,
 	                              json& ioJson, Error* e ) const = 0;
 #endif // HAS_JSON
+
+    const StrPtr&       GetJsonFieldName( const SpecElem& sd ) const;
+    const StrPtr&       GetJsonFieldName( const StrPtr& srcName );
+
+protected:
+    /**
+     * JsonSpecHandling::GetJsonNameLookup -
+     *	Returns the const name lookup table for this spec type.
+     *
+     * @return const JsonSpecElemNameLookup& - The name lookup table.
+     */
+    virtual const JsonSpecElemNameLookup&   GetJsonNameLookup() const = 0;
+
+    /**
+     * JsonSpecHandling::GetJsonNameLookupNonConst -
+     *	Returns a mutable reference to the name lookup table for this spec type.
+     *	Required for non-const operations such as TranslateElemName.
+     *
+     * @return JsonSpecElemNameLookup& - The mutable name lookup table.
+     */
+    virtual JsonSpecElemNameLookup&         GetJsonNameLookupNonConst() = 0;
 };
 
  // This class exists to translate between the text based forms && JSON data
@@ -40,8 +86,17 @@ public:
 class JsonSpecData : public SpecData {
 
 public:
-    JsonSpecData( const SpecData* srcSpecData );
+    JsonSpecData( SpecData* srcSpecData );
     virtual ~JsonSpecData();
+
+# if defined( HAS_CPP11 ) && !defined( HAS_BROKEN_CPP11 )
+    // Ensure this class can't be copied, moved, or assigned to avoid
+    // potentially leaking the srcSpecData
+    JsonSpecData( const JsonSpecData& ) = delete;
+    JsonSpecData( JsonSpecData&& ) = delete;
+    JsonSpecData& operator=( const JsonSpecData& ) = delete;
+    JsonSpecData& operator=( JsonSpecData&& ) = delete;
+#endif
 
     virtual void        Set( SpecElem* sd, int x, const char** wv, Error* e );
     virtual void        SetComment( SpecElem* sd,
@@ -54,7 +109,31 @@ public:
 				  Error& e );
 
     StrDict*            GetExtraTagDict() const { return jsonExtraTags; }
+
+    virtual void        SetExtraTag( StrDict& rh,
+	                             const StrRef& name,
+	                             const int index,
+	                             const StrRef& type,
+	                             const StrRef& value ) const;
+
+    const SpecData&     GetSrcSpecData() const { return *srcSpecData; }
+
+#ifdef HAS_JSON
+    static json&        GetArray( json& jsonObj, const char* key );
+    static void         SetISO8601Date( json& jsonObj,
+	                                const char* keyName,
+	                                const char* dateFromFmt,
+	                                Error& e );
+#endif // HAS_JSON
+
+    static const StrPtr& GetFieldName( const SpecData& sd, 
+	                               const SpecElem& se );
+    static const StrPtr& GetFieldName( SpecData& sd, 
+	                               const StrPtr& srcName );
+    const StrPtr&        GetFieldName( const SpecElem& se ) const;
+    const StrPtr&        GetFieldName( const StrPtr& srcName );
 private:
+
     void                SetWordListComment( const char* fieldName,
 	                                    const int index,
 	                                    const char* comment );
@@ -79,7 +158,7 @@ private:
 
     // We own this reference to the original spec data object and must ensure
     // it gets properly cleaned up.
-    const SpecData*     srcSpecData;
+    SpecData*           srcSpecData;
 
     // This 'arrayName' & 'arrayOffset' exists because of a very long 
     // standing issue in Spec::Parse when encountering inline comments it

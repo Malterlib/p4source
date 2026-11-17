@@ -18,7 +18,8 @@
 #	Section 10. Google protocol buffers build rules and actions.
 #	Section 11. Unit test rules
 #	Section 12. Per-platform actions.
-#	Section 13. Useful miscellanea
+#	Section 13. REST API/Rust build
+#	Section 14. Useful miscellanea
 
 #################################################
 #
@@ -791,8 +792,8 @@
 	}
 
 	STRIP = strip ;
-	COMPRESS = gzip -9 ;
-	ZIP ?= zip -9 -r -q ;
+	COMPRESS = gzip -1 ;
+	ZIP ?= zip -1 -r -q ;
 
 	# symbolic flags with no user/group/other specifier will default to
 	# ANDing with the user's umask.
@@ -816,6 +817,7 @@
 		"OS_VER=$(OSVERLONG)" ;
 
 	HDRS +=
+		$(ALL_LOCATE_TARGET)
 		[ FSubDirPath P4 msgs ]
 		[ FSubDirPath P4 support ]
 		[ FSubDirPath P4 sys ] ;
@@ -958,13 +960,22 @@
 		# Rust libraries always start with 'lib' on
 		# Unix platforms, and always omit the 'lib'
 		# on Windows.
-		local libName = $(2) ;
+		local libName = $(2:S=$(SUFLIB)) ;
 		if $(OS) != "NT"
 		{
-			libName = lib$(libName) ;
+		    libName = lib$(libName) ;
 		}
-
-		SetLibName $(1) : $(libName) ;
+		$(1) = $(libName) ;
+		local buildloc ;
+		if $(TYPE_DEBUG) = true
+		{
+		    buildloc = $(RUST_LOCATE_TARGET) debug ;
+		}
+		else
+		{
+		    buildloc = $(RUST_LOCATE_TARGET) release ;
+		}
+		LOCATE on $($(1)) = $(buildloc:J=$(SLASH)) ;
 	}
 
 	SetLibName CLIENTLIB        : libclient     ;
@@ -1026,7 +1037,6 @@
 	SetLibName ZKUILIB	        : libzkui       ;
 	SetLibName ASPLIB           : libasp  ;		# maybe
 
-	SetRustLibName RESTLIB      : rest      ;
 
 #################################################
 #
@@ -5882,7 +5892,271 @@ if $(VMS)
 
 #################################################
 #
-# Section 13.  Useful miscellanea
+# Section 13.  REST API/rust cargo build
+#
+#################################################
+
+# ---------------------- Build flags -------------------------------------------
+# Need to set the Rust build libraries
+RUSTFLAGS = --cfg tokio_unstable ;
+RUST_TARGET = "" ;
+RUST_BUILD_MODE = "" ;
+
+
+# If we know the local workspace path, strip it out of the compiled binary.
+if $(LOCALWORKSPACE)
+{
+	RUSTFLAGS += --remap-path-prefix "\"$(LOCALWORKSPACE)=build_root\"" ;
+}
+
+if $(OS) = LINUX
+{
+	# Account for the default of 'cc' not being present, e.g.
+	# as is the case on Linux on a bare VM that uses our toolchain.
+	RUSTFLAGS += -Clinker=$(OSLINK) ;
+}
+
+
+# Cross compiling for OSX aarch64 requires additional flags and the output
+# directory has additional sub-directory for that platform.
+if $(OS:U) = "MACOSX" && $(OSPLAT:U) = "ARM64"
+{
+	RUST_TARGET = aarch64-apple-darwin ;
+	RUST_BUILD_TARGET = --target $(RUST_TARGET) ;
+}
+
+if $(OS:U) = "LINUX" && $(OSPLAT:U) = "AARCH64"
+{
+
+	RUST_TARGET = aarch64-unknown-linux-gnu ;
+	RUST_BUILD_TARGET = --target $(RUST_TARGET) ;
+}
+
+if $(TYPE) = gcc-asan
+{
+	RUST_TARGET = x86_64-unknown-linux-gnu ;
+}
+
+
+if $(TYPE_DEBUG) != true
+{
+	RUST_BUILD_MODE = --release ;
+}
+
+if $(OS) = "NT"
+{
+	RUSTFLAGS += -C target-feature=+crt-static ;
+
+	if $(TYPE_DEBUG) = "true"
+	{
+	    CFLAGS = -MTd ;
+	    CXXFLAGS = -MTd ;
+	}
+}
+
+
+JOINED_RUSTFLAGS = $(RUSTFLAGS:J=" ") ;
+
+RUST_LOCATE_TARGET = $(ALL_LOCATE_TARGET) ;
+if $(RUST_TARGET) {
+	RUST_LOCATE_TARGET += $(RUST_TARGET) ;
+}
+RUST_LOCATE_TARGET = $(RUST_LOCATE_TARGET:J=$(SLASH)) ;
+CXXDIR = $(RUST_LOCATE_TARGET)$(SLASH)cxxbridge ;
+
+# This call needs the above 'RUST*' variables set, so
+# can't be included with all the earlier SetLibName
+# calls in the global section.
+
+SetRustLibName RESTLIB : rest ;
+
+
+# This rule was originally devised to prune out all the
+# paths under the 'target' directory generated in BuildRestApi
+# when searching for local *.rs and *.cc files in the rest directory.
+# Now those searches are more confined and can no longer search
+# in 'target'.
+# Left here in case it is needed later.
+rule Detarget
+{
+	local items = $(1) ;
+	for i in $(items) {
+	    local list = $($(i)) ;
+	    local newlist ;
+	    for subpath in $(list) {
+	        local comps = [ FSplit $(subpath) : $(SLASH) ] ;
+	        local path_to_root = $(P4) $(SUBDIR) ;
+	        FStripCommon path_to_root : comps ;
+	        if $(comps[1]) = target { continue ; }
+	        newlist += $(subpath) ;
+	    }
+	    $(i) = $(newlist) ;
+	}
+}
+
+rule BuildRestAPI
+{
+	# These queue up the actual actions that will build the REST library.
+	# RunCXXBridge invocation does two things:
+	#   1. Transform $(REST_HDR_SRC) into $(REST_HEADER)
+	#   2. There is a dependency between $(REST_HEADER_SRC) and $(REST_HEADER).
+	#      if $(REST_HEADER_SRC) changes, regenerate $(REST_HEADER)
+
+	Depends $(REST_HEADER) : $(REST_HDR_SRC) ; # cxx.h copied by `cargo build` must exist
+	RunCXXBridge $(REST_HEADER) : $(REST_HDR_SRC) ;
+	local ssllib sslinc ssllibrel sslincrel ;
+
+	ssllib = [ FRelPath $(SUBDIR) : $(SSLLIBDIR) ] ;
+	if $(ssllib) != $(SSLLIBDIR)
+	{
+	    ssllibrel on $(RESTLIB) = 1 ;
+	}
+	else
+	{
+	    ssllibrel on $(RESTLIB) = "" ;
+	}
+	sslinc = [ FRelPath $(SUBDIR) : $(SSLINCDIR) ] ;
+	if $(sslinc) != $(SSLINCDIR)
+	{
+	    sslincrel on $(RESTLIB) = 1 ;
+	}
+	else
+	{
+	    sslincrel on $(RESTLIB) = "" ;
+	}
+	local CARGO_PARAMS ;
+	if $(TYPE) = gcc-asan
+	{
+	    CARGO_PARAMS += "+nightly" ;
+	}
+
+	CARGO_PARAMS += --config $(CARGO_CONFIG_PATH)
+	    build $(RUST_BUILD_TARGET)
+	    $(RUST_BUILD_MODE)
+	    --manifest-path $(REST_DIR)$(SLASH)Cargo.toml
+	    --target-dir $(ALL_LOCATE_TARGET)
+	    ;
+
+	if $(TYPE) = gcc-asan
+	{
+	    CARGO_PARAMS += --target x86_64-unknown-linux-gnu ;
+	}
+	CARGO_PARAMS on $(RESTLIB) = $(CARGO_PARAMS) ;
+
+	if $(OS) = "NT"
+	{
+	    RunCargoBuildWin $(RESTLIB) ;
+	}
+	else
+	{
+	    RunCargoBuildUnix $(RESTLIB) ;
+	}
+
+	# This recursively scans the known Rust source directory for any
+	# '*.rs' files and makes the Rust library depend on them.
+	local sdir = $(REST_DIR)$(SLASH)src ;
+	local rs_files = [ FDirEntriesRecursive $(sdir) : "*.rs" ] ;
+	rs_files += $(REST_DIR)$(SLASH)build.rs ;
+	# This recursively scans the known Rust source directory for any
+	# '*.cc' files and makes the Rust library depend on them.
+	local cc_files = [ FDirEntriesRecursive $(sdir) : "*.cc" ] ;
+	local hdr_files = [ FDirEntriesRecursive $(REST_DIR)$(SLASH)include : "*.h" ] ;
+
+#	Detarget rs_files cc_files hdr_files ;
+
+	# This defines the dependencies for the REST library
+	# Changes to items in this list will trigger a rebuild of the REST
+	# library or will be built before the rest library.
+	Depends $(REST_HEADER) : $(RESTLIB) ;
+	Depends $(RESTLIB) :
+	$(REST_DIR)$(SLASH)Cargo.toml
+	$(REST_DIR)$(SLASH).cargo$(SLASH)config.toml
+	$(hdr_files)
+	$(rs_files)
+	$(cc_files)
+	;
+
+	Clean clean : $(RESTLIB) $(REST_HEADER) ;
+	RunCargoClean clean : $(RESTLIB) ;
+}
+
+actions RunCXXBridge
+{
+	cxxbridge $(>) --header --output $(<)
+}
+
+# Runs a 'cargo clean' operation in the specified directory.
+actions RunCargoClean
+{
+	cargo --config $(CARGO_CONFIG_PATH) clean $(RUST_BUILD_TARGET) $(RUST_BUILD_MODE) --manifest-path $(REST_DIR)$(SLASH)Cargo.toml --target-dir $(ALL_LOCATE_TARGET)
+}
+
+# Runs a 'cargo build' operation in the specified directory.
+actions RunCargoBuildUnix
+{
+	pwd=""
+	if [ -n "$(ssllibrel)" ]
+	then
+	    pwd=`pwd`
+	    export OPENSSL_LIB_DIR=$pwd/$(SSLLIBDIR)
+	else
+	    export OPENSSL_LIB_DIR=$(SSLLIBDIR)
+	fi
+
+	if [ -n "$(sslincrel)" ]
+	then
+	    if [ -z "$pwd" ]
+	    then
+	        pwd=`pwd`
+	    fi
+	    export OPENSSL_INCLUDE_DIR=$pwd/$(SSLINCDIR)
+	else
+	    export OPENSSL_INCLUDE_DIR=$(SSLINCDIR)
+	fi
+
+	# Technically we are building a static library (librest.a) but we do
+	# _not_ want to have OpenSSL linked into our object file.
+	export OPENSSL_STATIC=0
+	export RUSTFLAGS="$(JOINED_RUSTFLAGS)"
+	cargo $(CARGO_PARAMS)
+}
+
+actions RunCargoBuildWin
+{
+	@REM Resolve relative paths in $SSLLIBDIR and $SSLINCDIR to absolute paths
+	@REM to enable the openssl crate to find our OpenSSL libs and headers. This
+	@REM assumes that both LIB and INC are relative or both are absolute.
+	set incdir=$(SSLINCDIR)
+
+	if "$(ssllibrel)"=="1" (
+	    set OPENSSL_LIB_DIR=%CD%\\$(SSLLIBDIR)
+	) else (
+	    set OPENSSL_LIB_DIR=$(SSLLIBDIR)
+	)
+	if "$(sslincrel)"=="1" (
+	    set OPENSSL_INCLUDE_DIR=%CD%\\$(SSLINCDIR)
+	) else (
+	    set OPENSSL_INCLUDE_DIR=$(SSLINCDIR)
+	)
+
+	@REM Technically we are building a static library (librest.a) but we do
+	@REM _not_ want to have OpenSSL linked into our object file.
+	set OPENSSL_STATIC=0
+
+	set DEBUG=$(TYPE_DEBUG:E=false)
+	if "%DEBUG%" == "true" (
+	    set CFLAGS=$(CFLAGS)
+	    set CXXFLAGS=$(CXXFLAGS)
+	)
+
+	set RUSTFLAGS=$(JOINED_RUSTFLAGS)
+	cargo $(CARGO_PARAMS)
+}
+
+
+#################################################
+#
+# Section 14.  Useful miscellanea
 #
 #################################################
 

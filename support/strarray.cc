@@ -4,9 +4,11 @@
 
 # include <stdhdrs.h>
 # include <strbuf.h>
+# include <error.h>
 # include <debug.h>
 # include <vararray.h>
 # include <strarray.h>
+# include <msgdb.h>
 
 # include <new>
 
@@ -262,11 +264,13 @@ StrPtrArray::~StrPtrArray()
  * as needed.
  *
  * @param[in] val - Value to store into the array
+ * @param[out] e  - Optional err object. If the 'Put' fails, and this error
+ *		    was provided, it will be set to an appropriate message
  * @return bool - Returns true if the value was stored into the array, false
  *	          if we failed to extend the array to accommodate the new value.
  */
 bool
-StrPtrArray::Put( const StrPtr &val )
+StrPtrArray::Put( const StrPtr &val, Error* err /* = 0 */)
 {
 	if( tabLength == tabSize )
 	{
@@ -274,7 +278,7 @@ StrPtrArray::Put( const StrPtr &val )
 
 	    // grow geometrically, please
 	    int newSize = (tabSize + 50) * 3 / 2;
-	    if( !Extend( newSize ) ) return false;
+	    if( !Extend( newSize, err ) ) return false;
 	}
 
 	tabVal[ tabLength++ ] = val;
@@ -292,17 +296,25 @@ StrPtrArray::Put( const StrPtr &val )
  * false.
  *
  * @param[in] newSize - New array size to allocate in memory.
+ * @param[out] e  - Optional err object. If the 'Extend' fails, and this error
+ *		    was provided, it will be set to an appropriate message
  * @return bool - True if the memory allocation was successful, false otherwise.
  */
 bool
-StrPtrArray::Extend( int newSize )
+StrPtrArray::Extend( int newSize, Error* e /* = 0 */ )
 {
 	if( newSize > tabSize )
 	{
 	    // Attempt to allocate the new array, return false on failure
 	    StrRef* newtabVal = 0;
-	    try { newtabVal = new StrRef[ newSize ];
-	    } catch( const std::bad_alloc& e ) { return false; }
+	    try { 
+		newtabVal = new StrRef[ newSize ];
+	    } 
+	    catch( const std::bad_alloc& ex ) 
+	    { 
+		if( e ) e->Set( MsgDb::MaxMemory );
+		return false; 
+	    }
 
 	    if( tabVal )
 	    {

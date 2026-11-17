@@ -167,6 +167,8 @@ NetPortParser::NetPortParser()
 , mPortColon(false)
 , mExtraTransports(NULL)
 {
+	mPrefixRaw.mType = PT_NONE;
+	mPrefixRaw.mName = "";
 	mPrefix.mType = PT_NONE;
 	mPrefix.mName = "";
 } // default ctor
@@ -181,6 +183,8 @@ NetPortParser::NetPortParser(
 , mPortColon(false)
 , mExtraTransports(NULL)
 {
+	mPrefixRaw.mType = PT_NONE;
+	mPrefixRaw.mName = "";
 	mPrefix.mType = PT_NONE;
 	mPrefix.mName = "";
 	Parse();
@@ -197,6 +201,8 @@ NetPortParser::NetPortParser(
 , mPortColon(false)
 , mExtraTransports(extraTransports)
 {
+	mPrefixRaw.mType = PT_NONE;
+	mPrefixRaw.mName = "";
 	mPrefix.mType = PT_NONE;
 	mPrefix.mName = "";
 	Parse();
@@ -212,6 +218,8 @@ NetPortParser::NetPortParser(
 , mPortColon(false)
 , mExtraTransports(NULL)
 {
+	mPrefixRaw.mType = PT_NONE;
+	mPrefixRaw.mName = "";
 	mPrefix.mType = PT_NONE;
 	mPrefix.mName = "";
 	Parse();
@@ -228,6 +236,7 @@ NetPortParser::NetPortParser(
 , mPort(rhs.mPort)
 , mHostPort(rhs.mHostPort)
 , mPortColon(rhs.mPortColon)
+, mPrefixRaw(rhs.mPrefixRaw)
 , mPrefix(rhs.mPrefix)
 , mExtraTransports(rhs.mExtraTransports)
 {
@@ -254,6 +263,7 @@ NetPortParser::operator=(
 	    mPort = rhs.mPort;
 	    mHostPort = rhs.mHostPort;
 	    mPortColon = rhs.mPortColon;
+	    mPrefixRaw = rhs.mPrefixRaw;
 	    mPrefix = rhs.mPrefix;
 	    mExtraTransports = rhs.mExtraTransports;
 	}
@@ -283,6 +293,8 @@ NetPortParser::operator==(
 	if( mHostPort != rhs.mHostPort )
 	    return false;
 	if( mPortColon != rhs.mPortColon )
+	    return false;
+	if( mPrefixRaw.mType != rhs.mPrefixRaw.mType )
 	    return false;
 	if( mPrefix.mType != rhs.mPrefix.mType )
 	    return false;
@@ -473,6 +485,28 @@ NetPortParser::MustSSL() const
 }
 
 bool
+NetPortParser::MustNonSSL(const Prefix &prefix)
+{
+	switch( prefix.mType )
+	{
+	case PT_TCP:
+	case PT_TCP4:
+	case PT_TCP6:
+	case PT_TCP46:
+	case PT_TCP64:
+	    return true;
+	default:
+	    return false;
+	}
+}
+
+bool
+NetPortParser::MustNonSSL() const
+{
+	return NetPortParser::MustNonSSL(mPrefix);
+}
+
+bool
 NetPortParser::MustIPv4() const
 {
 	switch( mPrefix.mType )
@@ -650,6 +684,7 @@ NetPortParser::Parse()
 	    // store the cmd in the host field
 	    if( pfx->mType == PT_JSH || pfx->mType == PT_RSH )
 	    {
+	        mPrefixRaw = *pfx;
 	        mPrefix = *pfx;
 	        mHost.Set( str );
 	        mHostPort.Set( str );
@@ -662,6 +697,7 @@ NetPortParser::Parse()
 	    // java flavor of "rsh"
 	    // "jsh" should be used only by p4d after seeing "-ij"
 	    pfx = FindPrefix( "jsh", 3 );
+	    mPrefixRaw = *pfx;
 	    mPrefix = *pfx;
 	    mHost.Set( str );
 	    mHostPort.Set( str );
@@ -671,6 +707,7 @@ NetPortParser::Parse()
 	else if( strcmp(str, "rsh") == 0 )
 	{
 	    pfx = FindPrefix( "rsh", 3 );
+	    mPrefixRaw = *pfx;
 	    mPrefix = *pfx;
 	    mHost.Set( str );
 	    mHostPort.Set( str );
@@ -785,10 +822,13 @@ NetPortParser::Parse()
 	}
 
 	// remember the prefix
+	mPrefixRaw = *pfx;
 	mPrefix = *pfx;
 
 	// If neither IPv4 nor IPv6 was specified but a numeric address was given,
 	// determine the transport type from the address.
+	// This only updates mPrefix not mPrefixRaw as we still need to tell if
+	// the prefix provided to NetPortParser is PT_NONE.
 	bool	ssl = false;
 	switch( pfx->mType )
 	{

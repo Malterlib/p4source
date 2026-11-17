@@ -695,7 +695,7 @@ int truncate(const char *path, off_t length);
  * MT_STATIC - static multithreaded data
  */
 
-# ifdef OS_NT
+# if defined( OS_NT ) && !defined( OS_MINGW64 )
 #   define MT_STATIC static __declspec(thread)
 #   define P4MT __declspec(thread)
 # elif !defined( OS_BEOS ) && \

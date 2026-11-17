@@ -61,8 +61,46 @@ hash of the whole file.
 class VVarArray;
 class VVarTree;
 
+// Builds a chunk map incrementally from a byte stream.  Content is supplied
+// by repeated Update() calls in any block sizes; the chunk boundaries the
+// algorithm produces depend only on the content, never on how it was
+// blocked.  Finish() flushes the trailing chunk and appends the
+// verification hash, after which GetBuf() returns the serialized map.
+
+class ChunkMapBuilder
+{
+	public:
+	             ChunkMapBuilder( MD5 *md5 = nullptr );
+	            ~ChunkMapBuilder();
+
+	// Owns heap state that Update()/Finish() mutate incrementally, so a
+	// shallow copy would double-free on destruction.
+
+	ChunkMapBuilder( const ChunkMapBuilder& other ) = delete;
+	ChunkMapBuilder& operator=( const ChunkMapBuilder& other ) = delete;
+
+	void         Update( const char *buf, int len );
+	void         Finish( Error *e );
+
+	bool         IsFinished() const { return finished; }
+	const StrPtr *GetBuf() const { return mapBuf; }
+
+	// Named here so ChunkMap can grant it friend access; defined only
+	// in the implementation file.
+
+	class Impl;
+
+	private:
+	Impl        *impl;
+	StrBuf      *mapBuf;
+	bool         finished;
+} ;
+
 class ChunkMap
 {
+	friend class ChunkMapBuilder;
+	friend class ChunkMapBuilder::Impl;
+
 	public:
 
 	    // ChunkMap::Chunk is an unpacked section of the larger chunk map.

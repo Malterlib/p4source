@@ -440,4 +440,5 @@ public:
     void Generate(RpcUtilityType type, Error *e );
     static void GetModTimes( P4INT64* keyFile, P4INT64* certFile, Error* e );
     static bool CheckCertsChanged( Error *e );
+    static void CheckCertsChanged( RpcService *service, Error *e );
 };

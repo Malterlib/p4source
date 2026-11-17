@@ -39,7 +39,6 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	basename.c
 	curl_base64.c
 	dynbuf.c
-	fopen.c
 	inet_pton.c
 	inet_ntop.c
 	multibyte.c
@@ -54,5 +53,6 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	version_win32.c
 	wait.c
 	warnless.c
+	win32-fopen.c
 	winapi.c
 ;

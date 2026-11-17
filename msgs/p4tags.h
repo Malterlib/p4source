@@ -192,6 +192,7 @@ struct P4Tag {
 	static const char v_daddr[];
 	static const char v_data[];
 	static const char v_data2[];		// p4 passwd
+	static const char v_dataSize[];
 	static const char v_date[];
 	static const char v_dbstat[];
 	static const char v_decline[];
@@ -237,6 +238,8 @@ struct P4Tag {
 	static const char v_flushHard[];
 	static const char v_fmt[];
 	static const char v_forceType[];
+	static const char v_forceTypeBits[];
+	static const char v_forwardedBy[];
 	static const char v_fromFile[];
 	static const char v_fromLbrFile[];
 	static const char v_fromLbrPath[];
@@ -566,8 +569,10 @@ struct P4Tag {
 	static const char v_doForce[];		// p4 shelve
 	static const char v_doPromote[];	// p4 shelve
 	static const char v_dumpVersion[];
+	static const char v_errors[];
 	static const char v_fixStatus[];	// p4 change
 	static const char v_force[];		// p4 submit
+	static const char v_format[];
 	static const char v_getFlag[];
 	static const char v_haveGRec[];		// p4 sync graph
 	static const char v_haveRec[];		// p4 sync
@@ -588,11 +593,13 @@ struct P4Tag {
 	static const char v_movedRev[];
 	static const char v_needsFlushTransport[];
 	static const char v_noretry[];		// p4 specs
+	static const char v_parameters[];
 	static const char v_pathPermissions[];  // readonly or writable status
 	static const char v_peer[];
 	static const char v_peerAddress[];
 	static const char v_preserveCNums[];
 	static const char v_propigate[];	// proxy chaining test
+	static const char v_quiet[];
 	static const char v_readonly[];
 	static const char v_remoteFetch[];	// no on-demand fetch bg submit
 	static const char v_reopen[];  		// submit
@@ -619,6 +626,7 @@ struct P4Tag {
 	static const char v_shelveFile[];
 	static const char v_shelvedStream[];    // stream is shelved
 	static const char v_state[];
+	static const char v_statusCode[];
 	static const char v_stream[];       	// stream name
 	static const char v_streamDir[];
 	static const char v_streamFile[];

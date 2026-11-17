@@ -51,6 +51,7 @@ class MsgClient {
 
 	static ErrorId CheckFileAssume;
 	static ErrorId CheckFileAssumeWild;
+	static ErrorId CheckFileNoScan;
 	static ErrorId CheckFileSubst;
 	static ErrorId CheckFileCant;
 

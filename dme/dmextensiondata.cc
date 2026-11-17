@@ -436,7 +436,9 @@ bool ExtensionData::LoadManifest( Error* e )
 	    j = json::parse( manifestBuf.Text() );
 	} catch( const json::parse_error& err )
 	{
-	    e->Set( MsgSupp::ManifestParseError ) << err.what();
+	    StrBuf error;
+	    error << "expected string, boolean or number; " << err.what();
+	    e->Set( MsgSupp::ManifestParseError ) << error;
 	    return false;
 	}
 
@@ -451,12 +453,12 @@ bool ExtensionData::LoadManifest( Error* e )
 	{
 	    try {
 	        if( js.find( k ) == js.end() )
-	            throw( std::exception() );
+	            throw( std::runtime_error("Unexpected end of JSON file") );
 	        if( fn )
 	            fn();
 	    } catch( const std::exception& err )
 	    {
-	        e->Set( MsgSupp::ManifestKeyNotFound ) << k;
+	        e->Set( MsgSupp::ManifestKeyNotFound ) << k << err.what();
 	        throw( err );
 	    }
 	};

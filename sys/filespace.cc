@@ -67,8 +67,8 @@ FileSys::GetDiskSpace( DiskSpaceInfo *info, Error *e )
 
 	// Resolve symlinks
 	HANDLE hFile = CreateFile( Name(), // file to open
-	                           NULL,   // don't need to read
-	                           NULL,   // don't need to share
+	                           0,      // don't need to read
+	                           0,      // don't need to share
 	                           NULL,   // default security
 	                           OPEN_EXISTING, // existing file only
 	                           FILE_FLAG_BACKUP_SEMANTICS, // open dirs
@@ -81,7 +81,7 @@ FileSys::GetDiskSpace( DiskSpaceInfo *info, Error *e )
 	                                            VOLUME_NAME_DOS );
 	    if( dwRet < sizeof( buffer ) )
 	    {
-	        if( !strncmp( buffer, "\\\\?\\", 4 ) )
+	        if( IsExtended( StrRef( buffer ) ) )
 	            boff = 4;
 	        Set( buffer + boff );
 	        CloseHandle( hFile );

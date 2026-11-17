@@ -127,6 +127,8 @@ class MsgDm2 {
 	static ErrorId StreamViewGenAtChangeSkip; 
 	static ErrorId DepotTraitDup;
 	static ErrorId NoTraitDepot;
+	static ErrorId NonServiceNotAllowed;
+	static ErrorId ServiceRmtDistNotAllowed;
 	static ErrorId NoTraitName;
 
 	static ErrorId ComponentStreamInvalidSparse;
@@ -187,10 +189,13 @@ class MsgDm2 {
 	static ErrorId TopologyNoTerm;
 
 	static ErrorId UserNotExistInfo;
+	static ErrorId SparseStreamResolveMoveErr;
+	static ErrorId No2faWithIdp;
 	static ErrorId MultiplePartitionedRevSpec;
+	static ErrorId PartitionedClientNameTooLong;
 
-	// Retired ErrorIds. We need to keep these so that clients 
-	// built with newer apis can commnunicate with older servers 
+	// Retired ErrorIds. We need to keep these so that clients
+	// built with newer apis can commnunicate with older servers
 	// still sending these.
 
 	static ErrorId NoPartitionedToReadonly; // DEPRECATED

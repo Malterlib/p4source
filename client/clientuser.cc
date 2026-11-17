@@ -137,11 +137,12 @@ ClientUser::Prompt( const StrPtr &msg, StrBuf &buf, int noEcho, int noOutput, Er
 
 	buf.Clear();
 	char *b = buf.Alloc( 2048 );
+	buf.SetEnd( b );
+	buf.Terminate();
 
 	if( !fgets( b, 2048, stdin ) )
 	{
 	    e->Set( MsgClient::Eof );
-	    buf.SetEnd( b );
 	}
 	else
 	{

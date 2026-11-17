@@ -288,6 +288,117 @@ ChunkMap::Create( const StrPtr* fromFile, Error* e )
 	return;
 }
 
+// Moves finished chunk data from the fixed-size write buffer into the
+// final buffer, and folds it into the running checksum.
+
+class ChunkMapBuilder::Impl : public cdc_ft::fastcdc::Chunker
+{
+    public:
+	Impl( const cdc_ft::fastcdc::Config &cfg, MD5 *md5, StrBuf *mapBuf )
+	    : cdc_ft::fastcdc::Chunker( cfg ),
+	      md5( md5 ), mapBuf( mapBuf ), nChunks( 0 )
+	{
+	    out_buf.BlockAlloc( ChunkMap::DiskChunkSize() * max_chunks );
+	}
+
+	virtual ~Impl() {}
+
+	// How many chunks the write buffer holds before it is drained into
+	// the map.  Draining is an append, so the batch size changes nothing
+	// about the map that comes out, only how much is held at once.
+
+	static const int max_chunks = 10000;
+
+	BLAKE3  b3;
+	MD5    *md5;
+	StrBuf *mapBuf;
+	StrBuf  out_buf;
+	size_t  nChunks;
+
+	void write_buf()
+	{
+	    const size_t wsz = nChunks * ChunkMap::DiskChunkSize();
+	    mapBuf->Append( out_buf.Text(), wsz );
+	    b3.Update( out_buf.Text(), wsz );
+	    nChunks = 0;
+	}
+
+	// Callback for the CDC hasher, called once per chunk.
+
+	virtual void HandleOneChunk( const uint8_t *data, size_t len )
+	{
+	    if( nChunks == max_chunks - 1 )
+	        write_buf();
+
+	    const size_t pos = nChunks * ChunkMap::DiskChunkSize();
+	    // todo: LE vs BE
+	    // todo: add a static assert showing that there are no
+	    // higher-order bits
+	    memcpy( out_buf.Text() + pos, &len,
+	            sizeof( ChunkMap::chunkSize_t ) );
+	    BLAKE3::Digest( (const char *)data, len,
+	                    (unsigned char *)out_buf.Text() + pos
+	                        + sizeof( ChunkMap::chunkSize_t ) );
+	    nChunks++;
+
+	    if( md5 )
+	        md5->Update( data, len );
+	}
+} ;
+
+ChunkMapBuilder::ChunkMapBuilder( MD5 *md5 )
+{
+	mapBuf = new StrBuf;
+	finished = false;
+
+	const cdc_ft::fastcdc::Config cfg( ChunkMap::cdc_min_size,
+	                                   ChunkMap::cdc_avg_size,
+	                                   ChunkMap::cdc_max_size );
+	impl = new Impl( cfg, md5, mapBuf );
+
+	const ChunkMap::mapVersion_t version = 0;
+	const char *vc = reinterpret_cast< const char * >( &version );
+	impl->b3.Update( vc, sizeof( version ) );
+	mapBuf->Append( vc, sizeof( version ) );
+}
+
+ChunkMapBuilder::~ChunkMapBuilder()
+{
+	delete impl;
+	delete mapBuf;
+}
+
+void
+ChunkMapBuilder::Update( const char *buf, int len )
+{
+	if( finished || len <= 0 )
+	    return;
+
+	impl->Process( (const uint8_t *)buf, len );
+}
+
+void
+ChunkMapBuilder::Finish( Error *e )
+{
+	if( finished )
+	    return;
+
+	impl->Finalize();
+
+	// Finish a partially-filled buffer.
+
+	if( impl->nChunks )
+	    impl->write_buf();
+
+	StrBuf final_hash;
+	final_hash.BlockAlloc( BLAKE3_BUFFLEN );
+	impl->b3.Final( (unsigned char *)final_hash.Text() );
+
+	mapBuf->Append( &final_hash );
+
+	finished = true;
+}
+
 void
 ChunkMap::Create( FileSys* in, Error* e, MD5* md5 )
 {
@@ -301,86 +412,7 @@ ChunkMap::Create( FileSys* in, Error* e, MD5* md5 )
 	if( e->Test() )
 	    return;
 
-	// Set up a checksum for the whole structure.
-
-	BLAKE3 b3;
-
-	// Version goes first.
-
-	const char* version_cast = reinterpret_cast< const char* >( &version );
-	b3.Update( version_cast, sizeof( version ) );
-	((StrBuf*)mapBuf)->Append( version_cast, sizeof( version ) );
-
-	// Fixed-size buffer to copy into while processing.  Limits the
-	// amount of memory copies into the final buffer. ???
-
-	const int max_chunks = 10000;
-	StrBuf out_buf;
-	out_buf.BlockAlloc( ChunkMap::DiskChunkSize() * max_chunks );
-
-	// Helper to move the temp buffer data into the final buffer.
-	class ChunkHandler : public cdc_ft::fastcdc::Chunker
-	{
-	public:
-	    ChunkHandler( const cdc_ft::fastcdc::Config& cfg,
-	        BLAKE3& b3, MD5 *md5,
-	        StrBuf& buf_in, StrBuf& buf_out ) :
-	        cdc_ft::fastcdc::Chunker( cfg ),
-	        b3( b3 ), md5( md5 ),
-	        mapBuf( buf_in ), out_buf( buf_out ),
-	        nChunks( 0 ), nTotalChunks( 0 )
-	    {
-	    }
-
-	    BLAKE3 &b3;
-	    MD5 *md5;
-	    StrBuf &mapBuf;
-	    StrBuf &out_buf;
-	    
-	    // Number of accumulated chunks in the write buffer.
-	    size_t nChunks;
-	    size_t nTotalChunks;
-
-	    void write_buf()
-	    {
-	        const size_t wsz = nChunks * ChunkMap::DiskChunkSize();
-	        mapBuf.Append( out_buf.Text(), wsz );
-	        b3.Update( out_buf.Text(), wsz );
-
-	        nTotalChunks += nChunks;
-	        nChunks = 0;
-	    }
-
-	    // Callback for the CDC hasher, called once per chunk.
-
-	    virtual void HandleOneChunk(const uint8_t* data, size_t len)
-	    {
-	        if( nChunks == max_chunks - 1 )
-	            write_buf();
-
-	        const size_t pos = nChunks * ChunkMap::DiskChunkSize();
-	        // todo: LE vs BE
-	        // todo: add a static assert showing that there are no higher-order bits
-	        memcpy( out_buf.Text() + pos, &len, sizeof( chunkSize_t ) );
-	        BLAKE3::Digest( (const char*)data, len,
-	                        (unsigned char *)out_buf.Text() + pos + sizeof( chunkSize_t ) );
-	        nChunks++;
-	        if( md5 )
-	            md5->Update( data, len );
-	    }
-
-	    void Finish()
-	    {
-	        if( nChunks )
-	            write_buf();
-	    }
-	};
-
-	// File to truffle-shuffle.
-
-	const cdc_ft::fastcdc::Config cdc_cfg( cdc_min_size, cdc_avg_size,
-	                                       cdc_max_size );
-	ChunkHandler chunker( cdc_cfg, b3, md5, *(StrBuf*)mapBuf, out_buf );
+	ChunkMapBuilder builder( md5 );
 
 	// I/O buffer.
 
@@ -391,21 +423,12 @@ ChunkMap::Create( FileSys* in, Error* e, MD5* md5 )
 	while( ( cnt = in->Read( in_buf.Text(), in_buf.Length(), e ) )
 	       && !e->Test() )
 	{
-	    chunker.Process( (const uint8_t *)in_buf.Text(), cnt );
+	    builder.Update( in_buf.Text(), (int)cnt );
 	}
 
-	chunker.Finalize();
+	builder.Finish( e );
 
-	// Finish a partially-filled buffer.
-
-	chunker.Finish();
-	numChunks = chunker.nTotalChunks;
-
-	StrBuf final_hash;
-	final_hash.BlockAlloc( BLAKE3_BUFFLEN );
-	b3.Final( (unsigned char*)final_hash.Text() );
-
-	((StrBuf*)mapBuf)->Append( &final_hash );
+	((StrBuf*)mapBuf)->Set( *builder.GetBuf() );
 
 	in->Seek( origPos, e );
 	Parse( "Create", "", e );
