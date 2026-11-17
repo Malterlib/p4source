@@ -137,7 +137,7 @@ ThreadedTransfer::RunTransfer( ClientApi *client,
 	if( strcmp(cmd, "transmit") == 0 )
 	{
 	    transmit++;
-	    signaler.Mask();
+	    (*signaler).Mask();
 	}
 
 	child.SetArgv( args->Count(), a );
@@ -149,7 +149,7 @@ ThreadedTransfer::RunTransfer( ClientApi *client,
 	// Ok to interactively take Control-C's again.
 
 	if( transmit )
-	    signaler.Unmask();
+	    (*signaler).Unmask();
 
 	if( e.Test() )
 	{

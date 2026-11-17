@@ -75,6 +75,7 @@ Compile
 	{
 		!!CompileDialect "C"
 		Analyzer false
+		DynamicTypeInfo true // support/specdatajson.cc uses dynamic_cast
 
 		SearchPath += [
 			"../../External/zlib/contrib/minizip"->MakeAbsolute()
@@ -136,6 +137,10 @@ Compile
 			{
 				Compile.Disabled true
 			}
+			%File "msgs/rustlegal.cc"
+			{
+				Compile.Disabled true
+			}
 		}
 		%Group "sys"
 		{
@@ -157,6 +162,7 @@ Compile
 			%File "sys/filespace.cc"
 			%File "sys/filestrbuf.cc"
 			%File "sys/filesys.cc"
+			%File "sys/filetar.cc"
 			%File "sys/filetmp.cc"
 			%File "sys/gzip.cc"
 			%File "sys/hostenv.cc"

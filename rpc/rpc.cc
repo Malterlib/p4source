@@ -1142,7 +1142,7 @@ Rpc::DispatchAndRunCallback( const RpcDispatcher* dispatcher,
 	// will not be processed until this condition is checked.
 	//
 
-	if( signaler.IsMaskedIntr() )
+	if( (*signaler).IsMaskedIntr() )
 	{
 	    if( strcmp( func.Text(), P4Tag::c_Ack ) == 0 )
 	    {
