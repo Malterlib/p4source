@@ -42,11 +42,15 @@ class Signaler {
 	void		Init();
 
 	void		Block();
+	void		Mask();
+	void		Unmask();
 	void		Catch();
 	void		Disable();
 	void		Enable();
 	bool		GetState() const;
 	bool		IsIntr() const;
+
+	bool		IsMaskedIntr() const;
 
 	void		OnIntr( SignalFunc callback, void *ptr );
 	void		DeleteOnIntr( void *ptr );
@@ -56,8 +60,17 @@ class Signaler {
     private:
 
 	SignalMan	*list;
+	int		mask;
 	int		disable;
 	bool		isIntr;
+
+	// Before the fix for masking Control-C handling, it isn't
+	// clear isIntr can ever be used as onintr() calls exit(-1)
+	// right after setting isIntr.  See signaler.cc before this
+	// change.  A separate variable is needed to store the occurence
+	// of a Control-C when signals are masked.
+
+	bool		isMaskedIntr;
 
 	// If we're compiling with the C++11 standard or higher, we use
 	// the built-in thread support on all platforms.  If not, we fall

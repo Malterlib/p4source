@@ -173,6 +173,7 @@ class MsgServer2 {
 	static ErrorId InfoProxyServerID;
 	static ErrorId MoveReaddIntegConflictResolveWarn;
 	static ErrorId ShelveArchiveInUse;
+	static ErrorId ShelveSuffixBumpFailed;
 	static ErrorId ShelveDupDiff;
 	static ErrorId ShelveNotPromoted;
 	static ErrorId VerifyRepairKtext;
@@ -285,6 +286,7 @@ class MsgServer2 {
 	static ErrorId PopulateSparseStreamDesc;
 	static ErrorId NonResidentOpenMustSync;
 	static ErrorId BadJField;
+	static ErrorId NonResidentOpenPending;
 	static ErrorId TooManySparseStreamFiles;
 	static ErrorId TraitDepotNotConfigured;
 	static ErrorId TraitDepotNotForCommit;
@@ -341,4 +343,7 @@ class MsgServer2 {
 	static ErrorId P4authNeeds20251;
 	static ErrorId RmtOpFailedInconsistent;
 	static ErrorId MustSetPasswordRequireSU;
+	static ErrorId ConfigureReadonlyDirUnsetWarn;
+	static ErrorId ExtPkgPathTraversal;
+	static ErrorId TraitTooBig;
 } ;

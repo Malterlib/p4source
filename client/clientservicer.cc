@@ -59,6 +59,60 @@
 # include <vector>
 # endif
 
+# include <vararray.h>
+
+// StrArraySortedIndices -- sorts the indices of a given StrArray.
+// Each element points at a slot of an index vector owned by this object;
+// the sort permutes the element pointers, and OriginalIdx( i ) reads back
+// the i'th index in sorted order.
+
+class StrArraySortedIndices : public VVarArray
+{
+    public:
+	StrArraySortedIndices( const StrArray *a )
+	{
+	    int count = a->Count();
+	    array = a;
+	    indices = new int[ count ];
+	    caseFolding = !StrBuf::CaseUsage();
+	    
+	    for( int i = 0; i < count; i++ )
+	    {
+	        indices[ i ] = i;
+	        Put( &indices[ i ] );
+	    }
+
+	    Sort();
+	}
+
+	~StrArraySortedIndices() { delete [] indices; }
+
+	// Index into the StrArray held at position i of the sorted order.
+
+	int OriginalIdx( int i ) const { return *(const int *)Get( i ); }
+
+	// virtuals of VVarArray
+
+	int Compare( const void *a, const void *b ) const
+	{
+	    const int ia = *(const int *)a;
+	    const int ib = *(const int *)b;
+	    const StrBuf *sa = array->Get( ia );
+	    const StrBuf *sb = array->Get( ib );
+
+	    return caseFolding ? sa->XCompare( *sb )
+	                       : sa->CCompare( *sb );
+	}
+
+	void Destroy( void * ) const {}
+
+    private:
+	int *indices;
+	const StrArray *array;
+	int   caseFolding;
+} ;
+
+
 class StrStr
 {
     public:
@@ -559,6 +613,14 @@ clientTraverseShort( Client *client, StrPtr *cwd, const char *dir, int traverse,
 	// Scan the directory.
 
 	FileSys *f = client->GetUi()->File( FST_BINARY );
+
+	// Opt into FileSys stat caching so the per-file Stat() in the loop
+	// below stamps mtime+size onto the FileSys, and the follow-up
+	// StatModTime() / GetSize() inside SetDigestOrType reuse those
+	// values instead of doing a second CreateFile or nt_stat.  Cache is
+	// invalidated on every Set().
+
+	f->EnableStatCache();
 	f->SetContentCharSetPriv( client->content_charset );
 	f->Set( StrRef( dir ) );
 	int fstat = f->Stat();
@@ -918,25 +980,50 @@ SetDigestOrType( Client *client, FileSys *f, const char *fileName,
 	files->Put()->Set( fileName );
 	times->Put()->Set( StrNum( f->StatModTime() ) );
 
+	// When neither digest nor type is requested, take the 24.2-style
+	// lean walk -- stat-based size only, no per-file open.
+	// The server gates v_sendDigest, v_sendFileSize, and v_sendType
+	// together, so reaching this path means either a flush/move-against-
+	// old-client (all three set, current behavior below) or the deferred
+	// non-doMoves case (none set, this branch).
+
+	if( !digests && !types )
+	{
+	    if( sizes )
+	        sizes->Put()->Set( StrNum( f->GetSize() ) );
+
+	    return;
+	}
+
 	// Get the correct type for the digest and file size
 
 	FileSysType t = f->CheckType();
 	FileSys *f2 = client->GetUi()->File( t );
+	CharSetCvt *cvt = ClientSvc::XCharset( client, FromClient );
 
 	if( f2 )
 	{
 	    f2->SetContentCharSetPriv( client->content_charset );
 	    f2->Set( fileName );
-	    f2->Translator( ClientSvc::XCharset( client, FromClient ) );
+	    f2->Translator( cvt );
 	}
 
-	// Pass 0 to f2->Digest() if we are not sending the digest
-	// to get only the correct size without calculating
-	// the digest.
+	// When no digest is requested, we may be able to skip the full
+	// Open+Read of the file and use GetSize() (stat-based) for the size.
+	// clientCheckFile asks the same question, so the rule is shared.
 
 	StrBuf localDigest;
 	FileSys* fs = f2 ? f2 : f; // In case we failed to resolve the type
-	offL_t fsize = fs->Digest( digests ? &localDigest : 0, e );
+	bool sizeMatchesDepot =
+	    ClientSvc::SizeMatchesDepot( fs->GetType(), cvt );
+
+	offL_t fsize;
+	if( digests )
+	    fsize = fs->Digest( &localDigest, e );
+	else if( sizeMatchesDepot )
+	    fsize = fs->GetSize();
+	else
+	    fsize = fs->Digest( 0, e );
 
 	if( e->Test() )
 	{
@@ -962,9 +1049,15 @@ SetDigestOrType( Client *client, FileSys *f, const char *fileName,
 	    // Beware of empty files
 
 	    Error msg;
-	    const char *ntype = clientCheckFileType( f2, t,
+
+	    // fs rather than f2: FileSys::Create() has no case for FST_CANTTELL
+	    // and returns null, and a file that was deliberately not read is
+	    // readable enough that the Digest above succeeds and nothing else
+	    // catches the null.  Scan -1 matches the CheckType() above.
+
+	    const char *ntype = clientCheckFileType( fs, t,
 	                                             client->protocolXfiles,
-	                                             1, 0, 0, 0, &msg );
+	                                             1, -1, 0, 0, 0, &msg );
 	    if( !ntype )
 	        client->SetError();
 
@@ -992,6 +1085,14 @@ clientTraverseDirs( Client *client, const char *dir, int traverse, int noIgnore,
 	// Scan the directory.
 
 	FileSys *f = client->GetUi()->File( FST_BINARY );
+
+	// Opt into FileSys stat caching so the per-file Stat() in the loop
+	// below stamps mtime+size onto the FileSys, and the follow-up
+	// StatModTime() / GetSize() inside SetDigestOrType reuse those
+	// values instead of doing a second CreateFile or nt_stat.  Cache is
+	// invalidated on every Set().
+
+	f->EnableStatCache();
 	f->SetContentCharSetPriv( client->content_charset );
 	f->Set( StrRef( dir ) );
 	int fstat = f->Stat();
@@ -1325,26 +1426,37 @@ clientReconcileAdd( Client *client, Error *e )
 
 	if( !summary )
 	{
+	    // Walk files in the same order as recHandle->pathArray, but keep
+	    // the traversal order index so sizes/times/digests/types (which
+	    // are index-aligned with files) can still be addressed.
+
+	    StrArraySortedIndices fSort( files );
+
+	    const int fCount = files->Count();
+
 	    int i1 = 0, i2 = 0, i0 = 0, l = 0;
 
-	    while( i1 < files->Count() )
+	    while( i1 < fCount )
 	    {
-	        if( i2 >= recHandle->pathArray->Count())
+	        const int idx1 = fSort.OriginalIdx( i1 );
+
+	        if( i2 >= recHandle->pathArray->Count() )
 	            l = -1;
 	        else
-	            l = files->Get( i1 )->SCompare( 
+	            l = files->Get( idx1 )->SCompare(
 	                *recHandle->pathArray->Get( i2 ) );
-
 	        if( !l )
 	        {
+	            // File on disk (i1) matches depot
 	            ++i1;
 	            ++i2;
 	        }
 	        else if( l < 0 )
 	        {
-	            client->SetVar( P4Tag::v_file, i0, *files->Get( i1 ) );
+	            // File on disk not in depot
+	            client->SetVar( P4Tag::v_file, i0, *files->Get( idx1 ) );
 
-	            if( ( sendFileSize && ( i1 < sizes->Count() ) ) ||
+	            if( ( sendFileSize && ( idx1 < sizes->Count() ) ) ||
 	                ( !sendDigest && recHandle->delCount ) )
 	            {
 	                // 2025.1 server always requests fileSize but older servers
@@ -1353,24 +1465,26 @@ clientReconcileAdd( Client *client, Error *e )
 	                // 2) delCount != 0: need for move match
 
 	                client->SetVar( P4Tag::v_fileSize, 
-	                                i0, *sizes->Get( i1 ) );
+	                                i0, *sizes->Get( idx1 ) );
 	            }
 
 	            if( sendDigest )
-	                client->SetVar( P4Tag::v_digest, i0, *digests->Get(i1) );
+	                client->SetVar( P4Tag::v_digest, i0,
+	                    *digests->Get(idx1) );
 	            if( sendType )
-	                client->SetVar( P4Tag::v_type, i0, *types->Get(i1) );
+	                client->SetVar( P4Tag::v_type, i0, *types->Get(idx1) );
 	            if( sendTime )
-	                client->SetVar( P4Tag::v_time, i0, *times->Get(i1) );
+	                client->SetVar( P4Tag::v_time, i0, *times->Get(idx1) );
 	            ++i0;
 	            ++i1;
 	        }
 	        else
 	        {
+	            // File in depot not found on disk
 	            ++i2;
 	        }
 
-	        if( !( ( i1 + 1 ) % 1000 ) )
+	        if( !( ( i0 + 1 ) % 1000 ) )
 	        {
 	            client->Confirm( confirm );
 	            i0 = 0;

@@ -22,7 +22,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgServer2 error code is: 343
+ * Current high value for a MsgServer2 error code is: 373
  *                                                   Max code is 1023!!!
  *
  * The MsgServer2 class contains overflow messages from MsgServer.
@@ -204,6 +204,7 @@ ErrorId MsgServer2::ReplicaLag             = { ErrorOf( ES_SERVER2, 150, E_INFO,
 ErrorId MsgServer2::InfoProxyServerID      = { ErrorOf( ES_SERVER2, 151, E_INFO, EV_NONE, 1 ), "Proxy serverID: %svrId%" } ;
 ErrorId MsgServer2::MoveReaddIntegConflictResolveWarn= { ErrorOf( ES_SERVER2, 152, E_WARN, EV_NONE, 6 ), "Warning: %fromFile%%endFromRev% was added after a move of the previous version.\nThe move resolve of %clientFile% was ignored.\nAccepting branch resolve (at) from %fromFile%%endFromRev% will overwrite workspace file %clientFile%." } ;
 ErrorId MsgServer2::ShelveArchiveInUse     = { ErrorOf( ES_SERVER2, 153, E_FAILED, EV_UNKNOWN, 2 ), "Archive for shelved file %depotFile%@%change% is already in use and differs!" } ;
+ErrorId MsgServer2::ShelveSuffixBumpFailed = { ErrorOf( ES_SERVER2, 358, E_FAILED, EV_UNKNOWN, 2 ), "Failed to increment suffixes during promote of shelf %change%, triggered by in-use archive for %depotFile%." } ;
 ErrorId MsgServer2::ShelveDupDiff          = { ErrorOf( ES_SERVER2, 154, E_FAILED, EV_UNKNOWN, 10 ), "Shelved archive file %lbrFile1%/%lbrRev1%/%lbrType1% (%size1% %hash1%) differs from %lbrFile2%/%lbrRev2%/%lbrType2% (%size2% %hash2%). Skipping any further cleanup." } ; 
 ErrorId MsgServer2::ShelveNotPromoted      = { ErrorOf( ES_SERVER2, 155, E_FAILED, EV_UNKNOWN, 1 ), "%change% does not contain promoted shelved files." } ;
 ErrorId MsgServer2::UseMonitorRT           = { ErrorOf( ES_SERVER2, 157, E_FAILED, EV_USAGE, 0 ), "Usage: %'monitor realtime [ -F filter -T fields ]'%" } ;
@@ -362,3 +363,7 @@ ErrorId MsgServer2::LoginIdled             = { ErrorOf( ES_SERVER2, 324, E_FAILE
 ErrorId MsgServer2::P4authNeeds20251       = { ErrorOf( ES_SERVER2, 327, E_FAILED, EV_NOTYET, 0 ), "The P4AUTH server requires the connecting server to be upgraded to 2025.1 or above." } ;
 ErrorId MsgServer2::RmtOpFailedInconsistent   = { ErrorOf( ES_SERVER2, 342, E_FAILED, EV_FAULT, 0 ), "Operation failed on remote server because of data inconsistency, possibly due to stalled or slow replication." };
 ErrorId MsgServer2::MustSetPasswordRequireSU = { ErrorOf( ES_SERVER2, 343, E_FAILED, EV_USAGE, 0 ), "Password must be set by super user before access can be granted." };
+ErrorId MsgServer2::ConfigureReadonlyDirUnsetWarn = { ErrorOf( ES_SERVER2, 365, E_WARN, EV_NONE, 0 ), "When 'client.readonly.dir' is unset, any partitioned clients will be inaccessible until 'client.readonly.dir' is reconfigured." } ;
+ErrorId MsgServer2::NonResidentOpenPending = { ErrorOf( ES_SERVER2, 373, E_FAILED, EV_USAGE, 2 ), "%clientFile% - can't open for %action% in sparse stream; file is visible only through an unsubmitted stream spec change. Submit the stream spec first." };
+ErrorId MsgServer2::ExtPkgPathTraversal    = { ErrorOf( ES_SERVER2, 369, E_FAILED, EV_FAULT, 1 ), "Path traversal in extension archive: '%filename%' resolves outside the extraction sandbox." } ;
+ErrorId MsgServer2::TraitTooBig            = { ErrorOf( ES_SERVER2, 370, E_FAILED, EV_FAULT, 0 ), "Can't copy attribute value larger than 4GB into memory." } ;

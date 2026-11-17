@@ -2882,6 +2882,18 @@ FileIO::Stat()
 	if( !S_ISREG( sb.st_mode ) ) flags |= FSF_SPECIAL;
 	if( !sb.st_size ) flags |= FSF_EMPTY;
 
+	// Cache mtime+size from this nt_stat so a subsequent StatModTime()
+	// or GetSize() can skip a redundant CreateFile or nt_stat.
+	// Symlinks resolve to different mtimes via the handle vs nt_stat
+	// paths, so we don't cache them.
+
+	if( allowStatCache && !islink )
+	{
+	    cachedModTime = sb.st_mtime;
+	    cachedSize    = sb.st_size;
+	    statCacheValid = 1;
+	}
+
 	return flags;
 }
 
@@ -3122,6 +3134,13 @@ FileIO::StatAccessTime()
 P4INT64
 FileIO::StatModTime()
 {
+	// Skip the per-file CreateFile when the lean-walk caller
+	// (clientservicer.cc SetDigestOrType) has already stamped this from
+	// the preceding Stat().  Cache is per-FileSys, invalidated on Set().
+
+	if( allowStatCache && statCacheValid )
+	    return cachedModTime;
+
 	HANDLE fH;
 	StrPtr *fname = Path();
 	int msecs = 0;
@@ -3381,6 +3400,7 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 	    return;
 
 	// Do we need to preallocate (fragmentation ?)
+	// Never for stdout: it may be a pipe, which cannot be rewound.
 
 	offL_t sizeOffSet = GetSizeHint();
 
@@ -3388,7 +3408,7 @@ FileIOBinary::Open( FileOpenMode mode, Error *e )
 	{
 	    delegate->SizeHint( sizeOffSet );
 	}
-	else if( sizeOffSet )
+	else if( sizeOffSet && !isStd )
 	{
 	    FileIOBinary::Seek( sizeOffSet - (offL_t)1, e );
 
@@ -3521,6 +3541,12 @@ FileIOBinary::RetryCreate()
 offL_t
 FileIOBinary::GetSize()
 {
+	// Reuse the size stamped on the FileSys by the most recent Stat()
+	// in the lean-walk path; otherwise fall back to a fresh nt_stat.
+
+	if( allowStatCache && statCacheValid )
+	    return cachedSize;
+
 	struct _stati64 sb;
 
 	if( nt_stat( Path(), &sb, DOUNICODE, LFN ) < 0 )

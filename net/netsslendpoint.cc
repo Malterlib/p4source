@@ -118,7 +118,11 @@ NetSslEndPoint::Listen( Error *e )
 	    serverCredentials = new NetSslCredentials();
 	    serverCredentials->ReadCredentials( e );
 	    if( e->Test() )
+	    {
+		delete serverCredentials;
+		serverCredentials = NULL;
 		return;
+	    }
 	    X509 *cert = serverCredentials->GetCertificate();
 	    serverCredentials->CheckCertChainOrder( cert, true, e );
 	    if( e->Test() ) {

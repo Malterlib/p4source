@@ -23,7 +23,7 @@
  * value and update the following number:
  *
  * Current high value for a MsgDm2 error code is:
- *                                161 (NoMatchingMoves)
+ *                                175 (MultiplePartitionedRevSpec)
  *                                               Max code is 1023!!!
  */
 # include <stdhdrs.h>
@@ -199,7 +199,12 @@ ErrorId MsgDm2::ExVIEWC                          = { ErrorOf( ES_DM2, 155, E_WAR
 ErrorId MsgDm2::SaltFail                          = { ErrorOf( ES_DM2, 156, E_FAILED, EV_EMPTY, 0 ), "Failed to generate random salt." } ;
 ErrorId MsgDm2::HashFail                          = { ErrorOf( ES_DM2, 157, E_FAILED, EV_FAULT, 0 ), "Failed to generate password hash." } ;
 ErrorId MsgDm2::NoMatchingMoves                   = { ErrorOf( ES_DM2, 161, E_INFO, EV_EMPTY, 0 ), "No matching moves found." } ;
+ErrorId MsgDm2::TopologyNoRoot                    = { ErrorOf( ES_DM2, 165, E_INFO, EV_EMPTY, 0 ), "No root node in the topology records." } ;
+ErrorId MsgDm2::TopologyCycle                     = { ErrorOf( ES_DM2, 166, E_INFO, EV_EMPTY, 1 ), "Cycle in topology graph for %serverid%." } ;
+ErrorId MsgDm2::TopologyBadTerm                   = { ErrorOf( ES_DM2, 167, E_INFO, EV_EMPTY, 2 ), "Topology record: %serverid% not terminated by the root node: %root%." } ;
+ErrorId MsgDm2::TopologyNoTerm                    = { ErrorOf( ES_DM2, 168, E_INFO, EV_EMPTY, 1 ), "Unable to build terminated topology graph for %serverid%." } ;
+ErrorId MsgDm2::MultiplePartitionedRevSpec        = { ErrorOf( ES_DM2, 175, E_FAILED, EV_USAGE, 1 ), "Client %clientName% cannot be used as a revision specifier together with another partitioned client." } ;
 
-// ErrorId graveyard: retired/deprecated ErrorIds. 
+// ErrorId graveyard: retired/deprecated ErrorIds.
 
 ErrorId MsgDm2::NoPartitionedToReadonly    = { ErrorOf( ES_DM2, 54, E_FAILED, EV_USAGE, 1 ), "Cannot change client type from '[%from%|partitioned]' to 'readonly'." } ; //NOTRANS

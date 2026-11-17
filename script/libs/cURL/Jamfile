@@ -4,6 +4,7 @@ SubDirCcFlags -I$(SSLINCDIR) [ FDefines Z_PREFIX ] ;
 
 SubDirHdrs $(P4) script libs cURL ;
 SubDirHdrs $(P4) script libs cURL curl ;
+SubDirHdrs $(P4) script libs cURL curlx ;
 SubDirHdrs $(P4) zlib ;
 
 # Just adding these to the CCFLAGS is less verbose than writing an
@@ -70,54 +71,58 @@ else
 	    }
 	}
 
+local DEFINES = [ FRemoveAny $(DEFINES) : USE_OPENLDAP ] ;
+
 P4APILibrary $(P4SCRIPT_CURL) :
 	amigaos.c
 	altsvc.c
-	asyn-ares.c
-	asyn-thread.c
-	curl_base64.c
+	api.c
 	bufref.c
 	bufq.c
 	cf-h1-proxy.c
 	cf-h2-proxy.c
 	cf-haproxy.c
 	cf-https-connect.c
+	cf-ip-happy.c
+	cf-recvbuf.c
+	cf-setup.c
 	cf-socket.c
 	cfilters.c
 	conncache.c
 	connect.c
 	content_encoding.c
 	cookie.c
+	creds.c
+	cshutdn.c
 	curl_addrinfo.c
-	curl_des.c
+	curl_ed25519.c
 	curl_endian.c
 	curl_fnmatch.c
+	curl_fopen.c
 	curl_gethostname.c
 	curl_get_line.c
 	curl_gssapi.c
 	curl_memrchr.c
-	curl_multibyte.c
 	curl_ntlm_core.c
 	curl_range.c
-	curl_rtmp.c
 	curl_sasl.c
 	curl_sha512_256.c
+	curl_share.c
 	curl_sspi.c
 	curl_threads.c
 	curl_trc.c
 	cw-out.c
+	cw-pause.c
 	dict.c
-	doh.c
 	dllmain.c
-	dynbuf.c
 	dynhds.c
 	easy.c
 	easygetopt.c
 	easyoptions.c
 	escape.c
+	fake_addrinfo.c
 	file.c
 	fileinfo.c
-	fopen.c
 	formdata.c
 	ftp.c
 	ftplistparser.c
@@ -127,28 +132,20 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	curl_hash.c
 	headers.c
 	hmac.c
-	hostasyn.c
-	hostip.c
-	hostip4.c
-	hostip6.c
-	hostsyn.c
 	hsts.c
 	http.c
 	http1.c
 	http2.c
-	httpsrr.c
 	http_aws_sigv4.c
 	http_chunks.c
 	http_digest.c
+	http_httpsig.c
 	http_negotiate.c
 	http_ntlm.c
 	http_proxy.c
 	idn.c
 	if2ip.c
 	imap.c
-	inet_ntop.c
-	inet_pton.c
-	krb5.c
 	ldap.c
 	llist.c
 	md4.c
@@ -158,55 +155,56 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	mime.c
 	mprintf.c
 	mqtt.c
+	multi_ev.c
+	multi_ntfy.c
 	multi.c
 	netrc.c
-	nonblock.c
-	noproxy.c
 	openldap.c
 	parsedate.c
 	pingpong.c
+	peer.c
 	pop3.c
+	protocol.c
 	curl_progress.c
 	psl.c
+	proxy.c
+	ptrarray.c
 	rand.c
-	rename.c
+	ratelimit.c
 	request.c
 	rtsp.c
 	select.c
 	sendf.c
 	setopt.c
 	curl_sha256.c
-	share.c
 	slist.c
-	smb.c
 	smtp.c
 	socketpair.c
 	socks.c
 	socks_gssapi.c
 	socks_sspi.c
-	speedcheck.c
 	splay.c
 	strcase.c
-	strdup.c
+	strequal.c
 	strerror.c
-	strparse.c
-	strtok.c
-	strtoofft.c
-	system_win32.c
 	telnet.c
 	tftp.c
-	timediff.c
-	timeval.c
+	thrdpool.c
 	transfer.c
+	u32_ptrset.c
+	u8_strset.c
+	uint-bset.c
+	uint-spbset.c
+	uint-table.c
 	url.c
 	urlapi.c
 	version.c
-	version_win32.c
-	warnless.c
 	ws.c
 	;
 }
-SubInclude p4 script libs cURL vauth ;
-SubInclude p4 script libs cURL vtls ;
-SubInclude p4 script libs cURL vquic ;
+SubInclude P4 script libs cURL vauth ;
+SubInclude P4 script libs cURL vtls ;
+SubInclude P4 script libs cURL vquic ;
+SubInclude P4 script libs cURL vdns ;
+SubInclude P4 script libs cURL curlx ;
 

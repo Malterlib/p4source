@@ -1202,6 +1202,24 @@ Rpc::DispatchOne( RpcDispatcher *dispatcher, bool passError )
 
 	le = ue;
 
+	// If we have just finished processing an ack, now is a good
+	// time to process any masked Control-C's.
+	//
+	// We don't need to actually check if we are in a sync here.  If
+	// we are not, the non-masked Control-C will terminate the client
+	// process. If we are in a sync, the Control-C will be masked and
+	// will not be processed until this condition is checked.
+	//
+
+	if( signaler.IsMaskedIntr() )
+	{
+	    if( strcmp( func->Text(), P4Tag::c_Ack ) == 0 )
+	    {
+	        endDispatch = 1;
+	        return;
+	    }
+	}
+
 	// If an error occurred, we'll call the caller's errorHandle
 	// function.  If the error was fatal, we'll tack on some tracing
 	// information.

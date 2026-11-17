@@ -40,10 +40,11 @@
 Signaler signaler;
 
 // These two babies have C linkage for signal().
+// In order to make use of onintr, the exit needed to be moved out.
 
 extern "C" {
 	static void (*istat)( int ) = SIG_TYPECAST( SIG_DFL );
-	void onintr(int v) { signaler.Intr(); exit(-1); }
+	void onintr(int v) { signaler.Intr(); }
 }
 
 /*
@@ -74,6 +75,12 @@ Signaler::Signaler()
 	list = 0;
 	disable = 0;
 	isIntr = false;
+
+	// Not clear the legacy isIntr can be used for masking, define
+	// a new flag for masking.  In onintr the exit needed to be
+	// be moved so that a Control-C did not always end in termination.
+
+	isMaskedIntr = false;
 }
 
 Signaler::~Signaler()
@@ -124,6 +131,57 @@ std::mutex& Signaler::GetMutex()
 # endif
 
 void
+Signaler::Mask()
+{
+# ifdef OS_NT
+	WaitForSingleObject( hmutex, INFINITE );
+# else // OS_NT
+# ifdef HAS_CPP11
+	try {
+	std::lock_guard< std::mutex > lock( GetMutex() );
+# endif // HAS_CPP11
+# endif // OS_NT
+
+	mask++;
+
+# ifdef OS_NT
+	ReleaseMutex( hmutex );
+# else // OS_NT
+# ifdef HAS_CPP11
+	} catch( const std::system_error& e )
+	// Throw away the error since it only shows up on ctrl-c:
+	// "device or resource busy: device or resource busy"
+	{}
+# endif // HAS_CPP11
+# endif // OS_NT
+}
+
+void
+Signaler::Unmask()
+{
+# ifdef OS_NT
+	WaitForSingleObject( hmutex, INFINITE );
+# else // OS_NT
+# ifdef HAS_CPP11
+	try {
+	std::lock_guard< std::mutex > lock( GetMutex() );
+# endif // HAS_CPP11
+# endif // OS_NT
+
+	if( mask > 0 ) --mask;
+# ifdef OS_NT
+	ReleaseMutex( hmutex );
+# else // OS_NT
+# ifdef HAS_CPP11
+	} catch( const std::system_error& e )
+	// Throw away the error since it only shows up on ctrl-c:
+	// "device or resource busy: device or resource busy"
+	{}
+# endif // HAS_CPP11
+# endif // OS_NT
+}
+
+void
 Signaler::Disable()
 {
 	disable = 1;
@@ -145,6 +203,12 @@ bool
 Signaler::IsIntr() const
 {
 	return isIntr;
+}
+
+bool
+Signaler::IsMaskedIntr() const
+{
+	return isMaskedIntr;
 }
 
 void
@@ -258,13 +322,24 @@ void runCallback( SignalMan* p )
 	p->callback( p->ptr );	
 }
 
+// Before onintr() had the call to exit() remvoed, it called Intr()
+// and then called exit().  This means when Intr() returned, exit()
+// would have been called.  All return points on Intr() now call
+// exit().
+
 void
 Signaler::Intr()
 {
+	if( mask )
+	{
+	    isMaskedIntr = true;
+	    return;
+	}
+
 	isIntr = true;
 
 	if( disable )
-	    return;
+	    exit (-1);
 
 	SignalMan *d = list;
 
@@ -302,4 +377,5 @@ Signaler::Intr()
 # endif // HAS_CPP11
 # endif // OS_NT
 
+	exit (-1);
 }

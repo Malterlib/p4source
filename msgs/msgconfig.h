@@ -161,6 +161,7 @@ class MsgConfig {
 	static ErrorId DmQuickRev;
 	static ErrorId DmQuickWorking;
 	static ErrorId DmRenameuserScanthresh;
+	static ErrorId DmReopenBatch;
 	static ErrorId DmRepoNoautocreate;
 	static ErrorId DmRepoUnpack;
 	static ErrorId DmResolveAttrib;
@@ -208,6 +209,7 @@ class MsgConfig {
 	static ErrorId FilesysMaxsymlink;
 	static ErrorId FilesysMaxtmp;
 	static ErrorId FilesysRestrictsymlinks;
+	static ErrorId FilesysSymlinkTypemap;
 	static ErrorId FilesysUtf8Bom;
 	static ErrorId FilesysExtendlowmark;
 	static ErrorId FilesysWindowsLfn;
@@ -230,6 +232,7 @@ class MsgConfig {
 	static ErrorId LbrStorageSkipkeyed;
 	static ErrorId LbrStorageThreads;
 	static ErrorId LbrRcsLocking;
+	static ErrorId LbrUnloaddepotCompress;
 	static ErrorId LogGroupMaxlen;
 	static ErrorId LogOriginhost;
 	static ErrorId MapJoinmax1;
@@ -534,4 +537,8 @@ class MsgConfig {
 	static ErrorId RtMonitorfile;
 	static ErrorId PullTriggerDir;
 	static ErrorId LbrScanIgnore;
+	static ErrorId S3ErrorRetry;
+	static ErrorId S3CredErrorRetry;
+	static ErrorId LbrS3MultiPart;
+	static ErrorId LbrS3MultiPartSz;
 } ;

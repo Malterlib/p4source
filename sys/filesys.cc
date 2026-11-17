@@ -156,6 +156,12 @@ FileSys::FileSys()
 	checksum = 0;
 	cacheHint = 0;
 	preserveCWD = 0;
+
+	allowStatCache = 0;
+	statCacheValid = 0;
+	cachedModTime = 0;
+	cachedSize = 0;
+
 	charSet = GlobalCharSet::Get();
 	content_charSet = GlobalCharSet::Get();
 	delegate = 0;
@@ -292,6 +298,7 @@ FileSys::Set( const StrPtr &name )
 	    SetLFN( name );
 # endif
 	path.Set( name );
+	statCacheValid = 0;
 }
 
 void
@@ -312,6 +319,7 @@ FileSys::Set( const StrPtr &name, Error *e )
 	}
 # endif
 	path.Set( name );
+	statCacheValid = 0;
 }
 
 void

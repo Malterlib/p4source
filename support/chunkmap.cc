@@ -30,6 +30,7 @@
 
 # include <vartree.h>
 # include <vararray.h>
+# include <errorlog.h>
 
 class ChunkVTree : public VVarTree
 {
@@ -283,6 +284,7 @@ ChunkMap::Create( const StrPtr* fromFile, Error* e )
 	Create( in.get(), e, nullptr );
 
 	in->Close( e );
+
 	return;
 }
 
@@ -415,15 +417,34 @@ ChunkMap::Write( const StrPtr* toFile, Error* e ) const
 	auto out = FileSys::CreateUPtr( FST_BINARY );
 
 	out->Set( *toFile );
-	// Clobber if exists.
-	out->Open( FOM_WRITE, e );
 
+	// Write to a temp file, then rename
+	auto tmp = FileSys::CreateUPtr( FST_BINARY );
+	tmp->MakeLocalTemp( out->Name() );
+	tmp->SetDeleteOnClose();
+	tmp->Open( FOM_WRITE, e );
 	if( e->Test() )
 	    return;
 
-	out->Write( mapBuf, e );
+	tmp->Write( mapBuf, e );
+	tmp->Perms( FPM_RW );
+	tmp->Close( e );
+	if( e->Test() )
+	    return;
 
-	out->Close( e );
+	tmp->Rename( out.get(), e );
+	if( e->Test() )
+	{
+	    // Let rename fail silently because sometimes
+	    // the problem is a collision with 
+	    // another process renaming it's tmp file.
+	    AssertLog.Report( e );
+	    e->Clear();
+	}
+	else
+	{
+	    out->Chmod( FPM_RO, e );
+	}
 }
 
 bool

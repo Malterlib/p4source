@@ -107,6 +107,7 @@ enum P4TunableName {
 	P4TUNE_DM_QUICK_REV,
 	P4TUNE_DM_QUICK_WORKING,
 	P4TUNE_DM_RENAMEUSER_SCANTHRESH,	// see userrenameuser.cc
+	P4TUNE_DM_REOPEN_BATCH,			// see userreopen.cc
 	P4TUNE_DM_REPO_NOAUTOCREATE,		// see dmgraph.cc
 	P4TUNE_DM_REPO_UNPACK,			// see dmgraph.cc
 	P4TUNE_DM_RESOLVE_ATTRIB,
@@ -154,6 +155,7 @@ enum P4TunableName {
 	P4TUNE_FILESYS_MAXSYMLINK,		// see fileiosym.cc
 	P4TUNE_FILESYS_MAXTMP,
 	P4TUNE_FILESYS_RESTRICTSYMLINKS,	// see clientservice.cc
+	P4TUNE_FILESYS_SYMLINK_TYPEMAP,		// see clientservice.cc
 	P4TUNE_FILESYS_UTF8BOM,			// see fileiouni.cc
 	P4TUNE_FILESYS_EXTENDLOWMARK,
 	P4TUNE_FILESYS_WINDOWS_LFN,		// see filesys.cc
@@ -169,6 +171,8 @@ enum P4TunableName {
 	P4TUNE_LBR_RETRY_MAX,			// see lbrstatus.cc
 	P4TUNE_LBR_STAT_INTERVAL,		// see pxclient.cc and lbrstatus.cc
 	P4TUNE_LBR_S3_UPLOADRETRIES,		// see lbr/s3client.cc
+	P4TUNE_LBR_S3_MULTIPART,		// see lbr/s3client.cc
+	P4TUNE_LBR_S3_MULTIPARTSZ,		// see lbr/s3client.cc
 	P4TUNE_LBR_VERIFY_IN,			// see lbrservice.cc
 	P4TUNE_LBR_VERIFY_OUT,			// see rhservice.cc
 	P4TUNE_LBR_VERIFY_SCRIPT_OUT,		// see rhservice.cc
@@ -177,6 +181,7 @@ enum P4TunableName {
 	P4TUNE_LBR_STORAGE_SKIPKEYED,           // see dmstorageupgrade.cc
 	P4TUNE_LBR_STORAGE_THREADS,             // see userstorage.cc
 	P4TUNE_LBR_RCS_LOCKING,                 // see dmgrcslock.cc
+	P4TUNE_LBR_UNLOADDEPOT_COMPRESS,        // see dmsdomain.cc
 	P4TUNE_LOG_GROUP_MAXLEN,		// see rhservice.cc
 	P4TUNE_LOG_ORIGINHOST,			// see rhloggable.cc
 	P4TUNE_MAP_JOINMAX1,
@@ -404,7 +409,8 @@ enum P4TunableName {
 	P4TUNE_SSL_CIPHER_LIST,			// see netssltransport.cc
 	P4TUNE_SSL_CIPHER_SUITES,		// see netssltransport.cc
 	P4TUNE_SSL_KEYLOG_FILE,			// see netssltransport.cc
-
+	P4TUNE_S3_ERROR_RETRY,		// see lbr/s3client.cc
+	P4TUNE_S3_CREDERROR_RETRY,		// see lbr/s3client.cc
 	P4TUNE_LAST_STR
 
 }  ;

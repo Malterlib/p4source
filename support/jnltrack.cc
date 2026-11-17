@@ -11,6 +11,8 @@
 
 # include <ctype.h>
 
+# include "debug.h"
+
 JnlTracker::JnlTracker()
     : pids( 10 ), ckp( 0 )
 {
@@ -23,17 +25,21 @@ JnlTracker::Clear()
 	npids = maxpids = consistentcnt = markcnt[0] = markcnt[1] = 0;
 	scanstate = 0;
 	sawJTrailer = 0;
+	txCount = 0;
 }
 
 int
-JnlTracker::Marker( long pid, Kind kind )
+JnlTracker::Marker( long pid, Kind kind, bool skipEmpty )
 {
 	++markcnt[ kind ];
+	bool found = false;
+	int debug = p4debug.GetLevel( DT_RPL );
 
 	for ( int i = 0; i < npids; ++i )
 	{
 	    if( pids[i] == pid )
 	    {
+		found = true;
 		if( kind == END )
 		{
 		    // existing end
@@ -45,6 +51,20 @@ JnlTracker::Marker( long pid, Kind kind )
 		return 0;
 	    }
 	}
+
+	// If the only record processed so far is the mx marker, skip the pid
+	if( kind == MIDDLE && txCount <= 1 && debug >= 6)
+	{
+	    StrBuf log;
+	    log << "Jnl Replay Tracker: Pid " << pid
+	        << " in-progress and empty: " << (skipEmpty ? "" : "not ")
+	        << "skipping";
+	    p4debug.Event();
+	    p4debug.printf( "%s\n", log.Text() );
+	}
+
+	if( kind == MIDDLE && txCount <= 1 && skipEmpty )
+	    return 0;
 
 	if( kind == MIDDLE )
 	{
@@ -62,11 +82,33 @@ JnlTracker::Marker( long pid, Kind kind )
 	{
 	    if( maxpids < npids + 1 )
 		maxpids = npids + 1;
+
+	    if( debug >= 5 )
+	    {
+		StrBuf log;
+		log << "Jnl Replay Tracker: Pid " << pid << " complete, "
+		    << npids << " remaining: ";
+		for( int j = 0; j < npids; j++ )
+		    log << (j ? ", " : "") << pids[j];
+		p4debug.Event();
+		p4debug.printf( "%s\n", log.Text() );
+	    }
+
 	    return 0;
 	}
 	if( !maxpids )
 	    maxpids = 1;
 	++consistentcnt;
+
+	if( debug >= 5 )
+	{
+	    StrBuf log;
+	    log << "Jnl Replay Tracker: Pid " << pid << " complete, 0 remaining";
+	    if( !found && txCount <= 1 )
+	        log << " (no work to commit)";
+	    p4debug.Event();
+	    p4debug.printf( "%s\n", log.Text() );
+	}
 	return 1;
 }
 

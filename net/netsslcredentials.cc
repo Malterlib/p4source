@@ -531,6 +531,13 @@ NetSslCredentials::NetSslCredentials(bool isTest)
 	}
 }
 
+#ifdef USE_CREDS_COPY_CTOR
+/*
+ * See the comment in netsslcredentials.h for why this is removed.
+ * - If we want to change this to use deep copy then we could try
+ *   X509_dup(cert), X509_check_purpose(copied_cert, -1, 0)
+ *   but this would require investigation.
+ */
 NetSslCredentials::NetSslCredentials( NetSslCredentials &rhs)
   : privateKey (rhs.privateKey),
     certificate(rhs.certificate),
@@ -550,6 +557,7 @@ NetSslCredentials::NetSslCredentials( NetSslCredentials &rhs)
 	    chain->Put( rhs.chain->Get( i ) );
 	verify = new IntArray( 5, -1 );
 }
+#endif // USE_CREDS_COPY_CTOR
 
 NetSslCredentials::~NetSslCredentials()
 {
@@ -575,6 +583,8 @@ NetSslCredentials::ClearChain( bool freeChain )
 void
 NetSslCredentials::ReleaseCredentials( bool freeCert, bool freeKey )
 {
+	ClearChain( true );
+
 	if ( freeCert && ownCert && certificate )
 	{
 	    X509_free( certificate );
@@ -590,6 +600,13 @@ NetSslCredentials::ReleaseCredentials( bool freeCert, bool freeKey )
 	ownKey = false;
 }
 
+#ifdef USE_CREDS_ASSIGN_OPER
+/*
+ * See the comment in netsslcredentials.h for why this is removed.
+ * - If we want to change this to use deep copy then we could try
+ *   X509_dup(cert), X509_check_purpose(copied_cert, -1, 0)
+ *   but this would require investigation.
+ */
 NetSslCredentials &
 NetSslCredentials::operator =( NetSslCredentials &rhs )
 {
@@ -617,6 +634,7 @@ NetSslCredentials::operator =( NetSslCredentials &rhs )
 	sslDir = rhs.sslDir;
 	return *this;
 }
+#endif // USE_CREDS_ASSIGN_OPER
 
 void
 NetSslCredentials::HaveCredentials( Error *e )
@@ -717,7 +735,7 @@ NetSslCredentials::ReadCredentials( Error *e )
 	    X509_free( (X509 *)chain->Get( i ) );
 	chain->Clear();
 
-	while( (chainCert = PEM_read_X509(fp, NULL, 0, NULL ) ) )
+	while( (chainCert = PEM_read_X509( fp, NULL, 0, NULL ) ) )
 	{
 	    ValidateCertDateRange( chainCert, e );
 	    P4CHECKERROR( e, "NetSslCredentials::ReadCredentials ValidateCertDateRange (chain)", fail );
@@ -745,6 +763,8 @@ fail:
 	ReleaseCredentials( true, true );
 	delete keyFile;
 	delete certFile;
+	if( chainCert )
+	    X509_free( chainCert );
 	return;
 }
 
@@ -1185,14 +1205,20 @@ NetSslCredentials::MakeSslCredentials( Error *e )
 	BN_GENCB  *callback = NULL;
 # endif
 
+	if( privateKey && ownKey )
+	    EVP_PKEY_free( privateKey );
 	if( ( privateKey = EVP_PKEY_new()) == NULL )
 	{
 	    e->Net( "EVP_PKEY_new", "failed" );
 	    e->Set( MsgRpc::SslCertGen );
 	    goto fail;
 	}
+	ownKey = true;
 
+	if ( certificate && ownCert )
+	    X509_free( certificate );
 	certificate = X509_new();
+	ownCert = true;
 	SSLHANDLEFAIL( certificate, e, "X509_new", MsgRpc::SslCertGen, fail );
 
 # if OPENSSL_VERSION_NUMBER < 0x10100000L
@@ -1289,7 +1315,7 @@ NetSslCredentials::MakeSslCredentials( Error *e )
 	 */
 	X509_set_issuer_name( certificate, name );
 
-	if( !X509_sign( certificate, privateKey, EVP_sha1() ) )
+	if( !X509_sign( certificate, privateKey, EVP_sha256() ) )
 	{
 	    e->Net( "EVP_PKEY_new", "failed" );
 	    e->Set( MsgRpc::SslCertGen );

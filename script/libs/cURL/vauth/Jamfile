@@ -43,7 +43,6 @@ P4APILibrary $(P4SCRIPT_CURL) :
 	gsasl.c
 	krb5_gssapi.c
 	krb5_sspi.c
-	ntlm.c
 	ntlm_sspi.c
 	oauth2.c
 	spnego_gssapi.c

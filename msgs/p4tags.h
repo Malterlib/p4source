@@ -128,6 +128,7 @@ struct P4Tag {
 	static const char v_bytesBehind[];
 	static const char v_archiveFile[];
 	static const char v_caddr[];
+	static const char v_calculateDigest[];
 	static const char v_caseHandling[];
 	static const char v_change[];
 	static const char v_change2[];
@@ -235,6 +236,7 @@ struct P4Tag {
 	static const char v_flushHard[];
 	static const char v_fmt[];
 	static const char v_forceType[];
+	static const char v_forceTypeBits[];
 	static const char v_fromFile[];
 	static const char v_fromLbrFile[];
 	static const char v_fromLbrPath[];

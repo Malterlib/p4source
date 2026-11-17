@@ -26,6 +26,7 @@
 # include <future>
 # include <vector>
 # include <mutex>
+# include <atomic>
 
 class ThreadedKeepAlive : public KeepAlive {
     public:
@@ -58,6 +59,9 @@ class ThreadedTransfer : public ClientTransfer, public ClientUser
 	    ClientProgress * CreateProgress( int );
 
 	private:
+	    void	StartRunTransfer( ClientApi *client, const char *cmd,
+			                  StrArray *args, StrDict *pVars,
+			                  std::atomic_int *res );
 
 	    int		RunTransfer( ClientApi *client,
 	                             ClientUser *ui,
@@ -126,11 +130,26 @@ ThreadedTransfer::RunTransfer( ClientApi *client,
 	for( int j = 0; j < args->Count(); j++ )
 	    a[ j ] = args->Get( j )->Text();
 
+	// We mask and store Control-C's for transmit threads so we can
+	// manage them and close down the transmit at a consistent point.
+
+	int transmit=0;
+	if( strcmp(cmd, "transmit") == 0 )
+	{
+	    transmit++;
+	    signaler.Mask();
+	}
+
 	child.SetArgv( args->Count(), a );
 	child.Run( cmd, ui );
 
 	delete[] a;
 	child.Final( &e );
+
+	// Ok to interactively take Control-C's again.
+
+	if( transmit )
+	    signaler.Unmask();
 
 	if( e.Test() )
 	{
@@ -145,6 +164,26 @@ ThreadedTransfer::RunTransfer( ClientApi *client,
 	return 0;
 }
 
+void
+ThreadedTransfer::StartRunTransfer( ClientApi *client, const char *cmd,
+	          StrArray *args, StrDict *pVars, std::atomic_int *res )
+{
+	Error e;
+	P4Libraries::InitializeThread( P4LIBRARIES_INIT_P4, &e );
+	if( e.Test() )
+	{
+	    HandleError( &e );
+	    *res += 1;
+	    return;
+	}
+	const int r = RunTransfer( client, this, cmd, args, pVars );
+	P4Libraries::ShutdownThread( P4LIBRARIES_INIT_P4, &e );
+	if( e.Test() )
+	    HandleError( &e );
+	if( r )
+	    *res += r;
+}
+
 int
 ThreadedTransfer::Transfer( ClientApi *client,
 	                    ClientUser *ui,
@@ -156,39 +195,48 @@ ThreadedTransfer::Transfer( ClientApi *client,
 {
 	master = ui;
 
-	std::vector< std::future< int > > ts;
+	std::vector< std::thread > ts;
+	std::atomic_int res( 0 );
 	ts.reserve( threads + 1 );
 
-	auto fn = [&]( ClientApi *client, ClientUser *ui, const char *cmd,
-	               StrArray *args, StrDict *pVars )
-	    {
-	        P4Libraries::InitializeThread( P4LIBRARIES_INIT_P4, e );
-	        const int r = RunTransfer( client, ui, cmd, args, pVars );
-	        P4Libraries::ShutdownThread( P4LIBRARIES_INIT_P4, e );
-	        return r;
-	    };
+
+	// Save previous signal enable/disable state to restore later.
+	// Although we do not enable signals if for some reason they
+	// have been disabled.  Since disabling signals takes precedence
+	// over masking, this does mean consistency can not be managed
+	// if signals are disabled.
 
 	const bool sigState = signaler.GetState();
-	signaler.Disable();
+
+	// In change 1695837, signals were disabled here.  For Control-C
+	// consistency handling we need to mask Control-C's but leave
+	// them enabled.
+
+	signaler.Mask();
 
 	const bool extState = client->ExtensionsEnabled();
 	client->DisableExtensions();
 
 	for( int i = 0; i < threads; i++ )
-	    ts.emplace_back( std::async( std::launch::async, fn,
-	                                 client, this, cmd, &args, &pVars ) );
-
-	int es = 0;
+	    ts.emplace_back( std::thread(
+	                         &ThreadedTransfer::StartRunTransfer, this,
+	                         client, cmd, &args, &pVars, &res ) );
 
 	for( int i = 0; i < threads; i++ )
 	    try
 	    {
-	        es += ts[ i ].get();
+	        ts[i].join();
 	    }
 	    // Throw away the error since it only shows up on ctrl-c:
 	    // "device or resource busy: device or resource busy"
 	    catch( const std::exception& e )
 	    {}
+
+	// Return to unmasked signal state.
+
+	signaler.Unmask();
+
+	// Restore previous enable/disable signal state.
 
 	if( !sigState )
 	    signaler.Enable();
@@ -196,7 +244,7 @@ ThreadedTransfer::Transfer( ClientApi *client,
 	if( extState )
 	    client->EnableExtensions( e );
 
-	return es;
+	return res.load();
 }
 
 void
@@ -384,6 +432,8 @@ clientReceiveFiles( Client *client, Error *e )
 	StrPtr *threads = client->GetVar( P4Tag::v_peer, e );
 	StrPtr *blockCount = client->GetVar( P4Tag::v_blockCount );
 	StrPtr *blockSize = client->GetVar( P4Tag::v_scanSize );
+	StrPtr *queueFiles = client->GetVar( P4Tag::v_fileCount );
+	StrPtr *queueBytes = client->GetVar( P4Tag::v_fileSize );
 	StrPtr *proxyload = client->GetVar( "proxyload" );
 	StrPtr *proxyverbose = client->GetVar( "proxyverbose" );
 	StrPtr *doPublish = client->GetVar( "doPublish" );
@@ -421,6 +471,21 @@ clientReceiveFiles( Client *client, Error *e )
 	    *args.Put() << "-r";
 	if( doPublish )
 	    *args.Put() << "-p";
+
+	// Fair-share: forward thread count and total queue depth so that
+	// each transmit worker can size its batch to ceil(total/N).
+	// Only sent when the server supplied v_fileCount, which acts as a
+	// capability signal: an older server that does not send it also
+	// does not accept these args in userTransmit, so omitting them
+	// preserves backward compatibility in both directions.
+
+	if( queueFiles )
+	{
+	    *args.Put() << "-n" << *threads;
+	    *args.Put() << "-c" << *queueFiles;
+	    if( queueBytes )
+	        *args.Put() << "-z" << *queueBytes;
+	}
 
 	StrBufDict pVars;
 	if( proxyload )

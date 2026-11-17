@@ -281,6 +281,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "dm.quick.rev",		0,	R1M,	1,	RBIG,	1,	R1K,	0,	0,	&MsgConfig::DmQuickRev,			0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "dm.quick.working",		0,	R1K,	1,	RBIG,	1,	R1K,	0,	0,	&MsgConfig::DmQuickWorking,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "dm.renameuser.scanthresh",	0,	3,	0,	100,	1,	1,	0,	0,	&MsgConfig::DmRenameuserScanthresh,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
+	{ "dm.reopen.batch",		0,	R1K,	1,	RBIG,	1,	R1K,	0,	0,	&MsgConfig::DmReopenBatch,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "dm.repo.noautocreate",	0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::DmRepoNoautocreate,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY },
 	{ "dm.repo.unpack",		0,	1,	0,	2,	1,	1,	0,	0,	&MsgConfig::DmRepoUnpack,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_MISC },
 	{ "dm.resolve.attrib",		0,	1,	0,	1,	1,	1,	0,	0,	&MsgConfig::DmResolveAttrib,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_MISC },
@@ -328,6 +329,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "filesys.maxsymlink",		0,	B1K,	1,	BBIG,	1,	B1K,	0,	0,	&MsgConfig::FilesysMaxsymlink,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "filesys.maxtmp",		0,	R1M,	1,	RBIG,	1,	R1K,	0,	0,	&MsgConfig::FilesysMaxtmp,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "filesys.restrictsymlinks",	0,	1,	0,	1,	1,	1,	0,	0,	&MsgConfig::FilesysRestrictsymlinks,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
+	{ "filesys.symlink.typemap",	0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::FilesysSymlinkTypemap,	0,	CONFIG_APPLY_CLIENT,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_NODOC,	CONFIG_CAT_MISC },
 	{ "filesys.utf8bom",		0,	1,	0,	2,	1,	1,	0,	0,	&MsgConfig::FilesysUtf8Bom,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "filesys.extendlowmark",	0,	B32K,	0,	BBIG,	B1K,	B1K,	0,	0,	&MsgConfig::FilesysExtendlowmark,	0,	CONFIG_APPLY_CLIENT,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_MISC },
 	{ "filesys.windows.lfn",	0,	1,	0,	10,	1,	1,	0,	0,	&MsgConfig::FilesysWindowsLfn,		0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT|CONFIG_APPLY_PROXY, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_DOC, CONFIG_CAT_MISC },
@@ -342,7 +344,9 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "lbr.replica.notransfer",	0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::LbrReplicaNotransfer,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_REPLICATION|CONFIG_CAT_TRIGGERS|CONFIG_CAT_ARCHIVE_MANAGEMENT },
 	{ "lbr.retry.max",		0,	50,	1,	BBIG,	1,	R1K,	0,	0,	&MsgConfig::LbrRetryMax,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_REPLICATION },
 	{ "lbr.stat.interval",		0,	0,	0,	999,	1,	1,	0,	0,	&MsgConfig::LbrStatInterval,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_MISC },
-	{ "lbr.s3.uploadretries",	0,	5,	0,	20,	1,	1,	0,	0,	&MsgConfig::LbrS3UploadRetries,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_MISC },        
+	{ "lbr.s3.uploadretries",	0,	5,	0,	20,	1,	1,	0,	0,	&MsgConfig::LbrS3UploadRetries,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_MISC },
+	{ "lbr.s3.multipart",	0,	4096,	5,	BBIG,	1,	1,	0,	0,	&MsgConfig::LbrS3MultiPart,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_MISC },
+	{ "lbr.s3.multipartsz",	0,	1024,	5,	BBIG,	1,	1,	0,	0,	&MsgConfig::LbrS3MultiPartSz,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_MISC },
 	{ "lbr.verify.in",		0,	1,	0,	1,	1,	1,	0,	0,	&MsgConfig::LbrVerifyIn,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_MISC },
 	{ "lbr.verify.out",		0,	1,	0,	1,	1,	1,	0,	0,	&MsgConfig::LbrVerifyOut,		0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT, CONFIG_RESTART_NO_RESTART, CONFIG_SUPPORT_DOC, CONFIG_CAT_MISC },
 	{ "lbr.verify.script.out",	0,	1,	0,	1,	1,	1,	0,	0,	&MsgConfig::LbrVerifyScriptOut,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_TRIGGERS },
@@ -351,6 +355,7 @@ P4Tunable::tunable P4Tunable::list[] = {
 	{ "lbr.storage.skipkeyed",	0,	2,	0,	2,	1,	1,	0,	0,	&MsgConfig::LbrStorageSkipkeyed,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_STOP,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_PERFORMANCE },
 	{ "lbr.storage.threads",	0,	0,	0,	B4K,	1,	1,	0,	0,	&MsgConfig::LbrStorageThreads,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_PERFORMANCE },
 	{ "lbr.rcs.locking",		0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::LbrRcsLocking,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
+	{ "lbr.unloaddepot.compress",	0,	0,	0,	1,	1,	1,	0,	0,	&MsgConfig::LbrUnloaddepotCompress,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_MISC },
 	{ "log.cmdgrp.maxlength",	0,	128,	0,	B8K,	1,	1,	0,	0,	&MsgConfig::LogGroupMaxlen,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC },
 	{ "log.originhost",		0,	1,	0,	1,	1,	1,	0,	0,	&MsgConfig::LogOriginhost,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_DOC,	CONFIG_CAT_MONITORING },
 	{ "map.joinmax1",		0,	R10K,	1,	200000, 1,	R1K,	0,	0,	&MsgConfig::MapJoinmax1,		0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,	CONFIG_SUPPORT_NODOC,	CONFIG_CAT_MISC },
@@ -616,6 +621,8 @@ P4Tunable::stunable P4Tunable::slist[] = {
 	{ "ssl.cipher.list",		0,	0,	0,	1,	&MsgConfig::SslCipherList,	0,	CONFIG_APPLY_ALL,				CONFIG_RESTART_NO_RESTART,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY|CONFIG_CAT_NETWORK, 0 },
 	{ "ssl.cipher.suites",		0,	0,	0,	1,	&MsgConfig::SslCipherSuites,	0,	CONFIG_APPLY_ALL,				CONFIG_RESTART_NO_RESTART,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_SECURITY|CONFIG_CAT_NETWORK, 0 },
 	{ "ssl.keylog.file",		0,	0,	0,	1,	&MsgConfig::SSLKeylogFile,	0,	CONFIG_APPLY_SERVER|CONFIG_APPLY_CLIENT,	CONFIG_RESTART_STOP,		CONFIG_SUPPORT_UNDOC,	CONFIG_CAT_MISC, 0 },
+	{ "s3.error.retry",		0,	0,	0,	1,	&MsgConfig::S3ErrorRetry,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_MISC, 0 },
+	{ "s3.credentialerror.retry",	0,	0,	0,	1,	&MsgConfig::S3CredErrorRetry,	0,	CONFIG_APPLY_SERVER,	CONFIG_RESTART_NO_RESTART,		CONFIG_SUPPORT_DOC,	CONFIG_CAT_MISC, 0 },
 
 	{ 0,				0,	0,	0,	0 }
 

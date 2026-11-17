@@ -13,7 +13,7 @@ if $(OS) = NT
 	              /DUSE_OPENSSL /DHAVE_ZLIB_H /DHAVE_ZLIB /DHAVE_LIBZ
 	              /DUSE_IPV6 /DCURL_DISABLE_NTLM /DCURL_DISABLE_GOPHER
 	              /DCURL_DISABLE_RTSP /DUSE_SYNC_DNS /DCURL_DISABLE_MQTT
-	              /DCURL_DISABLE_WEBSOCKETS ;
+	              /DCURL_DISABLE_WEBSOCKETS /DOPENSSL_NO_ENGINE ;
 }
 else
 {
@@ -26,7 +26,7 @@ else
 
 	SubDirCcFlags -DHAVE_CONFIG_H -DBUILDING_LIBCURL -DCURL_STATICLIB
 	              -DCURL_HIDDEN_SYMBOLS -DCURL_DISABLE_NTLM
-	              -DCURL_DISABLE_WEBSOCKETS
+	              -DCURL_DISABLE_WEBSOCKETS -DOPENSSL_NO_ENGINE
 	              -fvisibility=hidden $(flag) ;
 }
 
@@ -36,19 +36,18 @@ SubDirHdrs $(P4) script libs cURL ;
 SubDirHdrs $(P4) script libs cURL curl ;
 
 P4APILibrary $(P4SCRIPT_CURL) :
-	bearssl.c
+	apple.c
 	cipher_suite.c
 	gtls.c
 	hostcheck.c
 	keylog.c
 	mbedtls.c
-	mbedtls_threadlock.c
 	openssl.c
 	rustls.c
-	sectransp.c
 	schannel.c
 	schannel_verify.c
 	vtls.c
+	vtls_config.c
 	vtls_scache.c
 	vtls_spack.c
 	wolfssl.c

@@ -12,7 +12,7 @@ class JnlTracker {
 	enum Kind { MIDDLE, END };
 
 	// Returns 1 if at a consistency point, 0 otherwise
-	int	Marker( long pid, Kind kind );
+	int	Marker( long pid, Kind kind, bool skipEmpty = false );
 
 	int	MarkerCount( Kind kind ) const
 		    { return markcnt[ kind ]; }
@@ -29,11 +29,15 @@ class JnlTracker {
 
 	void	Clear();
 
-	void	Restart() { npids = 0; }
+	void	Restart() { npids = 0; txCount = 0; }
 
 	int	SawJournalTrailer();
 
 	void	SetCheckpoint() { ckp = 1; }
+	
+	void	TxTick() { txCount++; }
+	void	TxReset() { txCount = 0; }
+	int	TxCount() { return txCount; }
 
     private:
 	IntArray	pids;
@@ -48,4 +52,7 @@ class JnlTracker {
 	int		scanstate;
 	int		scanpid;
 	Kind		scankind;
+
+	// for transaction record counting
+	int		txCount;
 };

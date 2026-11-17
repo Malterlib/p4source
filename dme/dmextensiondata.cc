@@ -21,6 +21,7 @@
 # include <uuidimpl.h>
 # include <msgsupp.h>
 # include <msgserver.h>
+# include <msgserver2.h>
 # include <i18napi.h>
 # include <charcvt.h>
 # include <validate.h>
@@ -784,6 +785,14 @@ FileSysUPtr ExtensionData::Unzip( const StrBuf &zipFileName,
             auto extp = PathSys::CreateUPtr();
 	    extp->Set( tmpZipDir->Path() );
 	    extp->SetLocal( *extp, StrRef( filename ) );
+
+	    if( !extp->IsUnderRoot( *tmpZipDir->Path() ) )
+	    {
+	        e->Set( MsgServer2::ExtPkgPathTraversal ) << filename;
+	        unzClose( zipfile );
+	        return nullptr;
+	    }
+
 	    auto fsys = FileSys::CreateUPtr( FST_BINARY );
 	    fsys->MkDir( *extp, e );
 

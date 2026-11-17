@@ -121,7 +121,7 @@ enum P4TunableCategory {
 	// When you add new types, update the string array in userconfig.cc
 } ;
 
-extern P4MT int list2[];
+extern P4MT int list2[ DT_LAST ];
 
 class P4Tunable {
 

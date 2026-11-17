@@ -177,6 +177,11 @@ class MsgDm2 {
 	static ErrorId SaltFail;
 	static ErrorId HashFail;
 	static ErrorId NoMatchingMoves;
+	static ErrorId MultiplePartitionedRevSpec;
+	static ErrorId TopologyNoRoot;
+	static ErrorId TopologyCycle;
+	static ErrorId TopologyBadTerm;
+	static ErrorId TopologyNoTerm;
 
 	// Retired ErrorIds. We need to keep these so that clients 
 	// built with newer apis can commnunicate with older servers 

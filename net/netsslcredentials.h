@@ -42,7 +42,17 @@ public:
 		static void ValidateCertDateRange( X509 *cert, Error *e );
 	
 		NetSslCredentials( bool isTest = false );
-		NetSslCredentials( NetSslCredentials &rhs);
+# ifdef HAS_CPP11
+		/*
+		 * delete the copy ctor and assignment op because
+		 * 1) we don't use either of them
+		 * 2) they each just do a shallow copy, we don't yet
+		 *    do a good enough job of tracking and handling shared
+		 *    ownership, and we haven't tested them.
+		 */
+		NetSslCredentials( NetSslCredentials &rhs) = delete;
+		NetSslCredentials &operator =( NetSslCredentials &rhs ) = delete;
+# endif
 		~NetSslCredentials();
 		void ReadCredentials( Error *e );
 		void ClearChain( bool freeChain );
@@ -52,7 +62,6 @@ public:
 		void ValidateCredentialFiles( Error *e );
 		void GetExpiration( StrBuf &buf );
 		void HaveCredentials( Error *e );
-		NetSslCredentials &operator =( NetSslCredentials &rhs );
 		void ValidateChain( bool criticalOnly, Error *e );
 		int CheckCertChainOrder( X509 *cert, bool alwaysShow, Error *e );
 

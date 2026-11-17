@@ -25,6 +25,7 @@
 # include <enviro.h>
 # include <ignore.h>
 # include <filesys.h>
+# include <signaler.h>
 
 # include <msgclient.h>
 # include <msgserver.h>
@@ -109,6 +110,11 @@ Client::Client( Enviro *e ) : Rpc( &service )
 	service.SetProtocol( P4Tag::v_cmpfile ); // has clientCompareFile #1737
 	if( ClientAltSyncHandler::IsSupported() )
 	    service.SetProtocol( P4Tag::v_altSync );
+	// clientCheckFile returns v_digest when v_sendDigest is set.
+	// Always announced -- the server-side path only triggers when the
+	// server itself sets v_sendDigest, so API consumers that extend
+	// clientCheckFile see no behavior change.
+	service.SetProtocol( P4Tag::v_calculateDigest );
 	service.SetProtocol( P4Tag::v_client, P4Tag::l_client );
 	apiVer = atoi( P4Tag::l_client );
 	apiSet = 0;
@@ -258,7 +264,27 @@ Client::Run( const char *func, ClientUser *u )
 
 	// Run the command async, and then wait.
 
+	// In a sync operation we mask Control-C. This allows the
+	// management of when we terminate the client sync operation
+	// to maintain consistency between the Client and Server.
+	// If the user issues a Control-C, we set a flag but we do
+	// not act upon the Control-C right away.  Multiple levels
+	// of masking is ok.  The isIntr could not be used for this
+	// as it is used in other places which make that incompatible.
+	// A new isMaskedIntr has been created.
+
+	int mask = 0;
+
+	if( func && strcmp( func, "sync" ) == 0 )
+	{
+	    mask++;
+	    signaler.Mask();
+	}
+
 	RunTag( func, u );
+
+	if( mask )
+	    signaler.Unmask();
 
 	WaitTag();
 }

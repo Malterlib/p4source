@@ -18,7 +18,7 @@
  * When adding a new error make sure its greater than the current high
  * value and update the following number:
  *
- * Current high value for a MsgClient error code is: 105
+ * Current high value for a MsgClient error code is: 107
  */
 # include <stdhdrs.h>
 # include <error.h>
@@ -56,6 +56,7 @@ ErrorId MsgClient::ConfirmEdit         = { ErrorOf( ES_CLIENT, 24, E_INFO, EV_CL
 ErrorId MsgClient::Confirm             = { ErrorOf( ES_CLIENT, 25, E_INFO, EV_CLIENT, 0 ), "This overrides your changes: confirm accept (y/n)? " };
 ErrorId MsgClient::CheckFileAssume     = { ErrorOf( ES_CLIENT, 30, E_INFO, EV_CLIENT, 3 ), "%file% - %type%, assuming %type2%." };
 ErrorId MsgClient::CheckFileAssumeWild = { ErrorOf( ES_CLIENT, 41, E_INFO, EV_CLIENT, 4 ), "%file% - %type%, assuming %type2% (%modified%)." };
+ErrorId MsgClient::CheckFileNoScan     = { ErrorOf( ES_CLIENT, 107, E_INFO, EV_CLIENT, 2 ), "%file% - content scan disabled, assuming %type%." };
 ErrorId MsgClient::CheckFileSubst      = { ErrorOf( ES_CLIENT, 31, E_INFO, EV_CLIENT, 3 ), "%file% - using %type% instead of %type2%" };
 ErrorId MsgClient::CheckFileCant       = { ErrorOf( ES_CLIENT, 32, E_INFO, EV_CLIENT, 2 ), "%file% - %type% file can't be added." };
 ErrorId MsgClient::FileExists          = { ErrorOf( ES_CLIENT, 34, E_FAILED, EV_CLIENT, 1 ), "%file% - can't overwrite existing file." };

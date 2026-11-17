@@ -1123,15 +1123,21 @@ RunCommand::~RunCommand()
 int
 RunCommand::Run( RunArgs &command, Error *e )
 {
-	return system( command.Text() );
+	int ret = system( command.Text() );
+	if( ret )
+	    e->Sys( "Execution Failed", command.Text() );
+	return ret;
 }
 
 int
 RunCommand::Run( RunArgv &command, Error *e )
 {
-	StrBuf  buf;
+	StrBuf buf;
 
-	return system( command.Text(buf) );
+	int ret = system( command.Text( buf ) );
+	if( ret )
+	    e->Sys( "Execution Failed", command.Text( buf ) );
+	return ret;
 }
 
 # endif

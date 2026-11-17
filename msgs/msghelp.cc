@@ -1921,6 +1921,8 @@ R"(
 	journal notes are written.  To specify multiple tables, double-quote
 	the list and separate the table names with spaces. The table names
 	must start with "db.". Table names can also be separated by commas.
+	Please note that the specific partitioned tables (For example,
+	"db.have.pt%pjnlclient") cannot be included in the set of tables.
 
 	When the server rotates its journal as part of the 'admin checkpoint'
 	or 'admin journal' commands, it automatically performs the
@@ -2860,9 +2862,9 @@ R"(
 	          of 1.  All streams within a stream depot must adhere to
 	          this same format.
 
-	Update:   The date this stream spec was last changed.
+	Update:   The date the specification was last changed.
 
-	Access:   The date of the last command used with this spec.
+	Access:   The date the specification was originally created.
 
 	Owner:    The stream's owner. A stream can be owned by a user, or
 	          owned by a group. Can be changed.
@@ -9528,7 +9530,7 @@ R"(
     p4 merge [options] [-As | -Af] -S stream [-P parent] [-r]
 	               [toFile[rev] ...]
 
-	options: -c changelist# -F -K -m max -n -Ob -q
+	options: -c changelist# -F -K -m max -n -Ob -q -v
 
 	'p4 merge' merges changes from one set of files (the 'source') into
 	another (the 'target'). It is a simplified form of the 'p4 integrate'
@@ -9596,6 +9598,11 @@ R"(
 
 	The -q flag suppresses normal output messages. Messages regarding
 	errors or exceptional conditions are displayed.
+
+	The -v flag causes a 'virtual' integration that does not modify
+	client workspace files unless target files need to be resolved.
+	After submitting a virtual integration, 'p4 sync' can be used to
+	update the workspace.
 
 	See 'p4 help-graph merge' for information on using this command with
 	graph depots.
@@ -13423,6 +13430,19 @@ R"(
 
 	The -t flag restricts the verification to the specified table.
 
+	When validating all the tables, the partitioned tables (readonly,
+	partitioned, and the partitioned-jnl type) are excluded from the
+	process of verification. However, the partitioned-jnl type tables that
+	are related to the server can be verified if the configurable
+	'db.partition.verify' is enabled.
+
+	When validating a specific partitioned table (e.g., 'p4 dbverify
+	-t db.have.pt%pclient') or all partitioned tables (e.g., 'p4 dbverify
+	-t db.have.pt'), all types of partitioned tables (readonly,
+	partitioned, and partitioned-jnl) that are associated with the server
+	are verified automatically, without requiring the 'db.partition.verify'
+	configurable to be enabled.
+
 	The -U flag specifies that only the table-not-unlocked check should
 	be performed. This check is very fast, so it can be performed
 	routinely. The table-not-unlocked check reports if, at some time in
@@ -14070,6 +14090,12 @@ R"(	dm.topology.lastseenupdate Time interval to update topology record.
 	info.p4auth.usercheck      Validate username against P4AUTH server
 	lbr.s3.uploadretries       Number of times an upload to S3 will be
 	                           retried
+	lbr.s3.multipart           Files bigger than this value use the S3
+	                           multipart protocol for transfers. Value
+	                           is specified in megabytes
+	lbr.s3.multipartsz         Files using the S3 multipart protocol
+	                           are split into chunks of this size.
+	                           Value is specified in megabytes
 	lbr.autocompress           By default, use compressed text storage
 	                           instead of RCS
 	lbr.bufsize                Archive file I/O buffer size
@@ -14102,6 +14128,8 @@ R"(	dm.topology.lastseenupdate Time interval to update topology record.
 	lbr.verify.in              Verify contents from the client to server
 	lbr.verify.out             Verify contents from the server to client
 	lbr.verify.script.out      Verify +X contents from server to client
+	lbr.unloaddepot.compress   When enabled, writes unload-depot in
+	                           compressed mode.
 	log.originhost             Origin and peer IPs in the structured logs
 	minClient                  Lowest client version that may connect
 	minClientMessage           Message to issue for client-too-old
@@ -14216,6 +14244,11 @@ R"(	run.clientexts.allow       Allow client-side Extensions to run
 	                           3: allow for super
 	run.unzip.user.allow       Should 'p4 unzip' allow '-u'
 	run.users.authorize        Should 'p4 users' require authentication
+	s3.error.retry             A JSON format array of errors that can be
+	                           used to retry requested S3 operations
+	s3.credentialerror.retry   A JSON format array of errors that can be
+	                           used to retry requested S3 operations that
+	                           first reload the current credentials
 	security                   User/password security level
 	security.digest            The digest algorithm used in the round trip
 	                           tamper checking

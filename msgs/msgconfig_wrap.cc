@@ -5,7 +5,7 @@
  *
  * Please check that each new entry matches what is in msgconfig.cc:
  *
- * Current high value is: 518
+ * Current high value is: 536
  */
 
 # define NEED_SMARTHEAP
@@ -171,6 +171,7 @@ ErrorId MsgConfig::DmQuickResolve = { ErrorOf( ES_CONFIG, 89, E_INFO, EV_NONE, 0
 ErrorId MsgConfig::DmQuickRev = { ErrorOf( ES_CONFIG, 90, E_INFO, EV_NONE, 0), "MsgConfig::DmQuickRev placeholder." };
 ErrorId MsgConfig::DmQuickWorking = { ErrorOf( ES_CONFIG, 91, E_INFO, EV_NONE, 0), "MsgConfig::DmQuickWorking placeholder." };
 ErrorId MsgConfig::DmRenameuserScanthresh = { ErrorOf( ES_CONFIG, 482, E_INFO, EV_NONE, 0), "MsgConfig::DmRenameuserScanthresh placeholder." };
+ErrorId MsgConfig::DmReopenBatch = { ErrorOf( ES_CONFIG, 526, E_INFO, EV_NONE, 0 ), "MsgConfig::DmReopenBatch placeholder." };
 ErrorId MsgConfig::DmRepoNoautocreate = { ErrorOf( ES_CONFIG, 92, E_INFO, EV_NONE, 0), "MsgConfig::DmRepoNoautocreate placeholder." };
 ErrorId MsgConfig::DmRepoUnpack = { ErrorOf( ES_CONFIG, 93, E_INFO, EV_NONE, 0), "MsgConfig::DmRepoUnpack placeholder." };
 ErrorId MsgConfig::DmResolveAttrib = { ErrorOf( ES_CONFIG, 94, E_INFO, EV_NONE, 0), "MsgConfig::DmResolveAttrib placeholder." };
@@ -218,6 +219,7 @@ ErrorId MsgConfig::FilesysMaxmap = { ErrorOf( ES_CONFIG, 132, E_INFO, EV_NONE, 0
 ErrorId MsgConfig::FilesysMaxsymlink = { ErrorOf( ES_CONFIG, 133, E_INFO, EV_NONE, 0), "MsgConfig::FilesysMaxsymlink placeholder." };
 ErrorId MsgConfig::FilesysMaxtmp = { ErrorOf( ES_CONFIG, 134, E_INFO, EV_NONE, 0), "MsgConfig::FilesysMaxtmp placeholder." };
 ErrorId MsgConfig::FilesysRestrictsymlinks = { ErrorOf( ES_CONFIG, 135, E_INFO, EV_NONE, 0), "MsgConfig::FilesysRestrictsymlinks placeholder." };
+ErrorId MsgConfig::FilesysSymlinkTypemap = { ErrorOf( ES_CONFIG, 536, E_INFO, EV_NONE, 0), "MsgConfig::FilesysSymlinkTypemap placeholder." };
 ErrorId MsgConfig::FilesysUtf8Bom = { ErrorOf( ES_CONFIG, 136, E_INFO, EV_NONE, 0), "MsgConfig::FilesysUtf8Bom placeholder." };
 ErrorId MsgConfig::FilesysExtendlowmark = { ErrorOf( ES_CONFIG, 137, E_INFO, EV_NONE, 0), "MsgConfig::FilesysExtendlowmark placeholder." };
 ErrorId MsgConfig::FilesysWindowsLfn = { ErrorOf( ES_CONFIG, 138, E_INFO, EV_NONE, 0), "MsgConfig::FilesysWindowsLfn placeholder." };
@@ -233,6 +235,8 @@ ErrorId MsgConfig::LbrReplicaNotransfer = { ErrorOf( ES_CONFIG, 147, E_INFO, EV_
 ErrorId MsgConfig::LbrRetryMax = { ErrorOf( ES_CONFIG, 148, E_INFO, EV_NONE, 0), "MsgConfig::LbrRetryMax placeholder." };
 ErrorId MsgConfig::LbrScanIgnore = { ErrorOf( ES_CONFIG, 499, E_INFO, EV_NONE, 0 ),"MsgConfig::LbrScanIgnore placeholder." };
 ErrorId MsgConfig::LbrS3UploadRetries = { ErrorOf( ES_CONFIG, 494, E_INFO, EV_NONE, 0), "MsgConfig::LbrS3UploadRetries placeholder." };
+ErrorId MsgConfig::LbrS3MultiPart = { ErrorOf( ES_CONFIG, 521, E_INFO, EV_NONE, 0), "MsgConfig::LbrS3MultiPart placeholder." };
+ErrorId MsgConfig::LbrS3MultiPartSz = { ErrorOf( ES_CONFIG, 522, E_INFO, EV_NONE, 0), "MsgConfig::LbrS3MultiPartSz placeholder." };
 ErrorId MsgConfig::LbrStatInterval = { ErrorOf( ES_CONFIG, 149, E_INFO, EV_NONE, 0), "MsgConfig::LbrStatInterval placeholder." };
 ErrorId MsgConfig::LbrVerifyIn = { ErrorOf( ES_CONFIG, 150, E_INFO, EV_NONE, 0), "MsgConfig::LbrVerifyIn placeholder." };
 ErrorId MsgConfig::LbrVerifyOut = { ErrorOf( ES_CONFIG, 151, E_INFO, EV_NONE, 0), "MsgConfig::LbrVerifyOut placeholder." };
@@ -242,6 +246,7 @@ ErrorId MsgConfig::LbrStorageAllowsymlink = { ErrorOf( ES_CONFIG, 154, E_INFO, E
 ErrorId MsgConfig::LbrStorageSkipkeyed = { ErrorOf( ES_CONFIG, 155, E_INFO, EV_NONE, 0), "MsgConfig::LbrStorageSkipkeyed placeholder." };
 ErrorId MsgConfig::LbrStorageThreads = { ErrorOf( ES_CONFIG, 156, E_INFO, EV_NONE, 0), "MsgConfig::LbrStorageThreads placeholder." };
 ErrorId MsgConfig::LbrRcsLocking = { ErrorOf( ES_CONFIG, 157, E_INFO, EV_NONE, 0), "MsgConfig::LbrRcsLocking placeholder." };
+ErrorId MsgConfig::LbrUnloaddepotCompress = { ErrorOf( ES_CONFIG, 513, E_INFO, EV_NONE, 0), "MsgConfig::UnloaddepotCompress placeholder." };
 ErrorId MsgConfig::LogGroupMaxlen = { ErrorOf( ES_CONFIG, 158, E_INFO, EV_NONE, 0), "MsgConfig::LogGroupMaxlen placeholder." };
 ErrorId MsgConfig::LogOriginhost = { ErrorOf( ES_CONFIG, 159, E_INFO, EV_NONE, 0), "MsgConfig::LogOriginhost placeholder." };
 ErrorId MsgConfig::MapJoinmax1 = { ErrorOf( ES_CONFIG, 160, E_INFO, EV_NONE, 0), "MsgConfig::MapJoinmax1 placeholder." };
@@ -464,6 +469,8 @@ ErrorId MsgConfig::SslClientCipherSuites = { ErrorOf( ES_CONFIG, 498, E_INFO, EV
 ErrorId MsgConfig::SslCipherList = { ErrorOf( ES_CONFIG, 431, E_INFO, EV_NONE, 0 ), "MsgConfig::SslCipherList placeholder." };
 ErrorId MsgConfig::SslCipherSuites = { ErrorOf( ES_CONFIG, 432, E_INFO, EV_NONE, 0 ), "MsgConfig::SslCipherSuites placeholder." };
 ErrorId MsgConfig::SSLKeylogFile = { ErrorOf( ES_CONFIG, 479, E_INFO, EV_NONE, 0 ), "MsgConfig::SSLKeylogFile placeholder." };
+ErrorId MsgConfig::S3ErrorRetry = { ErrorOf( ES_CONFIG, 519, E_INFO, EV_NONE, 0 ), "MsgConfig::S3ErrorRetry placeholder." };
+ErrorId MsgConfig::S3CredErrorRetry = { ErrorOf( ES_CONFIG, 520, E_INFO, EV_NONE, 0 ), "MsgConfig::S3CredErrorRetry placeholder." };
 
 // Configurables
 ErrorId MsgConfig::P4ROOT = { ErrorOf( ES_CONFIG, 359, E_INFO, EV_NONE, 0 ), "MsgConfig::P4ROOT placeholder." };

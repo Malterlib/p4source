@@ -22,7 +22,7 @@
  * When adding a new error make sure it's greater than the current high
  * value and update the following number:
  *
- * Current high value is: 518
+ * Current high value is: 536
  */
 
 //
@@ -898,6 +898,11 @@ Otherwise, an optimized lookup via db.revcx will be used.
 )"
 };
 
+ErrorId MsgConfig::DmReopenBatch = { ErrorOf( ES_CONFIG, 526, E_INFO, EV_NONE, 0 ),
+R"(Maximum number of files to be reopened per journal transaction.
+)"
+};
+
 ErrorId MsgConfig::DmRepoNoautocreate = { ErrorOf( ES_CONFIG, 92, E_INFO, EV_NONE, 0 ),
 R"(If set to 1, pushing a non-existent repo into graph depot will be blocked.
 )"
@@ -1184,6 +1189,14 @@ outside the client root cannot be created by the client.
 )"
 };
 
+ErrorId MsgConfig::FilesysSymlinkTypemap = { ErrorOf( ES_CONFIG, 536, E_INFO, EV_NONE, 0 ),
+R"(Controls whether typemap entries can override symlink file type detection
+during 'p4 add':
+	0: Symlinks added as 'symlink' regardless of typemap (default)
+	1: Typemap entries can override symlink type detection (legacy behavior)
+)"
+};
+
 ErrorId MsgConfig::FilesysUtf8Bom = { ErrorOf( ES_CONFIG, 136, E_INFO, EV_NONE, 0 ),
 R"(Controls whether '%'utf8'%' type files should be sync'ed with a BOM:
 	0: No BOM
@@ -1320,6 +1333,11 @@ R"(Controls the number of threads to use in a '%'p4 storage -U'%' request.
 
 ErrorId MsgConfig::LbrRcsLocking = { ErrorOf( ES_CONFIG, 157, E_INFO, EV_NONE, 0 ),
 R"(When enabled, create lockfiles for RCS archives to serialise updates.
+)"
+};
+
+ErrorId MsgConfig::LbrUnloaddepotCompress = { ErrorOf( ES_CONFIG, 513, E_INFO, EV_NONE, 0 ),
+R"(When enabled, write unload-depot in compressed mode.
 )"
 };
 
@@ -3406,3 +3424,75 @@ any one of the patterns in this list will not be removed or moved.
 )"
 };
 
+
+static const char shared_retry[] = 
+R"(A JSON format array of http status codes and AWS error code strings.
+These values are combined to build an object used to detect an AWS S3
+error and attempt to retry it or re-fetch the credentials and retry it.
+Such an object needs an http status code and an AWS error code string. The
+special empty string ("") is used for the AWS error code string
+when the S3 operation does not supply a response body, such as HEAD
+requests. So you can retry those requests based only on matching the http
+status code. While parsing the JSON array, when an http status code is
+seen, it is stored and applied to any following string, until the next
+http status code.
+
+The two configurables will both retry an S3 attempt that fails with
+a configured error, However "s3.credentialerror.retry" differs in that it
+will first clear and reload the current credentials before the retry.
+
+Specifing a configurable discards all its default settings.
+
+You set these configurables if your S3 system is generating
+an error you need to retry or an error that you know will never succeed
+on a retry that is not covered by the defaults. There maybe
+different errors raised depending on the authentication method in use.
+
+The default values used for "s3.error.retry" are:
+
+500, "InternalError"
+307, "Redirect"
+307, "TemporaryRedirect"
+503, "SlowDown"
+503, "503 SlowDown"
+503, "ServiceUnavailable"
+
+This would be expressed as a JSON array as:
+[ 500, "InternalError", 503, "SlowDown", "503 SlowDown",
+  "ServiceUnavailable", 307, "Redirect", "TemporaryRedirect" ]
+
+The default values used for "s3.credentialerror.retry" are:
+400, "ExpiredToken"
+400, "InvalidSessionException"
+400, "TokenRefreshRequired"
+400, ""
+
+This would be expressed as a JSON array as:
+[ 400, "ExpiredToken", "InvalidSessionException", "TokenRefreshRequired",
+  "" ]
+
+Example:
+The default setting in "s3.credentialerror.retry" of a http status code
+of 400 with a code of "InvalidSessionException" is always failing, even
+when retried, thus causing a delay before the transaction is failed.
+
+In that case you would set "s3.credentialerror.retry" to:
+[ 400, "ExpiredToken", "TokenRefreshRequired",  "" ]
+)";
+ErrorId MsgConfig::S3ErrorRetry = { ErrorOf( ES_CONFIG, 519, E_INFO, EV_NONE, 0 ), shared_retry};
+
+ErrorId MsgConfig::S3CredErrorRetry = { ErrorOf( ES_CONFIG, 520, E_INFO, EV_NONE, 0 ), shared_retry};
+
+ErrorId MsgConfig::LbrS3MultiPart = { ErrorOf( ES_CONFIG, 521, E_INFO, EV_NONE, 0 ),
+R"(Only files greater than this value will use the MultiPart protocol for S3
+transfers to split and send this file. This value is specified in megabytes.
+The default value is 4096 (4GB)
+)"
+};
+
+ErrorId MsgConfig::LbrS3MultiPartSz = { ErrorOf( ES_CONFIG, 522, E_INFO, EV_NONE, 0 ),
+R"(S3 transfers using the MultiPart protocol will split the transfer into
+chunks of this size. This value is specified in megabytes. The default value
+is 1024 (1Gb)
+)"
+};

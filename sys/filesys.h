@@ -73,6 +73,7 @@
  *	FileSys::Fsync() - sync file state to disk
  *
  *	FileSys::CheckType() - look at the file and see if it is binary, etc
+ *	FileSys::CheckTypeStat() - classify from stat() alone, no content read
  *	FileSys::SetAtomicRename() - set atomic rename on this instance
  *	FielSys::CheckForAtomicRename() - Qualify Windows OS atomic support
  */
@@ -443,6 +444,10 @@ class FileSys {
 
 	FileSysType	CheckType( int scan = -1 );
 
+	FileSysType	CheckTypeStat( int probeOpen = 0 );
+
+	static int	BinaryScanSize( int scan );
+
 # if defined ( OS_MACOSX ) && OS_VER < 1010
 	FileSysType	CheckTypeMac();
 # endif
@@ -489,6 +494,20 @@ class FileSys {
 
 	void		LowerCasePath();
 
+    public:
+
+	// Opt-in: when enabled, Stat() caches mtime+size and a subsequent
+	// StatModTime() / GetSize() returns the cached value (skipping a
+	// redundant per-file CreateFile or stat).  The cache is invalidated
+	// on every Set() so the typical loop pattern
+	//   f->Set(path); f->Stat(); ... f->StatModTime(); f->GetSize();
+	// stays correct.  Populated by both fileiont.cc (Windows) and
+	// fileio.cc (POSIX); the Windows win dominates on local disk
+	// (~60s on a 200k-file reconcile), POSIX is sub-noise on local
+	// ext4 but meaningful on NFS-backed workspaces.
+
+	void		EnableStatCache( int on = 1 ) { allowStatCache = on; }
+
     protected:
 
 	FileOpenMode	mode;		// read or write
@@ -500,6 +519,11 @@ class FileSys {
 	MD5		*checksum;      // if verifying file transfer
 	int		cacheHint;      // don't pollute cache
 	FileSysBuffer*	delegate;	// don't read/write from/to disk
+
+	int		allowStatCache;	// opt-in for stat caching
+	int		statCacheValid;	// cache populated by Stat()
+	P4INT64		cachedModTime;	// mtime from last Stat()
+	offL_t		cachedSize;	// size from last Stat()
 
 # ifdef OS_NT
 	int		LFN;

@@ -141,7 +141,7 @@ void SystemInfo::Collect( StrBufDict& output, Error* e )
 	const std::vector< std::vector< const char* > > cmds =
 	    // https://docs.microsoft.com/en-us/powershell/scripting/samples/collecting-information-about-computers?view=powershell-7
 	    { { "powershell", "-Command", "Get-ComputerInfo" }, // PS 5.1
-	      { "powershell", "-Command", "Get-WMIObject Win32_OperatingSystem | Select Name, version, servicepackmajorversion, BuildNumber, CSName, OSArchitecture, OperatingSystemSKU, Caption, InstallDate, " },
+	      { "powershell", "-Command", "Get-WMIObject Win32_OperatingSystem | Select Name, version, servicepackmajorversion, BuildNumber, CSName, OSArchitecture, OperatingSystemSKU, Caption, InstallDate" },
 	      { "powershell", "-Command", "Get-HotFix | Format-List" },
 	      { "powershell", "-Command", "Get-TimeZone" },
 	      { "powershell", "-Command", "Get-CimInstance -ClassName Win32_BIOS" },

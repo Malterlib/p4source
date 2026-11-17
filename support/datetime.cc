@@ -223,7 +223,12 @@ void
 DateTime::Fmt( char *buf ) const
 {
 	time_t tempt = tval;
+# ifdef OS_NT
 	struct tm *tm = localtime( &tempt );
+# else
+	struct tm back = {0,0,0,0,0,0,0,0,0};
+	struct tm *tm = localtime_r( &tempt, &back );
+# endif
 
 	// Don't die for a bogus date.
 
@@ -247,7 +252,12 @@ void
 DateTime::FmtUTC( char *buf ) const
 {
 	time_t tempt = tval;
+# ifdef OS_NT
 	struct tm *tm = gmtime( &tempt );
+# else
+	struct tm back = {0,0,0,0,0,0,0,0,0};
+	struct tm *tm = gmtime_r( &tempt, &back );
+# endif
 
 	// Don't die for a bogus date.
 
@@ -271,7 +281,12 @@ void
 DateTime::FmtDay( char *buf ) const
 {
 	time_t tempt = tval;
+# ifdef OS_NT
 	struct tm *tm = localtime( &tempt );
+# else
+	struct tm back = {0,0,0,0,0,0,0,0,0};
+	struct tm *tm = localtime_r( &tempt, &back );
+# endif
 
 	// Don't die for a bogus date.
 
@@ -292,7 +307,12 @@ void
 DateTime::FmtDayUTC( char *buf ) const
 {
 	time_t tempt = tval;
+# ifdef OS_NT
 	struct tm *tm = gmtime( &tempt );
+# else
+	struct tm back = {0,0,0,0,0,0,0,0,0};
+	struct tm *tm = gmtime_r( &tempt, &back );
+# endif
 
 	// Don't die for a bogus date.
 
@@ -331,7 +351,12 @@ DateTime::TzOffset( int *retdst ) const
 	// global time for computing offset in minutes
 
 	time_t tempt = tval;
+# ifdef OS_NT
 	struct tm *tm = localtime( &tempt );
+# else
+	struct tm back = {0,0,0,0,0,0,0,0,0};
+	struct tm *tm = localtime_r( &tempt, &back );
+# endif
 
 	// Don't die for a bogus date.
 
@@ -340,7 +365,11 @@ DateTime::TzOffset( int *retdst ) const
 
 	int isdst = tm->tm_isdst;
 
+# ifdef OS_NT
 	tm = gmtime( &tempt );
+# else
+	tm = gmtime_r( &tempt, &back );
+# endif
 
 	// Don't die for a bogus date.
 
@@ -413,7 +442,12 @@ void
 DateTime::FmtUnifiedDiff( char *buf ) const
 {
 	time_t tempt = tval;
+# ifdef OS_NT
 	struct tm *tm = gmtime( &tempt );
+# else
+	struct tm back = { 0,0,0,0,0,0,0,0,0 };
+	struct tm *tm = gmtime_r( &tempt, &back );
+# endif
 
 	// Don't die for a bogus date.
 
@@ -449,7 +483,12 @@ void
 DateTime::FmtISO8601( char *buf ) const
 {
 	time_t tempt = tval;
+# ifdef OS_NT
 	struct tm *tm = gmtime( &tempt );
+# else
+	struct tm back = { 0,0,0,0,0,0,0,0,0 };
+	struct tm *tm = gmtime_r( &tempt, &back );
+# endif
 
 	// Don't die for a bogus date.
 
@@ -474,7 +513,12 @@ void
 DateTime::FmtISO8601Min( char *buf ) const
 {
 	time_t tempt = tval;
+# ifdef OS_NT
 	struct tm *tm = gmtime( &tempt );
+# else
+	struct tm back = { 0,0,0,0,0,0,0,0,0 };
+	struct tm *tm = gmtime_r( &tempt, &back );
+# endif
 
 	// Don't die for a bogus date.
 
@@ -628,7 +672,12 @@ void
 DateTime::FmtRFC5322( char *buf ) const
 {
 	time_t tempt = tval;
+# ifdef OS_NT
 	struct tm *tm = gmtime( &tempt );
+# else
+	struct tm back = { 0,0,0,0,0,0,0,0,0 };
+	struct tm *tm = gmtime_r( &tempt, &back );
+# endif
 
 	// Don't die for a bogus date.
 
@@ -749,7 +798,12 @@ CentralOffset()
 	// structure returned by gmtime above may be changed by mktime
 
 	time_t dayone = 24*60*60;
+# ifdef OS_NT
 	struct tm *tml = gmtime( &dayone );
+# else
+	struct tm back = { 0,0,0,0,0,0,0,0,0 };
+	struct tm *tml = gmtime_r( &dayone, &back );
+# endif
 	
 	// 0 = GMT
 	// + = local epoc is earlier than central
@@ -985,7 +1039,12 @@ void
 DateTimeHighPrecision::Fmt( char *buf ) const
 {
 	time_t tempt = seconds;
+# ifdef OS_NT
 	struct tm *tm = localtime( &tempt );
+# else
+	struct tm back = {0,0,0,0,0,0,0,0,0};
+	struct tm *tm = localtime_r( &tempt, &back );
+# endif
 
 	// Don't die for a bogus date.
 
@@ -1010,7 +1069,12 @@ void
 DateTimeHighPrecision::FmtISO8601( char *buf ) const
 {
 	time_t tempt = seconds;
-	struct tm *tm = localtime( &tempt );
+# ifdef OS_NT
+	struct tm *tm = gmtime( &tempt );
+# else
+	struct tm back = {0,0,0,0,0,0,0,0,0};
+	struct tm *tm = gmtime_r( &tempt, &back );
+# endif
 
 	// Don't die for a bogus date.
 

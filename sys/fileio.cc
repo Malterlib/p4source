@@ -472,6 +472,18 @@ FileIO::Stat()
 	if( !S_ISREG( sb.st_mode ) ) flags |= FSF_SPECIAL;
 	if( !sb.st_size ) flags |= FSF_EMPTY;
 
+	// Cache mtime+size from this stat so a subsequent StatModTime() or
+	// GetSize() can skip a redundant statL.  Skip symlinks: lstatL above
+	// returns the link's stats and a later by-path statL would resolve
+	// to the target's stats; don't let the cache disagree.
+
+	if( allowStatCache && !( flags & FSF_SYMLINK ) )
+	{
+	    cachedModTime = sb.st_mtime;
+	    cachedSize    = sb.st_size;
+	    statCacheValid = 1;
+	}
+
 # if defined ( OS_DARWIN ) || defined( OS_MACOSX )
 	// If the immutable bit is set, we can't write this file
 	// Chmod() will unset the immutable bit if it needs to.
@@ -572,6 +584,12 @@ FileIO::StatAccessTime()
 P4INT64
 FileIO::StatModTime()
 {
+	// Reuse the mtime stamped on the FileSys by the most recent Stat()
+	// when the lean-walk caller has enabled the cache.
+
+	if( allowStatCache && statCacheValid )
+	    return DateTime::Centralize( cachedModTime );
+
 	struct statbL sb;
 
 	if( statL( Name(), &sb ) < 0 )
@@ -1105,6 +1123,13 @@ FileIOBinary::Read( char *buf, int len, Error *e )
 offL_t
 FileIOBinary::GetSize()
 {
+	// When the file isn't open, reuse the size from the most recent
+	// Stat() if the cache is enabled.  An open fd may have grown since
+	// then, so let the fstatL path run live.
+
+	if( fd < 0 && allowStatCache && statCacheValid )
+	    return cachedSize;
+
 	struct statbL sb;
 
 	if( fd >= 0 && fstatL( fd, &sb ) < 0 )
