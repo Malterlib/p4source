@@ -21,12 +21,26 @@
  *  header files.
  */
 
-# ifndef P4STDHDRS_H
-# define P4STDHDRS_H
+#pragma once
+#ifdef __cplusplus
 
 # ifdef OS_VMS
 # define _POSIX_EXIT  // to get exit status right from stdlib.h
 # endif	
+
+# ifdef OS_NT
+# pragma warning(disable:4800)
+# pragma warning(disable:4018)
+# pragma warning(disable:4244)
+# pragma warning(disable:4267)
+# pragma warning(disable:4996)
+# pragma warning(disable:4101)
+# pragma warning(disable:4309)
+# pragma warning(disable:4102)
+# define CLIB_CALLING_CONVENTION __cdecl
+# else
+# define CLIB_CALLING_CONVENTION
+# endif
 
 # include <stdio.h>
 # include <string.h>
@@ -80,7 +94,8 @@
  * NEED_XATTRS - getxattr() setxattr()
  */
 
-# if defined( NEED_ACCESS ) || \
+# if defined( NEED_ALL ) || \
+	defined( NEED_ACCESS ) || \
 	defined( NEED_CHDIR ) || \
 	defined( NEED_EBCDIC ) || \
 	defined( NEED_FILE ) || \
@@ -105,7 +120,7 @@
 
 # endif
 
-# if defined( NEED_BRK )
+# if defined( NEED_BRK ) || defined( NEED_ALL )
 # if !defined( OS_NT ) && !defined( MAC_MWPEF ) && \
      !defined( OS_AS400 ) && !defined( OS_MVS ) && \
      !defined( OS_LINUX ) && !defined( OS_DARWIN ) && \
@@ -114,44 +129,44 @@
 # endif
 # endif
 
-# if defined( NEED_LSOF )
+# if defined( NEED_LSOF ) || defined( NEED_ALL )
 # if defined( OS_LINUX ) || defined( OS_DARWIN ) || defined( OS_MACOSX )
 # define HAVE_LSOF
 # endif
 # endif
 
-# if defined( NEED_GETUID )
+# if defined( NEED_GETUID ) || defined( NEED_ALL )
 # if defined ( OS_MACOSX ) || defined ( OS_DARWIN ) || defined ( __unix__ )
 # define HAVE_GETUID
 # endif
 # endif
 
-# if defined( NEED_EBCDIC ) 
+# if defined( NEED_EBCDIC ) || defined( NEED_ALL ) 
 # if defined( OS_AS400 )
 # include <ebcdic.h>
 # endif
 # endif
 
-# if defined( NEED_ACCESS ) || defined( NEED_CHDIR )
+# if defined( NEED_ACCESS ) || defined( NEED_CHDIR ) || defined( NEED_ALL )
 # if defined( OS_NT ) || defined( OS_OS2 )
 # include <direct.h>
 # endif
 # endif
 
-# if defined( NEED_ERRNO )
+# if defined( NEED_ERRNO ) || defined( NEED_ALL )
 # ifdef OS_AS400
 extern int errno;
 # endif
 # include <errno.h>
 # endif
 
-# if defined(NEED_FILE) || defined(NEED_FSYNC)
+# if defined(NEED_FILE) || defined(NEED_FSYNC) || defined( NEED_ALL )
 # ifdef OS_NT
 # include <io.h>
 # endif
 # endif
 
-# ifdef NEED_FCNTL
+# if defined( NEED_FCNTL ) || defined( NEED_ALL )
 # include <fcntl.h>
 # endif
 
@@ -177,7 +192,7 @@ extern int errno;
 
 # ifdef OS_NT
 # define HAVE_CRITSEC
-# ifdef NEED_CRITSEC
+# if defined( NEED_CRITSEC ) || defined( NEED_ALL )
 # define WIN32_LEAN_AND_MEAN
 # include <windows.h>
 # endif // NEED_CRITSEC
@@ -196,20 +211,22 @@ extern int errno;
 # include <winldap.h>
 # include <winber.h>
 # include <wincrypt.h>
-# include <rpc.h>
+# include <p4rpc.h>
 # include <rpcdce.h>
 # endif // NEED_SRWLOCK
 # endif // OS_NT
 
 # ifdef OS_NT
 # define HAVE_DBGBREAK
-# ifdef NEED_DBGBREAK
+# if defined( NEED_DBGBREAK ) || defined( NEED_ALL )
 # define WIN32_LEAN_AND_MEAN
 # include <windows.h>
 # endif // NEED_DBGBREAK
 # endif // OS_NT
 
+#ifndef DMalterlib
 # include "malloc_override.h"
+#endif
 
 # ifdef MEM_DEBUG
 #   ifdef USE_MIMALLOC
@@ -238,7 +255,7 @@ extern int errno;
 #   endif // USE_SMARTHEAP
 # endif // NEED_SMARTHEAP
 
-# ifdef NEED_FLOCK
+# if defined( NEED_FLOCK ) || defined( NEED_ALL )
 # ifdef OS_NT
 # define WIN32_LEAN_AND_MEAN
 # include <windows.h>
@@ -256,7 +273,7 @@ extern "C" int flock( int, int );
      !defined( OS_NT )  && !defined( OS_AS400 ) && \
      !defined( OS_VMS )
 # define HAVE_FORK
-# ifdef NEED_FORK
+# if defined( NEED_FORK ) || defined( NEED_ALL )
 # ifdef OS_MACHTEN
 # include "/usr/include/sys/wait.h"
 # endif 
@@ -269,12 +286,13 @@ extern "C" int flock( int, int );
 # define HAVE_FSYNC
 # endif
 
-# ifdef NEED_GETCWD
+# if defined( NEED_GETCWD ) || defined( NEED_ALL )
 # ifdef OS_NEXT
 # define getcwd( b, s ) getwd( b )
 # endif
 # if defined(OS_OS2) || defined(OS_NT)
-extern "C" char *getcwd( char *buf, size_t size );
+#include <direct.h>
+//extern "C" char *getcwd( char *buf, size_t size );
 # endif
 # ifdef OS_VMS
 # include <unixlib.h>
@@ -284,7 +302,7 @@ extern "C" char *getcwd( char *buf, size_t size );
 # if !defined(OS_OS2)
 # define HAVE_GETHOSTNAME
 
-# ifdef NEED_GETHOSTNAME
+# if defined( NEED_GETHOSTNAME ) || defined( NEED_ALL )
 
 # ifdef OS_BEOS
 # include <net/netdb.h>
@@ -305,14 +323,14 @@ extern "C" int gethostname( char * name, int namelen );
 # endif
 
 # if defined(OS_NT) 
-extern "C" int __stdcall gethostname( char * name, int namelen );
+//extern "C" int __stdcall gethostname( char * name, int namelen );
 # endif
 
 # endif /* NEED_GETHOSTNAME */
 
 # endif
 
-# ifdef NEED_GETPID
+# if defined( NEED_GETPID ) || defined( NEED_ALL )
 # ifdef OS_NT
 # define WIN32_LEAN_AND_MEAN
 # include <windows.h>
@@ -326,12 +344,12 @@ extern "C" int __stdcall gethostname( char * name, int namelen );
 # if !defined( OS_VMS ) && !defined( OS_NT ) && !defined( OS_BEOS ) && \
 	!defined( MAC_MWPEF ) && !defined( OS_OS2 )
 # define HAVE_GETPWUID
-# ifdef NEED_GETPWUID
+# if defined( NEED_GETPWUID ) || defined( NEED_ALL )
 # include <pwd.h>
 # endif 
 # endif /* UNIX */
 
-# ifdef NEED_IOCTL
+# if defined( NEED_IOCTL ) || defined( NEED_ALL )
 # ifndef OS_NT
 # include <sys/ioctl.h>
 # endif /* NT */
@@ -346,7 +364,7 @@ extern "C" int __stdcall gethostname( char * name, int namelen );
         #define PERMSMASK 0x1FF
     #endif
 # endif
-# if defined(NEED_MKDIR) || defined(NEED_STAT) || defined(NEED_CHMOD)
+# if defined(NEED_MKDIR) || defined(NEED_STAT) || defined(NEED_CHMOD) || defined( NEED_ALL )
 
 # ifdef OS_OS2
 # include <direct.h>
@@ -396,7 +414,7 @@ extern "C" int __stdcall gethostname( char * name, int namelen );
 
 # endif
 
-# if defined(NEED_STATVFS)
+# if defined(NEED_STATVFS) || defined( NEED_ALL )
 
 # ifdef OS_NT
 # else
@@ -409,7 +427,7 @@ extern "C" int __stdcall gethostname( char * name, int namelen );
 
 # endif
 
-# if defined(NEED_STATFS)
+# if defined(NEED_STATFS) || defined( NEED_ALL )
 
 # ifdef OS_LINUX
 # define HAVE_STATFS
@@ -439,7 +457,7 @@ extern "C" int __stdcall gethostname( char * name, int namelen );
 	!defined( OS_AIX53 ) && !defined( OS_LINUXIA64 )
 
 # define HAVE_MMAP
-# ifdef NEED_MMAP
+# if defined( NEED_MMAP ) || defined( NEED_ALL )
 # ifdef OS_HPUX9
 extern "C" caddr_t mmap(const caddr_t, size_t, int, int, int, off_t);
 extern "C" int munmap(const caddr_t, size_t);
@@ -449,11 +467,13 @@ extern "C" int munmap(const caddr_t, size_t);
 # endif /* NEED_MMAP */
 # endif /* HAVE_MMAP */
 
-# ifdef NEED_OPENDIR
-# include <dirent.h>
+# if defined( NEED_OPENDIR ) || defined( NEED_ALL )
+# ifndef OS_NT
+#  include <dirent.h>
+# endif
 # endif
 
-# ifdef NEED_POPEN
+# if defined( NEED_POPEN ) || defined( NEED_ALL )
 # ifdef OS_NT
 # define popen _popen
 # define pclose _pclose
@@ -464,7 +484,7 @@ extern "C" FILE *popen(const char *, const char *);
 # endif
 # endif
 
-# ifdef NEED_SIGNAL
+# if defined( NEED_SIGNAL ) || defined( NEED_ALL )
 # ifdef OS_OSF
 # include "/usr/include/sys/signal.h"
 # else
@@ -485,7 +505,7 @@ extern "C" FILE *popen(const char *, const char *);
  * we use the old scheme of only defining HAVE_SOCKETPAIR if NEED_SOCKETPAIR
  * is set and the call exists.
  */
-# ifdef NEED_SOCKETPAIR
+# if defined( NEED_SOCKETPAIR ) || defined( NEED_ALL )
 # if defined( OS_NT )
 # define WINDOWS_LEAN_AND_MEAN
 # include <windows.h>
@@ -508,7 +528,7 @@ extern "C" int socketpair(int, int, int, int*);
 # endif
 # endif
 
-# ifdef NEED_SYSLOG
+# if defined(NEED_SYSLOG) || defined( NEED_ALL )
 #  if defined( __unix__ )
 #   define HAVE_SYSLOG
 #   include <syslog.h>
@@ -518,15 +538,15 @@ extern "C" int socketpair(int, int, int, int*);
 #  endif
 # endif
 
-# if defined(NEED_TIME) || defined(NEED_UTIME)
+# if defined(NEED_TIME) || defined(NEED_UTIME) || defined( NEED_ALL )
 # include <time.h>
 # endif
 
-# if defined(NEED_TIMER) && !defined(OS_NT)
+# if (defined(NEED_TIMER) || defined( NEED_ALL )) && !defined(OS_NT)
 # include <sys/time.h>
 # endif
 
-# if defined(NEED_TIME_HP)
+# if defined(NEED_TIME_HP) || defined( NEED_ALL )
 #    if defined( OS_LINUX ) || defined( OS_FREEBSD )
 #       define HAVE_CLOCK_GETTIME
 #if defined(__GLIBC__) && defined(__GLIBC_PREREQ)
@@ -569,7 +589,7 @@ using namespace std;
 
 # ifndef OS_VMS
 # define HAVE_UTIME
-# ifdef NEED_UTIME
+# if defined( NEED_UTIME ) || defined( NEED_ALL )
 # if ( defined( OS_NT ) || defined( OS_OS2 ) ) && !defined(__BORLANDC__)
 # include <sys/utime.h>
 # else
@@ -577,7 +597,7 @@ using namespace std;
 # endif
 # endif
 
-# ifdef NEED_UTIMES
+# if defined(NEED_UTIMES) || defined( NEED_ALL )
 # define HAVE_UTIMES
 # if ( defined( OS_NT ) || defined( OS_OS2 ) ) && !defined(__BORLANDC__)
 # include <sys/utime.h>
@@ -588,7 +608,7 @@ using namespace std;
 # endif
 # endif
 
-# ifdef NEED_XATTRS
+# if defined(NEED_XATTRS) || defined( NEED_ALL )
 # if defined( OS_LINUX ) || defined( OS_DARWIN ) || defined( OS_MACOSX )
 # define HAVE_XATTRS
 # include <sys/xattr.h>
@@ -599,7 +619,7 @@ using namespace std;
 # endif
 # endif
 
-# ifdef NEED_SLEEP
+# if defined(NEED_SLEEP) || defined( NEED_ALL )
 # ifdef OS_NT
 # define WIN32_LEAN_AND_MEAN
 # include <windows.h>
@@ -614,7 +634,7 @@ typedef unsigned long useconds_t;
 # endif
 # endif
 
-# ifdef NEED_WINDOWSH
+# if defined( NEED_WINDOWSH ) || defined( NEED_ALL )
 # ifdef OS_NT
 # include <windows.h>
 # endif
@@ -701,7 +721,7 @@ int truncate(const char *path, off_t length);
 # elif !defined( OS_BEOS ) && \
        !defined( OS_AS400 ) && \
        !defined( OS_VMS )
-#   ifdef NEED_THREADS
+#   if defined( NEED_THREADS ) || defined( NEED_ALL )
 #     define HAVE_PTHREAD
 #     include <pthread.h>
 #   endif
@@ -989,4 +1009,4 @@ typedef int FD_PTR;
 //#   error "Unable to determine the endianess of the platform"
 # endif
 
-# endif // P4STDHDRS_H
+#endif // __cplusplus

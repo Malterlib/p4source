@@ -43,8 +43,8 @@ Signaler signaler;
 // In order to make use of onintr, the exit needed to be moved out.
 
 extern "C" {
-	static void (*istat)( int ) = SIG_TYPECAST( SIG_DFL );
-	void onintr(int v) { signaler.Intr(); }
+	static void (CLIB_CALLING_CONVENTION *istat)( int ) = SIG_TYPECAST( SIG_DFL );
+	void CLIB_CALLING_CONVENTION onintr(int v) { signaler.Intr(); }
 }
 
 /*
@@ -148,7 +148,7 @@ Signaler::Mask()
 	ReleaseMutex( hmutex );
 # else // OS_NT
 # ifdef HAS_CPP11
-	} catch( const std::system_error& e )
+	} catch( const std::system_error& )
 	// Throw away the error since it only shows up on ctrl-c:
 	// "device or resource busy: device or resource busy"
 	{}
@@ -173,7 +173,7 @@ Signaler::Unmask()
 	ReleaseMutex( hmutex );
 # else // OS_NT
 # ifdef HAS_CPP11
-	} catch( const std::system_error& e )
+	} catch( const std::system_error& )
 	// Throw away the error since it only shows up on ctrl-c:
 	// "device or resource busy: device or resource busy"
 	{}
@@ -262,7 +262,7 @@ Signaler::OnIntr( SignalFunc callback, void *ptr )
 	ReleaseMutex( hmutex );
 # else // OS_NT
 # ifdef HAS_CPP11
-	} catch( const std::system_error& e )
+	} catch( const std::system_error& )
 	// Throw away the error since it only shows up on ctrl-c:
 	// "device or resource busy: device or resource busy"
 	{}
@@ -307,7 +307,7 @@ Signaler::DeleteOnIntr( void *ptr )
 	ReleaseMutex( hmutex );
 # else // OS_NT
 # ifdef HAS_CPP11
-	} catch( const std::system_error& e )
+	} catch( const std::system_error& )
 	// Throw away the error since it only shows up on ctrl-c:
 	// "device or resource busy: device or resource busy"
 	{}
@@ -370,7 +370,7 @@ Signaler::Intr()
 	ReleaseMutex( hmutex );
 # else // OS_NT
 # ifdef HAS_CPP11
-	} catch( const std::system_error& e )
+	} catch( const std::system_error& )
 	// Throw away the error since it only shows up on ctrl-c:
 	// "device or resource busy: device or resource busy"
 	{}

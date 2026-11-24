@@ -63,7 +63,7 @@ extern "C" {	// OpenSSL
 # include "enviro.h"
 # include "filesys.h"
 # include "pathsys.h"
-# include "rpc.h"
+# include "p4rpc.h"
 # include "rpcbuffer.h"
 # include "rpctrans.h"
 # include "rpcdispatch.h"
@@ -1771,6 +1771,8 @@ RpcUtility::Generate(RpcUtilityType type,
 		    printf("Fingerprint: %s\n", fingerprint->Text());
 	    }
 	    break;
+	case Generate_Uninitialized:
+		break;
 	}
 	return;
 # else

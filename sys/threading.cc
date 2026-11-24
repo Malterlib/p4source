@@ -337,7 +337,7 @@ class MultiThreader : public Threader {
 	        char msg[128];
 
 	        sprintf( msg, "Can't remove thread entry %d",
-	                 GetCurrentThreadId() );
+	                 (int)GetCurrentThreadId() );
 	        e.Set( E_FATAL, msg );
 	        AssertLog.Report( &e );
 	    }
@@ -350,7 +350,7 @@ class MultiThreader : public Threader {
 	    delete t;
 
 # ifdef USE_SSL
-# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+# if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(OPENSSL_IS_BORINGSSL)
 	    OPENSSL_thread_stop();
 # endif
 # endif // USE_SSL
@@ -1044,7 +1044,7 @@ HandleSigChld( int flag )
 	 */
 	while( ( pid = waitpid( (pid_t)0, &status, WNOHANG ) ) > 0 )
 	{
-	    MultiThreader::sharedThreadCount--;
+	    MultiThreader::sharedThreadCount = MultiThreader::sharedThreadCount - 1;
 
 	    if( WIFSIGNALED( status ) )
 	    {

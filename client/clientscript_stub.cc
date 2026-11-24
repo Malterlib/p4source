@@ -12,7 +12,7 @@
 # include <strdict.h>
 # include <strarray.h>
 # include <handler.h>
-# include <rpc.h>
+# include <p4rpc.h>
 # include <client.h>
 
 # ifdef HAS_EXTENSIONS

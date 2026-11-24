@@ -52,6 +52,12 @@
 #   endif
 # else
 #   include <wincrypt.h>
+#undef X509_NAME
+#undef X509_EXTENSIONS
+#undef PKCS7_ISSUER_AND_SERIAL
+#undef PKCS7_SIGNER_INFO
+#undef OCSP_REQUEST
+#undef OCSP_RESPONSE
 # endif // not OS_NT
 
 # include <error.h>
@@ -351,7 +357,7 @@ SslErrorNames	sslErrorNames[] = {
     {SSL_ERROR_ZERO_RETURN,		" (Zero_Return)"},	//  6
     {SSL_ERROR_WANT_CONNECT,		" (Want_Connect)"},	//  7
     {SSL_ERROR_WANT_ACCEPT,		" (Want_Accept)"},	//  8
-# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+# if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(OPENSSL_IS_BORINGSSL)
     {SSL_ERROR_WANT_ASYNC,		" (Want_Async)"},	//  9
 # endif // OPENSSL >= 1.1.x
 # if OPENSSL_VERSION_NUMBER >= 0x30000000L
@@ -1234,6 +1240,7 @@ NetSslTransport::DoHandshake( Error *e )
 	    }
 
 # if OPENSSL_VERSION_NUMBER >= 0x10100000L
+#  if !defined(OPENSSL_IS_BORINGSSL)
 	    // TLS 1.3 can send session-resumption info after the main handshake, which
 	    // will cause us to hang, so since we don't use sessions, disable that.
 	    ERR_clear_error();
@@ -1246,6 +1253,14 @@ NetSslTransport::DoHandshake( Error *e )
 		SSL_set_ciphersuites( ssl, customCipherSuites.Text() );
 		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_ciphersuites custom" );
 	    }
+#  else
+	    // BoringSSL does not support SSL_set_num_tickets or customizing TLS 1.3 cipher suites
+	    // TLS 1.3 ciphers have a built-in preference order
+	    if( customCipherSuites.Length() )
+	    {
+		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_ciphersuites not supported in BoringSSL (TLS 1.3 uses built-in preference)" );
+	    }
+#  endif
 # endif
 	}
 	else
@@ -1273,12 +1288,21 @@ NetSslTransport::DoHandshake( Error *e )
 	    }
 
 # if OPENSSL_VERSION_NUMBER >= 0x10100000L
+#  if !defined(OPENSSL_IS_BORINGSSL)
 	    if( customCipherSuites.Length() )
 	    {
 		ERR_clear_error();
 		SSL_set_ciphersuites( ssl, customCipherSuites.Text() );
 		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_ciphersuites custom" );
 	    }
+#  else
+	    // BoringSSL does not support customizing TLS 1.3 cipher suites
+	    // TLS 1.3 ciphers have a built-in preference order
+	    if( customCipherSuites.Length() )
+	    {
+		SSLLOGFUNCTION( "NetSslTransport::DoHandshake SSL_set_ciphersuites not supported in BoringSSL (TLS 1.3 uses built-in preference)" );
+	    }
+#  endif
 # endif
 
 	    // SNI support
@@ -1683,7 +1707,9 @@ NetSslTransport::SslHandshake( Error *e )
 			switch( ERR_GET_REASON( errErrorNum ) )
 			{
 			    case SSL_R_UNSUPPORTED_PROTOCOL:
-			    case SSL_R_NO_PROTOCOLS_AVAILABLE:
+#if !defined(OPENSSL_IS_BORINGSSL)
+				case SSL_R_NO_PROTOCOLS_AVAILABLE:
+#endif
 				e->Set( MsgRpc::SslProtocolError )
 				    << GetPortParser().String()
 				    << sslErrorBuf;
@@ -1738,7 +1764,7 @@ NetSslTransport::SslHandshake( Error *e )
 
 		// these all fall through as well
 	    case SSL_ERROR_WANT_X509_LOOKUP:
-# if OPENSSL_VERSION_NUMBER >= 0x10100000L
+# if OPENSSL_VERSION_NUMBER >= 0x10100000L && !defined(OPENSSL_IS_BORINGSSL)
 	    case SSL_ERROR_WANT_ASYNC:
 # endif // OPENSSL >= 1.1.x
 # if OPENSSL_VERSION_NUMBER >= 0x30000000L

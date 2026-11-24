@@ -1,0 +1,308 @@
+
+Property.AddIncludePaths_p4api: bool = false
+
+Property
+{
+	PerforceOS: string
+	PerforceOS "MACOSX"
+	{
+		!!PlatformFamily "macOS"
+	}
+	PerforceOS "LINUX"
+	{
+		!!PlatformFamily "Linux"
+	}
+	PerforceOS "NT"
+	{
+		!!PlatformFamily "Windows"
+	}
+
+	// The OS_$(OS)$(OSPLAT:U) that Perforce's Jamrules define on Windows, which the API depends on: with OS_NTX64 it reads the registry's
+	// 32-bit view, where an x64 p4 set stores the settings
+	PerforceOSPlatform: string = ""
+	PerforceOSPlatform "NTX64"
+	{
+		&
+		{
+			PlatformFamily "Windows"
+			Architecture "x64"
+		}
+	}
+	PerforceOSPlatform "NTARM64"
+	{
+		&
+		{
+			PlatformFamily "Windows"
+			Architecture "arm64"
+		}
+	}
+	PerforceOSPlatform "NTX86"
+	{
+		&
+		{
+			PlatformFamily "Windows"
+			Architecture "x86"
+		}
+	}
+}
+
+Compile
+{
+	&
+	{
+		CompileDialect "C"
+		AddIncludePaths_p4api true
+	}
+
+	SearchPath += [
+		"client"->MakeAbsolute()
+		, "sys"->MakeAbsolute()
+		, "support"->MakeAbsolute()
+		, "blake3"->MakeAbsolute()
+		, "msgs"->MakeAbsolute()
+		, "i18n"->MakeAbsolute()
+	]
+	PreprocessorDefines += `OS_@(PerforceOS)`
+	PreprocessorDefines += `OS_@(PerforceOSPlatform)`
+	{
+		!PerforceOSPlatform ""
+	}
+	// The line ends of a client's LineEnd local are CRLF on Windows, as Perforce's Jamrules build the API for NT. Its headers define
+	// LineTypeLocal by it, which the API's users see too.
+	PreprocessorDefines += "USE_CRLF"
+	{
+		!!PlatformFamily "Windows"
+	}
+}
+
+%Target "Lib_p4api"
+{
+	Property
+	{
+		AddIncludePaths_p4api true
+	}
+	Target
+	{
+		BaseName "p4api"
+		Type "StaticLibrary"
+		Group "Libraries/SDK"
+		CharacterSet "MultiByte"
+		{
+			!!PlatformFamily "Windows"
+		}
+		ExtraGroups =+ "{Malterlib}/{Lib_Malterlib_Cryptography}/{DependOnBoringSSL}"
+	}
+	Compile
+	{
+		&
+		{
+			CompileDialect "C"
+			Compiler "Clang"
+		}
+		Warnings_Parentheses false
+		Warnings_UnusedVariable false
+		Warnings_UnusedLabel false
+		Warnings_UnusedFunction false
+		Warnings_UnusedButSetVariable false
+		Warnings_OverloadedVirtual false
+		Warnings_CharSubscripts false
+		Warnings_Cxx11Narrowing false
+		Warnings_DeprecatedDeclarations false
+	}
+	Compile
+	{
+		!!CompileDialect "C"
+		Analyzer false
+		DynamicTypeInfo true // support/specdatajson.cc uses dynamic_cast
+
+		SearchPath += [
+			"../../External/zlib/contrib/minizip"->MakeAbsolute()
+			, "dbsupp"->MakeAbsolute()
+			, "diff"->MakeAbsolute()
+			, "net"->MakeAbsolute()
+			, "dme"->MakeAbsolute()
+			, "dmec"->MakeAbsolute()
+			, "map"->MakeAbsolute()
+			, "script"->MakeAbsolute()
+			, "../../Malterlib/SQL/SourceGenerated/SQLite"->MakeAbsolute()
+		]
+		SearchPath += "rpc"->MakeAbsolute()
+		PreprocessorDefines += ["USE_SSL", "HAS_CPP11", "P4_API_ONLY", "NEED_ALL", `OS_@(PerforceOS)`, `ID_OS="@(PerforceOS)"`, `ID_REL="@(ProductVersionMajor).@(ProductVersionMinor)"`, `ID_PATCH="@(ProductVersionRevision)"`, `ID_Y=""`, "ID_M=\"\"", "ID_D=\"\""]
+		PreprocessorDefines += "_CRT_RAND_S"
+		{
+			!!PlatformFamily "Windows"
+		}
+		PreprocessorDefines += "CASE_INSENSITIVE" // p4 folds case where Perforce's Jamrules build it so, for NT and MACOSX
+		{
+			!!PlatformFamily "Windows"
+			!!PlatformFamily "macOS"
+		}
+		Warnings_UnusedFunction false
+		{
+			!!Compiler "Clang"
+		}
+	}
+	%Group "Source"
+	{
+ /*		%File "^*"
+		{
+			Compile.Disabled true
+		}*/
+		%Group "client"
+		{
+			%File "client/*.cc"
+			%File "client/*.h"
+		}
+		%Group "rpc"
+		{
+			%File "rpc/*.cc"
+			%File "rpc/*.h"
+		}
+		%Group "support"
+		{
+			%File "support/*.cc"
+			%File "support/*.h"
+		}
+		%Group "msgs"
+		{
+			%File "msgs/*.cc"
+			%File "msgs/*.h"
+			%File "msgs/msghelp.cc"
+			{
+				Compile.Disabled true
+			}
+			%File "msgs/msgconfig.cc"
+			{
+				Compile.Disabled true
+			}
+			%File "msgs/rustlegal.cc"
+			{
+				Compile.Disabled true
+			}
+		}
+		%Group "sys"
+		{
+			%File "sys/*.h"
+			%File "sys/applefork.cc"
+			%File "sys/echoctl.cc"
+			%File "sys/enviro.cc"
+			%File "sys/errorlog.cc"
+			%File "sys/fblreader.cc"
+			%File "sys/filecheck.cc"
+			%File "sys/filegen.cc"
+			%File "sys/filedirs.cc"
+			%File "sys/fileio.cc"
+			%File "sys/fileiobuf.cc"
+			%File "sys/fileiosym.cc"
+			%File "sys/fileiouni.cc"
+			%File "sys/fileiozip.cc"
+			%File "sys/filemkdir.cc"
+			%File "sys/filespace.cc"
+			%File "sys/filestrbuf.cc"
+			%File "sys/filesys.cc"
+			%File "sys/filetar.cc"
+			%File "sys/filetmp.cc"
+			%File "sys/gzip.cc"
+			%File "sys/hostenv.cc"
+			%File "sys/fdutil.cc"
+			%File "sys/pathmac.cc"
+			%File "sys/pathnt.cc"
+			%File "sys/pathunix.cc"
+			%File "sys/pathsys.cc"
+			%File "sys/pathvms.cc"
+			%File "sys/pid.cc"
+			%File "sys/readfile.cc"
+			%File "sys/resvmem.cc"
+			%File "sys/runcmd.cc"
+			%File "sys/rusage.cc"
+			%File "sys/signaler.cc"
+			%File "sys/stdhdrs.cc"
+			%File "sys/sysinfo.cc"
+			%File "sys/threading.cc"
+			%File "sys/timer.cc"
+			%File "sys/zipfile.cc"
+			%File "sys/pipeio.cc"
+			
+			%File "sys/macfile.cc"
+			{
+				!!PlatformFamily "macOS"
+			}
+			%File "sys/fileioappm.cc"
+			{
+				!!PlatformFamily "macOS"
+			}
+			%File "sys/fileiomac.cc"
+			{
+				!!PlatformFamily "macOS"
+			}
+			%File "sys/macutil.m"
+			{
+				!!PlatformFamily "macOS"
+			}
+			%File "sys/fileioapp.cc"
+			{
+				!PlatformFamily "macOS"
+			}
+
+			%File "sys/fileiont.cc"
+			{
+				!!PlatformFamily "Windows"
+			}
+			%File "sys/fileiont2.cc"
+			{
+				!!PlatformFamily "Windows"
+			}
+			%File "sys/ntmangle.cc"
+			{
+				!!PlatformFamily "Windows"
+			}
+			%File "sys/nterror.cc"
+			{
+				!!PlatformFamily "Windows"
+			}
+			%File "sys/ntinvargs.cc"
+			{
+				!!PlatformFamily "Windows"
+			}
+			%File "sys/ntservice.cc"
+			{
+				!!PlatformFamily "Windows"
+			}
+			%File "sys/ntthdlist.cc"
+			{
+				!!PlatformFamily "Windows"
+			}
+			%File "sys/runshell.cc"
+			{
+				!!PlatformFamily "Windows"
+			}
+		}
+		%Group "i18n"
+		{
+			%File "i18n/*.h"
+			%File "i18n/*.cc"
+		}
+		%Group "diff"
+		{
+			%File "diff/*.h"
+			%File "diff/*.cc"
+		}
+		%Group "net"
+		{
+			%File "net/*.h"
+			%File "net/*.cc"
+		}
+		%Group "map"
+		{
+			%File "map/*"
+		}
+	}
+	%Dependency "Lib_zlib"
+	{
+		Dependency.Indirect true
+	}
+	%Dependency "Lib_CURL_libcurl_static"
+	{
+		Dependency.Indirect true
+	}
+}

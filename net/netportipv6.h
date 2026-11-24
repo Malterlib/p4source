@@ -29,7 +29,9 @@
 	 */
 	# if !defined(_WIN32_WINNT) || (_WIN32_WINNT < 0x0600)
 	#   undef _WIN32_WINNT
-	#   define _WIN32_WINNT     0x0600
+	#   define _WIN32_WINNT     _WIN32_WINNT_VISTA
+	#   undef NTDDI_VERSION
+	#   define NTDDI_VERSION    NTDDI_VISTA
 	# endif // _WIN32_WINNT
 	
 	# if defined(_MSC_VER) && (_MSC_VER >= 1500)

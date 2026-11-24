@@ -10,7 +10,7 @@
 # include <strarray.h>
 # include <strtable.h>
 # include <runcmd.h>
-# include <rpc.h>
+# include <p4rpc.h>
 # include <i18napi.h>
 # include <signaler.h>
 # include <p4libs.h>
@@ -229,7 +229,7 @@ ThreadedTransfer::Transfer( ClientApi *client,
 	    }
 	    // Throw away the error since it only shows up on ctrl-c:
 	    // "device or resource busy: device or resource busy"
-	    catch( const std::exception& e )
+	    catch( const std::exception &)
 	    {}
 
 	// Return to unmasked signal state.

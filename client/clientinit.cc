@@ -21,7 +21,7 @@
 # include <strtable.h>
 # include <error.h>
 # include <options.h>
-# include <rpc.h>
+# include <p4rpc.h>
 
 # include <filesys.h>
 # include <handler.h>

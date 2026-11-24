@@ -27,7 +27,7 @@
 
 # include <p4tags.h>
 
-# include "rpc.h"
+# include "p4rpc.h"
 # include "rpcservice.h"
 
 // Dispatch functions available to all callers.

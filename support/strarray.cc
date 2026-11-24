@@ -310,7 +310,7 @@ StrPtrArray::Extend( int newSize, Error* e /* = 0 */ )
 	    try { 
 		newtabVal = new StrRef[ newSize ];
 	    } 
-	    catch( const std::bad_alloc& ex ) 
+	    catch( const std::bad_alloc& ) 
 	    { 
 		if( e ) e->Set( MsgDb::MaxMemory );
 		return false; 
