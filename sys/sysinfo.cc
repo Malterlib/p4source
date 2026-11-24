@@ -269,15 +269,24 @@ SystemInfo::CheckForAtomicRename( )
 	    return 0;
 	}
 
+	// Malterlib: later versions than Windows 10 support it, which the checks
+	// below left at -1, for not checked yet
+	if( major > 10 || major == 10 && minor > 0 )
+	{
+	    AtomicRenameSupported = 1;
+	    return 1;
+	}
+
 	if( major == 10 )
 	{
 	    if( minor == 0 )
 	    {
 	        if( ptype == VER_NT_WORKSTATION )
 	        {
-	            if( build < 10240 )
+	            if( build < 19044 )
 	            {
-	                // Earlier then Windows 10
+	                // Malterlib: earlier than build 19044, which upstream
+	                // supports workstations from, also from Windows 10
 	                AtomicRenameSupported = 0;
 	            }
 	            if( build >= 19044 )
