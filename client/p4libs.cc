@@ -105,7 +105,7 @@ void P4Libraries::Initialize( const int libraries, Error* e )
 	    rpmalloc_initialize();
 # endif
 	    DateTime::Centralize( 0 );
-	    signaler.Init();
+	    (*signaler).Init();
 	    NetUtils::InitNetwork();
 
 	    // Nothing for ErrorLog's global AssertLog instance.
@@ -200,7 +200,7 @@ void P4Libraries::Shutdown( const int libraries, Error* e )
 
 	if( libraries & P4LIBRARIES_INIT_P4 )
 	{
-	    signaler.Disable();
+	    (*signaler).Disable();
 
 	    // The global CharSetCvtCache cleans itself up.
 

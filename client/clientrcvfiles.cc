@@ -30,7 +30,7 @@
 
 class ThreadedKeepAlive : public KeepAlive {
     public:
-	int		IsAlive() { return !signaler.IsIntr(); }
+	int		IsAlive() { return !(*signaler).IsIntr(); }
 } ;
 
 class ThreadedTransfer : public ClientTransfer, public ClientUser
@@ -137,7 +137,7 @@ ThreadedTransfer::RunTransfer( ClientApi *client,
 	if( strcmp(cmd, "transmit") == 0 )
 	{
 	    transmit++;
-	    signaler.Mask();
+	    (*signaler).Mask();
 	}
 
 	child.SetArgv( args->Count(), a );
@@ -149,7 +149,7 @@ ThreadedTransfer::RunTransfer( ClientApi *client,
 	// Ok to interactively take Control-C's again.
 
 	if( transmit )
-	    signaler.Unmask();
+	    (*signaler).Unmask();
 
 	if( e.Test() )
 	{
@@ -206,13 +206,13 @@ ThreadedTransfer::Transfer( ClientApi *client,
 	// over masking, this does mean consistency can not be managed
 	// if signals are disabled.
 
-	const bool sigState = signaler.GetState();
+	const bool sigState = (*signaler).GetState();
 
 	// In change 1695837, signals were disabled here.  For Control-C
 	// consistency handling we need to mask Control-C's but leave
 	// them enabled.
 
-	signaler.Mask();
+	(*signaler).Mask();
 
 	const bool extState = client->ExtensionsEnabled();
 	client->DisableExtensions();
@@ -234,12 +234,12 @@ ThreadedTransfer::Transfer( ClientApi *client,
 
 	// Return to unmasked signal state.
 
-	signaler.Unmask();
+	(*signaler).Unmask();
 
 	// Restore previous enable/disable signal state.
 
 	if( !sigState )
-	    signaler.Enable();
+	    (*signaler).Enable();
 
 	if( extState )
 	    client->EnableExtensions( e );
