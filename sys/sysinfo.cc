@@ -222,6 +222,30 @@ int
 SystemInfo::WindowsVersionInfo( DWORD &major, DWORD &minor, DWORD &build,
 	WORD &ptype )
 {
+	// Malterlib: RtlGetVersion reports the version of Windows, where
+	// GetVersionEx reports Windows 8 to an application whose manifest
+	// doesn't name a later version. Looked up on each call, as the
+	// callers cache what they find out.
+	LONG (WINAPI *rtlGetVersion)( PRTL_OSVERSIONINFOW ) = 0;
+	(FARPROC &)rtlGetVersion = GetProcAddress(
+	        GetModuleHandleW( L"ntdll.dll" ), "RtlGetVersion" );
+
+	if( rtlGetVersion )
+	{
+	    OSVERSIONINFOEXW osiw;
+
+	    ZeroMemory( &osiw, sizeof(OSVERSIONINFOEXW) );
+	    osiw.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEXW);
+	    if( rtlGetVersion( (PRTL_OSVERSIONINFOW) &osiw ) == 0 )
+	    {
+		major = osiw.dwMajorVersion;
+		minor = osiw.dwMinorVersion;
+		build = osiw.dwBuildNumber;
+		ptype = osiw.wProductType;
+		return 1;
+	    }
+	}
+
 	OSVERSIONINFOEX osi;
 
 	ZeroMemory( &osi, sizeof(OSVERSIONINFOEX) );
@@ -337,10 +361,11 @@ SystemInfo::CheckForDevSymlink()
 	if( DevSymlinkSupported >= 0)
 	    return DevSymlinkSupported;
 
-	// Enable for Win10+
+	// Enable for Win10+, from build 14972, which first takes
+	// SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE
 	DevSymlinkSupported = 
 	    WindowsVersionInfo( major, minor, build, ptype ) &&
-	    major >= 10;
+	    ( major > 10 || major == 10 && ( minor > 0 || build >= 14972 ) );
 
 	return DevSymlinkSupported;
 }
