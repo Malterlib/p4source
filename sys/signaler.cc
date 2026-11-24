@@ -134,17 +134,23 @@ Signaler::IsMaskedIntr() const
 void
 Signaler::Block()
 {
+	// Malterlib: the process that embeds the API handles SIGINT
+# ifndef DMalterlib
 	// Ignore signals
 	// Apparently, if we just reinstall the default signal
 	// handle (SIG_DFL) and we get a SIGINT while in system(),
 	// it isn't ignored, dispite manual pages.  FreeBSD.
 
 	signal( SIGINT, SIG_IGN );
+# endif
 }
 
 void
 Signaler::Catch()
 {
+	// Malterlib: the process that embeds the API handles SIGINT, so Intr()
+	// never runs in a signal handler, where nothing it does is safe
+# ifndef DMalterlib
 	// Install our handler
 
 	istat = signal( SIGINT, onintr );
@@ -154,6 +160,7 @@ Signaler::Catch()
         if( istat != SIG_TYPECAST( SIG_DFL ) &&
 	    istat != SIG_TYPECAST( SIG_IGN ) )
 		signal( SIGINT, istat );
+# endif
 }
 
 void
