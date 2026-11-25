@@ -36,6 +36,9 @@
 # include <charcvt.h>
 # include <debug.h>
 # include <tunable.h>
+# include <strdict.h>
+# include <strtable.h>
+# include <charset.h>
 # include "enviro.h"
 
 # include <locale.h>
@@ -232,6 +235,10 @@ Enviro::Enviro()
 	charset = 0;
 	configFiles = new StrArray;
 	gen = 0;
+	environment = 0;
+	enviroFileSet = 0;
+	fileFilter = 0;
+	fileFilterContext = 0;
 
 	EnviroItem testRegPath;
 
@@ -250,6 +257,7 @@ Enviro::~Enviro()
 	delete configFiles;
 	delete userKey;
 	delete serverKey;
+	delete environment;
 }
 
 int
@@ -334,6 +342,8 @@ Enviro::ReadItemPlatform( ItemType type, const char *var, EnviroItem * a )
 	    break;
         
 	    case ENV:
+	        if( environment )
+	            return ReadEnvironment( var, a );
 	        if( ( isUnicode && GetEnvW( var, a ) ) || GetEnv( var, a ) )
 	            return true;
 	    break;
@@ -773,12 +783,17 @@ Enviro::Enviro()
 	symbolTab = 0;
 	configFiles = new StrArray;
 	gen = 0;
+	environment = 0;
+	enviroFileSet = 0;
+	fileFilter = 0;
+	fileFilterContext = 0;
 }
 
 Enviro::~Enviro()
 {
 	delete symbolTab;
 	delete configFiles;
+	delete environment;
 }
 
 int
@@ -808,6 +823,9 @@ Enviro::ReadItemPlatform( ItemType type, const char *var, EnviroItem * a )
 {
 	if ( type != ENV )
 	    return false;
+
+	if( environment )
+	    return ReadEnvironment( var, a );
 
 	char *c = NULL;
 	if( ( c = getenv( var ) ) )
@@ -914,6 +932,19 @@ Enviro::Enviro( const Enviro &rhs )
 
 	configFiles = new StrArray;
 	rhs.configFiles->Copy( configFiles );
+
+	// StrBufDict's implicit copy constructor shares the variables of the
+	// one it copies; its StrDict constructor copies them.
+
+	environment = 0;
+	if( rhs.environment )
+	{
+	    StrDict &rhsEnvironment = *rhs.environment;
+	    environment = new StrBufDict( rhsEnvironment );
+	}
+	enviroFileSet = 0;
+	fileFilter = rhs.fileFilter;
+	fileFilterContext = rhs.fileFilterContext;
 
 # ifdef OS_NT
 	setKey = rhs.setKey ? new KeyPair( *(rhs.setKey) ) : 0;
@@ -1311,6 +1342,8 @@ Enviro::LoadConfig( const StrPtr &cwd, int checkSyntax )
 
 	    e.Clear();
 	    q->SetLocal( *p, setFile );
+	    if( !FilterFile( q->Text(), p->Text() ) )
+		continue;
 	    f->Set( *q );
 	    f->Open( FOM_READ, &e );
 
@@ -1344,7 +1377,7 @@ Enviro::LoadEnviro( int checkSyntax )
 
 	const StrPtr *envFile = GetEnviroFile();
 
-	if( !envFile )
+	if( !envFile || !FilterFile( envFile->Text(), 0 ) )
 	    return;
 
 	// client up the directory tree, looking for setFile
@@ -1396,6 +1429,7 @@ Enviro::SetEnviroFile( const char *f )
 	}
 
 	enviroFile.Set( f ? f : "" );
+	enviroFileSet = enviroFile.Length() != 0;
 
 }
 
@@ -1434,6 +1468,25 @@ Enviro::GetEnviroFile()
 	return &enviroFile;
 }
 
+# if !defined( OS_NT )
+/*
+ * Malterlib: ResolveEnviroLink() - the file a symbolic link to a file leads
+ * to, through every link on the way, or false where the links don't end at
+ * a file.
+ */
+
+static bool
+ResolveEnviroLink( const StrPtr &path, StrBuf &resolved )
+{
+	char target[ PATH_MAX ];
+	if( !realpath( path.Text(), target ) )
+	    return false;
+
+	resolved.Set( target );
+	return true;
+}
+# endif
+
 int
 Enviro::SetEnviro( const char *var, const char *value, Error *e )
 {
@@ -1460,11 +1513,33 @@ Enviro::SetEnviro( const char *var, const char *value, Error *e )
 
 	e->Clear();
 	f->Set( *envFile );
-	f->Open( FOM_READ, e );
 
-	if( !e->Test() )
+	// Malterlib: outside NT a file that is there and isn't regular, as a FIFO, which an open waits on, isn't written, nor is a
+	// symbolic link to nothing, through which the write would create its target, and a link to a file stays, with the file it leads
+	// to written in its place. A missing file is created. NT writes the file at the path, as p4 does.
+	StrBuf target = *envFile;
+	int special = 0;
+# if !defined( OS_NT )
+	int fileStat = f->Stat();
+	special = ( fileStat & FSF_EXISTS ) ? ( fileStat & FSF_SPECIAL ) != 0 : ( fileStat & FSF_SYMLINK ) != 0;
+	if( !special && ( fileStat & FSF_SYMLINK ) )
 	{
-	    newf->MakeLocalTemp( envFile->Text() );
+	    if( ResolveEnviroLink( *envFile, target ) )
+		f->Set( target );
+	    else
+		special = 1;
+	}
+# endif
+	if( !special )
+	    f->Open( FOM_READ, e );
+
+	if( special )
+	{
+	    // Neither read nor written: didwrite stays 0, which fails the call, as a file that can't be written does.
+	}
+	else if( !e->Test() )
+	{
+	    newf->MakeLocalTemp( target.Text() );
 	    newf->SetDeleteOnClose();
 	    newf->Perms( FPM_RW );
 
@@ -1631,4 +1706,137 @@ Enviro::GetHome( StrBuf &result )
 	}
 
 	return( result.Length() ? 1 : 0 );
+}
+
+# ifdef OS_NT
+# include <Mib/Core/PlatformSpecific/WindowsString>
+
+/*
+ * Malterlib: UpperEnvironmentName() - a name in UTF-8 in upper case, as NT
+ * compares the names of its environment, also of letters outside ASCII,
+ * which StrOps::Upper leaves: Malterlib's fold of them, which its reading
+ * of the settings shares.
+ */
+
+static void
+UpperEnvironmentName( StrBuf &name )
+{
+	NMib::NStr::CStr upper = NMib::NStr::NPlatform::fg_WindowsUpperCaseName( NMib::NStr::CStr( name.Text(), umint( name.Length() ) ) );
+	name.Set( upper.f_GetStr(), (p4size_t)upper.f_GetLen() );
+}
+# endif
+
+/*
+ * Malterlib: Enviro::SetEnvironment() - the environment the settings are
+ * read from in place of the process's, copied, with its names and values
+ * in UTF-8, or null for the process's.  On NT it also gives the path
+ * P4TEST_REGISTRY_PATH_T4_TEST replaces the registry keys' with.  It
+ * forgets what was read and set before, so it is set first.
+ */
+
+void
+Enviro::SetEnvironment( StrDict *env )
+{
+	delete environment;
+	environment = 0;
+
+	if( env )
+	{
+	    environment = new StrBufDict;
+	    StrRef var, val;
+	    for( int i = 0; env->GetVar( i, var, val ); i++ )
+	    {
+		StrBuf name( var );
+# ifdef OS_NT
+		// The environment of NT ignores the case of names.
+		UpperEnvironmentName( name );
+# endif
+		environment->SetVar( name, val );
+	    }
+	}
+
+# ifdef OS_NT
+	EnviroItem testRegPath;
+	const char *path = "software\\perforce\\environment";
+	if( ReadItemPlatform( ENV, "P4TEST_REGISTRY_PATH_T4_TEST", &testRegPath ) )
+	    path = testRegPath.value.Text();
+	userKey->ReplaceKey( path );
+	serverKey->ReplaceKey( path );
+# endif
+
+	// An enviro file the environment named, through P4ENVIRO or HOME, is
+	// found again in the new one, while one SetEnviroFile set stays.
+	if( !enviroFileSet )
+	    enviroFile.Clear();
+
+	Reload();
+}
+
+/*
+ * Malterlib: Enviro::ReadEnvironment() - a variable of the environment
+ * SetEnvironment gives, as the process's is read: on NT in the code page,
+ * with its best-fit conversion, as GetEnvironmentVariableA reads it, unless
+ * the settings' charset is a Unicode one.
+ */
+
+bool
+Enviro::ReadEnvironment( const char *var, EnviroItem *a )
+{
+	StrBuf name( var );
+# ifdef OS_NT
+	// Without a Unicode charset a name is asked for in the code page, as
+	// a learned P4_<port>_CHARSET's port can be, while the environment's
+	// names are in UTF-8.
+	if( !CharSetApi::isUnicode( (CharSetApi::CharSet)charset ) )
+	{
+	    NMib::NStr::CStr decoded;
+	    NMib::NStr::NPlatform::fg_SystemDecodeAnsiStr( var, decoded );
+	    name.Set( decoded.f_GetStr() );
+	}
+	UpperEnvironmentName( name );
+# endif
+	StrPtr *value = environment->GetVar( name );
+	if( !value )
+	    return false;
+
+	a->value.Set( *value );
+# ifdef OS_NT
+	if( !CharSetApi::isUnicode( (CharSetApi::CharSet)charset ) )
+	{
+	    NMib::NStr::CAnsiStr encoded;
+	    NMib::NStr::NPlatform::fg_SystemEncodeAnsiStr( NMib::NStr::CStr( value->Text(), umint( value->Length() ) ), encoded, '?' );
+	    a->value.Set( encoded.f_GetStr() );
+	}
+# endif
+	a->type = ENV;
+	return true;
+}
+
+/*
+ * Malterlib: Enviro::SetFileFilter() - a filter the P4CONFIG and enviro
+ * files are given to before they are opened, with the path in the charset
+ * of the settings, for a P4CONFIG file the directory LoadConfig walks,
+ * null for the enviro file, and the context.  A file it returns 0 for is
+ * read as missing.  The context is borrowed, by copies of the Enviro too,
+ * so it outlives them.
+ */
+
+void
+Enviro::SetFileFilter( int (*filter)( const char *path, int charset, const char *directory, void *context ), void *context )
+{
+	fileFilter = filter;
+	fileFilterContext = context;
+}
+
+int
+Enviro::FilterFile( const char *path, const char *directory )
+{
+	if( !fileFilter )
+	    return 1;
+# ifdef OS_NT
+	// The charset the file is opened with: a FileSys takes the global one where the Enviro has none.
+	return fileFilter( path, charset ? charset : GlobalCharSet::Get(), directory, fileFilterContext );
+# else
+	return fileFilter( path, 0, directory, fileFilterContext );
+# endif
 }

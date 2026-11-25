@@ -30,6 +30,8 @@ class StrBuf;
 class StrPtr;
 class StrArray;
 class FileSys;
+class StrDict;
+class StrBufDict;
 struct KeyPair;
 
 class Enviro {
@@ -93,6 +95,9 @@ class Enviro {
 
 	int		GetGen() const { return gen; }
 
+	void		SetEnvironment( StrDict *environment );
+	void		SetFileFilter( int (*filter)( const char *path, int charset, const char *directory, void *context ), void *context = 0 );
+
     private:
 
 	EnviroTable	*symbolTab;
@@ -102,14 +107,21 @@ class Enviro {
 	void		Setup();
 
 	bool		ReadItemPlatform( ItemType type, const char *var, EnviroItem * item );
+	bool		ReadEnvironment( const char *var, EnviroItem *item );
+	int		FilterFile( const char *path, const char *directory );
 	int		SetEnviro( const char *var, const char *value, Error *e );
 	
 	StrBuf		configFile;
 	StrArray	*configFiles;
 	StrBuf		enviroFile;
+	int		enviroFileSet;	// Malterlib: SetEnviroFile set enviroFile, which the environment otherwise gives
 	StrBuf		serviceName;
 
 	P4INT64		gen;
+
+	StrBufDict	*environment;
+	int		(*fileFilter)( const char *path, int charset, const char *directory, void *context );
+	void		*fileFilterContext;
 
 	// used for netsslcredentials to get at service name
 	static const StrPtr *sServiceNameStrP;
