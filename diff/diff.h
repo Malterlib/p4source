@@ -52,6 +52,11 @@ class Diff {
 
 	void		DiffContext( int c = 0 );
 	void		DiffUnified( int c = 0 );
+
+	// Malterlib: the ranges DiffUnified( 0 ) heads its chunks with.
+	typedef void	(*RangeFn)( void *context, LineNo oldFirst,
+				LineNo oldCount, LineNo newFirst, LineNo newCount );
+	void		DiffRanges( RangeFn fn, void *context );
         void            DiffUnifiedDeleteFile( FileSys *f, Error *e );
 	void		DiffNorm();
 	void		DiffRcs();

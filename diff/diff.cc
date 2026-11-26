@@ -373,6 +373,31 @@ Diff::DiffUnified( int c )
 }
 
 /*
+ * Malterlib: Diff::DiffRanges() - each chunk of differences as DiffUnified( 0 )
+ * gives its header, without the text: the first line on either side,
+ * one-based, which is the line in front of which the chunk stands where
+ * the side has no lines, and the number of lines on either side.
+ */
+
+void
+Diff::DiffRanges( RangeFn fn, void *context )
+{
+	Snake *s = diff->GetSnake();
+	Snake *t;
+
+	while( ( t = s->next ) )
+	{
+	    // Join the chunks an empty snake parts, as DiffUnified does.
+
+	    while( t->next && t->x >= t->u )
+		t = t->next;
+
+	    fn( context, s->u + 1, t->x - s->u, s->v + 1, t->y - s->v );
+	    s = t;
+	}
+}
+
+/*
  * DiffContext
  */
 
