@@ -268,7 +268,7 @@ PathNT::ToParent( StrBuf *file )
 
 	delete s;
 
-	if( slast + 1 == end )
+	if( slast && slast + 1 == end )
 	    slast = snotquitelast;
 
 	if ( slast )
